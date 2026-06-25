@@ -30,6 +30,8 @@ public final class ModNetworking {
                 FluidVaultSnapshotPacket::decode, FluidVaultSnapshotPacket::handle);
         CHANNEL.registerMessage(3, FilterGhostPacket.class, FilterGhostPacket::encode, FilterGhostPacket::decode,
                 FilterGhostPacket::handle);
+        CHANNEL.registerMessage(4, ConfiguratorLineDetailsPacket.class, ConfiguratorLineDetailsPacket::encode,
+                ConfiguratorLineDetailsPacket::decode, ConfiguratorLineDetailsPacket::handle);
     }
 
     public static void sendMenuAction(int action) {

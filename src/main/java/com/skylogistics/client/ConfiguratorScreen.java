@@ -3,29 +3,48 @@ package com.skylogistics.client;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
+import com.skylogistics.network.ConfiguratorLineDetailsPacket;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
+    private static final int DETAIL_X = 14;
+    private static final int DETAIL_Y = 76;
+    private static final int DETAIL_WIDTH = 226;
+    private static final int DETAIL_HEIGHT = 76;
+    private static final int DETAIL_ROW_HEIGHT = 18;
+    private static final int DETAIL_VISIBLE_ROWS = DETAIL_HEIGHT / DETAIL_ROW_HEIGHT;
+    private static final int DETAIL_ICON_X = DETAIL_X + 5;
+    private static final int DETAIL_TEXT_X = DETAIL_X + 25;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
     private RedstoneButton redstoneButton;
+    private UUID detailLine;
+    private int detailScroll;
 
     public ConfiguratorScreen(ConfiguratorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 224;
-        imageHeight = 168;
+        imageWidth = 254;
+        imageHeight = 244;
         inventoryLabelY = 10_000;
     }
 
@@ -35,18 +54,18 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         lineButtons.clear();
         typeButtons.clear();
         priorityButtons.clear();
-        addLineButton(leftPos + 86, topPos + 17, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 111, topPos + 17, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 134, topPos + 17, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 161, topPos + 17, 22, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 186, topPos + 17, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addLineButton(leftPos + 116, topPos + 17, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 141, topPos + 17, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 164, topPos + 17, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 191, topPos + 17, 22, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 216, topPos + 17, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
 
-        addTypeButton(leftPos + 54, topPos + 76, ResourceType.ITEMS);
-        addTypeButton(leftPos + 108, topPos + 76, ResourceType.FLUIDS);
-        addTypeButton(leftPos + 162, topPos + 76, ResourceType.ENERGY);
-        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 54, topPos + 102));
-        addPriorityButton(leftPos + 54, topPos + 128, -1, Component.literal("-"));
-        addPriorityButton(leftPos + 128, topPos + 128, 1, Component.literal("+"));
+        addTypeButton(leftPos + 54, topPos + 166, ResourceType.ITEMS);
+        addTypeButton(leftPos + 108, topPos + 166, ResourceType.FLUIDS);
+        addTypeButton(leftPos + 162, topPos + 166, ResourceType.ENERGY);
+        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 54, topPos + 192));
+        addPriorityButton(leftPos + 54, topPos + 218, -1, Component.literal("-"));
+        addPriorityButton(leftPos + 128, topPos + 218, 1, Component.literal("+"));
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -71,6 +90,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     protected void containerTick() {
         super.containerTick();
         ItemStack stack = stack();
+        ConfiguratorItem.ToolConfig currentConfig = config();
+        UUID currentLine = currentConfig == null ? null : currentConfig.lineId();
+        if (!Objects.equals(detailLine, currentLine)) {
+            detailLine = currentLine;
+            detailScroll = 0;
+        }
+        detailScroll = Mth.clamp(detailScroll, 0, maxDetailScroll(currentLine));
         int index = ConfiguratorItem.lineIndex(stack);
         int count = ConfiguratorItem.lineCount(stack);
         for (LineButton button : lineButtons) {
@@ -92,6 +118,17 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    @Override
+    protected void renderTooltip(GuiGraphics graphics, int x, int y) {
+        ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailIcon(x, y);
+        if (entry != null) {
+            graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry),
+                    Component.literal(pos(entry.targetPos()) + " " + entry.dimension())), x, y);
+            return;
+        }
+        super.renderTooltip(graphics, x, y);
     }
 
     @Override
@@ -121,14 +158,148 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_monitor",
                         menu.getLineNodes(), menu.getLineInputs(), menu.getLineOutputs()),
                 14, 56, ConfigPanel.MUTED, false);
+        renderLineDetails(graphics, config);
         graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
-                14, 82, ConfigPanel.MUTED, false);
+                14, 172, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
-                14, 108, ConfigPanel.MUTED, false);
+                14, 198, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                14, 134, ConfigPanel.MUTED, false);
+                14, 224, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.literal(String.valueOf(config.placement().priority())),
-                96, 134, ConfigPanel.TEXT, false);
+                96, 224, ConfigPanel.TEXT, false);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        ConfiguratorItem.ToolConfig config = config();
+        if (config != null && isOverDetails(mouseX, mouseY)) {
+            int maxScroll = maxDetailScroll(config.lineId());
+            if (maxScroll > 0) {
+                detailScroll = Mth.clamp(detailScroll - (int) Math.signum(delta), 0, maxScroll);
+                return true;
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
+        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces"),
+                DETAIL_X, DETAIL_Y - 11, ConfigPanel.MUTED, false);
+        if (entries.size() > DETAIL_VISIBLE_ROWS) {
+            int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
+            graphics.drawString(font, Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size()),
+                    DETAIL_X + DETAIL_WIDTH - 44, DETAIL_Y - 11, ConfigPanel.MUTED, false);
+        }
+        borderedBox(graphics, DETAIL_X, DETAIL_Y, DETAIL_WIDTH, DETAIL_HEIGHT, 0xFF0A141B, 0xFF2D4D5A);
+        if (entries.isEmpty()) {
+            graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces_empty"),
+                    DETAIL_X + 8, DETAIL_Y + 30, ConfigPanel.MUTED, false);
+            return;
+        }
+        int maxScroll = maxDetailScroll(config.lineId());
+        detailScroll = Mth.clamp(detailScroll, 0, maxScroll);
+        for (int row = 0; row < DETAIL_VISIBLE_ROWS; row++) {
+            int index = detailScroll + row;
+            if (index >= entries.size()) {
+                break;
+            }
+            ConfiguratorLineDetailsPacket.Entry entry = entries.get(index);
+            int y = DETAIL_Y + 2 + row * DETAIL_ROW_HEIGHT;
+            if (row % 2 == 1) {
+                graphics.fill(DETAIL_X + 1, y - 1, DETAIL_X + DETAIL_WIDTH - 1,
+                        y + DETAIL_ROW_HEIGHT - 1, 0x22000000);
+            }
+            ItemStack icon = targetIcon(entry);
+            if (icon.isEmpty()) {
+                graphics.drawString(font, "?", DETAIL_ICON_X + 5, y + 5, ConfigPanel.MUTED, false);
+            } else {
+                graphics.renderItem(icon, DETAIL_ICON_X, y);
+            }
+            graphics.drawString(font, trimToWidth(detailMainLine(entry), DETAIL_WIDTH - 36),
+                    DETAIL_TEXT_X, y, modeColor(entry.mode()), false);
+            graphics.drawString(font, trimToWidth(detailCoordinateLine(entry), DETAIL_WIDTH - 36),
+                    DETAIL_TEXT_X, y + 9, ConfigPanel.MUTED, false);
+        }
+    }
+
+    private boolean isOverDetails(double mouseX, double mouseY) {
+        return mouseX >= leftPos + DETAIL_X && mouseX < leftPos + DETAIL_X + DETAIL_WIDTH
+                && mouseY >= topPos + DETAIL_Y && mouseY < topPos + DETAIL_Y + DETAIL_HEIGHT;
+    }
+
+    private int maxDetailScroll(UUID lineId) {
+        int size = ClientConfiguratorLineDetails.entries(lineId).size();
+        return Math.max(0, size - DETAIL_VISIBLE_ROWS);
+    }
+
+    private String detailMainLine(ConfiguratorLineDetailsPacket.Entry entry) {
+        return Component.translatable(entry.mode().translationKey()).getString() + " "
+                + resourceFlags(entry) + " P" + entry.priority() + " "
+                + Component.translatable(entry.redstoneControl().translationKey()).getString();
+    }
+
+    private String detailCoordinateLine(ConfiguratorLineDetailsPacket.Entry entry) {
+        return pos(entry.targetPos()) + " " + entry.dimension();
+    }
+
+    private String resourceFlags(ConfiguratorLineDetailsPacket.Entry entry) {
+        return (entry.itemsEnabled() ? Component.translatable("screen.skylogistics.resource_short.items").getString() : "-")
+                + (entry.fluidsEnabled() ? Component.translatable("screen.skylogistics.resource_short.fluids").getString() : "-")
+                + (entry.energyEnabled() ? Component.translatable("screen.skylogistics.resource_short.energy").getString() : "-");
+    }
+
+    private String pos(BlockPos pos) {
+        return pos.getX() + "," + pos.getY() + "," + pos.getZ();
+    }
+
+    private ConfiguratorLineDetailsPacket.Entry hoveredDetailIcon(double mouseX, double mouseY) {
+        ConfiguratorItem.ToolConfig config = config();
+        if (config == null) {
+            return null;
+        }
+        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        for (int row = 0; row < DETAIL_VISIBLE_ROWS; row++) {
+            int index = detailScroll + row;
+            if (index >= entries.size()) {
+                break;
+            }
+            int x = leftPos + DETAIL_ICON_X;
+            int y = topPos + DETAIL_Y + 2 + row * DETAIL_ROW_HEIGHT;
+            if (mouseX >= x && mouseX < x + 16 && mouseY >= y && mouseY < y + 16) {
+                return entries.get(index);
+            }
+        }
+        return null;
+    }
+
+    private Component targetDisplayName(ConfiguratorLineDetailsPacket.Entry entry) {
+        ItemStack icon = targetIcon(entry);
+        return icon.isEmpty() ? Component.literal(entry.targetBlockId()) : icon.getHoverName();
+    }
+
+    private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
+        if (id == null) {
+            return ItemStack.EMPTY;
+        }
+        Block block = ForgeRegistries.BLOCKS.getValue(id);
+        return block == null ? ItemStack.EMPTY : block.asItem().getDefaultInstance();
+    }
+
+    private int modeColor(NodeFaceMode mode) {
+        return switch (mode) {
+            case INPUT -> 0xFFFFB56B;
+            case OUTPUT -> 0xFF7DEBFF;
+            case NONE -> ConfigPanel.MUTED;
+        };
+    }
+
+    private String trimToWidth(String text, int width) {
+        if (font.width(text) <= width) {
+            return text;
+        }
+        return font.plainSubstrByWidth(text, Math.max(0, width - font.width("..."))) + "...";
     }
 
     private ConfiguratorItem.ToolConfig config() {

@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
+import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -29,6 +31,7 @@ import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public final class SkyNetworkRegistry {
     private static final int REJECTED_ITEM_CACHE_SIZE = 4;
@@ -141,6 +144,58 @@ public final class SkyNetworkRegistry {
             }
         }
         return new LineStats(nodes, inputs, outputs);
+    }
+
+    public static synchronized List<LineFaceDetail> lineDetails(MinecraftServer server, UUID lineId, int limit) {
+        rebuildDirty(server);
+        List<LineFaceDetail> details = new ArrayList<>();
+        if (limit <= 0) {
+            return details;
+        }
+        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
+            ServerLevel level = server.getLevel(entry.getKey());
+            if (level == null) {
+                continue;
+            }
+            String dimension = entry.getKey().location().toString();
+            LineIndex line = entry.getValue().lines.get(lineId);
+            if (line == null) {
+                continue;
+            }
+            addLineDetails(level, dimension, line.inputs(), details, limit);
+            if (details.size() >= limit) {
+                details.sort(LineFaceDetail::compare);
+                return details;
+            }
+            addLineDetails(level, dimension, line.outputs(), details, limit);
+            if (details.size() >= limit) {
+                details.sort(LineFaceDetail::compare);
+                return details;
+            }
+        }
+        details.sort(LineFaceDetail::compare);
+        return details;
+    }
+
+    private static void addLineDetails(ServerLevel level, String dimension, List<CachedEndpoint> endpoints,
+            List<LineFaceDetail> details, int limit) {
+        for (CachedEndpoint endpoint : endpoints) {
+            if (details.size() >= limit) {
+                return;
+            }
+            SkyNodeBlockEntity node = endpoint.node();
+            Direction direction = endpoint.direction();
+            NodeFaceMode faceMode = node.getFaceMode(direction);
+            if (faceMode == NodeFaceMode.NONE || !level.isLoaded(node.getBlockPos())) {
+                continue;
+            }
+            BlockPos targetPos = node.getTargetPos(direction);
+            ResourceLocation targetId = ForgeRegistries.BLOCKS.getKey(level.getBlockState(targetPos).getBlock());
+            details.add(new LineFaceDetail(dimension, node.getBlockPos().immutable(), direction, targetPos.immutable(),
+                    targetId == null ? "unknown" : targetId.toString(), faceMode,
+                    node.isItemsEnabled(direction), node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
+                    node.getRedstoneControl(direction), node.getPriority(direction)));
+        }
     }
 
     private static boolean rebuildDirty(MinecraftServer server) {
@@ -348,6 +403,31 @@ public final class SkyNetworkRegistry {
     }
 
     public record LineStats(int nodes, int inputs, int outputs) {
+    }
+
+    public record LineFaceDetail(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
+                                 String targetBlockId, NodeFaceMode mode, boolean itemsEnabled,
+                                 boolean fluidsEnabled, boolean energyEnabled, RedstoneControl redstoneControl,
+                                 int priority) {
+        private static int compare(LineFaceDetail left, LineFaceDetail right) {
+            int result = left.dimension.compareTo(right.dimension);
+            if (result != 0) {
+                return result;
+            }
+            result = Integer.compare(left.nodePos.getX(), right.nodePos.getX());
+            if (result != 0) {
+                return result;
+            }
+            result = Integer.compare(left.nodePos.getY(), right.nodePos.getY());
+            if (result != 0) {
+                return result;
+            }
+            result = Integer.compare(left.nodePos.getZ(), right.nodePos.getZ());
+            if (result != 0) {
+                return result;
+            }
+            return Integer.compare(left.face.ordinal(), right.face.ordinal());
+        }
     }
 
     public static final class ReadyLines {
