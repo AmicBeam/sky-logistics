@@ -8,12 +8,22 @@
       "text": "The Celestial Item Vault stores items by type, and the Celestial Fluid Vault stores fluids by type. They begin with a small type limit. Right-click them with Chora Nectar to increase that limit; sneak-right-click uses as much of the held stack as possible."
     },
     {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:item_vault",
+      "recipe2": "skylogistics:fluid_vault",
+      "text": "Both vaults use Chora Nectar as their containment core."
+    },
+    {
       "type": "patchouli:text",
       "text": "Vaults can be opened by players and can also be accessed by logistics nodes, hoppers, and other automation. As line targets, they are ideal for collecting large amounts of repeated items or fluids."
     },
     {
       "type": "patchouli:text",
       "text": "The Sky Filter Upgrade limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, tag matching, and other rules. Place the configured filter upgrade into a node upgrade slot to make extraction and insertion obey it."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:filter_list"
     }
   ]
 }

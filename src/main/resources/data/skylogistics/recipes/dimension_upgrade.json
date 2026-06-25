@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     "EPE",
-    "PNP",
+    "CNC",
     "EPE"
   ],
   "key": {
@@ -12,8 +12,11 @@
     "P": {
       "item": "minecraft:ender_pearl"
     },
-    "N": {
+    "C": {
       "item": "skylogistics:chora_nectar"
+    },
+    "N": {
+      "item": "minecraft:nether_star"
     }
   },
   "result": {

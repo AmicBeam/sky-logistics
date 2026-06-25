@@ -8,12 +8,27 @@
       "text": "The Sky Configurator stores a line ID and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
     },
     {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:configurator",
+      "text": "The configurator is the starting point for creating lines and copying settings in bulk."
+    },
+    {
       "type": "patchouli:text",
       "text": "Sneak-right-click a node with the configurator to copy that node and enter paste mode. While in paste mode, right-click another node to write the stored line and resource toggles to it. Sneak-right-click again, open the configurator screen, or stop holding the configurator to leave paste mode."
     },
     {
       "type": "patchouli:text",
-      "text": "Speed upgrades go into node upgrade slots and increase how many slots or tanks the node can process per tick. Dimension upgrades are for extract nodes and allow sending to same-line insert nodes in other dimensions. Upgrades do not add hidden line buffers."
+      "text": "Speed upgrades go into node upgrade slots. Without one, a node processes 1 item slot or fluid tank per tick; with one, it processes 2 slots or tanks per tick. This improves the node's slot/tank throughput, but it does not add a hidden line buffer."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:speed_upgrade",
+      "recipe2": "skylogistics:dimension_upgrade",
+      "text": "The dimension upgrade requires a Nether Star. It only needs to be installed on the extracting node."
     }
   ]
 }

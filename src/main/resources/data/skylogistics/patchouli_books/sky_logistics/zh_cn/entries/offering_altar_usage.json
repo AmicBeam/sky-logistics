@@ -9,6 +9,12 @@
       "text": "祭坛和供桌都只有 1 个供奉槽，可堆叠最多 64 个物品，没有 GUI。手持物品右击会放入，空手右击会取出；管道和漏斗类设备也可以从物品能力侧访问这个槽。"
     },
     {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:offering_altar",
+      "recipe2": "skylogistics:offering_table",
+      "text": "祭坛需要消耗已充能尤洛佳水晶，供桌只需要天穹石。"
+    },
+    {
       "type": "patchouli:text",
       "text": "祭坛必须位于配置的高空高度或更高处，并且拥有有效法阵结构。把主材料放在祭坛上，把供品放在四侧供桌上；供桌顺序不限，只要全部材料与配方匹配即可。"
     },

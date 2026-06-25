@@ -13,6 +13,10 @@
       "text": "Tier 1 requires the frame at the altar's height to remain complete. Celestial Stone, slabs, stairs, and walls all count as frame blocks. Tier 2 only adds Celestial Glass above the four outer corners; the glass does not replace the frame below."
     },
     {
+      "type": "patchouli:text",
+      "text": "Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 64 #forge:glass and 64 Glowstone Dust on two offering tables. Duration is 160 ticks and the result is 8 Celestial Glass."
+    },
+    {
       "type": "patchouli:multiblock",
       "name": "Sky Offering Circle",
       "multiblock": {
