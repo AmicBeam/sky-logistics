@@ -2,6 +2,7 @@ package com.skylogistics.client;
 
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.menu.FluidVaultMenu;
+import com.skylogistics.network.ModNetworking;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,36 +14,37 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final int GRID_X = 8;
     private static final int GRID_Y = 44;
-    private static final int GRID_COLUMNS = 10;
-    private static final int GRID_ROWS = 5;
+    private static final int GRID_COLUMNS = 9;
+    private static final int GRID_ROWS = 4;
     private static final int CELL_SIZE = 18;
     private static final int VISIBLE_CELLS = GRID_COLUMNS * GRID_ROWS;
+    private static final int GRID_BOTTOM = GRID_Y + GRID_ROWS * CELL_SIZE;
+    private static final int STATS_Y = GRID_BOTTOM + 10;
 
     private EditBox searchBox;
-    private Button nonEmptyButton;
     private Button sortButton;
     private int scrollRow;
-    private boolean nonEmptyOnly = true;
-    private boolean sortByAmount = true;
+    private SortMode sortMode = SortMode.AMOUNT;
     private FluidVaultBlockEntity cachedVault;
     private List<FluidVaultBlockEntity.StoredFluid> filteredCache = List.of();
     private String filteredCacheQuery = "";
-    private boolean filteredCacheNonEmptyOnly;
-    private boolean filteredCacheSortByAmount;
+    private SortMode filteredCacheSortMode;
     private long filteredCacheVersion = Long.MIN_VALUE;
 
     public FluidVaultScreen(FluidVaultMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 238;
-        imageHeight = 250;
-        inventoryLabelY = 156;
+        imageWidth = 196;
+        imageHeight = 222;
+        inventoryLabelY = 128;
     }
 
     @Override
@@ -52,21 +54,13 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        nonEmptyButton = addRenderableWidget(Button.builder(nonEmptyLabel(), ignored -> {
-                    nonEmptyOnly = !nonEmptyOnly;
-                    scrollRow = 0;
-                    invalidateFilteredCache();
-                    refreshButtons();
-                })
-                .bounds(leftPos + 126, topPos + 22, 44, 18)
-                .build());
         sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
-                    sortByAmount = !sortByAmount;
+                    sortMode = sortMode.next();
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
                 })
-                .bounds(leftPos + 174, topPos + 22, 56, 18)
+                .bounds(leftPos + 128, topPos + 22, 60, 18)
                 .build());
     }
 
@@ -77,9 +71,6 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     private void refreshButtons() {
-        if (nonEmptyButton != null) {
-            nonEmptyButton.setMessage(nonEmptyLabel());
-        }
         if (sortButton != null) {
             sortButton.setMessage(sortLabel());
         }
@@ -102,13 +93,15 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
         graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight,
                 ConfigPanel.BORDER);
-        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + 137, 0x80101B22);
+        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + GRID_BOTTOM + 3, 0x80101B22);
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int column = 0; column < GRID_COLUMNS; column++) {
-                drawSlot(graphics, leftPos + GRID_X + column * CELL_SIZE, topPos + GRID_Y + row * CELL_SIZE);
+                ConfigPanel.drawSlotBackground(graphics, leftPos + GRID_X + column * CELL_SIZE,
+                        topPos + GRID_Y + row * CELL_SIZE);
             }
         }
         drawScrollbar(graphics);
+        renderMenuSlotBackgrounds(graphics);
     }
 
     @Override
@@ -133,9 +126,9 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             renderAmountLabel(graphics, ConfigPanel.amount(fluid.amount()), x - 1, y - 1);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
-                vault.getUsedTypes(), vault.getTypeLimit()), 8, 144, ConfigPanel.TEXT, false);
+                vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.total_fluids",
-                ConfigPanel.amount(vault.getTotalAmount())), 116, 144, ConfigPanel.TEXT, false);
+                ConfigPanel.amount(vault.getTotalAmount())), 116, STATS_Y, ConfigPanel.TEXT, false);
     }
 
     @Override
@@ -143,10 +136,26 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         if (isOverGrid(mouseX, mouseY)) {
             FluidVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
-            scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+            if (vault != null && shouldShowScrollbar(vault)) {
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+            }
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
+            FluidVaultBlockEntity.StoredFluid hovered = hoveredEntry(mouseX, mouseY);
+            if (!menu.getCarried().isEmpty()) {
+                ModNetworking.sendFluidVaultTerminalClick(hovered == null ? FluidStack.EMPTY : hovered.stack(),
+                        button, hasShiftDown());
+                return true;
+            }
+            return hovered != null;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void renderTerminalTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -183,33 +192,22 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         String query = searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
         long snapshotVersion = vault.getClientSnapshotVersion();
         if (vault == cachedVault && snapshotVersion == filteredCacheVersion && query.equals(filteredCacheQuery)
-                && nonEmptyOnly == filteredCacheNonEmptyOnly && sortByAmount == filteredCacheSortByAmount) {
+                && sortMode == filteredCacheSortMode) {
             return filteredCache;
         }
         List<FluidVaultBlockEntity.StoredFluid> result = new ArrayList<>();
         for (FluidVaultBlockEntity.StoredFluid fluid : vault.getStoredFluids(256)) {
-            if (nonEmptyOnly && fluid.amount() <= 0) {
-                continue;
-            }
             if (!query.isEmpty()
                     && !fluid.stack().getDisplayName().getString().toLowerCase(Locale.ROOT).contains(query)) {
                 continue;
             }
             result.add(fluid);
         }
-        if (sortByAmount) {
-            result.sort(Comparator.comparingLong(FluidVaultBlockEntity.StoredFluid::amount).reversed()
-                    .thenComparing(fluid -> fluid.stack().getDisplayName().getString(),
-                            String.CASE_INSENSITIVE_ORDER));
-        } else {
-            result.sort(Comparator.comparing(fluid -> fluid.stack().getDisplayName().getString(),
-                    String.CASE_INSENSITIVE_ORDER));
-        }
+        sort(result);
         cachedVault = vault;
         filteredCache = result;
         filteredCacheQuery = query;
-        filteredCacheNonEmptyOnly = nonEmptyOnly;
-        filteredCacheSortByAmount = sortByAmount;
+        filteredCacheSortMode = sortMode;
         filteredCacheVersion = snapshotVersion;
         return filteredCache;
     }
@@ -223,20 +221,17 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         return Math.max(0, rows - GRID_ROWS);
     }
 
-    private Component nonEmptyLabel() {
-        return Component.translatable("button.skylogistics.filter_nonempty");
-    }
-
     private Component sortLabel() {
-        return Component.translatable(sortByAmount
-                ? "button.skylogistics.sort_amount"
-                : "button.skylogistics.sort_name");
+        return Component.translatable(sortMode.translationKey);
     }
 
     private void drawScrollbar(GuiGraphics graphics) {
         FluidVaultBlockEntity vault = vault();
-        int max = vault == null ? 0 : maxScrollRow(filtered(vault).size());
-        int x = leftPos + 222;
+        if (vault == null || !shouldShowScrollbar(vault)) {
+            return;
+        }
+        int max = maxScrollRow(filtered(vault).size());
+        int x = leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
         graphics.fill(x, y, x + 5, y + height, 0xFF07101B);
@@ -251,12 +246,38 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER);
     }
 
-    private void drawSlot(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, 0xFF07101B);
-        graphics.fill(x - 1, y - 1, x + 18, y, ConfigPanel.BORDER);
-        graphics.fill(x - 1, y + 17, x + 18, y + 18, ConfigPanel.BORDER);
-        graphics.fill(x - 1, y - 1, x, y + 18, ConfigPanel.BORDER);
-        graphics.fill(x + 17, y - 1, x + 18, y + 18, ConfigPanel.BORDER);
+    private void sort(List<FluidVaultBlockEntity.StoredFluid> result) {
+        switch (sortMode) {
+            case AMOUNT -> result.sort(Comparator.comparingLong(FluidVaultBlockEntity.StoredFluid::amount).reversed()
+                    .thenComparing(FluidVaultScreen::fluidName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(FluidVaultScreen::fluidModId, String.CASE_INSENSITIVE_ORDER));
+            case NAME -> result.sort(Comparator.comparing(FluidVaultScreen::fluidName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(FluidVaultScreen::fluidModId, String.CASE_INSENSITIVE_ORDER));
+            case MOD -> result.sort(Comparator.comparing(FluidVaultScreen::fluidModId, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(FluidVaultScreen::fluidName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(Comparator.comparingLong(FluidVaultBlockEntity.StoredFluid::amount).reversed()));
+        }
+    }
+
+    private boolean shouldShowScrollbar(FluidVaultBlockEntity vault) {
+        return vault.getTypeLimit() > VISIBLE_CELLS;
+    }
+
+    private static String fluidName(FluidVaultBlockEntity.StoredFluid fluid) {
+        return fluid.stack().getDisplayName().getString();
+    }
+
+    private static String fluidModId(FluidVaultBlockEntity.StoredFluid fluid) {
+        var id = ForgeRegistries.FLUIDS.getKey(fluid.stack().getFluid());
+        return id == null ? "" : id.getNamespace();
+    }
+
+    private void renderMenuSlotBackgrounds(GuiGraphics graphics) {
+        for (Slot slot : menu.slots) {
+            if (slot.isActive()) {
+                ConfigPanel.drawSlotBackground(graphics, leftPos + slot.x, topPos + slot.y);
+            }
+        }
     }
 
     private void renderFluidCell(GuiGraphics graphics, FluidStack stack, int x, int y) {
@@ -286,5 +307,22 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
         return blockEntity instanceof FluidVaultBlockEntity vault ? vault : null;
+    }
+
+    private enum SortMode {
+        AMOUNT("button.skylogistics.sort_amount"),
+        NAME("button.skylogistics.sort_name"),
+        MOD("button.skylogistics.sort_mod");
+
+        private final String translationKey;
+
+        SortMode(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        private SortMode next() {
+            SortMode[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
     }
 }

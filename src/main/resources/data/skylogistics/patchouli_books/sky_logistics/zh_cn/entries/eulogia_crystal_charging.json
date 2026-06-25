@@ -1,17 +1,17 @@
 {
-  "name": "尤洛佳水晶与充能",
+  "name": "尤洛伽水晶与充能",
   "icon": "skylogistics:eulogia_crystal",
   "category": "skylogistics:offerings",
   "sortnum": 0,
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "尤洛佳水晶在合成台制作后默认为未充能。把它带到配置的高空高度或更高处即可开始吸收星辉；服务器配置 rituals.skyRitualMinY 默认是 Y=200。"
+      "text": "尤洛伽水晶在合成台制作后默认为未充能。把它带到配置的高空高度或更高处即可开始吸收星辉；服务器配置 rituals.skyRitualMinY 默认是 Y=200。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:eulogia_crystal",
-      "text": "尤洛佳水晶以钻石为核心，不消耗末影珍珠。刚合成出的水晶尚未充能。"
+      "text": "尤洛伽水晶以钻石为核心，不消耗末影珍珠。刚合成出的水晶尚未充能。"
     },
     {
       "type": "patchouli:text",

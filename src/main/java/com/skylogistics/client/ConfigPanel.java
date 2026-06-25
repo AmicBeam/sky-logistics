@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.network.ModNetworking;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -18,6 +19,14 @@ final class ConfigPanel {
         return Button.builder(label, ignored -> ModNetworking.sendMenuAction(action))
                 .bounds(x, y, width, 20)
                 .build();
+    }
+
+    static void drawSlotBackground(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x - 1, y - 1, x + 18, y + 18, 0xFF07101B);
+        graphics.fill(x - 1, y - 1, x + 18, y, BORDER);
+        graphics.fill(x - 1, y + 17, x + 18, y + 18, BORDER);
+        graphics.fill(x - 1, y - 1, x, y + 18, BORDER);
+        graphics.fill(x + 17, y - 1, x + 18, y + 18, BORDER);
     }
 
     static String yesNo(boolean value) {

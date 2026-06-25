@@ -122,6 +122,25 @@ public class FluidVaultBlockEntity extends BlockEntity {
         return moved;
     }
 
+    public FluidStack drainForPlayer(FluidStack template, int amount, IFluidHandler.FluidAction action) {
+        if (template.isEmpty() || amount <= 0) {
+            return FluidStack.EMPTY;
+        }
+        FluidStack normalized = template.copy();
+        normalized.setAmount(1);
+        FluidStackKey key = FluidStackKey.of(normalized);
+        LinkedHashMap<FluidStackKey, Long> contents = contents();
+        long current = contents.getOrDefault(key, 0L);
+        int drained = (int) Math.min(Math.min(Integer.MAX_VALUE, amount), current);
+        if (drained <= 0) {
+            return FluidStack.EMPTY;
+        }
+        if (action.execute()) {
+            removeStored(key, drained);
+        }
+        return key.toStack(drained);
+    }
+
     public void syncTo(ServerPlayer player) {
         List<FluidVaultSnapshotPacket.Entry> entries = new ArrayList<>();
         for (StoredFluid fluid : getStoredFluids(SNAPSHOT_ENTRY_LIMIT)) {

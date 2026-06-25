@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/wall_inventory",
   "textures": {
-    "wall": "minecraft:block/amethyst_block"
+    "wall": "skylogistics:block/celestial_stone"
   }
 }

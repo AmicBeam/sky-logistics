@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -21,7 +22,7 @@ public class ItemVaultMenu extends AbstractContainerMenu {
         if (vault != null) {
             vault.addViewer(inventory.player);
         }
-        addPlayerInventory(inventory, 38, 156);
+        addPlayerInventory(inventory, 17, 138);
     }
 
     public BlockPos getPos() {
@@ -67,6 +68,66 @@ public class ItemVaultMenu extends AbstractContainerMenu {
             slot.setChanged();
         }
         return copy;
+    }
+
+    public void handleTerminalClick(ServerPlayer player, ItemStack viewedStack, int button, boolean shiftDown) {
+        if (button != 0 && button != 1) {
+            return;
+        }
+        ItemVaultBlockEntity vault = vault(player);
+        if (vault == null) {
+            return;
+        }
+        ItemStack carried = getCarried();
+        boolean changed;
+        if (carried.isEmpty()) {
+            changed = extractToCursorOrInventory(player, vault, viewedStack, button, shiftDown);
+        } else {
+            changed = insertCarried(vault, carried, button);
+        }
+        if (changed) {
+            vault.syncTo(player);
+            broadcastChanges();
+        }
+    }
+
+    private boolean insertCarried(ItemVaultBlockEntity vault, ItemStack carried, int button) {
+        ItemStack toInsert = carried.copy();
+        toInsert.setCount(button == 1 ? 1 : carried.getCount());
+        int before = toInsert.getCount();
+        if (!vault.insertFromPlayer(toInsert)) {
+            return false;
+        }
+        int inserted = before - toInsert.getCount();
+        if (inserted <= 0) {
+            return false;
+        }
+        carried.shrink(inserted);
+        if (carried.isEmpty()) {
+            setCarried(ItemStack.EMPTY);
+        }
+        return true;
+    }
+
+    private boolean extractToCursorOrInventory(ServerPlayer player, ItemVaultBlockEntity vault, ItemStack viewedStack,
+            int button, boolean shiftDown) {
+        if (viewedStack.isEmpty()) {
+            return false;
+        }
+        int amount = button == 1 ? 1 : viewedStack.getMaxStackSize();
+        ItemStack extracted = vault.extractForPlayer(viewedStack, amount);
+        if (extracted.isEmpty()) {
+            return false;
+        }
+        if (!shiftDown) {
+            setCarried(extracted);
+            return true;
+        }
+        player.getInventory().add(extracted);
+        if (!extracted.isEmpty()) {
+            vault.insertFromPlayer(extracted);
+        }
+        return true;
     }
 
     private void addPlayerInventory(Inventory inventory, int x, int y) {

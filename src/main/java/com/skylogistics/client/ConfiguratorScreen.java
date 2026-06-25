@@ -54,11 +54,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         lineButtons.clear();
         typeButtons.clear();
         priorityButtons.clear();
-        addLineButton(leftPos + 116, topPos + 17, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 141, topPos + 17, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 164, topPos + 17, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 191, topPos + 17, 22, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 216, topPos + 17, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addLineButton(leftPos + 116, topPos + 29, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 141, topPos + 29, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
 
         addTypeButton(leftPos + 54, topPos + 166, ResourceType.ITEMS);
         addTypeButton(leftPos + 108, topPos + 166, ResourceType.FLUIDS);
@@ -313,6 +313,55 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return Minecraft.getInstance().player.getItemInHand(menu.getHand());
     }
 
+    private void previewAction(int action) {
+        ItemStack stack = stack();
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
+        if (config == null) {
+            return;
+        }
+        UUID beforeLine = config.lineId();
+        ConfiguratorItem.ToolConfig updated = switch (action) {
+            case MenuAction.LINE_FIRST -> ConfiguratorItem.selectFirstLine(stack);
+            case MenuAction.LINE_PREVIOUS -> ConfiguratorItem.selectPreviousLine(stack);
+            case MenuAction.LINE_NEXT_OR_CREATE -> previewNextLine(stack);
+            case MenuAction.LINE_LAST -> ConfiguratorItem.selectLastLine(stack);
+            case MenuAction.LINE_REMOVE_CURRENT -> previewRemoveLine(stack);
+            case MenuAction.TOGGLE_ITEMS -> config.withItemsEnabled(!config.itemsEnabled());
+            case MenuAction.TOGGLE_FLUIDS -> config.withFluidsEnabled(!config.fluidsEnabled());
+            case MenuAction.TOGGLE_ENERGY -> config.withEnergyEnabled(!config.energyEnabled());
+            case MenuAction.CONFIG_REDSTONE -> config.cycleRedstoneControl();
+            case MenuAction.CONFIG_PRIORITY_DOWN -> config.adjustPriority(-1);
+            case MenuAction.CONFIG_PRIORITY_UP -> config.adjustPriority(1);
+            default -> null;
+        };
+        if (updated == null) {
+            return;
+        }
+        if (!actionWritesLineSelection(action)) {
+            ConfiguratorItem.writeConfig(stack, updated);
+        }
+        if (!beforeLine.equals(updated.lineId())) {
+            detailLine = updated.lineId();
+            detailScroll = 0;
+        }
+    }
+
+    private boolean actionWritesLineSelection(int action) {
+        return action == MenuAction.LINE_FIRST || action == MenuAction.LINE_PREVIOUS
+                || action == MenuAction.LINE_NEXT_OR_CREATE || action == MenuAction.LINE_LAST
+                || action == MenuAction.LINE_REMOVE_CURRENT;
+    }
+
+    private ConfiguratorItem.ToolConfig previewNextLine(ItemStack stack) {
+        int index = ConfiguratorItem.lineIndex(stack);
+        int count = ConfiguratorItem.lineCount(stack);
+        return index < count - 1 ? ConfiguratorItem.selectNextOrCreateLine(stack) : null;
+    }
+
+    private ConfiguratorItem.ToolConfig previewRemoveLine(ItemStack stack) {
+        return ConfiguratorItem.lineCount(stack) > 1 ? ConfiguratorItem.removeCurrentLine(stack) : null;
+    }
+
     private void borderedBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {
         graphics.fill(x, y, x + width, y + height, border);
         graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, fill);
@@ -338,6 +387,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         public void onPress() {
             if (active) {
+                previewAction(action);
                 ModNetworking.sendMenuAction(action);
             }
         }

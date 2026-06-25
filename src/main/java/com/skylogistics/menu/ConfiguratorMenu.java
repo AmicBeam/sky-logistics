@@ -9,6 +9,7 @@ import com.skylogistics.registry.ModMenus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
@@ -117,6 +118,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             }
         }
         ConfiguratorItem.writeConfig(stack, config);
+        syncHeldStack(stack);
         refreshLineStats();
         syncLineDetails(true);
         broadcastChanges();
@@ -173,5 +175,14 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorLineDetailsPacket(config.lineId(), entries));
         lastDetailLine = config.lineId();
         lastDetailSyncTime = gameTime;
+    }
+
+    private void syncHeldStack(ItemStack stack) {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        int slot = hand == InteractionHand.OFF_HAND ? Inventory.SLOT_OFFHAND : player.getInventory().selected;
+        player.getInventory().setChanged();
+        serverPlayer.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, slot, stack.copy()));
     }
 }

@@ -12,7 +12,7 @@
       "type": "patchouli:crafting",
       "recipe": "skylogistics:offering_altar",
       "recipe2": "skylogistics:offering_table",
-      "text": "祭坛需要消耗已充能尤洛佳水晶，供桌只需要天穹石。"
+      "text": "祭坛需要消耗已充能尤洛伽水晶，供桌只需要天穹石。"
     },
     {
       "type": "patchouli:text",

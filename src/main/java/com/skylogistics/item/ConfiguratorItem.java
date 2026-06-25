@@ -65,6 +65,11 @@ public class ConfiguratorItem extends Item {
             }
             return InteractionResult.PASS;
         }
+        return useOnNode(level, context.getClickedPos(), node, player, context.getHand(), stack);
+    }
+
+    public static InteractionResult useOnNode(Level level, net.minecraft.core.BlockPos pos, SkyNodeBlockEntity node,
+            Player player, InteractionHand hand, ItemStack stack) {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
@@ -89,11 +94,11 @@ public class ConfiguratorItem extends Item {
         if (player instanceof ServerPlayer serverPlayer) {
             NetworkHooks.openScreen(serverPlayer,
                     new SimpleMenuProvider((id, inventory, ignored) -> new com.skylogistics.menu.SkyNodeMenu(id, inventory,
-                            context.getClickedPos(), true, context.getHand()), Component.translatable("menu.skylogistics.sky_node")),
+                            pos, true, hand), Component.translatable("menu.skylogistics.sky_node")),
                     buffer -> {
-                        buffer.writeBlockPos(context.getClickedPos());
+                        buffer.writeBlockPos(pos);
                         buffer.writeBoolean(true);
-                        buffer.writeEnum(context.getHand());
+                        buffer.writeEnum(hand);
                     });
         }
         return InteractionResult.CONSUME;
@@ -372,12 +377,15 @@ public class ConfiguratorItem extends Item {
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,
                              RedstoneControl redstoneControl, int priority) {
-        private static final FaceConfig DEFAULT = new FaceConfig(NodeFaceMode.NONE, true, true, true,
+        private static final FaceConfig DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
                 RedstoneControl.IGNORE, 0);
         private static final FaceConfig PLACEMENT_DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
                 RedstoneControl.IGNORE, 0);
 
         public FaceConfig {
+            if (mode == NodeFaceMode.NONE) {
+                mode = NodeFaceMode.OUTPUT;
+            }
             priority = Math.max(-99, Math.min(99, priority));
         }
 

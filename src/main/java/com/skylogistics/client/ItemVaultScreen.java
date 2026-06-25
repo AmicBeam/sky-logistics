@@ -2,6 +2,7 @@ package com.skylogistics.client;
 
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.menu.ItemVaultMenu;
+import com.skylogistics.network.ModNetworking;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -15,33 +16,34 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.inventory.Slot;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int GRID_X = 8;
     private static final int GRID_Y = 44;
-    private static final int GRID_COLUMNS = 10;
-    private static final int GRID_ROWS = 5;
+    private static final int GRID_COLUMNS = 9;
+    private static final int GRID_ROWS = 4;
     private static final int CELL_SIZE = 18;
     private static final int VISIBLE_CELLS = GRID_COLUMNS * GRID_ROWS;
+    private static final int GRID_BOTTOM = GRID_Y + GRID_ROWS * CELL_SIZE;
+    private static final int STATS_Y = GRID_BOTTOM + 10;
 
     private EditBox searchBox;
-    private Button nonEmptyButton;
     private Button sortButton;
     private int scrollRow;
-    private boolean nonEmptyOnly = true;
-    private boolean sortByAmount = true;
+    private SortMode sortMode = SortMode.AMOUNT;
     private ItemVaultBlockEntity cachedVault;
     private List<ItemVaultBlockEntity.StoredItem> filteredCache = List.of();
     private String filteredCacheQuery = "";
-    private boolean filteredCacheNonEmptyOnly;
-    private boolean filteredCacheSortByAmount;
+    private SortMode filteredCacheSortMode;
     private long filteredCacheVersion = Long.MIN_VALUE;
 
     public ItemVaultScreen(ItemVaultMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 238;
-        imageHeight = 240;
-        inventoryLabelY = 146;
+        imageWidth = 196;
+        imageHeight = 222;
+        inventoryLabelY = 128;
     }
 
     @Override
@@ -51,21 +53,13 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        nonEmptyButton = addRenderableWidget(Button.builder(nonEmptyLabel(), ignored -> {
-                    nonEmptyOnly = !nonEmptyOnly;
-                    scrollRow = 0;
-                    invalidateFilteredCache();
-                    refreshButtons();
-                })
-                .bounds(leftPos + 126, topPos + 22, 44, 18)
-                .build());
         sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
-                    sortByAmount = !sortByAmount;
+                    sortMode = sortMode.next();
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
                 })
-                .bounds(leftPos + 174, topPos + 22, 56, 18)
+                .bounds(leftPos + 128, topPos + 22, 60, 18)
                 .build());
     }
 
@@ -76,9 +70,6 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     }
 
     private void refreshButtons() {
-        if (nonEmptyButton != null) {
-            nonEmptyButton.setMessage(nonEmptyLabel());
-        }
         if (sortButton != null) {
             sortButton.setMessage(sortLabel());
         }
@@ -99,13 +90,15 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
         graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
         graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + 137, 0x80101B22);
+        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + GRID_BOTTOM + 3, 0x80101B22);
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int column = 0; column < GRID_COLUMNS; column++) {
-                drawSlot(graphics, leftPos + GRID_X + column * CELL_SIZE, topPos + GRID_Y + row * CELL_SIZE);
+                ConfigPanel.drawSlotBackground(graphics, leftPos + GRID_X + column * CELL_SIZE,
+                        topPos + GRID_Y + row * CELL_SIZE);
             }
         }
         drawScrollbar(graphics);
+        renderMenuSlotBackgrounds(graphics);
     }
 
     @Override
@@ -130,9 +123,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x - 1, y - 1);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
-                vault.getUsedTypes(), vault.getTypeLimit()), 8, 144, ConfigPanel.TEXT, false);
+                vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.total_items",
-                ConfigPanel.amount(vault.getTotalAmount())), 116, 144, ConfigPanel.TEXT, false);
+                ConfigPanel.amount(vault.getTotalAmount())), 116, STATS_Y, ConfigPanel.TEXT, false);
     }
 
     @Override
@@ -140,10 +133,25 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         if (isOverGrid(mouseX, mouseY)) {
             ItemVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
-            scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+            if (vault != null && shouldShowScrollbar(vault)) {
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+            }
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
+            ItemVaultBlockEntity.StoredItem hovered = hoveredEntry(mouseX, mouseY);
+            if (hovered != null || !menu.getCarried().isEmpty()) {
+                ModNetworking.sendItemVaultTerminalClick(hovered == null ? ItemStack.EMPTY : hovered.stack(),
+                        button, hasShiftDown());
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void renderTerminalTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -180,31 +188,21 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         String query = searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
         long snapshotVersion = vault.getClientSnapshotVersion();
         if (vault == cachedVault && snapshotVersion == filteredCacheVersion && query.equals(filteredCacheQuery)
-                && nonEmptyOnly == filteredCacheNonEmptyOnly && sortByAmount == filteredCacheSortByAmount) {
+                && sortMode == filteredCacheSortMode) {
             return filteredCache;
         }
         List<ItemVaultBlockEntity.StoredItem> result = new ArrayList<>();
         for (ItemVaultBlockEntity.StoredItem item : vault.getStoredItems(256)) {
-            if (nonEmptyOnly && item.amount() <= 0) {
-                continue;
-            }
             if (!query.isEmpty() && !item.stack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
                 continue;
             }
             result.add(item);
         }
-        if (sortByAmount) {
-            result.sort(Comparator.comparingLong(ItemVaultBlockEntity.StoredItem::amount).reversed()
-                    .thenComparing(item -> item.stack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER));
-        } else {
-            result.sort(Comparator.comparing(item -> item.stack().getHoverName().getString(),
-                    String.CASE_INSENSITIVE_ORDER));
-        }
+        sort(result);
         cachedVault = vault;
         filteredCache = result;
         filteredCacheQuery = query;
-        filteredCacheNonEmptyOnly = nonEmptyOnly;
-        filteredCacheSortByAmount = sortByAmount;
+        filteredCacheSortMode = sortMode;
         filteredCacheVersion = snapshotVersion;
         return filteredCache;
     }
@@ -218,20 +216,17 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         return Math.max(0, rows - GRID_ROWS);
     }
 
-    private Component nonEmptyLabel() {
-        return Component.translatable("button.skylogistics.filter_nonempty");
-    }
-
     private Component sortLabel() {
-        return Component.translatable(sortByAmount
-                ? "button.skylogistics.sort_amount"
-                : "button.skylogistics.sort_name");
+        return Component.translatable(sortMode.translationKey);
     }
 
     private void drawScrollbar(GuiGraphics graphics) {
         ItemVaultBlockEntity vault = vault();
-        int max = vault == null ? 0 : maxScrollRow(filtered(vault).size());
-        int x = leftPos + 222;
+        if (vault == null || !shouldShowScrollbar(vault)) {
+            return;
+        }
+        int max = maxScrollRow(filtered(vault).size());
+        int x = leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
         graphics.fill(x, y, x + 5, y + height, 0xFF07101B);
@@ -246,12 +241,38 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER);
     }
 
-    private void drawSlot(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, 0xFF07101B);
-        graphics.fill(x - 1, y - 1, x + 18, y, ConfigPanel.BORDER);
-        graphics.fill(x - 1, y + 17, x + 18, y + 18, ConfigPanel.BORDER);
-        graphics.fill(x - 1, y - 1, x, y + 18, ConfigPanel.BORDER);
-        graphics.fill(x + 17, y - 1, x + 18, y + 18, ConfigPanel.BORDER);
+    private void sort(List<ItemVaultBlockEntity.StoredItem> result) {
+        switch (sortMode) {
+            case AMOUNT -> result.sort(Comparator.comparingLong(ItemVaultBlockEntity.StoredItem::amount).reversed()
+                    .thenComparing(ItemVaultScreen::itemName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(ItemVaultScreen::itemModId, String.CASE_INSENSITIVE_ORDER));
+            case NAME -> result.sort(Comparator.comparing(ItemVaultScreen::itemName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(ItemVaultScreen::itemModId, String.CASE_INSENSITIVE_ORDER));
+            case MOD -> result.sort(Comparator.comparing(ItemVaultScreen::itemModId, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(ItemVaultScreen::itemName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(Comparator.comparingLong(ItemVaultBlockEntity.StoredItem::amount).reversed()));
+        }
+    }
+
+    private boolean shouldShowScrollbar(ItemVaultBlockEntity vault) {
+        return vault.getTypeLimit() > VISIBLE_CELLS;
+    }
+
+    private static String itemName(ItemVaultBlockEntity.StoredItem item) {
+        return item.stack().getHoverName().getString();
+    }
+
+    private static String itemModId(ItemVaultBlockEntity.StoredItem item) {
+        var id = ForgeRegistries.ITEMS.getKey(item.stack().getItem());
+        return id == null ? "" : id.getNamespace();
+    }
+
+    private void renderMenuSlotBackgrounds(GuiGraphics graphics) {
+        for (Slot slot : menu.slots) {
+            if (slot.isActive()) {
+                ConfigPanel.drawSlotBackground(graphics, leftPos + slot.x, topPos + slot.y);
+            }
+        }
     }
 
     private void renderAmountLabel(GuiGraphics graphics, String text, int x, int y) {
@@ -274,5 +295,22 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
         return blockEntity instanceof ItemVaultBlockEntity vault ? vault : null;
+    }
+
+    private enum SortMode {
+        AMOUNT("button.skylogistics.sort_amount"),
+        NAME("button.skylogistics.sort_name"),
+        MOD("button.skylogistics.sort_mod");
+
+        private final String translationKey;
+
+        SortMode(String translationKey) {
+            this.translationKey = translationKey;
+        }
+
+        private SortMode next() {
+            SortMode[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
     }
 }

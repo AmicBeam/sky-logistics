@@ -5,7 +5,6 @@ import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
-import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
@@ -154,7 +153,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         Direction face = faceForAction(action, MenuAction.FACE_NONE_BASE);
         if (face != null) {
-            node.setFaceMode(face, NodeFaceMode.NONE);
+            node.setFaceMode(face, NodeFaceMode.OUTPUT);
             broadcastChanges();
             return;
         }
@@ -195,7 +194,11 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             return;
         }
         switch (action) {
-            case MenuAction.NEW_LINE -> node.setLineId(UUID.randomUUID());
+            case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> node.selectNextOrCreateLine();
+            case MenuAction.LINE_FIRST -> node.selectFirstLine();
+            case MenuAction.LINE_PREVIOUS -> node.selectPreviousLine();
+            case MenuAction.LINE_LAST -> node.selectLastLine();
+            case MenuAction.LINE_REMOVE_CURRENT -> node.removeCurrentLine();
             case MenuAction.TOGGLE_ITEMS -> node.setItemsEnabled(selectedFace, !node.isItemsEnabled(selectedFace));
             case MenuAction.TOGGLE_FLUIDS -> node.setFluidsEnabled(selectedFace, !node.isFluidsEnabled(selectedFace));
             case MenuAction.TOGGLE_ENERGY -> node.setEnergyEnabled(selectedFace, !node.isEnergyEnabled(selectedFace));

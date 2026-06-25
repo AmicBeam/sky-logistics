@@ -51,7 +51,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Includes slab, stairs and wall variants.
 
 - `Celestial Glass` / `天穹玻璃`
-  - Full-bright glass block.
+  - Full-bright, high-clarity glass block with connected outer-frame rendering.
   - Crafted from charged Sky Crystal and glass.
   - Add above the four outer corners of the tier 1 offering circle to make a tier 2 altar.
 
@@ -95,13 +95,13 @@ env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x/jdk
   PATH=/Users/bytedance/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x/jdk-17.0.19+10/Contents/Home/bin:/usr/bin:/bin:/usr/sbin:/sbin \
   ./gradlew --no-daemon --offline \
   -Dskylogistics.offlineRepo=/private/tmp/skylogistics-offline-maven \
-  -Dskylogistics.jadeApiJar=/private/tmp/jade-api.jar \
+  -Dskylogistics.jadeApiJar=/path/to/Jade-1.20.1-Forge-11.x.x.jar \
   clean build
 ```
 
 `javac` source compilation passes against the local Forge mapped jar. Full Gradle build also passes with `--offline` when `skylogistics.offlineRepo` points at a local Maven-style repository containing cached Forge dependency jars. The produced public test jar is `build/libs/skylogistics-0.0.1.jar`.
 
-Jade support is optional and lives under `src/jade/java`. To include it in a local build, provide a Jade API jar or compatible compile-only stub with `-Dskylogistics.jadeApiJar=/path/to/jade-api.jar`.
+Jade support is optional and lives under `src/jade/java`. To include it in a local build, provide a real Jade 1.20.1 11.x API/mod jar with `-Dskylogistics.jadeApiJar=/path/to/Jade-1.20.1-Forge-11.x.x.jar`. Do not use the old minimal `/private/tmp/jade-api.jar` stub: it lacks `snownee.jade.api.Accessor`, compiles an incompatible `IServerDataProvider` bridge, and causes Jade data requests to fail at runtime.
 
 JEI support is optional and lives under `src/jei/java`. To include the Sky Offering recipe category in a local build, provide a JEI API jar with `-Dskylogistics.jeiApiJar=/path/to/jei-api.jar`.
 

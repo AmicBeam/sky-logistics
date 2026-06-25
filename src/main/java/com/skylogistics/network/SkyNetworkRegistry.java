@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
@@ -35,7 +36,6 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public final class SkyNetworkRegistry {
     private static final int REJECTED_ITEM_CACHE_SIZE = 4;
-    private static final int PREFERRED_ITEM_SLOT_CACHE_SIZE = 8;
     private static final int EMPTY_ITEM_SLOT_CACHE_SIZE = 32;
     private static final int PREFERRED_ITEM_SLOT_MISS_LIMIT = 3;
     private static final int EMPTY_ITEM_SLOT_RETRY_TICKS = 20;
@@ -541,8 +541,8 @@ public final class SkyNetworkRegistry {
         private int energyFailures;
         private int itemSourceMisses;
         private int fluidSourceMisses;
-        private final int[] preferredItemSlots = new int[PREFERRED_ITEM_SLOT_CACHE_SIZE];
-        private final int[] preferredItemSlotMisses = new int[PREFERRED_ITEM_SLOT_CACHE_SIZE];
+        private final int[] preferredItemSlots = new int[SkyLogisticsConfig.preferredItemSlotCacheSize()];
+        private final int[] preferredItemSlotMisses = new int[preferredItemSlots.length];
         private int preferredItemSlotCursor;
         private int preferredItemSlotWriteCursor;
         private int itemSlotDiscoveryRemaining;

@@ -32,6 +32,8 @@ public final class ModNetworking {
                 FilterGhostPacket::handle);
         CHANNEL.registerMessage(4, ConfiguratorLineDetailsPacket.class, ConfiguratorLineDetailsPacket::encode,
                 ConfiguratorLineDetailsPacket::decode, ConfiguratorLineDetailsPacket::handle);
+        CHANNEL.registerMessage(5, VaultTerminalClickPacket.class, VaultTerminalClickPacket::encode,
+                VaultTerminalClickPacket::decode, VaultTerminalClickPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -44,6 +46,14 @@ public final class ModNetworking {
 
     public static void sendFilterGhostFluid(int slot, FluidStack stack) {
         CHANNEL.sendToServer(FilterGhostPacket.fluid(slot, stack));
+    }
+
+    public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {
+        CHANNEL.sendToServer(VaultTerminalClickPacket.item(stack, button, shiftDown));
+    }
+
+    public static void sendFluidVaultTerminalClick(FluidStack stack, int button, boolean shiftDown) {
+        CHANNEL.sendToServer(VaultTerminalClickPacket.fluid(stack, button, shiftDown));
     }
 
     public static void sendToPlayer(ServerPlayer player, Object packet) {

@@ -17,6 +17,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,6 +28,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     };
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
+    private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<AdvancedButton> advancedButtons = new ArrayList<>();
@@ -48,6 +50,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     protected void init() {
         super.init();
         faceButtons.clear();
+        lineButtons.clear();
         typeButtons.clear();
         modeButtons.clear();
         advancedButtons.clear();
@@ -56,11 +59,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         menu.selectFace(selectedFace);
         ModNetworking.sendMenuAction(MenuAction.faceSelect(selectedFace));
 
-        addRenderableWidget(new LineButton(leftPos + 86, topPos + 17, 22, Component.literal("|<"), 0, false));
-        addRenderableWidget(new LineButton(leftPos + 111, topPos + 17, 20, Component.literal("<"), 0, false));
-        addRenderableWidget(new LineButton(leftPos + 134, topPos + 17, 24, Component.literal(">+"), MenuAction.NEW_LINE, true));
-        addRenderableWidget(new LineButton(leftPos + 161, topPos + 17, 22, Component.literal(">|"), 0, false));
-        addRenderableWidget(new LineButton(leftPos + 186, topPos + 17, 18, Component.literal("x"), 0, false));
+        addLineButton(leftPos + 116, topPos + 29, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 141, topPos + 29, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
 
         int x = leftPos + 14;
         int y = topPos + 48;
@@ -74,11 +77,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addTypeButton(leftPos + 54, topPos + 100, ResourceType.ITEMS);
         addTypeButton(leftPos + 108, topPos + 100, ResourceType.FLUIDS);
         addTypeButton(leftPos + 162, topPos + 100, ResourceType.ENERGY);
-        addModeButton(leftPos + 54, topPos + 126, 30, NodeFaceMode.NONE,
-                Component.translatable("button.skylogistics.none"));
-        addModeButton(leftPos + 90, topPos + 126, 38, NodeFaceMode.INPUT,
+        addModeButton(leftPos + 54, topPos + 126, 54, NodeFaceMode.INPUT,
                 Component.translatable("button.skylogistics.extract"));
-        addModeButton(leftPos + 134, topPos + 126, 38, NodeFaceMode.OUTPUT,
+        addModeButton(leftPos + 114, topPos + 126, 54, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
         int upgradeX = SkyNodeMenu.upgradeSlotX(menu.isOpenedWithConfigurator());
         int moreWidth = 48;
@@ -89,6 +90,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addAdvancedButton(new PriorityButton(leftPos + 70, topPos + 138, -1, Component.literal("-")));
         addAdvancedButton(new PriorityButton(leftPos + 144, topPos + 138, 1, Component.literal("+")));
 
+    }
+
+    private void addLineButton(int x, int y, int width, Component message, int action) {
+        LineButton button = new LineButton(x, y, width, message, action);
+        lineButtons.add(button);
+        addRenderableWidget(button);
     }
 
     private void addModeButton(int x, int y, int width, NodeFaceMode mode, Component label) {
@@ -115,6 +122,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         SkyNodeBlockEntity node = node();
         if (node == null) {
             return;
+        }
+        int lineIndex = node.getLineIndex();
+        int lineCount = node.getLineCount();
+        for (LineButton button : lineButtons) {
+            button.refresh(lineIndex, lineCount);
         }
         Direction firstSelectable = firstSelectableFace(node);
         if (!hasTargetBlock(node, selectedFace) && selectedFace != firstSelectable) {
@@ -177,6 +189,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
         graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
         graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
+        renderMenuSlotBackgrounds(graphics);
     }
 
     @Override
@@ -188,9 +201,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     14, 34, ConfigPanel.MUTED, false);
             return;
         }
+        int lineIndex = node.getLineIndex() + 1;
+        int lineCount = Math.max(1, node.getLineCount());
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
-                        ConfiguratorItem.shortLine(node.getLineId())),
-                14, 24, ConfigPanel.TEXT, false);
+                        ConfiguratorItem.shortLine(node.getLineId()))
+                .append(Component.literal(" " + lineIndex + "/" + lineCount)),
+                14, 34, ConfigPanel.TEXT, false);
 
         Direction face = selectedFace;
         graphics.drawString(font, Component.translatable("screen.skylogistics.current_face",
@@ -211,7 +227,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     14, 132, ConfigPanel.MUTED, false);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.upgrade_slots"),
-                14, SkyNodeMenu.UPGRADE_ROW_Y + 12, ConfigPanel.MUTED, false);
+                14, SkyNodeMenu.UPGRADE_ROW_Y + 5, ConfigPanel.MUTED, false);
+    }
+
+    private void renderMenuSlotBackgrounds(GuiGraphics graphics) {
+        for (Slot slot : menu.slots) {
+            if (slot.isActive()) {
+                ConfigPanel.drawSlotBackground(graphics, leftPos + slot.x, topPos + slot.y);
+            }
+        }
     }
 
     private int colorFor(NodeFaceMode mode) {
@@ -342,10 +366,18 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private final class LineButton extends AbstractButton {
         private final int action;
 
-        private LineButton(int x, int y, int width, Component message, int action, boolean enabled) {
+        private LineButton(int x, int y, int width, Component message, int action) {
             super(x, y, width, 18, message);
             this.action = action;
-            this.active = enabled;
+        }
+
+        private void refresh(int index, int count) {
+            active = switch (action) {
+                case MenuAction.LINE_FIRST, MenuAction.LINE_PREVIOUS -> count > 1 && index > 0;
+                case MenuAction.LINE_LAST -> count > 1 && index < count - 1;
+                case MenuAction.LINE_REMOVE_CURRENT -> count > 0;
+                default -> true;
+            };
         }
 
         @Override
@@ -384,11 +416,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 return;
             }
             localFaceModes.put(selectedFace, mode);
-            int action = switch (mode) {
-                case INPUT -> MenuAction.faceExtract(selectedFace);
-                case OUTPUT -> MenuAction.faceInsert(selectedFace);
-                case NONE -> MenuAction.faceNone(selectedFace);
-            };
+            int action = mode == NodeFaceMode.INPUT
+                    ? MenuAction.faceExtract(selectedFace)
+                    : MenuAction.faceInsert(selectedFace);
             ModNetworking.sendMenuAction(action);
         }
 
@@ -417,6 +447,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         public void onPress() {
             advancedPanel = !advancedPanel;
+            SkyNodeBlockEntity node = node();
+            menu.setFaceFilterSlotsActive(advancedPanel && node != null && hasTargetBlock(node, selectedFace));
         }
 
         @Override

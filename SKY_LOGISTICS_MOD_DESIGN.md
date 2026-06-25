@@ -101,6 +101,26 @@
 - 若后续要支持被动移动存储，只给天仓/天池实现 Create mounted storage，不让节点在移动中执行物流。实现应参考 SophisticatedBackpacksCreateIntegration：mounted adapter 代理存储操作，MovementBehaviour 负责移动中 tick/位置/清理 contraption NBT，菜单使用 entity/local pos 校验和同步。
 - 若后续要支持移动节点，必须引入 `EntityEndpointAddress`、contraption entity UUID、local pos、动态 side 映射、移动交互 GUI 和组装/解体生命周期同步；这与航空学移动结构是同一类兼容层，不应混入 MVP 主线。
 
+### CreatePrism
+
+参考仓库：[adonis-baffin/CreatePrism](https://github.com/adonis-baffin/CreatePrism)
+
+本次核对版本：临时克隆 `main` 分支，用于参考玻璃 casing 的视觉结构。
+
+可借鉴：
+
+- 玻璃 casing 用透明主体加高亮边缘表达“透亮但仍有工业结构”的外观。
+- 同一类玻璃方块相邻时跳过内部面渲染，避免玻璃墙出现重复叠色和内部杂线。
+- CreatePrism 通过 Create 的 `CTSpriteShiftEntry` 和 `_connected` 纹理实现 connected texture；透明玻璃 casing 与 illumination casing 都准备普通纹理和 connected 纹理。
+- 客户端按方块类型选择 `translucent` 或 `cutout` 渲染层，玻璃 casing 使用半透明渲染。
+
+我们的取舍：
+
+- 核心模组不硬依赖 Create，也不引入 CTM/connected texture 运行时。
+- 天穹玻璃采用原生 `BlockState` 六方向连通属性：放置和邻居变化时记录上下南北东西是否接入同类玻璃。
+- 资源侧使用 multipart blockstate：透明主体始终渲染，只有两个相邻外侧方向都未连接时才渲染对应高亮边框。因此多块相邻放置时内部边框消失，整体外轮廓保留。
+- Java 侧仍继承玻璃语义：透光、亮度高、相邻同类方块跳过内部面渲染；视觉上接近 CreatePrism 的清透玻璃 casing，但实现保持独立、离线构建友好。
+
 ### Mekanism
 
 参考仓库：[mekanism/Mekanism](https://github.com/mekanism/Mekanism)

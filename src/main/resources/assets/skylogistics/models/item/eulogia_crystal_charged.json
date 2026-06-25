@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/prismarine_crystals"
+    "layer0": "skylogistics:item/eulogia_crystal_charged"
   }
 }

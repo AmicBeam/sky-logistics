@@ -44,6 +44,10 @@ public final class SkyLogisticsConfig {
         return SERVER.externalTankScansPerEndpoint.get();
     }
 
+    public static int preferredItemSlotCacheSize() {
+        return SERVER.preferredItemSlotCacheSize.get();
+    }
+
     public static int skyRitualMinY() {
         return SERVER.skyRitualMinY.get();
     }
@@ -60,6 +64,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue lineOpsPerTick;
         public final ForgeConfigSpec.IntValue endpointTargetAttempts;
         public final ForgeConfigSpec.IntValue externalTankScansPerEndpoint;
+        public final ForgeConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ForgeConfigSpec.IntValue skyRitualMinY;
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
@@ -68,7 +73,7 @@ public final class SkyLogisticsConfig {
             builder.push("vaults");
             maxVaultTypes = builder
                     .comment("Maximum item/fluid type slots a Celestial Vault can be expanded to with capacity nectar.")
-                    .defineInRange("maxVaultTypes", 63, 1, 256);
+                    .defineInRange("maxVaultTypes", 36, 1, 63);
             builder.pop();
 
             builder.push("transfers");
@@ -93,6 +98,9 @@ public final class SkyLogisticsConfig {
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 4, 1, 64);
+            preferredItemSlotCacheSize = builder
+                    .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
+                    .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
             builder.pop();
 
             builder.push("rituals");

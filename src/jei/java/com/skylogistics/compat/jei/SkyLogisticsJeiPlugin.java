@@ -44,6 +44,7 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         registration.addRecipeCatalyst(ModItems.OFFERING_ALTAR.get(), SKY_OFFERING);
+        registration.addRecipeCatalyst(ModItems.OFFERING_TABLE.get(), SKY_OFFERING);
     }
 
     @Override

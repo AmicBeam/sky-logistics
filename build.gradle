@@ -37,15 +37,70 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-def jadeApiJar = file(System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR') ?: '/private/tmp/jade-api.jar')
-def jeiApiJar = file(System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR') ?: '/private/tmp/jei-api.jar')
+def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
+def jadeApiJar = jadeApiPath ? file(jadeApiPath) : null
+def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
+def defaultJeiApiJar = file('/private/tmp/jei-api.jar')
+def cachedJeiApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/mezz.jei/jei-1.20.1-forge",
+        include: '**/jei-1.20.1-forge-*.jar'
+).files.toList().sort { it.absolutePath }
+def jeiApiJar = jeiApiPath ? file(jeiApiPath)
+        : (defaultJeiApiJar.exists() ? defaultJeiApiJar
+        : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : defaultJeiApiJar))
+def includeJadeCompat = false
+def includeJeiCompat = false
 
-if (jadeApiJar.exists()) {
+def jadeApiCompatibilityIssues = { File jar ->
+    def requiredEntries = [
+            'snownee/jade/api/Accessor.class',
+            'snownee/jade/api/BlockAccessor.class',
+            'snownee/jade/api/IBlockComponentProvider.class',
+            'snownee/jade/api/IServerDataProvider.class',
+            'snownee/jade/api/ITooltip.class',
+            'snownee/jade/api/IWailaClientRegistration.class',
+            'snownee/jade/api/IWailaCommonRegistration.class',
+            'snownee/jade/api/IWailaPlugin.class',
+            'snownee/jade/api/WailaPlugin.class',
+            'snownee/jade/api/config/IPluginConfig.class'
+    ]
+    def zip = new java.util.zip.ZipFile(jar)
+    try {
+        def issues = requiredEntries.findAll { zip.getEntry(it) == null }
+        def serverProvider = zip.getEntry('snownee/jade/api/IServerDataProvider.class')
+        if (serverProvider != null) {
+            def descriptor = '(Lnet/minecraft/nbt/CompoundTag;Lsnownee/jade/api/Accessor;)V'
+            def classText = new String(zip.getInputStream(serverProvider).bytes,
+                    java.nio.charset.StandardCharsets.ISO_8859_1)
+            if (!classText.contains(descriptor)) {
+                issues.add('snownee/jade/api/IServerDataProvider.class must erase appendServerData to Accessor')
+            }
+        }
+        return issues
+    } finally {
+        zip.close()
+    }
+}
+
+if (jadeApiJar != null) {
+    if (!jadeApiJar.exists()) {
+        throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
+    }
+    def compatibilityIssues = jadeApiCompatibilityIssues(jadeApiJar)
+    if (!compatibilityIssues.isEmpty()) {
+        throw new GradleException("Configured Jade API jar is not compatible with Jade 1.20.1 11.x: ${compatibilityIssues.join(', ')}")
+    }
     sourceSets.main.java.srcDir 'src/jade/java'
+    includeJadeCompat = true
+}
+
+if (jeiApiPath && !jeiApiJar.exists()) {
+    throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
 }
 
 if (jeiApiJar.exists()) {
     sourceSets.main.java.srcDir 'src/jei/java'
+    includeJeiCompat = true
 }
 
 minecraft {
@@ -98,10 +153,10 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    if (jadeApiJar.exists()) {
+    if (includeJadeCompat) {
         compileOnly files(jadeApiJar)
     }
-    if (jeiApiJar.exists()) {
+    if (includeJeiCompat) {
         compileOnly files(jeiApiJar)
     }
 }

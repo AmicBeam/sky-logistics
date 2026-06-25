@@ -6,7 +6,6 @@ import com.skylogistics.network.ItemVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
-import com.skylogistics.storage.VaultStorage;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,6 +16,8 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -30,31 +31,30 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 public class ItemVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
     private static final int VIEWER_SYNC_INTERVAL_TICKS = 10;
 
-    private final LinkedHashMap<ItemStackKey, Long> stored = new LinkedHashMap<>();
-    private final List<ItemStackKey> contentIndex = new ArrayList<>();
+    private final List<ItemStack> items = new ArrayList<>();
+    private final LinkedHashMap<ItemStackKey, Long> clientStored = new LinkedHashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
     private final IItemHandler itemHandler = new VaultItemHandler();
     private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> itemHandler);
-    private LinkedHashMap<ItemStackKey, Long> indexedContents;
-    private int indexedContentSize = -1;
-    private UUID vaultId = UUID.randomUUID();
     private int typeLimit = 1;
     private int clientUsedTypes = -1;
     private long clientTotalAmount = -1L;
-    private long cachedServerTotalAmount = -1L;
     private long clientSnapshotVersion;
     private long lastViewerSyncTime = Long.MIN_VALUE;
 
     public ItemVaultBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ITEM_VAULT.get(), pos, state);
+        ensureItemCapacity();
     }
 
     public int getTypeLimit() {
+        ensureItemCapacity();
         return Math.min(typeLimit, SkyLogisticsConfig.maxVaultTypes());
     }
 
@@ -68,6 +68,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
             return false;
         }
         typeLimit++;
+        ensureItemCapacity();
         markMetadataChanged();
         return true;
     }
@@ -76,14 +77,14 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (level != null && level.isClientSide && clientUsedTypes >= 0) {
             return clientUsedTypes;
         }
-        return contents().size();
+        return occupiedSlots();
     }
 
     public long getTotalAmount() {
         if (level != null && level.isClientSide && clientTotalAmount >= 0) {
             return clientTotalAmount;
         }
-        return cachedTotalAmount();
+        return totalAmount();
     }
 
     public long getClientSnapshotVersion() {
@@ -93,11 +94,12 @@ public class ItemVaultBlockEntity extends BlockEntity {
     public List<StoredItem> getStoredItems(int limit) {
         List<StoredItem> result = new ArrayList<>();
         int added = 0;
-        for (Map.Entry<ItemStackKey, Long> entry : contents().entrySet()) {
+        for (Map.Entry<ItemStackKey, Long> entry : displayContents().entrySet()) {
             if (added++ >= limit) {
                 break;
             }
-            result.add(new StoredItem(entry.getKey().toStack(1), entry.getValue()));
+            result.add(new StoredItem(entry.getKey().toStack((int) Math.min(Integer.MAX_VALUE, entry.getValue())),
+                    entry.getValue()));
         }
         return result;
     }
@@ -106,7 +108,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (stack.isEmpty()) {
             return false;
         }
-        ItemStack remainder = itemHandler.insertItem(0, stack, false);
+        ItemStack remainder = insertStack(stack, false);
         int inserted = stack.getCount() - remainder.getCount();
         if (inserted <= 0) {
             return false;
@@ -116,24 +118,69 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     public ItemStack extractFirstForPlayer(int amount) {
-        return itemHandler.extractItem(0, amount, false);
+        if (amount <= 0) {
+            return ItemStack.EMPTY;
+        }
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots; slot++) {
+            ItemStack extracted = itemHandler.extractItem(slot, amount, false);
+            if (!extracted.isEmpty()) {
+                return extracted;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    public ItemStack extractForPlayer(ItemStack template, int amount) {
+        if (template.isEmpty() || amount <= 0) {
+            return ItemStack.EMPTY;
+        }
+        int remaining = amount;
+        ItemStack result = ItemStack.EMPTY;
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots && remaining > 0; slot++) {
+            ItemStack stack = stackInSlot(slot);
+            if (stack.isEmpty() || !ItemStack.isSameItemSameTags(stack, template)) {
+                continue;
+            }
+            int toExtract = Math.min(remaining, stack.getCount());
+            if (result.isEmpty()) {
+                result = stack.copy();
+                result.setCount(0);
+            }
+            result.grow(toExtract);
+            stack.shrink(toExtract);
+            if (stack.isEmpty()) {
+                items.set(slot, ItemStack.EMPTY);
+            }
+            remaining -= toExtract;
+        }
+        if (!result.isEmpty()) {
+            markContentsChanged();
+        }
+        return result;
     }
 
     public long transferTo(ItemVaultBlockEntity target, int sourceSlot, long maxAmount) {
-        if (target == this || vaultId.equals(target.vaultId) || sourceSlot < 0 || sourceSlot >= getTypeLimit()
-                || maxAmount <= 0) {
+        if (target == this || sourceSlot < 0 || sourceSlot >= getTypeLimit() || maxAmount <= 0) {
             return 0L;
         }
-        Map.Entry<ItemStackKey, Long> entry = entryAt(sourceSlot);
-        if (entry == null) {
+        ItemStack source = stackInSlot(sourceSlot);
+        if (source.isEmpty()) {
             return 0L;
         }
-        long moved = Math.min(entry.getValue(), maxAmount);
-        if (moved <= 0 || !target.canReceiveOrVoid(entry.getKey())) {
+        ItemStack moving = source.copy();
+        moving.setCount((int) Math.min(Math.min(Integer.MAX_VALUE, maxAmount), source.getCount()));
+        ItemStack remainder = target.insertStack(moving, false);
+        int moved = moving.getCount() - remainder.getCount();
+        if (moved <= 0) {
             return 0L;
         }
-        target.receiveOrVoid(entry.getKey(), moved);
-        removeStored(entry.getKey(), moved);
+        source.shrink(moved);
+        if (source.isEmpty()) {
+            items.set(sourceSlot, ItemStack.EMPTY);
+        }
+        markContentsChanged();
         return moved;
     }
 
@@ -168,9 +215,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         this.clientUsedTypes = Math.max(0, usedTypes);
         this.clientTotalAmount = Math.max(0L, totalAmount);
         clientSnapshotVersion++;
-        invalidateSummaryCache();
-        invalidateContentIndex();
-        stored.clear();
+        clientStored.clear();
         for (ItemVaultSnapshotPacket.Entry entry : entries) {
             ItemStack stack = entry.stack();
             if (entry.amount() <= 0 || stack.isEmpty()) {
@@ -178,28 +223,55 @@ public class ItemVaultBlockEntity extends BlockEntity {
             }
             ItemStack normalized = stack.copy();
             normalized.setCount(1);
-            stored.put(ItemStackKey.of(normalized), entry.amount());
+            clientStored.put(ItemStackKey.of(normalized), entry.amount());
         }
     }
 
     @Override
     public void onLoad() {
         super.onLoad();
+        ensureItemCapacity();
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         saveMetadata(tag);
+        ListTag itemTags = new ListTag();
+        int slots = Math.min(items.size(), getConfiguredMaxTypes());
+        for (int slot = 0; slot < slots; slot++) {
+            ItemStack stack = items.get(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            CompoundTag entry = new CompoundTag();
+            entry.putInt("Slot", slot);
+            entry.put("Stack", stack.save(new CompoundTag()));
+            itemTags.add(entry);
+        }
+        if (!itemTags.isEmpty()) {
+            tag.put("Items", itemTags);
+        }
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        if (tag.hasUUID("VaultId")) {
-            vaultId = tag.getUUID("VaultId");
+        typeLimit = tag.contains("TypeLimit") ? Math.max(1, tag.getInt("TypeLimit")) : 1;
+        ensureItemCapacity();
+        clearItems();
+        if (tag.contains("Items", Tag.TAG_LIST)) {
+            ListTag itemTags = tag.getList("Items", Tag.TAG_COMPOUND);
+            for (int i = 0; i < itemTags.size(); i++) {
+                CompoundTag entry = itemTags.getCompound(i);
+                int slot = entry.getInt("Slot");
+                if (slot < 0 || slot >= items.size()) {
+                    continue;
+                }
+                ItemStack stack = ItemStack.of(entry.getCompound("Stack"));
+                items.set(slot, stack);
+            }
         }
-        typeLimit = Math.max(1, tag.getInt("TypeLimit"));
         if (tag.contains("UsedTypes")) {
             clientUsedTypes = Math.max(0, tag.getInt("UsedTypes"));
         }
@@ -234,25 +306,15 @@ public class ItemVaultBlockEntity extends BlockEntity {
         itemCapability.invalidate();
     }
 
-    private LinkedHashMap<ItemStackKey, Long> contents() {
-        if (level instanceof ServerLevel serverLevel) {
-            return VaultStorage.get(serverLevel, vaultId).items(vaultId);
-        }
-        return stored;
-    }
-
     private void saveMetadata(CompoundTag tag) {
-        tag.putUUID("VaultId", vaultId);
         tag.putInt("TypeLimit", typeLimit);
-        tag.putInt("UsedTypes", contents().size());
-        tag.putLong("TotalAmount", cachedTotalAmount());
+        tag.putInt("UsedTypes", getUsedTypes());
+        tag.putLong("TotalAmount", getTotalAmount());
     }
 
     private void markContentsChanged() {
-        invalidateSummaryCache();
         setChanged();
-        if (level instanceof ServerLevel serverLevel) {
-            VaultStorage.get(serverLevel, vaultId).setDirty();
+        if (level instanceof ServerLevel) {
             syncToViewingPlayers(false);
         }
     }
@@ -260,7 +322,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private void markMetadataChanged() {
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            serverLevel.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
             syncToViewingPlayers(true);
         }
     }
@@ -294,100 +356,123 @@ public class ItemVaultBlockEntity extends BlockEntity {
         }
     }
 
-    private Map.Entry<ItemStackKey, Long> entryAt(int slot) {
-        if (slot < 0) {
-            return null;
+    private ItemStack insertStack(ItemStack stack, boolean simulate) {
+        if (stack.isEmpty()) {
+            return ItemStack.EMPTY;
         }
-        LinkedHashMap<ItemStackKey, Long> contents = contents();
-        if (slot >= contents.size()) {
-            return null;
-        }
-        List<ItemStackKey> index = contentIndex(contents);
-        ItemStackKey key = index.get(slot);
-        Long amount = contents.get(key);
-        if (amount == null || amount <= 0) {
-            invalidateContentIndex();
-            index = contentIndex(contents);
-            if (slot >= index.size()) {
-                return null;
+        ItemStack remainder = stack.copy();
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots && !remainder.isEmpty(); slot++) {
+            ItemStack existing = stackInSlot(slot);
+            if (!existing.isEmpty() && ItemHandlerHelper.canItemStacksStack(existing, remainder)) {
+                remainder = insertIntoSlot(slot, remainder, simulate);
             }
-            key = index.get(slot);
-            amount = contents.get(key);
         }
-        return amount == null || amount <= 0 ? null : Map.entry(key, amount);
+        for (int slot = 0; slot < slots && !remainder.isEmpty(); slot++) {
+            if (stackInSlot(slot).isEmpty()) {
+                remainder = insertIntoSlot(slot, remainder, simulate);
+            }
+        }
+        return remainder;
     }
 
-    private List<ItemStackKey> contentIndex(LinkedHashMap<ItemStackKey, Long> contents) {
-        if (indexedContents != contents || indexedContentSize != contents.size()) {
-            contentIndex.clear();
-            contentIndex.addAll(contents.keySet());
-            indexedContents = contents;
-            indexedContentSize = contents.size();
+    private ItemStack insertIntoSlot(int slot, ItemStack stack, boolean simulate) {
+        if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
+            return stack;
         }
-        return contentIndex;
+        ItemStack existing = stackInSlot(slot);
+        int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+        if (!existing.isEmpty()) {
+            if (!ItemHandlerHelper.canItemStacksStack(existing, stack)) {
+                return stack;
+            }
+            limit -= existing.getCount();
+        }
+        if (limit <= 0) {
+            return stack;
+        }
+        int accepted = Math.min(limit, stack.getCount());
+        if (!simulate) {
+            if (existing.isEmpty()) {
+                ItemStack inserted = stack.copy();
+                inserted.setCount(accepted);
+                items.set(slot, inserted);
+            } else {
+                existing.grow(accepted);
+            }
+            markContentsChanged();
+        }
+        ItemStack remainder = stack.copy();
+        remainder.shrink(accepted);
+        return remainder;
     }
 
-    private void invalidateContentIndex() {
-        indexedContents = null;
-        indexedContentSize = -1;
-        contentIndex.clear();
+    private ItemStack stackInSlot(int slot) {
+        ensureItemCapacity();
+        return slot >= 0 && slot < items.size() ? items.get(slot) : ItemStack.EMPTY;
     }
 
-    private boolean canReceiveOrVoid(ItemStackKey key) {
-        LinkedHashMap<ItemStackKey, Long> contents = contents();
-        return contents.containsKey(key) || contents.size() < getTypeLimit();
+    private int getSlotLimit(int slot) {
+        return slot >= 0 && slot < getTypeLimit() ? 64 : 0;
     }
 
-    private void receiveOrVoid(ItemStackKey key, long amount) {
-        if (amount <= 0) {
-            return;
+    private LinkedHashMap<ItemStackKey, Long> displayContents() {
+        if (level != null && level.isClientSide) {
+            return clientStored;
         }
-        LinkedHashMap<ItemStackKey, Long> contents = contents();
-        boolean knownType = contents.containsKey(key);
-        if (!knownType && contents.size() >= getTypeLimit()) {
-            return;
+        LinkedHashMap<ItemStackKey, Long> contents = new LinkedHashMap<>();
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots; slot++) {
+            ItemStack stack = stackInSlot(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            ItemStack normalized = stack.copy();
+            normalized.setCount(1);
+            ItemStackKey key = ItemStackKey.of(normalized);
+            contents.put(key, saturatingAdd(contents.getOrDefault(key, 0L), stack.getCount()));
         }
-        long current = contents.getOrDefault(key, 0L);
-        long storedAmount = Math.min(amount, Long.MAX_VALUE - current);
-        if (storedAmount <= 0) {
-            return;
-        }
-        contents.put(key, current + storedAmount);
-        markContentsChanged();
+        return contents;
     }
 
-    private void removeStored(ItemStackKey key, long amount) {
-        if (amount <= 0) {
-            return;
+    private int occupiedSlots() {
+        int occupied = 0;
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots; slot++) {
+            if (!stackInSlot(slot).isEmpty()) {
+                occupied++;
+            }
         }
-        LinkedHashMap<ItemStackKey, Long> contents = contents();
-        long current = contents.getOrDefault(key, 0L);
-        long remaining = current - Math.min(current, amount);
-        if (remaining <= 0) {
-            contents.remove(key);
-        } else {
-            contents.put(key, remaining);
-        }
-        markContentsChanged();
+        return occupied;
     }
 
-    private static long totalAmount(Map<?, Long> contents) {
+    private long totalAmount() {
         long total = 0L;
-        for (long amount : contents.values()) {
-            total = saturatingAdd(total, amount);
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots; slot++) {
+            ItemStack stack = stackInSlot(slot);
+            if (!stack.isEmpty()) {
+                total = saturatingAdd(total, stack.getCount());
+            }
         }
         return total;
     }
 
-    private long cachedTotalAmount() {
-        if (cachedServerTotalAmount < 0L) {
-            cachedServerTotalAmount = totalAmount(contents());
+    private void ensureItemCapacity() {
+        int max = Math.max(1, SkyLogisticsConfig.maxVaultTypes());
+        while (items.size() < max) {
+            items.add(ItemStack.EMPTY);
         }
-        return cachedServerTotalAmount;
+        while (items.size() > max) {
+            items.remove(items.size() - 1);
+        }
+        typeLimit = Math.max(1, Math.min(typeLimit, max));
     }
 
-    private void invalidateSummaryCache() {
-        cachedServerTotalAmount = -1L;
+    private void clearItems() {
+        for (int i = 0; i < items.size(); i++) {
+            items.set(i, ItemStack.EMPTY);
+        }
     }
 
     private static long saturatingAdd(long left, long right) {
@@ -411,30 +496,12 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit()) {
                 return ItemStack.EMPTY;
             }
-            Map.Entry<ItemStackKey, Long> entry = entryAt(slot);
-            if (entry == null) {
-                return ItemStack.EMPTY;
-            }
-            return entry.getKey().toStack((int) Math.min(Integer.MAX_VALUE, entry.getValue()));
+            return stackInSlot(slot).copy();
         }
 
         @Override
         public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
-                return stack;
-            }
-            ItemStack normalized = stack.copy();
-            normalized.setCount(1);
-            ItemStackKey key = ItemStackKey.of(normalized);
-            LinkedHashMap<ItemStackKey, Long> contents = contents();
-            boolean knownType = contents.containsKey(key);
-            if (!knownType && contents.size() >= getTypeLimit()) {
-                return stack;
-            }
-            if (!simulate) {
-                receiveOrVoid(key, stack.getCount());
-            }
-            return ItemStack.EMPTY;
+            return insertIntoSlot(slot, stack, simulate);
         }
 
         @Override
@@ -442,21 +509,17 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit() || amount <= 0) {
                 return ItemStack.EMPTY;
             }
-            Map.Entry<ItemStackKey, Long> entry = entryAt(slot);
-            if (entry == null) {
+            ItemStack existing = stackInSlot(slot);
+            if (existing.isEmpty()) {
                 return ItemStack.EMPTY;
             }
-            int extractedAmount = (int) Math.min(Math.min(Integer.MAX_VALUE, amount), entry.getValue());
-            if (extractedAmount <= 0) {
-                return ItemStack.EMPTY;
-            }
-            ItemStack extracted = entry.getKey().toStack(extractedAmount);
+            int extractedAmount = Math.min(amount, existing.getCount());
+            ItemStack extracted = existing.copy();
+            extracted.setCount(extractedAmount);
             if (!simulate) {
-                long remaining = entry.getValue() - extractedAmount;
-                if (remaining <= 0) {
-                    contents().remove(entry.getKey());
-                } else {
-                    contents().put(entry.getKey(), remaining);
+                existing.shrink(extractedAmount);
+                if (existing.isEmpty()) {
+                    items.set(slot, ItemStack.EMPTY);
                 }
                 markContentsChanged();
             }
@@ -465,7 +528,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
 
         @Override
         public int getSlotLimit(int slot) {
-            return Integer.MAX_VALUE;
+            return ItemVaultBlockEntity.this.getSlotLimit(slot);
         }
 
         @Override
@@ -473,11 +536,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
                 return false;
             }
-            ItemStack normalized = stack.copy();
-            normalized.setCount(1);
-            ItemStackKey key = ItemStackKey.of(normalized);
-            LinkedHashMap<ItemStackKey, Long> contents = contents();
-            return contents.containsKey(key) || contents.size() < getTypeLimit();
+            ItemStack existing = stackInSlot(slot);
+            return existing.isEmpty() || ItemHandlerHelper.canItemStacksStack(existing, stack);
         }
     }
 }

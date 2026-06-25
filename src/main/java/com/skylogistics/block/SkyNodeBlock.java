@@ -66,6 +66,11 @@ public class SkyNodeBlock extends BaseEntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (stack.getItem() instanceof ConfiguratorItem
+                && level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            return ConfiguratorItem.useOnNode(level, pos, node, player, hand, stack);
+        }
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }

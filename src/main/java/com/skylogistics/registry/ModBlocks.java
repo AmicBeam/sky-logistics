@@ -1,13 +1,13 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.block.CelestialGlassBlock;
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.OfferingAltarBlock;
 import com.skylogistics.block.OfferingTableBlock;
 import com.skylogistics.block.SkyNodeBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.GlassBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
@@ -54,7 +54,7 @@ public final class ModBlocks {
             () -> new WallBlock(celestialStoneProperties()));
 
     public static final RegistryObject<Block> CELESTIAL_GLASS = BLOCKS.register("celestial_glass",
-            () -> new GlassBlock(BlockBehaviour.Properties.of()
+            () -> new CelestialGlassBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
                     .strength(0.6F, 3.0F)
                     .sound(SoundType.GLASS)

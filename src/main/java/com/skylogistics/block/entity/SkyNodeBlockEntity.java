@@ -9,7 +9,9 @@ import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.RedstoneControl;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -30,8 +32,14 @@ import net.minecraftforge.fluids.FluidStack;
 public class SkyNodeBlockEntity extends BlockEntity {
     public static final int UPGRADE_SLOTS = 2;
     public static final int FACE_FILTER_SLOTS = 1;
+    private static final String LINE_ID_TAG = "LineId";
+    private static final String LINES_TAG = "Lines";
+    private static final String LINE_INDEX_TAG = "LineIndex";
+    private static final String LINE_ENTRY_ID_TAG = "Id";
 
     private UUID lineId = UUID.randomUUID();
+    private final List<UUID> lines = new ArrayList<>();
+    private int lineIndex;
     private NodeMode mode = NodeMode.OUTPUT;
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, RedstoneControl> redstoneControls = new EnumMap<>(Direction.class);
@@ -54,8 +62,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public SkyNodeBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SKY_NODE.get(), pos, state);
+        lines.add(lineId);
         for (Direction direction : Direction.values()) {
-            faceModes.put(direction, NodeFaceMode.NONE);
+            faceModes.put(direction, NodeFaceMode.OUTPUT);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             faceItemsEnabled.put(direction, true);
@@ -91,6 +100,16 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public UUID getLineId() {
         return lineId;
+    }
+
+    public int getLineIndex() {
+        ensureLineList();
+        return lineIndex;
+    }
+
+    public int getLineCount() {
+        ensureLineList();
+        return lines.size();
     }
 
     public NodeMode getMode() {
@@ -324,7 +343,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public NodeFaceMode getFaceMode(Direction direction) {
-        return faceModes.getOrDefault(direction, NodeFaceMode.NONE);
+        return faceModes.getOrDefault(direction, NodeFaceMode.OUTPUT);
     }
 
     public RedstoneControl getRedstoneControl(Direction direction) {
@@ -382,10 +401,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void applyPlacementToolConfig(ConfiguratorItem.ToolConfig config, boolean includeMode) {
-        boolean topologyChanged = !lineId.equals(config.lineId());
+        boolean topologyChanged = assignLineId(config.lineId());
         boolean runtimeChanged = false;
         boolean priorityChanged = false;
-        lineId = config.lineId();
         Direction direction = getTargetDirection();
         ConfiguratorItem.FaceConfig face = config.placement();
         if (includeMode && getFaceMode(direction) != face.mode()) {
@@ -426,10 +444,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
             applyPlacementToolConfig(config, true);
             return;
         }
-        boolean topologyChanged = !lineId.equals(config.lineId());
+        boolean topologyChanged = assignLineId(config.lineId());
         boolean runtimeChanged = false;
         boolean priorityChanged = false;
-        lineId = config.lineId();
         for (Direction direction : Direction.values()) {
             ConfiguratorItem.FaceConfig face = config.face(direction);
             if (getFaceMode(direction) != face.mode()) {
@@ -471,11 +488,87 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void setLineId(UUID lineId) {
-        if (this.lineId.equals(lineId)) {
+        if (!assignLineId(lineId)) {
             return;
         }
-        this.lineId = lineId;
         markTopologyChanged();
+    }
+
+    public void selectFirstLine() {
+        selectLine(0);
+    }
+
+    public void selectPreviousLine() {
+        ensureLineList();
+        selectLine(Math.max(0, lineIndex - 1));
+    }
+
+    public void selectNextOrCreateLine() {
+        ensureLineList();
+        if (lineIndex < lines.size() - 1) {
+            selectLine(lineIndex + 1);
+            return;
+        }
+        UUID newLineId = UUID.randomUUID();
+        lines.add(newLineId);
+        selectLine(lines.size() - 1);
+    }
+
+    public void selectLastLine() {
+        ensureLineList();
+        selectLine(lines.size() - 1);
+    }
+
+    public void removeCurrentLine() {
+        ensureLineList();
+        if (lines.size() <= 1) {
+            lines.clear();
+            lines.add(UUID.randomUUID());
+            selectLine(0);
+            return;
+        }
+        lines.remove(lineIndex);
+        selectLine(Math.min(lineIndex, lines.size() - 1));
+    }
+
+    private void selectLine(int index) {
+        if (lines.isEmpty()) {
+            lines.add(lineId);
+            lineIndex = 0;
+        }
+        int clamped = Math.max(0, Math.min(index, lines.size() - 1));
+        setLineId(lines.get(clamped));
+    }
+
+    private boolean assignLineId(UUID newLineId) {
+        if (lines.isEmpty()) {
+            lines.add(lineId);
+            lineIndex = 0;
+        }
+        int index = lines.indexOf(newLineId);
+        if (index < 0) {
+            lines.add(newLineId);
+            index = lines.size() - 1;
+        }
+        boolean changed = !lineId.equals(newLineId) || lineIndex != index;
+        lineId = newLineId;
+        lineIndex = index;
+        return changed;
+    }
+
+    private void ensureLineList() {
+        if (lines.isEmpty()) {
+            lines.add(lineId);
+            lineIndex = 0;
+            return;
+        }
+        int active = lines.indexOf(lineId);
+        if (active >= 0) {
+            lineIndex = active;
+            return;
+        }
+        lineIndex = Math.max(0, Math.min(lineIndex, lines.size() - 1));
+        lineId = lines.get(lineIndex);
     }
 
     public void setMode(NodeMode mode) {
@@ -555,6 +648,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
+        if (faceMode == NodeFaceMode.NONE) {
+            faceMode = NodeFaceMode.OUTPUT;
+        }
         if (getFaceMode(direction) == faceMode) {
             return;
         }
@@ -584,7 +680,16 @@ public class SkyNodeBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        tag.putUUID("LineId", lineId);
+        ensureLineList();
+        tag.putUUID(LINE_ID_TAG, lineId);
+        tag.putInt(LINE_INDEX_TAG, lineIndex);
+        ListTag lineTags = new ListTag();
+        for (UUID line : lines) {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID(LINE_ENTRY_ID_TAG, line);
+            lineTags.add(entry);
+        }
+        tag.put(LINES_TAG, lineTags);
         tag.putString("Mode", mode.name());
         tag.putBoolean("ItemsEnabled", itemsEnabled);
         tag.putBoolean("FluidsEnabled", fluidsEnabled);
@@ -639,9 +744,37 @@ public class SkyNodeBlockEntity extends BlockEntity {
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        if (tag.hasUUID("LineId")) {
-            lineId = tag.getUUID("LineId");
+        if (tag.hasUUID(LINE_ID_TAG)) {
+            lineId = tag.getUUID(LINE_ID_TAG);
         }
+        lines.clear();
+        if (tag.contains(LINES_TAG, Tag.TAG_LIST)) {
+            ListTag lineTags = tag.getList(LINES_TAG, Tag.TAG_COMPOUND);
+            for (int i = 0; i < lineTags.size(); i++) {
+                CompoundTag entry = lineTags.getCompound(i);
+                if (entry.hasUUID(LINE_ENTRY_ID_TAG)) {
+                    UUID savedLineId = entry.getUUID(LINE_ENTRY_ID_TAG);
+                    if (!lines.contains(savedLineId)) {
+                        lines.add(savedLineId);
+                    }
+                }
+            }
+        }
+        if (lines.isEmpty()) {
+            lines.add(lineId);
+        }
+        lineIndex = tag.contains(LINE_INDEX_TAG) ? tag.getInt(LINE_INDEX_TAG) : 0;
+        if (!tag.hasUUID(LINE_ID_TAG)) {
+            lineIndex = Math.max(0, Math.min(lineIndex, lines.size() - 1));
+            lineId = lines.get(lineIndex);
+        }
+        int activeLine = lines.indexOf(lineId);
+        if (activeLine < 0) {
+            lines.add(lineId);
+            activeLine = lines.size() - 1;
+        }
+        lineIndex = Math.max(0, Math.min(activeLine, lines.size() - 1));
+        lineId = lines.get(lineIndex);
         mode = NodeMode.byName(tag.getString("Mode"));
         itemsEnabled = !tag.contains("ItemsEnabled") || tag.getBoolean("ItemsEnabled");
         fluidsEnabled = !tag.contains("FluidsEnabled") || tag.getBoolean("FluidsEnabled");
@@ -664,7 +797,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
         }
         for (Direction direction : Direction.values()) {
-            faceModes.put(direction, NodeFaceMode.NONE);
+            faceModes.put(direction, NodeFaceMode.OUTPUT);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             faceItemsEnabled.put(direction, itemsEnabled);
@@ -674,7 +807,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (tag.contains("Faces", Tag.TAG_COMPOUND)) {
             CompoundTag faces = tag.getCompound("Faces");
             for (Direction direction : Direction.values()) {
-                faceModes.put(direction, NodeFaceMode.byName(faces.getString(direction.getSerializedName())));
+                NodeFaceMode faceMode = NodeFaceMode.byName(faces.getString(direction.getSerializedName()));
+                faceModes.put(direction, faceMode == NodeFaceMode.NONE ? NodeFaceMode.OUTPUT : faceMode);
             }
         } else {
             faceModes.put(getTargetDirection(), mode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
