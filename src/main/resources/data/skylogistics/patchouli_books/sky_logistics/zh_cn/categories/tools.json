@@ -1,0 +1,5 @@
+{
+  "name": "工具",
+  "description": "用于配置线路、节点和过滤规则的随身工具。",
+  "icon": "skylogistics:configurator"
+}

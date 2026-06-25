@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/amethyst_shard"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "damage": 1.0
+      },
+      "model": "skylogistics:item/eulogia_crystal_charged"
+    }
+  ]
+}

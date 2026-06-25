@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SRS",
+    "RNR",
+    "SRS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:sugar"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "N": {
+      "item": "skylogistics:chora_nectar"
+    }
+  },
+  "result": {
+    "item": "skylogistics:speed_upgrade"
+  }
+}

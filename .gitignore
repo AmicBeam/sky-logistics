@@ -1,0 +1,14 @@
+.DS_Store
+.gradle/
+build/
+run/
+out/
+mcmodsrepo/
+
+*.iml
+.idea/
+.classpath
+.project
+.settings/
+
+src/generated/

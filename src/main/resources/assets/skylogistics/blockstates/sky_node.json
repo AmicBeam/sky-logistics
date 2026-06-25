@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=down,mode=input": { "model": "skylogistics:block/sky_node_extract", "x": 90, "uvlock": true },
+    "facing=down,mode=output": { "model": "skylogistics:block/sky_node_insert", "x": 90, "uvlock": true },
+    "facing=up,mode=input": { "model": "skylogistics:block/sky_node_extract", "x": 270, "uvlock": true },
+    "facing=up,mode=output": { "model": "skylogistics:block/sky_node_insert", "x": 270, "uvlock": true },
+    "facing=north,mode=input": { "model": "skylogistics:block/sky_node_extract" },
+    "facing=north,mode=output": { "model": "skylogistics:block/sky_node_insert" },
+    "facing=south,mode=input": { "model": "skylogistics:block/sky_node_extract", "y": 180, "uvlock": true },
+    "facing=south,mode=output": { "model": "skylogistics:block/sky_node_insert", "y": 180, "uvlock": true },
+    "facing=west,mode=input": { "model": "skylogistics:block/sky_node_extract", "y": 270, "uvlock": true },
+    "facing=west,mode=output": { "model": "skylogistics:block/sky_node_insert", "y": 270, "uvlock": true },
+    "facing=east,mode=input": { "model": "skylogistics:block/sky_node_extract", "y": 90, "uvlock": true },
+    "facing=east,mode=output": { "model": "skylogistics:block/sky_node_insert", "y": 90, "uvlock": true }
+  }
+}

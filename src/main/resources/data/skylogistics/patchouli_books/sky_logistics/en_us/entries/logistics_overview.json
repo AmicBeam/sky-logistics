@@ -1,0 +1,19 @@
+{
+  "name": "Logistics Overview",
+  "icon": "skylogistics:sky_node",
+  "category": "skylogistics:logistics",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Sky Logistics is not a block-by-block pipe network. Players place Sky Logistics Nodes, and the server directly pairs extract faces with insert faces that share a line ID. Lines have no hidden buffer; if the target cannot accept resources, the source is not extracted first."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A line can carry items, fluids, and FE. Nodes are configured per face: extract faces pull from adjacent machines or containers, and insert faces push into adjacent machines or containers. The node screen lets you edit all six directions independently."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Typical setup: create a line with the configurator, place one node beside a source and set it to extract, place another same-line node beside a destination and set it to insert, then copy and paste settings for repeated machines."
+    }
+  ]
+}

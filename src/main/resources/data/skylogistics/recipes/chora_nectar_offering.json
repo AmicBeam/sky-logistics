@@ -1,0 +1,26 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 240,
+  "altar_tier": 2,
+  "main": {
+    "item": "skylogistics:eulogia_crystal",
+    "charged": true
+  },
+  "offerings": [
+    {
+      "item": "minecraft:honey_bottle"
+    },
+    {
+      "item": "minecraft:glowstone_dust"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
+      "item": "minecraft:glass_bottle"
+    }
+  ],
+  "result": {
+    "item": "skylogistics:chora_nectar"
+  }
+}

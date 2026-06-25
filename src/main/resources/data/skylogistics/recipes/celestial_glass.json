@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GGG",
+    "GXG",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "tag": "forge:glass"
+    },
+    "X": {
+      "type": "forge:partial_nbt",
+      "item": "skylogistics:eulogia_crystal",
+      "nbt": "{Damage:1}"
+    }
+  },
+  "result": {
+    "item": "skylogistics:celestial_glass",
+    "count": 8
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Configurator and Upgrades",
+  "icon": "skylogistics:configurator",
+  "category": "skylogistics:logistics",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Sky Configurator stores a line ID and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Sneak-right-click a node with the configurator to copy that node and enter paste mode. While in paste mode, right-click another node to write the stored line and resource toggles to it. Sneak-right-click again, open the configurator screen, or stop holding the configurator to leave paste mode."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Speed upgrades go into node upgrade slots and increase how many slots or tanks the node can process per tick. Dimension upgrades are for extract nodes and allow sending to same-line insert nodes in other dimensions. Upgrades do not add hidden line buffers."
+    }
+  ]
+}

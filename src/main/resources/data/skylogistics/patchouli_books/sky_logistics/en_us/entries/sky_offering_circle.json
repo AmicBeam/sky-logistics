@@ -1,0 +1,45 @@
+{
+  "name": "Sky Offering Circle",
+  "icon": "skylogistics:offering_altar",
+  "category": "skylogistics:offerings",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Place the altar at the center, one offering table on each horizontal side, and a 5x5 Celestial Stone outer ring. To make a tier 2 altar, keep the tier 1 ring intact and add Celestial Glass above the four outer corners. Chora Nectar requires tier 2."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Tier 1 requires the frame at the altar's height to remain complete. Celestial Stone, slabs, stairs, and walls all count as frame blocks. Tier 2 only adds Celestial Glass above the four outer corners; the glass does not replace the frame below."
+    },
+    {
+      "type": "patchouli:multiblock",
+      "name": "Sky Offering Circle",
+      "multiblock": {
+        "mapping": {
+          "A": "skylogistics:offering_altar",
+          "T": "skylogistics:offering_table",
+          "C": "skylogistics:celestial_stone",
+          "G": "skylogistics:celestial_glass",
+          " ": "minecraft:air"
+        },
+        "pattern": [
+          [
+            "CCCCC",
+            "C T C",
+            "CTATC",
+            "C T C",
+            "CCCCC"
+          ],
+          [
+            "G   G",
+            "     ",
+            "     ",
+            "     ",
+            "G   G"
+          ]
+        ]
+      }
+    }
+  ]
+}

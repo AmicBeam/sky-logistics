@@ -1,0 +1,20 @@
+{
+  "name": "柯拉甘露供奉",
+  "icon": "skylogistics:chora_nectar",
+  "category": "skylogistics:offerings",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "柯拉甘露是天穹物流的核心材料，象征可被拓展的容器与可被承载的空间。它不只用于扩容，也参与天穹容器、节点与升级的基础合成，并通过天穹供奉获得。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "甘露配方需要二阶祭坛。把已充能尤洛佳水晶放在祭坛上，再把蜂蜜瓶、荧石粉、紫水晶碎片和玻璃瓶分别放在四个供桌上，顺序不限。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "该配方 Duration 为 240 tick。仪式完成后，供品和水晶会被消耗，并在祭坛上生成柯拉甘露。若祭坛槽无法容纳产物，产物会从祭坛上方弹出。"
+    }
+  ]
+}

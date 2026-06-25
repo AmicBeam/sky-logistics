@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="MIT"
+
+[[mods]]
+modId="skylogistics"
+version="${mod_version}"
+displayName="Sky Logistics"
+displayURL="https://github.com/AmicBeam/sky-logistics"
+logoFile="logo.png"
+authors="Sky Logistics Contributors"
+description='''
+Celestial wireless logistics with aggregate item and fluid storage.
+'''
+
+[[dependencies.skylogistics]]
+modId="forge"
+mandatory=true
+versionRange="${forge_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.skylogistics]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
