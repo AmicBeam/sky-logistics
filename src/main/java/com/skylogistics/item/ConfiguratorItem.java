@@ -11,6 +11,7 @@ import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,6 +40,9 @@ public class ConfiguratorItem extends Item {
     private static final String MODE = "Mode";
     private static final String REDSTONE = "Redstone";
     private static final String PRIORITY = "Priority";
+    private static final String LINES = "Lines";
+    private static final String LINE_INDEX = "LineIndex";
+    private static final String LINE_ENTRY_ID = "Id";
 
     public ConfiguratorItem(Properties properties) {
         super(properties);
@@ -197,6 +201,75 @@ public class ConfiguratorItem extends Item {
         } else {
             tag.remove(FACES);
         }
+        ensureLineList(tag, config.lineId());
+    }
+
+    public static ToolConfig selectFirstLine(ItemStack stack) {
+        return selectLine(stack, 0);
+    }
+
+    public static ToolConfig selectPreviousLine(ItemStack stack) {
+        CompoundTag tag = stack.getOrCreateTag();
+        List<UUID> lines = readLineList(tag);
+        int index = Math.max(0, currentLineIndex(tag, lines) - 1);
+        return selectLine(stack, index);
+    }
+
+    public static ToolConfig selectNextOrCreateLine(ItemStack stack) {
+        ToolConfig config = readOrCreate(stack);
+        CompoundTag tag = stack.getOrCreateTag();
+        List<UUID> lines = readLineList(tag);
+        int index = currentLineIndex(tag, lines);
+        if (index < lines.size() - 1) {
+            return selectLine(stack, index + 1);
+        }
+        UUID lineId = UUID.randomUUID();
+        lines.add(lineId);
+        writeLineList(tag, lines, lines.size() - 1);
+        config = config.withLine(lineId);
+        writeConfig(stack, config);
+        return config;
+    }
+
+    public static ToolConfig selectLastLine(ItemStack stack) {
+        CompoundTag tag = stack.getOrCreateTag();
+        List<UUID> lines = readLineList(tag);
+        return selectLine(stack, Math.max(0, lines.size() - 1));
+    }
+
+    public static ToolConfig removeCurrentLine(ItemStack stack) {
+        ToolConfig config = readOrCreate(stack);
+        CompoundTag tag = stack.getOrCreateTag();
+        List<UUID> lines = readLineList(tag);
+        int index = currentLineIndex(tag, lines);
+        if (lines.size() <= 1) {
+            UUID lineId = UUID.randomUUID();
+            lines.clear();
+            lines.add(lineId);
+            writeLineList(tag, lines, 0);
+            config = config.withLine(lineId);
+            writeConfig(stack, config);
+            return config;
+        }
+        lines.remove(index);
+        int nextIndex = Math.min(index, lines.size() - 1);
+        writeLineList(tag, lines, nextIndex);
+        config = config.withLine(lines.get(nextIndex));
+        writeConfig(stack, config);
+        return config;
+    }
+
+    public static int lineIndex(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return 0;
+        }
+        return currentLineIndex(tag, readLineList(tag));
+    }
+
+    public static int lineCount(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag == null ? 0 : readLineList(tag).size();
     }
 
     public static boolean isPasteMode(ItemStack stack) {
@@ -223,6 +296,78 @@ public class ConfiguratorItem extends Item {
             faces.put(direction, FaceConfig.DEFAULT);
         }
         return faces;
+    }
+
+    private static ToolConfig selectLine(ItemStack stack, int index) {
+        ToolConfig config = readOrCreate(stack);
+        CompoundTag tag = stack.getOrCreateTag();
+        List<UUID> lines = readLineList(tag);
+        int clamped = Math.max(0, Math.min(index, lines.size() - 1));
+        writeLineList(tag, lines, clamped);
+        config = config.withLine(lines.get(clamped));
+        writeConfig(stack, config);
+        return config;
+    }
+
+    private static void ensureLineList(CompoundTag tag, UUID lineId) {
+        List<UUID> lines = readLineList(tag);
+        int index = lines.indexOf(lineId);
+        if (index < 0) {
+            lines.add(lineId);
+            index = lines.size() - 1;
+        }
+        writeLineList(tag, lines, index);
+    }
+
+    private static List<UUID> readLineList(CompoundTag tag) {
+        java.util.ArrayList<UUID> lines = new java.util.ArrayList<>();
+        if (tag.contains(LINES, Tag.TAG_LIST)) {
+            ListTag list = tag.getList(LINES, Tag.TAG_COMPOUND);
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag entry = list.getCompound(i);
+                if (entry.hasUUID(LINE_ENTRY_ID)) {
+                    UUID lineId = entry.getUUID(LINE_ENTRY_ID);
+                    if (!lines.contains(lineId)) {
+                        lines.add(lineId);
+                    }
+                }
+            }
+        }
+        if (lines.isEmpty() && tag.hasUUID(LINE_ID)) {
+            lines.add(tag.getUUID(LINE_ID));
+        }
+        if (lines.isEmpty()) {
+            lines.add(UUID.randomUUID());
+        }
+        return lines;
+    }
+
+    private static int currentLineIndex(CompoundTag tag, List<UUID> lines) {
+        int index = tag.contains(LINE_INDEX) ? tag.getInt(LINE_INDEX) : -1;
+        if (tag.hasUUID(LINE_ID)) {
+            int active = lines.indexOf(tag.getUUID(LINE_ID));
+            if (active >= 0) {
+                index = active;
+            }
+        }
+        return Math.max(0, Math.min(index, Math.max(0, lines.size() - 1)));
+    }
+
+    private static void writeLineList(CompoundTag tag, List<UUID> lines, int index) {
+        if (lines.isEmpty()) {
+            lines = List.of(UUID.randomUUID());
+            index = 0;
+        }
+        int clamped = Math.max(0, Math.min(index, lines.size() - 1));
+        ListTag list = new ListTag();
+        for (UUID lineId : lines) {
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID(LINE_ENTRY_ID, lineId);
+            list.add(entry);
+        }
+        tag.put(LINES, list);
+        tag.putInt(LINE_INDEX, clamped);
+        tag.putUUID(LINE_ID, lines.get(clamped));
     }
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,

@@ -124,6 +124,25 @@ public final class SkyNetworkRegistry {
         return outputs == null ? List.of() : outputs;
     }
 
+    public static synchronized LineStats lineStats(MinecraftServer server, UUID lineId) {
+        rebuildDirty(server);
+        int nodes = 0;
+        int inputs = 0;
+        int outputs = 0;
+        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
+            if (server.getLevel(entry.getKey()) == null) {
+                continue;
+            }
+            LineIndex line = entry.getValue().lines.get(lineId);
+            if (line != null) {
+                nodes += line.nodeCount();
+                inputs += line.inputCount();
+                outputs += line.outputCount();
+            }
+        }
+        return new LineStats(nodes, inputs, outputs);
+    }
+
     private static boolean rebuildDirty(MinecraftServer server) {
         boolean rebuilt = false;
         for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
@@ -182,6 +201,7 @@ public final class SkyNetworkRegistry {
                 created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
                 return created;
             });
+            line.nodeCount++;
             index.lineByNode.put(pos, line);
             for (Direction direction : Direction.values()) {
                 NodeFaceMode faceMode = node.getFaceMode(direction);
@@ -327,6 +347,9 @@ public final class SkyNetworkRegistry {
         private boolean dirty = true;
     }
 
+    public record LineStats(int nodes, int inputs, int outputs) {
+    }
+
     public static final class ReadyLines {
         private static final ReadyLines EMPTY = new ReadyLines(List.of(), 0);
 
@@ -353,6 +376,7 @@ public final class SkyNetworkRegistry {
         private final List<CachedEndpoint> outputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityOutputs = new ArrayList<>();
         private long retryAfter;
+        private int nodeCount;
         private int inputCursor;
 
         private LineIndex(UUID lineId) {
@@ -371,6 +395,10 @@ public final class SkyNetworkRegistry {
             return inputs.size();
         }
 
+        public int nodeCount() {
+            return nodeCount;
+        }
+
         public CachedEndpoint inputAt(int offset) {
             return inputs.get(Math.floorMod(inputCursor + offset, inputs.size()));
         }
@@ -383,6 +411,10 @@ public final class SkyNetworkRegistry {
 
         public List<CachedEndpoint> outputs() {
             return outputs;
+        }
+
+        public int outputCount() {
+            return outputs.size();
         }
 
         public List<CachedEndpoint> priorityOutputs() {

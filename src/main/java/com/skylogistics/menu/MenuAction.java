@@ -12,6 +12,11 @@ public final class MenuAction {
     public static final int CONFIG_REDSTONE = 11;
     public static final int CONFIG_PRIORITY_DOWN = 12;
     public static final int CONFIG_PRIORITY_UP = 13;
+    public static final int LINE_FIRST = 14;
+    public static final int LINE_PREVIOUS = 15;
+    public static final int LINE_NEXT_OR_CREATE = 16;
+    public static final int LINE_LAST = 17;
+    public static final int LINE_REMOVE_CURRENT = 18;
     public static final int FILTER_TOGGLE_WHITELIST = 20;
     public static final int FILTER_TOGGLE_TAGS = 21;
     public static final int FILTER_CLEAR = 22;

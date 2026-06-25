@@ -56,8 +56,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         menu.selectFace(selectedFace);
         ModNetworking.sendMenuAction(MenuAction.faceSelect(selectedFace));
 
-        addRenderableWidget(ConfigPanel.actionButton(leftPos + 132, topPos + 17, 82,
-                Component.translatable("button.skylogistics.new_line"), MenuAction.NEW_LINE));
+        addRenderableWidget(new LineButton(leftPos + 86, topPos + 17, 22, Component.literal("|<"), 0, false));
+        addRenderableWidget(new LineButton(leftPos + 111, topPos + 17, 20, Component.literal("<"), 0, false));
+        addRenderableWidget(new LineButton(leftPos + 134, topPos + 17, 24, Component.literal(">+"), MenuAction.NEW_LINE, true));
+        addRenderableWidget(new LineButton(leftPos + 161, topPos + 17, 22, Component.literal(">|"), 0, false));
+        addRenderableWidget(new LineButton(leftPos + 186, topPos + 17, 18, Component.literal("x"), 0, false));
 
         int x = leftPos + 14;
         int y = topPos + 48;
@@ -328,6 +331,37 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 int modeColor = colorFor(modeFor(node, direction));
                 graphics.fill(getX() + 6, getY() + height - 5, getX() + width - 6, getY() + height - 3, modeColor);
             }
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private final class LineButton extends AbstractButton {
+        private final int action;
+
+        private LineButton(int x, int y, int width, Component message, int action, boolean enabled) {
+            super(x, y, width, 18, message);
+            this.action = action;
+            this.active = enabled;
+        }
+
+        @Override
+        public void onPress() {
+            if (active) {
+                ModNetworking.sendMenuAction(action);
+            }
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            int fill = active ? 0xFF0C1A24 : 0xFF101820;
+            int border = active ? ConfigPanel.BORDER : 0xFF2A3C46;
+            borderedBox(graphics, getX(), getY(), width, height, fill, border);
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
         @Override
