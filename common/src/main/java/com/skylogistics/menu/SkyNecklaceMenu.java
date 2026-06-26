@@ -93,14 +93,13 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             return ItemStack.EMPTY;
         }
         ItemStack original = slot.getItem();
-        ItemStack copy = original.copy();
         if (index == FILTER_SLOT) {
             setFilter(ItemStack.EMPTY);
             return ItemStack.EMPTY;
         }
         if (original.is(ModItems.FILTER_LIST.get())) {
             setFilter(original);
-            return copy;
+            return ItemStack.EMPTY;
         }
         return ItemStack.EMPTY;
     }
