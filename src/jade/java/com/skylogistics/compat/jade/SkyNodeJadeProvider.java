@@ -41,18 +41,14 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
     private static CompoundTag writeNodeData(SkyNodeBlockEntity node) {
         CompoundTag data = new CompoundTag();
         data.putString("LineName", node.getLineName());
-        data.putString("LineCode", shortLine(node.getLineId()));
-        data.putInt("LineIndex", node.getLineIndex() + 1);
-        data.putInt("LineCount", node.getLineCount());
         data.putBoolean("SpeedUpgrade", node.hasSpeedUpgrade());
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
         return data;
     }
 
     private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
-        tooltip.append(Component.translatable("jade.skylogistics.line_info", data.getString("LineName"),
-                data.getString("LineCode"), data.getInt("LineIndex"), data.getInt("LineCount")));
-        tooltip.append(Component.translatable("jade.skylogistics.upgrades",
+        tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
+        tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"))));
     }
 

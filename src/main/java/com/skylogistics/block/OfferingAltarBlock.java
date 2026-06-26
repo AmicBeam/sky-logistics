@@ -59,7 +59,7 @@ public class OfferingAltarBlock extends SingleSlotDisplayBlock {
         }
 
         boolean inserting = !held.isEmpty();
-        boolean changed = held.isEmpty() ? altar.extractToPlayer(player) : altar.insertFromPlayer(player, held);
+        boolean changed = held.isEmpty() ? altar.extractToPlayer(player, hand) : altar.insertFromPlayer(player, held);
         if (changed && inserting) {
             altar.sendRecipeStartFailureMessage(player);
         }

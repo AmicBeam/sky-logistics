@@ -34,6 +34,7 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     private static final int BOTTOM_Y = 43;
     private static final int OUTPUT_X = 112;
     private static final int OUTPUT_Y = 23;
+    private static final int ITEM_OFFSET = 1;
     private static final int PANEL = 0xFF9CA2A4;
     private static final int PANEL_DARK = 0xFF71797C;
     private static final int RITUAL_FILL = 0x3357C4D6;
@@ -80,7 +81,7 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
                     recipe.offerings().get(i));
         }
 
-        builder.addOutputSlot(OUTPUT_X, OUTPUT_Y)
+        builder.addOutputSlot(OUTPUT_X + ITEM_OFFSET, OUTPUT_Y + ITEM_OFFSET)
                 .addItemStack(recipe.result());
     }
 
@@ -212,7 +213,7 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
             OfferingRecipe.CountedIngredient ingredient) {
         List<ItemStack> stacks = displayStacks(ingredient);
         if (!stacks.isEmpty()) {
-            builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+            builder.addSlot(RecipeIngredientRole.INPUT, x + ITEM_OFFSET, y + ITEM_OFFSET)
                     .addIngredients(VanillaTypes.ITEM_STACK, stacks);
         }
     }

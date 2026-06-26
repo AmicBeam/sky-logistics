@@ -2,50 +2,50 @@
   "ambientocclusion": false,
   "render_type": "minecraft:translucent",
   "textures": {
-    "particle": "skylogistics:block/celestial_glass_clear",
-    "glass": "skylogistics:block/celestial_glass_clear"
+    "particle": "skylogistics:block/celestial_glass_face",
+    "glass": "skylogistics:block/celestial_glass_face"
   },
   "elements": [
     {
-      "from": [1, 1, 0],
-      "to": [15, 15, 0.05],
+      "from": [0, 0, 0],
+      "to": [16, 16, 0.05],
       "faces": {
-        "north": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "north" }
+        "north": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "north" }
       }
     },
     {
-      "from": [1, 1, 15.95],
-      "to": [15, 15, 16],
+      "from": [0, 0, 15.95],
+      "to": [16, 16, 16],
       "faces": {
-        "south": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "south" }
+        "south": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "south" }
       }
     },
     {
-      "from": [0, 1, 1],
-      "to": [0.05, 15, 15],
+      "from": [0, 0, 0],
+      "to": [0.05, 16, 16],
       "faces": {
-        "west": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "west" }
+        "west": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "west" }
       }
     },
     {
-      "from": [15.95, 1, 1],
-      "to": [16, 15, 15],
+      "from": [15.95, 0, 0],
+      "to": [16, 16, 16],
       "faces": {
-        "east": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "east" }
+        "east": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "east" }
       }
     },
     {
-      "from": [1, 15.95, 1],
-      "to": [15, 16, 15],
+      "from": [0, 15.95, 0],
+      "to": [16, 16, 16],
       "faces": {
-        "up": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "up" }
+        "up": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "up" }
       }
     },
     {
-      "from": [1, 0, 1],
-      "to": [15, 0.05, 15],
+      "from": [0, 0, 0],
+      "to": [16, 0.05, 16],
       "faces": {
-        "down": { "uv": [1, 1, 15, 15], "texture": "#glass", "cullface": "down" }
+        "down": { "uv": [0, 0, 16, 16], "texture": "#glass", "cullface": "down" }
       }
     }
   ]

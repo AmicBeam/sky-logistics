@@ -91,6 +91,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             compiledFaceFilters.put(direction, compiled);
             compiledFaceFilterDirty.put(direction, dirty);
         }
+        initializeModeFromState(state);
     }
 
     @Override
@@ -357,6 +358,17 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public Direction getAccessSide(Direction direction) {
         return direction.getOpposite();
+    }
+
+    private void initializeModeFromState(BlockState state) {
+        if (state.hasProperty(SkyNodeBlock.MODE)) {
+            mode = state.getValue(SkyNodeBlock.MODE);
+        }
+        for (Direction direction : Direction.values()) {
+            if (state.hasProperty(SkyNodeBlock.faceModeProperty(direction))) {
+                faceModes.put(direction, state.getValue(SkyNodeBlock.faceModeProperty(direction)));
+            }
+        }
     }
 
     public NodeFaceMode getFaceMode(Direction direction) {

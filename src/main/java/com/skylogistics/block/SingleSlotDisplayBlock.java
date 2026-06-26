@@ -66,7 +66,7 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         }
 
-        boolean changed = held.isEmpty() ? display.extractToPlayer(player) : display.insertFromPlayer(player, held);
+        boolean changed = held.isEmpty() ? display.extractToPlayer(player, hand) : display.insertFromPlayer(player, held);
         return changed ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
 

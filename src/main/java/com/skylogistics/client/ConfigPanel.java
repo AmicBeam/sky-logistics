@@ -21,10 +21,10 @@ final class ConfigPanel {
     static final int BUTTON_SELECTED = 0xFF12343C;
     static final int BUTTON_SELECTED_SOFT = 0xFF122930;
     static final int BORDER_DIM = 0xFF24454F;
-    static final int SLOT_DIVIDER = 0xFF1B3139;
-    static final int SLOT_SHADOW = 0xFF081118;
-    static final int SLOT_FILL = 0xFF0D2028;
-    private static final int SLOT_HIGHLIGHT = 0x33244850;
+    static final int SLOT_DIVIDER = 0xFF2B4C57;
+    static final int SLOT_SHADOW = 0xFF142A33;
+    static final int SLOT_FILL = 0xFF24424C;
+    private static final int SLOT_HIGHLIGHT = 0x444D6D78;
 
     private ConfigPanel() {
     }
@@ -68,8 +68,8 @@ final class ConfigPanel {
     static void drawSlotBackground(GuiGraphics graphics, int x, int y) {
         graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_DIVIDER);
         graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
-        graphics.fill(x + 1, y + 1, x + 16, y + 16, SLOT_FILL);
-        graphics.fill(x + 1, y + 1, x + 16, y + 2, SLOT_HIGHLIGHT);
+        graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
+        graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
     }
 
     static String yesNo(boolean value) {

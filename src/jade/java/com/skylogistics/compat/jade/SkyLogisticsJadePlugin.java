@@ -2,12 +2,9 @@ package com.skylogistics.compat.jade;
 
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
-import com.skylogistics.block.OfferingAltarBlock;
-import com.skylogistics.block.OfferingTableBlock;
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
-import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaCommonRegistration;
@@ -21,7 +18,6 @@ public class SkyLogisticsJadePlugin implements IWailaPlugin {
         registration.registerBlockDataProvider(SkyNodeJadeProvider.INSTANCE, SkyNodeBlockEntity.class);
         registration.registerBlockDataProvider(ItemVaultJadeProvider.INSTANCE, ItemVaultBlockEntity.class);
         registration.registerBlockDataProvider(FluidVaultJadeProvider.INSTANCE, FluidVaultBlockEntity.class);
-        registration.registerBlockDataProvider(DisplaySlotJadeProvider.INSTANCE, SingleSlotDisplayBlockEntity.class);
     }
 
     @Override
@@ -29,7 +25,5 @@ public class SkyLogisticsJadePlugin implements IWailaPlugin {
         registration.registerBlockComponent(SkyNodeJadeProvider.INSTANCE, SkyNodeBlock.class);
         registration.registerBlockComponent(ItemVaultJadeProvider.INSTANCE, ItemVaultBlock.class);
         registration.registerBlockComponent(FluidVaultJadeProvider.INSTANCE, FluidVaultBlock.class);
-        registration.registerBlockComponent(DisplaySlotJadeProvider.INSTANCE, OfferingAltarBlock.class);
-        registration.registerBlockComponent(DisplaySlotJadeProvider.INSTANCE, OfferingTableBlock.class);
     }
 }

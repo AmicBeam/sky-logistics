@@ -7,6 +7,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -65,21 +66,26 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         if (held.isEmpty()) {
             return false;
         }
-        ItemStack remainder = items.insertItem(0, held, false);
-        int inserted = held.getCount() - remainder.getCount();
+        ItemStack toInsert = held.copy();
+        ItemStack remainder = items.insertItem(0, toInsert, false);
+        int inserted = toInsert.getCount() - remainder.getCount();
         if (inserted <= 0) {
             return false;
         }
         if (!player.getAbilities().instabuild) {
-            held.setCount(remainder.getCount());
+            held.shrink(inserted);
         }
         return true;
     }
 
-    public boolean extractToPlayer(Player player) {
+    public boolean extractToPlayer(Player player, InteractionHand hand) {
         ItemStack stored = items.extractItem(0, 64, false);
         if (stored.isEmpty()) {
             return false;
+        }
+        if (player.getItemInHand(hand).isEmpty()) {
+            player.setItemInHand(hand, stored);
+            return true;
         }
         player.getInventory().add(stored);
         if (!stored.isEmpty()) {

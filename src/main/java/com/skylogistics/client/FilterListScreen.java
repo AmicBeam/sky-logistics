@@ -278,10 +278,16 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
             return;
         }
         int color = selected ? (allow ? COLOR_ALLOW : COLOR_DENY) : ConfigPanel.MUTED;
+        int x = button.getX();
+        int y = button.getY();
+        int listColor = selected ? color : 0xFF6E8D95;
+        graphics.fill(x + 5, y + 5, x + 13, y + 6, listColor);
+        graphics.fill(x + 5, y + 9, x + 12, y + 10, listColor);
+        graphics.fill(x + 5, y + 13, x + 11, y + 14, listColor);
         if (allow) {
-            drawPlus(graphics, button.getX() + 10, button.getY() + 9, color);
+            drawCheck(graphics, x + 10, y + 8, color);
         } else {
-            drawMinus(graphics, button.getX() + 10, button.getY() + 9, color);
+            drawCross(graphics, x + 11, y + 8, color);
         }
     }
 
@@ -332,13 +338,20 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
     }
 
-    private static void drawPlus(GuiGraphics graphics, int centerX, int centerY, int color) {
-        graphics.fill(centerX - 1, centerY - 5, centerX + 1, centerY + 6, color);
-        graphics.fill(centerX - 5, centerY - 1, centerX + 6, centerY + 1, color);
+    private static void drawCheck(GuiGraphics graphics, int x, int y, int color) {
+        for (int offset = 0; offset < 3; offset++) {
+            graphics.fill(x + offset, y + 4 + offset, x + offset + 2, y + 6 + offset, color);
+        }
+        for (int offset = 0; offset < 5; offset++) {
+            graphics.fill(x + 3 + offset, y + 6 - offset, x + 5 + offset, y + 8 - offset, color);
+        }
     }
 
-    private static void drawMinus(GuiGraphics graphics, int centerX, int centerY, int color) {
-        graphics.fill(centerX - 5, centerY - 1, centerX + 6, centerY + 1, color);
+    private static void drawCross(GuiGraphics graphics, int x, int y, int color) {
+        for (int offset = 0; offset < 6; offset++) {
+            graphics.fill(x + offset, y + offset, x + offset + 2, y + offset + 2, color);
+            graphics.fill(x + 5 - offset, y + offset, x + 7 - offset, y + offset + 2, color);
+        }
     }
 
     private static void drawSlash(GuiGraphics graphics, int x, int y, int color) {
