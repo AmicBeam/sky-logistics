@@ -88,16 +88,16 @@ public final class SkyLogisticsConfig {
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
             serverOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations Sky Logistics may process per server tick.")
-                    .defineInRange("serverOpsPerTick", 256, 1, 4096);
+                    .defineInRange("serverOpsPerTick", 2048, 1, 1_000_000);
             lineOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations one logistics line may consume per server tick.")
-                    .defineInRange("lineOpsPerTick", 32, 1, 512);
+                    .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
             endpointTargetAttempts = builder
                     .comment("Maximum receiving endpoints one source endpoint may try for one transfer candidate.")
-                    .defineInRange("endpointTargetAttempts", 8, 1, 64);
+                    .defineInRange("endpointTargetAttempts", 16, 1, 1_000_000);
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
-                    .defineInRange("externalTankScansPerEndpoint", 4, 1, 64);
+                    .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);

@@ -293,14 +293,14 @@
 - `EVERY n TICKS` 的最低执行间隔思路：不把所有物流都放到每 tick。
 - 过滤表达式和 matcher 编译缓存，能避免每次执行都重新解析规则。
 - `slots 0,1,3-4` 这类槽位范围选择适合精确控制机器输入输出，但不进入 MVP。
-- 性能图让玩家自己判断某个配置是否昂贵。
 - 对象池和测试专用容器说明：大量库存自动化时，临时对象分配也是性能敌人。
 
 我们的取舍：
 
 - MVP 不给玩家暴露完整 DSL，避免上手门槛过高。
 - 内部采用“编译后的线路计划”：线路 ID、节点模式、面级资源类型、过滤列表会被编译成运行时计划。
-- 借鉴 SFM 的计划编译和性能可视化，但保持右键/配置器为主的轻量交互；槽位/tank 范围留到后续高级版。
+- 借鉴 SFM 的计划编译和 matcher 缓存，但保持右键/配置器为主的轻量交互；槽位/tank 范围留到后续高级版。
+- 不实现面向玩家的 tick 成本图、性能页或性能诊断 UI；性能问题通过预算配置和基准测试验证。
 
 ### LaserIO
 
@@ -309,7 +309,7 @@
 可借鉴：
 
 - 节点贴在机器上，卡片决定输入、输出、资源类型和隔离逻辑。
-- 基础过滤器、标签过滤器、模组过滤器、NBT 过滤器、计数过滤器等“过滤物品”非常直观。
+- 基础过滤器、NBT/组件过滤器、计数过滤器等“过滤物品”非常直观。
 - 线路隔离、优先级、轮询、抽取数量、tick speed 和超频器的 GUI 语言成熟。
 - 过滤器使用幽灵槽，不真实持有物品，适合与 JEI/REI/EMI 拖拽交互。
 
@@ -594,10 +594,7 @@ CompiledFilter
   whitelist: boolean
   exactItems: HashSet<Item>
   exactStacks: HashSet<StackKey>
-  itemTags: TagKeySet
-  modIds: HashSet<String>
   fluidIds: HashSet<Fluid>
-  fluidTags: TagKeySet
   componentPredicates
 ```
 
@@ -607,7 +604,7 @@ CompiledFilter
 filter.matches(resourceKey)
 ```
 
-tag 数据包重载、物品注册表变化或过滤列表被编辑时，标记相关线路计划 dirty 并重新编译。黑名单不要在每个 matcher 里反复判断，编译阶段就把“命中后取反”的逻辑收束到一个最终 predicate。
+过滤列表被编辑时，标记相关线路计划 dirty 并重新编译。黑名单不要在每个 matcher 里反复判断，编译阶段就把“命中后取反”的逻辑收束到一个最终 predicate。
 
 ### 5.4 升级
 
@@ -670,6 +667,8 @@ EndpointAddress
 - failureReason
 
 缓存失效时只标记 dirty，不在失效回调里做重活。
+
+收益复评：机器替换、管道断接、核心工业区 chunk 频繁卸载在大型整合包里通常不是高频事件；因此 capability invalidation 的主要价值是正确性和缩短偶发恢复延迟，而不是最高优先级性能优化。当前短 TTL 失败缓存已经能覆盖大多数常加载场景，显式 invalidation 可排在资源索引和基准脚本之后实现。
 
 ### 6.3 状态预检
 
@@ -805,12 +804,12 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
    - 只有输入源 dirty、上次成功、红石变化、capability 失效或 backoff 到期时才入队。
    - 输出目标默认不 tick，只提供索引、过滤和短 TTL 接收状态。
    - 运行时维护 ready-line 集合和 wake bucket；睡眠线路不进入每 tick 遍历。
-   - 跨维目标按 `lineId -> priorityOutputs` 在 dirty rebuild 后缓存，传输 tick 不临时聚合和排序。
+   - 跨维目标按 `lineId -> resourceType -> priorityOutputs` 在 dirty rebuild 后缓存，传输 tick 不临时聚合和排序。
 
 3. 运行时索引更细。
-   - 直接按 `(lineId, resourceType, role)` 建索引。
-   - 输入源寻找目标时，不遍历同线路所有节点。
-   - 过滤列表、侧面和资源类型都编译进 `TransferPlan`。
+   - 直接按 `lineId + resourceType + role` 建索引。
+   - 输入源寻找目标时，只遍历同线路、同资源类型的输出面，不遍历同线路所有输出节点。
+   - 资源开关和面模式进入运行时索引；过滤列表编译为面级 predicate。
 
 4. 格/t 限速。
    - 每 tick 限制槽、tank、端点操作数，而不是物品数量。
@@ -823,9 +822,9 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
    - 这是最有机会显著超过通用无线管道的场景。
 
 6. 过滤预编译。
-   - 精确物品、tag、mod id、NBT/组件 matcher 在编辑时编译。
+   - 精确物品、NBT/组件 matcher 在编辑时编译。
    - 传输时只做 HashSet 查询或少量 predicate 判断。
-   - tag 重载时统一失效，不在每次传输时解析 tag。
+   - 不做 tag 或 mod id 过滤，避免数据包重载和注册表归属带来的失效复杂度。
 
 7. 目标状态短 TTL。
    - 对 `canAccept(key)` 的否定结果做短 TTL 缓存；当前实现为每个目标端点 item/fluid 各 8 个 key，默认 20t。
@@ -837,10 +836,6 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
    - 避免每 tick 创建大量临时 `ItemStack`、列表、lambda 或排序副本。
    - 借鉴 SFM 的对象池思路，但只用于已证明高频的热路径。
 
-9. 可见性能反馈。
-   - 节点 GUI/Jade 可显示最近 tick 成本、尝试次数、失败原因和 backoff。
-   - 后期提供线路性能页，帮助玩家发现昂贵过滤或大量满目标。
-
 建议基准测试：
 
 | 场景 | 目标 |
@@ -850,7 +845,7 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
 | 100 条线路，只有 1 条线路活跃 | 只处理活跃线路 |
 | 天仓到天仓传输 2.1B 圆石/t | 调用次数接近传 1 个/t |
 | 原版箱子到原版箱子，`1 格/t` | 每 tick 固定少量 slot/capability 调用 |
-| exact/tag/mod/NBT 过滤混合 | 过滤耗时随条目数次线性或接近常数，不能每 tick 解析 |
+| exact/NBT/组件过滤混合 | 过滤耗时随条目数次线性或接近常数，不能每 tick 解析 |
 | 640000 物品请求 | 单 tick 目标尝试数受硬预算限制 |
 
 结论：我们最应该超过 LogisticsNetworks 的地方，是“空闲网络”“目标满网络”“过滤重网络”和“本模组聚合容器互传”。对任意第三方机器的大规模 I/O，LogisticsNetworks 已经做了不少正确优化，我们的目标是靠更少功能面、更强计划编译和格/t 限速取得更低常数成本。
@@ -868,10 +863,10 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
 示例默认值：
 
 ```text
-serverOpsPerTick = 256
-lineOpsPerTick = 32
-endpointTargetAttempts = 8
-externalTankScansPerEndpoint = 4
+serverOpsPerTick = 2048
+lineOpsPerTick = 256
+endpointTargetAttempts = 16
+externalTankScansPerEndpoint = 8
 ```
 
 配置可以提高数值，但不能允许无限循环。所谓“无限速”只能代表“聚合数量很大”，不能代表 `Integer.MAX_VALUE` 次操作。
@@ -905,6 +900,35 @@ onFailure: backoff = min(maxBackoff, max(baseDelay + 1, backoff * 1.3))
 - 热槽场景的最大额外等待应不高于 20t；即使采用 LogisticsNetworks 类似的通用 backoff，上限也不应超过其默认 40t。
 - 当前实现已具备热槽缓存、空槽短 TTL 和 `5t -> 20t -> 40t` 退避阶梯；刚成功后的短时间补货场景不应进入 40t，40t 只用于连续较久无货或不可达的冷源。
 - Pipez 的固定速度间隔说明玩家对物流延迟非常敏感：性能优化不能用“睡太久”换来表面低占用。
+
+### 6.9 FE 调度与退避
+
+Flux Networks 的能量网络以 plug/point 为单位维护优先级列表。每个 server tick 先让设备 handler 进入 cycle start，模拟外部供给和目标需求；网络内部再从有 buffer 的 plug 分配给有 request 的 point；cycle end 再提交外部 IO。它的关键收益不是长退避，而是只在有供给/需求的端点之间按优先级搬运。
+
+本模组不引入 Flux 式网络能量池，因此 FE 采用“直接事务 + 短退避”：
+
+```text
+source.extractEnergy(limit, simulate)
+target.receiveEnergy(simulated, simulate)
+source.extractEnergy(accepted, execute)
+target.receiveEnergy(extracted, execute)
+if inserted < extracted: rollback source.receiveEnergy(remainder, execute)
+```
+
+FE 目标选择：
+
+- FE 输入源只读取 `energyOutputs`，不遍历物品/流体输出。
+- 输出按优先级排序，同优先级内用游标轮询，避免固定第一个目标吃满所有 FE。
+- 每个目标尝试前先检查目标红石、资源开关、短 TTL 失败缓存，再调用 `receiveEnergy(..., true)` 做需求模拟。
+- 如果线路有跨维升级，使用全局 `lineId -> energyOutputs` 缓存；否则只使用当前维度的 FE 输出列表。
+
+FE 退避结论：
+
+- 暂不实现 FE 专用短退避。`1t -> 2t -> 5t` 这类方案能降低恢复延迟，但收益点不明确，会让空源、满电池和离线目标在大型线路里更频繁地 simulate 外部 energy capability。
+- 当前维持通用失败退避和短 TTL 目标拒收缓存；预算耗尽不是失败，线路下一 tick 继续排队，不额外增加 FE backoff。
+- 只有在真实压测或玩家反馈证明 FE 供电抖动明显时，再考虑热端点专用策略，例如只对刚成功过的 FE 源/目标缩短恢复等待。
+
+这个取舍更适合大型整合包常加载工业区：资源索引先减少无关目标扫描，FE 延迟策略保守保留，避免为了不明确的体感收益制造常驻扫描成本。
 
 ## 7. 后期兼容设计
 
@@ -1037,7 +1061,7 @@ MVP 不做：
 | Sophisticated Backpacks/Core | 大容量背包与移动存储基础设施 | 借鉴 UUID/SavedData 间接存储，避免单个方块实体或物品 NBT 爆长 |
 | Sophisticated Backpacks Create Integration | 背包在 Create contraption 上完整工作 | 借鉴 mounted type + movement behaviour + entity/local pos GUI + safe schematic NBT；仅用于后续 Create 分支 |
 | MEGA Cells | AE2 超大容量存储扩展 | 借鉴大容量语义和后续 AE2 bridge 边界；MVP 不依赖 AE2 cell |
-| SuperFactoryManager | 程序化物流调度 | 借鉴编译计划、matcher 缓存和性能反馈，不暴露完整 DSL；槽位/tank 范围不进 MVP |
+| SuperFactoryManager | 程序化物流调度 | 借鉴编译计划和 matcher 缓存，不暴露完整 DSL；槽位/tank 范围不进 MVP |
 | LaserIO | 节点 + 卡片 + 过滤器 | 借鉴过滤列表、优先级和速度 GUI；用配置器批量化替代逐卡配置 |
 
 ## 11. 实现结构建议

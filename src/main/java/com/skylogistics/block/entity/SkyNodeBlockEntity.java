@@ -434,15 +434,15 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         if (isItemsEnabled(direction) != face.itemsEnabled()) {
             faceItemsEnabled.put(direction, face.itemsEnabled());
-            runtimeChanged = true;
+            topologyChanged = true;
         }
         if (isFluidsEnabled(direction) != face.fluidsEnabled()) {
             faceFluidsEnabled.put(direction, face.fluidsEnabled());
-            runtimeChanged = true;
+            topologyChanged = true;
         }
         if (isEnergyEnabled(direction) != face.energyEnabled()) {
             faceEnergyEnabled.put(direction, face.energyEnabled());
-            runtimeChanged = true;
+            topologyChanged = true;
         }
         if (getRedstoneControl(direction) != face.redstoneControl()) {
             redstoneControls.put(direction, face.redstoneControl());
@@ -480,15 +480,15 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
             if (isItemsEnabled(direction) != face.itemsEnabled()) {
                 faceItemsEnabled.put(direction, face.itemsEnabled());
-                runtimeChanged = true;
+                topologyChanged = true;
             }
             if (isFluidsEnabled(direction) != face.fluidsEnabled()) {
                 faceFluidsEnabled.put(direction, face.fluidsEnabled());
-                runtimeChanged = true;
+                topologyChanged = true;
             }
             if (isEnergyEnabled(direction) != face.energyEnabled()) {
                 faceEnergyEnabled.put(direction, face.energyEnabled());
-                runtimeChanged = true;
+                topologyChanged = true;
             }
             if (getRedstoneControl(direction) != face.redstoneControl()) {
                 redstoneControls.put(direction, face.redstoneControl());
@@ -802,7 +802,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         for (Direction direction : Direction.values()) {
             faceItemsEnabled.put(direction, itemsEnabled);
         }
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setItemsEnabled(Direction direction, boolean itemsEnabled) {
@@ -811,7 +811,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         faceItemsEnabled.put(direction, itemsEnabled);
         this.itemsEnabled = allFacesEnabled(faceItemsEnabled);
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setFluidsEnabled(boolean fluidsEnabled) {
@@ -822,7 +822,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         for (Direction direction : Direction.values()) {
             faceFluidsEnabled.put(direction, fluidsEnabled);
         }
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setFluidsEnabled(Direction direction, boolean fluidsEnabled) {
@@ -831,7 +831,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         faceFluidsEnabled.put(direction, fluidsEnabled);
         this.fluidsEnabled = allFacesEnabled(faceFluidsEnabled);
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setEnergyEnabled(boolean energyEnabled) {
@@ -842,7 +842,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         for (Direction direction : Direction.values()) {
             faceEnergyEnabled.put(direction, energyEnabled);
         }
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setEnergyEnabled(Direction direction, boolean energyEnabled) {
@@ -851,7 +851,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         faceEnergyEnabled.put(direction, energyEnabled);
         this.energyEnabled = allFacesEnabled(faceEnergyEnabled);
-        markRuntimeChanged();
+        markTopologyChanged();
     }
 
     public void setOperationRate(int operationRate) {

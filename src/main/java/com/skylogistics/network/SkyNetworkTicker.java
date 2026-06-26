@@ -41,7 +41,9 @@ public final class SkyNetworkTicker {
             }
             int lineOperationsBefore = operations;
             long nextWake = Long.MAX_VALUE;
-            List<CachedEndpoint> globalOutputs = null;
+            List<CachedEndpoint> globalItemOutputs = null;
+            List<CachedEndpoint> globalFluidOutputs = null;
+            List<CachedEndpoint> globalEnergyOutputs = null;
             boolean lineBudgetExhausted = false;
             int inputCount = line.inputCount();
             for (int inputIndex = 0; inputIndex < inputCount; inputIndex++) {
@@ -60,21 +62,20 @@ public final class SkyNetworkTicker {
                     nextWake = Math.min(nextWake, gameTime + 20L);
                     continue;
                 }
-                if (node.hasDimensionUpgrade()) {
-                    if (globalOutputs == null) {
-                        globalOutputs = SkyNetworkRegistry.globalOutputs(line.lineId());
-                    }
-                }
-                List<CachedEndpoint> targets = targetsFor(input, line, globalOutputs);
-                if (targets.isEmpty()) {
-                    cooldownInput(input, gameTime);
-                    nextWake = nextInputWake(input, node, gameTime, nextWake);
-                    continue;
-                }
+                boolean dimensionUpgrade = node.hasDimensionUpgrade();
                 int remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
                 if (node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)) {
-                    operations += transferItems(input, targets,
-                            Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    if (dimensionUpgrade && globalItemOutputs == null) {
+                        globalItemOutputs = SkyNetworkRegistry.globalItemOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityItemOutputs(),
+                            globalItemOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordItemFailure(gameTime);
+                    } else {
+                        operations += transferItems(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
                 }
                 if (operations >= serverOpsPerTick) {
                     line.advanceInputCursor();
@@ -86,8 +87,17 @@ public final class SkyNetworkTicker {
                     break;
                 }
                 if (node.isFluidsEnabled(input.direction()) && input.canTryFluids(gameTime)) {
-                    operations += transferFluids(input, targets,
-                            Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    if (dimensionUpgrade && globalFluidOutputs == null) {
+                        globalFluidOutputs = SkyNetworkRegistry.globalFluidOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityFluidOutputs(),
+                            globalFluidOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordFluidFailure(gameTime);
+                    } else {
+                        operations += transferFluids(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
                 }
                 if (operations >= serverOpsPerTick) {
                     line.advanceInputCursor();
@@ -99,8 +109,17 @@ public final class SkyNetworkTicker {
                     break;
                 }
                 if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
-                    operations += transferEnergy(input, targets,
-                            Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    if (dimensionUpgrade && globalEnergyOutputs == null) {
+                        globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityEnergyOutputs(),
+                            globalEnergyOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordEnergyFailure(gameTime);
+                    } else {
+                        operations += transferEnergy(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake);
             }
@@ -117,21 +136,12 @@ public final class SkyNetworkTicker {
         }
     }
 
-    private static List<CachedEndpoint> targetsFor(CachedEndpoint input, LineIndex line,
+    private static List<CachedEndpoint> targetsFor(boolean globalEnabled, List<CachedEndpoint> localOutputs,
             List<CachedEndpoint> globalOutputs) {
-        if (input.node().hasDimensionUpgrade()) {
-            if (globalOutputs == null || globalOutputs.isEmpty()) {
-                return line.priorityOutputs();
-            }
+        if (globalEnabled && globalOutputs != null && !globalOutputs.isEmpty()) {
             return globalOutputs;
         }
-        return line.priorityOutputs();
-    }
-
-    private static void cooldownInput(CachedEndpoint input, long gameTime) {
-        input.recordItemFailure(gameTime);
-        input.recordFluidFailure(gameTime);
-        input.recordEnergyFailure(gameTime);
+        return localOutputs;
     }
 
     private static long nextInputWake(CachedEndpoint input, SkyNodeBlockEntity node, long gameTime, long current) {

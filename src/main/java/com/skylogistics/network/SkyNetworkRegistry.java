@@ -54,7 +54,9 @@ public final class SkyNetworkRegistry {
     private static final List<LineIndex> ACTIVE_LINE_SNAPSHOT = new ArrayList<>();
     private static final TreeMap<Long, Set<LineIndex>> WAKE_BUCKETS = new TreeMap<>();
     private static final Map<LineIndex, Long> SCHEDULED_WAKE = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ITEM_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_FLUID_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ENERGY_OUTPUTS = new HashMap<>();
     private static boolean runtimeCachesDirty = true;
     private static boolean globalOutputsDirty = true;
     private static boolean activeLineSnapshotDirty = true;
@@ -122,8 +124,18 @@ public final class SkyNetworkRegistry {
         return activeLinesView();
     }
 
-    public static synchronized List<CachedEndpoint> globalOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_OUTPUTS.get(lineId);
+    public static synchronized List<CachedEndpoint> globalItemOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_ITEM_OUTPUTS.get(lineId);
+        return outputs == null ? List.of() : outputs;
+    }
+
+    public static synchronized List<CachedEndpoint> globalFluidOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_FLUID_OUTPUTS.get(lineId);
+        return outputs == null ? List.of() : outputs;
+    }
+
+    public static synchronized List<CachedEndpoint> globalEnergyOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_ENERGY_OUTPUTS.get(lineId);
         return outputs == null ? List.of() : outputs;
     }
 
@@ -220,7 +232,9 @@ public final class SkyNetworkRegistry {
         ACTIVE_LINE_SNAPSHOT.clear();
         WAKE_BUCKETS.clear();
         SCHEDULED_WAKE.clear();
-        GLOBAL_OUTPUTS.clear();
+        GLOBAL_ITEM_OUTPUTS.clear();
+        GLOBAL_FLUID_OUTPUTS.clear();
+        GLOBAL_ENERGY_OUTPUTS.clear();
         runtimeCachesDirty = true;
         globalOutputsDirty = true;
         activeLineSnapshotDirty = true;
@@ -260,10 +274,11 @@ public final class SkyNetworkRegistry {
             index.lineByNode.put(pos, line);
             for (Direction direction : Direction.values()) {
                 NodeFaceMode faceMode = node.getFaceMode(direction);
+                CachedEndpoint endpoint = new CachedEndpoint(node, direction);
                 if (faceMode == NodeFaceMode.INPUT) {
-                    line.inputs.add(new CachedEndpoint(node, direction));
+                    line.addInput(endpoint);
                 } else if (faceMode == NodeFaceMode.OUTPUT) {
-                    line.outputs.add(new CachedEndpoint(node, direction));
+                    line.addOutput(endpoint);
                 }
             }
         }
@@ -285,7 +300,7 @@ public final class SkyNetworkRegistry {
             }
             DimensionIndex index = entry.getValue();
             for (LineIndex line : index.lines.values()) {
-                if (!line.inputs().isEmpty()) {
+                if (line.hasProcessableInputs()) {
                     if (line.retryAfter <= 0L) {
                         ACTIVE_LINES.add(line);
                     } else {
@@ -297,21 +312,41 @@ public final class SkyNetworkRegistry {
     }
 
     private static void rebuildGlobalOutputs(MinecraftServer server) {
-        GLOBAL_OUTPUTS.clear();
+        GLOBAL_ITEM_OUTPUTS.clear();
+        GLOBAL_FLUID_OUTPUTS.clear();
+        GLOBAL_ENERGY_OUTPUTS.clear();
         for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
             if (server.getLevel(entry.getKey()) == null) {
                 continue;
             }
             DimensionIndex index = entry.getValue();
             for (LineIndex line : index.lines.values()) {
-                GLOBAL_OUTPUTS.computeIfAbsent(line.lineId(), ignored -> new ArrayList<>())
-                        .addAll(line.priorityOutputs());
+                addGlobalOutputs(GLOBAL_ITEM_OUTPUTS, line.lineId(), line.priorityItemOutputs());
+                addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, line.lineId(), line.priorityFluidOutputs());
+                addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, line.lineId(), line.priorityEnergyOutputs());
             }
         }
-        for (List<CachedEndpoint> endpoints : GLOBAL_OUTPUTS.values()) {
-            endpoints.sort(Comparator.comparingInt(
-                    (CachedEndpoint endpoint) -> endpoint.node().getPriority(endpoint.direction())).reversed());
+        sortGlobalOutputs(GLOBAL_ITEM_OUTPUTS);
+        sortGlobalOutputs(GLOBAL_FLUID_OUTPUTS);
+        sortGlobalOutputs(GLOBAL_ENERGY_OUTPUTS);
+    }
+
+    private static void addGlobalOutputs(Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
+            List<CachedEndpoint> outputs) {
+        if (!outputs.isEmpty()) {
+            globalOutputs.computeIfAbsent(lineId, ignored -> new ArrayList<>()).addAll(outputs);
         }
+    }
+
+    private static void sortGlobalOutputs(Map<UUID, List<CachedEndpoint>> globalOutputs) {
+        for (List<CachedEndpoint> endpoints : globalOutputs.values()) {
+            sortByPriority(endpoints);
+        }
+    }
+
+    private static void sortByPriority(List<CachedEndpoint> endpoints) {
+        endpoints.sort(Comparator.comparingInt(
+                (CachedEndpoint endpoint) -> endpoint.node().getPriority(endpoint.direction())).reversed());
     }
 
     private static ReadyLines activeLinesView() {
@@ -347,7 +382,7 @@ public final class SkyNetworkRegistry {
             }
             for (LineIndex line : entry.getValue()) {
                 SCHEDULED_WAKE.remove(line);
-                if (!line.inputs().isEmpty() && ACTIVE_LINES.add(line)) {
+                if (line.hasProcessableInputs() && ACTIVE_LINES.add(line)) {
                     activeLineSnapshotDirty = true;
                 }
             }
@@ -358,7 +393,7 @@ public final class SkyNetworkRegistry {
     private static synchronized void wakeLine(LineIndex line) {
         line.retryAfter = 0L;
         removeScheduledWake(line);
-        if (!line.inputs().isEmpty() && ACTIVE_LINES.add(line)) {
+        if (line.hasProcessableInputs() && ACTIVE_LINES.add(line)) {
             activeLineSnapshotDirty = true;
         }
     }
@@ -369,7 +404,7 @@ public final class SkyNetworkRegistry {
             activeLineSnapshotDirty = true;
         }
         removeScheduledWake(line);
-        if (!line.inputs().isEmpty()) {
+        if (line.hasProcessableInputs()) {
             scheduleWake(line, line.retryAfter);
         }
     }
@@ -454,7 +489,16 @@ public final class SkyNetworkRegistry {
         private final UUID lineId;
         private final List<CachedEndpoint> inputs = new ArrayList<>();
         private final List<CachedEndpoint> outputs = new ArrayList<>();
+        private final List<CachedEndpoint> itemInputs = new ArrayList<>();
+        private final List<CachedEndpoint> fluidInputs = new ArrayList<>();
+        private final List<CachedEndpoint> energyInputs = new ArrayList<>();
+        private final List<CachedEndpoint> itemOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> fluidOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> energyOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityItemOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityFluidOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityEnergyOutputs = new ArrayList<>();
         private long retryAfter;
         private int nodeCount;
         private int inputCursor;
@@ -501,6 +545,22 @@ public final class SkyNetworkRegistry {
             return priorityOutputs;
         }
 
+        public List<CachedEndpoint> priorityItemOutputs() {
+            return priorityItemOutputs;
+        }
+
+        public List<CachedEndpoint> priorityFluidOutputs() {
+            return priorityFluidOutputs;
+        }
+
+        public List<CachedEndpoint> priorityEnergyOutputs() {
+            return priorityEnergyOutputs;
+        }
+
+        public boolean hasProcessableInputs() {
+            return !itemInputs.isEmpty() || !fluidInputs.isEmpty() || !energyInputs.isEmpty();
+        }
+
         public boolean canProcess(long gameTime) {
             return gameTime >= retryAfter;
         }
@@ -513,11 +573,47 @@ public final class SkyNetworkRegistry {
             SkyNetworkRegistry.sleepLine(this, gameTime);
         }
 
+        private void addInput(CachedEndpoint endpoint) {
+            inputs.add(endpoint);
+            addResourceEndpoint(endpoint, itemInputs, fluidInputs, energyInputs);
+        }
+
+        private void addOutput(CachedEndpoint endpoint) {
+            outputs.add(endpoint);
+            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, energyOutputs);
+        }
+
         private void rebuildPriorityOutputs() {
             priorityOutputs.clear();
             priorityOutputs.addAll(outputs);
-            priorityOutputs.sort(Comparator.comparingInt(
-                    (CachedEndpoint endpoint) -> endpoint.node().getPriority(endpoint.direction())).reversed());
+            sortByPriority(priorityOutputs);
+
+            priorityItemOutputs.clear();
+            priorityItemOutputs.addAll(itemOutputs);
+            sortByPriority(priorityItemOutputs);
+
+            priorityFluidOutputs.clear();
+            priorityFluidOutputs.addAll(fluidOutputs);
+            sortByPriority(priorityFluidOutputs);
+
+            priorityEnergyOutputs.clear();
+            priorityEnergyOutputs.addAll(energyOutputs);
+            sortByPriority(priorityEnergyOutputs);
+        }
+
+        private static void addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
+                List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> energyEndpoints) {
+            SkyNodeBlockEntity node = endpoint.node();
+            Direction direction = endpoint.direction();
+            if (node.isItemsEnabled(direction)) {
+                itemEndpoints.add(endpoint);
+            }
+            if (node.isFluidsEnabled(direction)) {
+                fluidEndpoints.add(endpoint);
+            }
+            if (node.isEnergyEnabled(direction)) {
+                energyEndpoints.add(endpoint);
+            }
         }
 
     }
