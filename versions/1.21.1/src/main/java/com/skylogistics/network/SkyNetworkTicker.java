@@ -236,7 +236,6 @@ public final class SkyNetworkTicker {
             if (result.moved()) {
                 sourceEndpoint.recordItemSlotSuccess(slot, slots);
                 sourceEndpoint.recordItemSuccess();
-                return operations;
             }
         }
         if (!foundCandidate) {
@@ -429,7 +428,6 @@ public final class SkyNetworkTicker {
             if (result.moved()) {
                 sourceEndpoint.recordFluidTankSuccess(tank, tanks);
                 sourceEndpoint.recordFluidSuccess();
-                return operations;
             }
         }
         if (!foundCandidate) {
@@ -611,7 +609,6 @@ public final class SkyNetworkTicker {
             if (result.moved()) {
                 sourceEndpoint.recordChemicalTankSuccess(tank, tanks);
                 sourceEndpoint.recordChemicalSuccess();
-                return operations;
             }
         }
         if (!foundCandidate) {

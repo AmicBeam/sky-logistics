@@ -69,6 +69,9 @@ public class SkyNecklaceItem extends Item {
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.insert_slots",
                 insertSlots(stack)).withStyle(ChatFormatting.GRAY));
+        if (!filter.isEmpty()) {
+            FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);
+        }
     }
 
     public static NecklaceMode mode(ItemStack stack) {

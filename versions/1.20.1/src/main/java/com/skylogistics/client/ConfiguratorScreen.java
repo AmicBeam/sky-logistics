@@ -21,6 +21,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -229,8 +230,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private String detailMainLine(ConfiguratorLineDetailsPacket.Entry entry) {
+        String displayName = entry.displayName().isEmpty() ? "" : entry.displayName() + " ";
         return Component.translatable(entry.mode().translationKey()).getString() + " "
-                + resourceFlags(entry) + " P" + entry.priority() + " "
+                + displayName + resourceFlags(entry) + " P" + entry.priority() + " "
                 + Component.translatable(entry.redstoneControl().translationKey()).getString();
     }
 
@@ -269,6 +271,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private Component targetDisplayName(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (!entry.displayName().isEmpty()) {
+            return Component.literal(entry.displayName());
+        }
         ItemStack icon = targetIcon(entry);
         return icon.isEmpty() ? Component.literal(entry.targetBlockId()) : icon.getHoverName();
     }
@@ -279,7 +284,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             return ItemStack.EMPTY;
         }
         Block block = ForgeRegistries.BLOCKS.getValue(id);
-        return block == null ? ItemStack.EMPTY : block.asItem().getDefaultInstance();
+        if (block != null) {
+            ItemStack blockIcon = block.asItem().getDefaultInstance();
+            if (!blockIcon.isEmpty()) {
+                return blockIcon;
+            }
+        }
+        Item item = ForgeRegistries.ITEMS.getValue(id);
+        return item == null ? ItemStack.EMPTY : item.getDefaultInstance();
     }
 
     private int modeColor(NodeFaceMode mode) {

@@ -3,12 +3,15 @@ package com.skylogistics.menu;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
+import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -186,10 +189,24 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         }
         List<SkyNetworkRegistry.LineFaceDetail> details =
                 SkyNetworkRegistry.lineDetails(player.level().getServer(), config.lineId(), LINE_DETAIL_LIMIT);
-        List<ConfiguratorLineDetailsPacket.Entry> entries = new ArrayList<>(details.size());
+        List<SkyNecklaceTicker.ActiveNecklaceDetail> necklaceDetails =
+                SkyNecklaceTicker.activeDetails(config.lineId());
+        List<ConfiguratorLineDetailsPacket.Entry> entries =
+                new ArrayList<>(Math.min(LINE_DETAIL_LIMIT, details.size() + necklaceDetails.size()));
+        for (SkyNecklaceTicker.ActiveNecklaceDetail detail : necklaceDetails) {
+            if (entries.size() >= LINE_DETAIL_LIMIT) {
+                break;
+            }
+            entries.add(new ConfiguratorLineDetailsPacket.Entry(detail.dimension(), detail.pos(), Direction.UP,
+                    detail.pos(), "skylogistics:sky_necklace", detail.playerName(), detail.mode(),
+                    true, false, false, RedstoneControl.IGNORE, 0));
+        }
         for (SkyNetworkRegistry.LineFaceDetail detail : details) {
+            if (entries.size() >= LINE_DETAIL_LIMIT) {
+                break;
+            }
             entries.add(new ConfiguratorLineDetailsPacket.Entry(detail.dimension(), detail.nodePos(), detail.face(),
-                    detail.targetPos(), detail.targetBlockId(), detail.mode(), detail.itemsEnabled(),
+                    detail.targetPos(), detail.targetBlockId(), "", detail.mode(), detail.itemsEnabled(),
                     detail.fluidsEnabled(), detail.energyEnabled(), detail.redstoneControl(), detail.priority()));
         }
         ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorLineDetailsPacket(config.lineId(), entries));

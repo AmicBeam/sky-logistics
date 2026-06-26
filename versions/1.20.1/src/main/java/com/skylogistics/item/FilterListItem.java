@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -67,6 +68,12 @@ public class FilterListItem extends Item {
         if (fluids > 0) {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.fluids", fluids, FILTER_SLOTS)
                     .withStyle(ChatFormatting.AQUA));
+        }
+        if (showFilterContents()) {
+            appendFilterContents(stack, tooltip, false);
+        } else {
+            tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
+                    .withStyle(ChatFormatting.DARK_GRAY));
         }
     }
 
@@ -201,6 +208,50 @@ public class FilterListItem extends Item {
             }
         }
         return count;
+    }
+
+    public static boolean hasAnyFilters(ItemStack stack) {
+        return countFilters(stack) + countFluidFilters(stack) > 0;
+    }
+
+    public static void appendFilterContentsOrHint(ItemStack stack, List<Component> tooltip, TooltipFlag flag) {
+        if (showFilterContents()) {
+            appendFilterContents(stack, tooltip, true);
+        } else {
+            tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+    }
+
+    public static void appendFilterContents(ItemStack stack, List<Component> tooltip, boolean indented) {
+        String suffix = indented ? "_indented" : "";
+        tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.contents" + suffix)
+                .withStyle(ChatFormatting.GOLD));
+        boolean added = false;
+        List<ItemStack> filters = getFilters(stack);
+        List<FluidStack> fluidFilters = getFluidFilters(stack);
+        for (int slot = 0; slot < FILTER_SLOTS; slot++) {
+            ItemStack filter = filters.get(slot);
+            if (!filter.isEmpty()) {
+                tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entry.item" + suffix,
+                        slot + 1, filter.getHoverName()).withStyle(ChatFormatting.GRAY));
+                added = true;
+            }
+            FluidStack fluid = fluidFilters.get(slot);
+            if (!fluid.isEmpty()) {
+                tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entry.fluid" + suffix,
+                        slot + 1, fluid.getDisplayName()).withStyle(ChatFormatting.AQUA));
+                added = true;
+            }
+        }
+        if (!added) {
+            tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.empty" + suffix)
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+    }
+
+    public static boolean showFilterContents() {
+        return Screen.hasShiftDown();
     }
 
     public static List<ItemStack> getFilters(ItemStack stack) {

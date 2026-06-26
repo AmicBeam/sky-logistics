@@ -169,6 +169,7 @@ public final class SkyNetworkRegistry {
             }
         }
         inputs += SkyNecklaceTicker.activeExtractorCount(lineId);
+        outputs += SkyNecklaceTicker.activeInserterCount(lineId);
         return new LineStats(nodes, inputs, outputs);
     }
 
@@ -184,6 +185,20 @@ public final class SkyNetworkRegistry {
         }
         LineIndex line = index.lines.get(lineId);
         return line == null ? List.of() : List.copyOf(line.priorityItemOutputs());
+    }
+
+    public static synchronized List<CachedEndpoint> lineItemInputs(MinecraftServer server,
+            ResourceKey<Level> dimension, UUID lineId) {
+        rebuildDirty(server);
+        if (server.getLevel(dimension) == null) {
+            return List.of();
+        }
+        DimensionIndex index = DIMENSIONS.get(dimension);
+        if (index == null) {
+            return List.of();
+        }
+        LineIndex line = index.lines.get(lineId);
+        return line == null ? List.of() : List.copyOf(line.itemInputs);
     }
 
     public static synchronized List<LineFaceDetail> lineDetails(MinecraftServer server, UUID lineId, int limit) {

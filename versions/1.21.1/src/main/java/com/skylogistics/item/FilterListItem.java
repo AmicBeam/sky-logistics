@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -68,9 +69,9 @@ public class FilterListItem extends Item {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.fluids", fluids, FILTER_SLOTS)
                     .withStyle(ChatFormatting.AQUA));
         }
-        if (flag.hasShiftDown()) {
+        if (showFilterContents()) {
             appendFilterContents(stack, tooltip, false);
-        } else if (hasAnyFilters(stack)) {
+        } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
@@ -214,9 +215,9 @@ public class FilterListItem extends Item {
     }
 
     public static void appendFilterContentsOrHint(ItemStack stack, List<Component> tooltip, TooltipFlag flag) {
-        if (flag.hasShiftDown()) {
+        if (showFilterContents()) {
             appendFilterContents(stack, tooltip, true);
-        } else if (hasAnyFilters(stack)) {
+        } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
@@ -247,6 +248,10 @@ public class FilterListItem extends Item {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.empty" + suffix)
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
+    }
+
+    public static boolean showFilterContents() {
+        return Screen.hasShiftDown();
     }
 
     public static List<ItemStack> getFilters(ItemStack stack) {

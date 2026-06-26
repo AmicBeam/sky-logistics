@@ -49,7 +49,7 @@
   "tooltip.skylogistics.filter_list.clear_button": "Clear all ghost filter slots.",
   "tooltip.skylogistics.filter_list.entries": "Filters: %s/%s",
   "tooltip.skylogistics.filter_list.fluids": "Fluid filters: %s/%s",
-  "tooltip.skylogistics.filter_list.hold_shift": "Hold Shift/Sneak to show filter contents.",
+  "tooltip.skylogistics.filter_list.hold_shift": "Hold Shift to show filter contents.",
   "tooltip.skylogistics.filter_list.contents": "Contents:",
   "tooltip.skylogistics.filter_list.contents_indented": "  Contents:",
   "tooltip.skylogistics.filter_list.entry.item": "%s. %s",

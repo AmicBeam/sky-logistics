@@ -23,7 +23,7 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
     private static final int MAX_ENTRIES = 64;
 
     public record Entry(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
-                        String targetBlockId, NodeFaceMode mode, boolean itemsEnabled,
+                        String targetBlockId, String displayName, NodeFaceMode mode, boolean itemsEnabled,
                         boolean fluidsEnabled, boolean energyEnabled, RedstoneControl redstoneControl,
                         int priority) {
     }
@@ -39,6 +39,7 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
             buffer.writeEnum(entry.face);
             buffer.writeBlockPos(entry.targetPos);
             buffer.writeUtf(entry.targetBlockId, 128);
+            buffer.writeUtf(entry.displayName, 128);
             buffer.writeEnum(entry.mode);
             buffer.writeBoolean(entry.itemsEnabled);
             buffer.writeBoolean(entry.fluidsEnabled);
@@ -54,7 +55,7 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
         List<Entry> entries = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             entries.add(new Entry(buffer.readUtf(128), buffer.readBlockPos(), buffer.readEnum(Direction.class),
-                    buffer.readBlockPos(), buffer.readUtf(128), buffer.readEnum(NodeFaceMode.class),
+                    buffer.readBlockPos(), buffer.readUtf(128), buffer.readUtf(128), buffer.readEnum(NodeFaceMode.class),
                     buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(),
                     buffer.readEnum(RedstoneControl.class), buffer.readVarInt()));
         }

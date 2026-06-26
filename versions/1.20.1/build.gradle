@@ -41,6 +41,7 @@ sourceSets.main.java.srcDir '../../common/src/main/java'
 sourceSets.main.resources.srcDir '../../common/src/main/resources'
 
 def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
+def defaultJadeApiJar = file('/private/tmp/Jade-1.20.1-Forge-11.13.2.jar')
 def cachedJadeApiJars = fileTree(
         dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1",
         include: [
@@ -50,7 +51,8 @@ def cachedJadeApiJars = fileTree(
         ]
 ).files.toList().sort { it.absolutePath }
 def jadeApiJar = jadeApiPath ? file(jadeApiPath)
-        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null)
+        : (defaultJadeApiJar.exists() ? defaultJadeApiJar
+        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null))
 def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
 def defaultJeiApiJar = file('/private/tmp/jei-api.jar')
 def cachedJeiApiJars = fileTree(

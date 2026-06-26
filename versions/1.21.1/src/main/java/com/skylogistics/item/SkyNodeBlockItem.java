@@ -52,7 +52,7 @@ public class SkyNodeBlockItem extends BlockItem {
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_node.filters", filters.size())
                 .withStyle(ChatFormatting.GRAY));
-        if (!flag.hasShiftDown()) {
+        if (!FilterListItem.showFilterContents()) {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
                     .withStyle(ChatFormatting.DARK_GRAY));
             return;

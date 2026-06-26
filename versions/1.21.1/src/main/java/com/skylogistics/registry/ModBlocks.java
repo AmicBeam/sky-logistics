@@ -39,7 +39,7 @@ public final class ModBlocks {
                     .mapColor(MapColor.COLOR_BLUE)
                     .strength(1.5F, 6.0F)
                     .noOcclusion()
-                    .sound(SoundType.COPPER)));
+                    .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, Block> CELESTIAL_STONE = BLOCKS.register("celestial_stone",
             () -> new Block(celestialStoneProperties()));
