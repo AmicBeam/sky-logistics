@@ -65,6 +65,13 @@ dependencies {
     compileOnly "mekanism:Mekanism:${mekanism_version}"
 }
 
+sourceSets {
+    main {
+        java.srcDir '../../common/src/main/java'
+        resources.srcDir '../../common/src/main/resources'
+    }
+}
+
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
     var replaceProperties = [
             minecraft_version      : minecraft_version,

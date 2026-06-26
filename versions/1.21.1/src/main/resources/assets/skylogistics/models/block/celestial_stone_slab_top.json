@@ -1,8 +1,0 @@
-{
-  "parent": "minecraft:block/slab_top",
-  "textures": {
-    "bottom": "skylogistics:block/celestial_stone",
-    "top": "skylogistics:block/celestial_stone",
-    "side": "skylogistics:block/celestial_stone"
-  }
-}
