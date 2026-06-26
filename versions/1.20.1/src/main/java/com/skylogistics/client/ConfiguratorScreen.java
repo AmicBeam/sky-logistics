@@ -35,6 +35,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_VISIBLE_ROWS = DETAIL_HEIGHT / DETAIL_ROW_HEIGHT;
     private static final int DETAIL_ICON_X = DETAIL_X + 5;
     private static final int DETAIL_TEXT_X = DETAIL_X + 25;
+    private static final int CONTROL_START_X = 62;
+    private static final int CONTROL_STEP_X = 54;
+    private static final int PRIORITY_ROW_Y = 218;
+    private static final int PRIORITY_DOWN_X = CONTROL_START_X;
+    private static final int PRIORITY_VALUE_X = 84;
+    private static final int PRIORITY_VALUE_WIDTH = 52;
+    private static final int PRIORITY_UP_X = 136;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -61,12 +68,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
         addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
 
-        addTypeButton(leftPos + 54, topPos + 166, ResourceType.ITEMS);
-        addTypeButton(leftPos + 108, topPos + 166, ResourceType.FLUIDS);
-        addTypeButton(leftPos + 162, topPos + 166, ResourceType.ENERGY);
-        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 54, topPos + 192));
-        addPriorityButton(leftPos + 54, topPos + 218, -1, Component.literal("-"));
-        addPriorityButton(leftPos + 128, topPos + 218, 1, Component.literal("+"));
+        addTypeButton(leftPos + CONTROL_START_X, topPos + 166, ResourceType.ITEMS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 166, ResourceType.FLUIDS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 166, ResourceType.ENERGY);
+        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + CONTROL_START_X, topPos + 192));
+        addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + PRIORITY_ROW_Y, -1, Component.literal("-"));
+        addPriorityButton(leftPos + PRIORITY_UP_X, topPos + PRIORITY_ROW_Y, 1, Component.literal("+"));
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -161,8 +168,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 14, 198, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
                 14, 224, ConfigPanel.MUTED, false);
-        graphics.drawString(font, Component.literal(String.valueOf(config.placement().priority())),
-                96, 224, ConfigPanel.TEXT, false);
+        graphics.drawCenteredString(font, Component.literal(String.valueOf(config.placement().priority())),
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 6, ConfigPanel.TEXT);
     }
 
     @Override
@@ -455,9 +462,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         public void onPress() {
             if (active) {
-                ModNetworking.sendMenuAction(delta < 0
-                        ? MenuAction.CONFIG_PRIORITY_DOWN
-                        : MenuAction.CONFIG_PRIORITY_UP);
+                boolean fast = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+                int action = delta < 0
+                        ? (fast ? MenuAction.CONFIG_PRIORITY_DOWN_FAST : MenuAction.CONFIG_PRIORITY_DOWN)
+                        : (fast ? MenuAction.CONFIG_PRIORITY_UP_FAST : MenuAction.CONFIG_PRIORITY_UP);
+                ModNetworking.sendMenuAction(action);
             }
         }
 

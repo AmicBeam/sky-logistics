@@ -128,6 +128,8 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             case MenuAction.CONFIG_REDSTONE -> config = config.cycleRedstoneControl();
             case MenuAction.CONFIG_PRIORITY_DOWN -> config = config.adjustPriority(-1);
             case MenuAction.CONFIG_PRIORITY_UP -> config = config.adjustPriority(1);
+            case MenuAction.CONFIG_PRIORITY_DOWN_FAST -> config = config.adjustPriority(-10);
+            case MenuAction.CONFIG_PRIORITY_UP_FAST -> config = config.adjustPriority(10);
             default -> {
                 return;
             }
@@ -199,7 +201,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             }
             entries.add(new ConfiguratorLineDetailsPacket.Entry(detail.dimension(), detail.pos(), Direction.UP,
                     detail.pos(), "skylogistics:sky_necklace", detail.playerName(), detail.mode(),
-                    true, false, false, RedstoneControl.IGNORE, 0));
+                    true, false, false, RedstoneControl.IGNORE, detail.priority()));
         }
         for (SkyNetworkRegistry.LineFaceDetail detail : details) {
             if (entries.size() >= LINE_DETAIL_LIMIT) {

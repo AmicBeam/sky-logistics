@@ -26,6 +26,14 @@ public final class MenuAction {
     public static final int FILTER_SET_DURABILITY_OFF = 26;
     public static final int NECKLACE_INSERT_SLOTS_DOWN = 30;
     public static final int NECKLACE_INSERT_SLOTS_UP = 31;
+    public static final int CONFIG_PRIORITY_DOWN_FAST = 32;
+    public static final int CONFIG_PRIORITY_UP_FAST = 33;
+    public static final int NECKLACE_INSERT_SLOTS_DOWN_FAST = 34;
+    public static final int NECKLACE_INSERT_SLOTS_UP_FAST = 35;
+    public static final int NECKLACE_PRIORITY_DOWN = 36;
+    public static final int NECKLACE_PRIORITY_UP = 37;
+    public static final int NECKLACE_PRIORITY_DOWN_FAST = 38;
+    public static final int NECKLACE_PRIORITY_UP_FAST = 39;
     public static final int FACE_NONE_BASE = 100;
     public static final int FACE_EXTRACT_BASE = 110;
     public static final int FACE_INSERT_BASE = 120;
@@ -33,6 +41,8 @@ public final class MenuAction {
     public static final int FACE_PRIORITY_UP_BASE = 150;
     public static final int FACE_REDSTONE_BASE = 160;
     public static final int FACE_SELECT_BASE = 170;
+    public static final int FACE_PRIORITY_DOWN_FAST_BASE = 180;
+    public static final int FACE_PRIORITY_UP_FAST_BASE = 190;
 
     private MenuAction() {
     }
@@ -55,6 +65,14 @@ public final class MenuAction {
 
     public static int facePriorityUp(net.minecraft.core.Direction direction) {
         return FACE_PRIORITY_UP_BASE + direction.ordinal();
+    }
+
+    public static int facePriorityDownFast(net.minecraft.core.Direction direction) {
+        return FACE_PRIORITY_DOWN_FAST_BASE + direction.ordinal();
+    }
+
+    public static int facePriorityUpFast(net.minecraft.core.Direction direction) {
+        return FACE_PRIORITY_UP_FAST_BASE + direction.ordinal();
     }
 
     public static int faceRedstone(net.minecraft.core.Direction direction) {
