@@ -1,0 +1,5 @@
+{
+  "name": "物流",
+  "description": "学习用节点和配置器建立无线物流线路，并连接仓库、过滤列表和升级卡。",
+  "icon": "skylogistics:sky_node"
+}

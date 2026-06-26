@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "skylogistics:celestial_stone",
+    "skylogistics:celestial_stone_slab",
+    "skylogistics:celestial_stone_stairs",
+    "skylogistics:celestial_stone_wall",
+    "skylogistics:celestial_glass"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "S S",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "skylogistics:celestial_stone"
+    }
+  },
+  "result": {
+    "item": "skylogistics:offering_table"
+  }
+}

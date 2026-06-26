@@ -1,0 +1,17 @@
+{
+  "multipart": [
+    { "apply": { "model": "skylogistics:block/sky_node_core" } },
+    { "when": { "north_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link" } },
+    { "when": { "north_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link" } },
+    { "when": { "south_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link", "y": 180, "uvlock": true } },
+    { "when": { "south_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link", "y": 180, "uvlock": true } },
+    { "when": { "west_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link", "y": 270, "uvlock": true } },
+    { "when": { "west_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link", "y": 270, "uvlock": true } },
+    { "when": { "east_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link", "y": 90, "uvlock": true } },
+    { "when": { "east_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link", "y": 90, "uvlock": true } },
+    { "when": { "down_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link", "x": 90, "uvlock": true } },
+    { "when": { "down_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link", "x": 90, "uvlock": true } },
+    { "when": { "up_mode": "output" }, "apply": { "model": "skylogistics:block/sky_node_link", "x": 270, "uvlock": true } },
+    { "when": { "up_mode": "input" }, "apply": { "model": "skylogistics:block/sky_node_extract_link", "x": 270, "uvlock": true } }
+  ]
+}

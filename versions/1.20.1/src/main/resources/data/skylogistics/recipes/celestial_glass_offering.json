@@ -1,0 +1,23 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 160,
+  "altar_tier": 1,
+  "main": {
+    "item": "skylogistics:eulogia_crystal",
+    "charged": true
+  },
+  "offerings": [
+    {
+      "tag": "forge:glass",
+      "count": 8
+    },
+    {
+      "item": "minecraft:glowstone_dust",
+      "count": 8
+    }
+  ],
+  "result": {
+    "item": "skylogistics:celestial_glass",
+    "count": 1
+  }
+}

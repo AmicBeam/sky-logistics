@@ -1,0 +1,30 @@
+{
+  "name": "使用天穹供奉祭坛",
+  "icon": "skylogistics:offering_altar",
+  "category": "skylogistics:offerings",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "祭坛和供桌都只有 1 个供奉槽，最多放一组物品，没有界面。手持物品右击会放入，空手右击会取出；漏斗和管道也可以向其中放入或取出物品。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:offering_altar",
+      "recipe2": "skylogistics:offering_table",
+      "text": "祭坛需要消耗已充能尤洛伽水晶，供桌只需要天穹石。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "祭坛必须放在足够高的位置，并搭好对应等级的法阵。把主材料放在祭坛上，把供品放在四侧供桌上；供桌顺序不限，只要材料齐全就能开始。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "材料齐全后，祭坛会出现粒子并开始仪式。等待一小段时间后，材料会被消耗，产物会优先留在祭坛槽里；如果放不下，就会弹出到祭坛上方。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "放入或取出材料后，祭坛会重新检查配方。如果装了 Jade，准星对准祭坛或供桌时可以看到其中已有的供品；空槽不会额外显示。"
+    }
+  ]
+}

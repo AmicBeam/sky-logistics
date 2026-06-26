@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "skylogistics:block/celestial_stone_stairs"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "type=bottom,waterlogged=false": {
+      "model": "skylogistics:block/celestial_stone_slab"
+    },
+    "type=bottom,waterlogged=true": {
+      "model": "skylogistics:block/celestial_stone_slab"
+    },
+    "type=top,waterlogged=false": {
+      "model": "skylogistics:block/celestial_stone_slab_top"
+    },
+    "type=top,waterlogged=true": {
+      "model": "skylogistics:block/celestial_stone_slab_top"
+    },
+    "type=double,waterlogged=false": {
+      "model": "skylogistics:block/celestial_stone"
+    },
+    "type=double,waterlogged=true": {
+      "model": "skylogistics:block/celestial_stone"
+    }
+  }
+}

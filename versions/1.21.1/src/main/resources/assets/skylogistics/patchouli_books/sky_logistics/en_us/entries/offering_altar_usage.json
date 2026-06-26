@@ -1,0 +1,30 @@
+{
+  "name": "Using the Offering Altar",
+  "icon": "skylogistics:offering_altar",
+  "category": "skylogistics:offerings",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The altar and offering table each have one offering slot that can hold up to 64 items, with no GUI. Right-click with an item to insert it, or right-click empty-handed to extract. Pipes and hopper-like automation can access the item slot."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:offering_altar",
+      "recipe2": "skylogistics:offering_table",
+      "text": "The altar consumes a charged Eulogia Crystal, while the offering table only requires Celestial Stone."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The altar must be at the configured sky height or higher and inside a valid offering circle. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter as long as every ingredient matches."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Once the ingredients match, the altar starts its particles and counts the recipe Duration. When the duration completes, inputs vanish at once and the result appears in the altar slot. If it cannot fit, the remainder is dropped above the altar."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The altar does not scan constantly when no recipe is present. It wakes when its own item or a neighboring table changes, and after world loading. Jade shows a non-empty offering slot; empty slots are left unlisted."
+    }
+  ]
+}

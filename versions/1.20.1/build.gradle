@@ -1,0 +1,224 @@
+buildscript {
+    repositories {
+        def offlineRepo = System.getProperty('skylogistics.offlineRepo') ?: System.getenv('SKYLOGISTICS_OFFLINE_REPO')
+        if (offlineRepo) {
+            maven {
+                name = 'SkyLogisticsOffline'
+                url = uri(offlineRepo)
+            }
+        }
+        mavenLocal()
+        maven {
+            name = 'Forge'
+            url = 'https://maven.minecraftforge.net/'
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:6.0.54'
+    }
+}
+
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+
+version = "${mod_version}+${minecraft_version}"
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
+def cachedJadeApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1",
+        include: [
+                '**/jade-1.20.1-forge-11*.jar',
+                '**/Jade-1.20.1-forge-11*.jar',
+                '**/Jade-1.20.1-Forge-11*.jar'
+        ]
+).files.toList().sort { it.absolutePath }
+def jadeApiJar = jadeApiPath ? file(jadeApiPath)
+        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null)
+def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
+def defaultJeiApiJar = file('/private/tmp/jei-api.jar')
+def cachedJeiApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/mezz.jei/jei-1.20.1-forge",
+        include: '**/jei-1.20.1-forge-*.jar'
+).files.toList().sort { it.absolutePath }
+def jeiApiJar = jeiApiPath ? file(jeiApiPath)
+        : (defaultJeiApiJar.exists() ? defaultJeiApiJar
+        : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : defaultJeiApiJar))
+def includeJadeCompat = false
+def includeJeiCompat = false
+
+def jadeApiCompatibilityIssues = { File jar ->
+    def requiredEntries = [
+            'snownee/jade/api/Accessor.class',
+            'snownee/jade/api/BlockAccessor.class',
+            'snownee/jade/api/IBlockComponentProvider.class',
+            'snownee/jade/api/IServerDataProvider.class',
+            'snownee/jade/api/ITooltip.class',
+            'snownee/jade/api/IWailaClientRegistration.class',
+            'snownee/jade/api/IWailaCommonRegistration.class',
+            'snownee/jade/api/IWailaPlugin.class',
+            'snownee/jade/api/WailaPlugin.class',
+            'snownee/jade/api/config/IPluginConfig.class'
+    ]
+    def zip = new java.util.zip.ZipFile(jar)
+    try {
+        def issues = requiredEntries.findAll { zip.getEntry(it) == null }
+        def serverProvider = zip.getEntry('snownee/jade/api/IServerDataProvider.class')
+        if (serverProvider != null) {
+            def descriptor = '(Lnet/minecraft/nbt/CompoundTag;Lsnownee/jade/api/Accessor;)V'
+            def classText = new String(zip.getInputStream(serverProvider).bytes,
+                    java.nio.charset.StandardCharsets.ISO_8859_1)
+            if (!classText.contains(descriptor)) {
+                issues.add('snownee/jade/api/IServerDataProvider.class must erase appendServerData to Accessor')
+            }
+        }
+        return issues
+    } finally {
+        zip.close()
+    }
+}
+
+if (jadeApiJar != null) {
+    if (!jadeApiJar.exists()) {
+        throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
+    }
+    def compatibilityIssues = jadeApiCompatibilityIssues(jadeApiJar)
+    if (!compatibilityIssues.isEmpty()) {
+        throw new GradleException("Configured Jade API jar is not compatible with Jade 1.20.1 11.x: ${compatibilityIssues.join(', ')}")
+    }
+    sourceSets.main.java.srcDir 'src/jade/java'
+    includeJadeCompat = true
+}
+
+if (jeiApiPath && !jeiApiJar.exists()) {
+    throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
+}
+
+if (jeiApiJar.exists()) {
+    sourceSets.main.java.srcDir 'src/jei/java'
+    includeJeiCompat = true
+}
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', mod_id
+            args '--nogui'
+        }
+
+        data {
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+repositories {
+    def offlineRepo = System.getProperty('skylogistics.offlineRepo') ?: System.getenv('SKYLOGISTICS_OFFLINE_REPO')
+    if (offlineRepo) {
+        maven {
+            name = 'SkyLogisticsOffline'
+            url = uri(offlineRepo)
+        }
+    }
+    mavenLocal()
+    mavenCentral()
+    maven {
+        name = 'Forge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev'
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (includeJadeCompat) {
+        compileOnly files(jadeApiJar)
+    }
+    if (includeJeiCompat) {
+        compileOnly files(jeiApiJar)
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'    : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+jar.finalizedBy('reobfJar')
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            mod_version: mod_version,
+            forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            minecraft_version_range: minecraft_version_range
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "skylogistics:block/item_vault" }
+  }
+}

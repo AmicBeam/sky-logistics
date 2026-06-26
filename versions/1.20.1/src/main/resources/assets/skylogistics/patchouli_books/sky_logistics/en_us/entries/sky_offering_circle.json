@@ -1,0 +1,90 @@
+{
+  "name": "Sky Offering Circle",
+  "icon": "skylogistics:offering_altar",
+  "category": "skylogistics:offerings",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Place the altar at the center with one offering table on each horizontal side. The Celestial Stone outer ring sits one block below the altar and forms a 5x5 lower frame; other empty-looking spaces do not need to be air. Chora Nectar requires tier 2."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Tier 1 requires the lower outer frame to remain complete. Celestial Stone, slabs, stairs, and walls all count as frame blocks. Tier 2 adds one Celestial Stone pillar at each corner of the next outer ring, with Celestial Glass on top."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 8 #forge:glass and 8 Glowstone Dust on two offering tables. Duration is 160 ticks and the result is 1 Celestial Glass."
+    },
+    {
+      "type": "patchouli:multiblock",
+      "name": "Tier 1 Sky Offering Altar",
+      "multiblock": {
+        "mapping": {
+          "0": "skylogistics:offering_altar",
+          "T": "skylogistics:offering_table",
+          "C": "skylogistics:celestial_stone",
+          " ": "ANY"
+        },
+        "pattern": [
+          [
+            "     ",
+            "  T  ",
+            " T0T ",
+            "  T  ",
+            "     "
+          ],
+          [
+            "CCCCC",
+            "C   C",
+            "C   C",
+            "C   C",
+            "CCCCC"
+          ]
+        ]
+      }
+    },
+    {
+      "type": "patchouli:multiblock",
+      "name": "Tier 2 Sky Offering Altar",
+      "multiblock": {
+        "mapping": {
+          "0": "skylogistics:offering_altar",
+          "T": "skylogistics:offering_table",
+          "C": "skylogistics:celestial_stone",
+          "G": "skylogistics:celestial_glass",
+          " ": "ANY"
+        },
+        "pattern": [
+          [
+            "G     G",
+            "       ",
+            "       ",
+            "       ",
+            "       ",
+            "       ",
+            "G     G"
+          ],
+          [
+            "C     C",
+            "       ",
+            "   T   ",
+            "  T0T  ",
+            "   T   ",
+            "       ",
+            "C     C"
+          ],
+          [
+            "C     C",
+            " CCCCC ",
+            " C   C ",
+            " C   C ",
+            " C   C ",
+            " CCCCC ",
+            "C     C"
+          ]
+        ]
+      }
+    }
+  ]
+}

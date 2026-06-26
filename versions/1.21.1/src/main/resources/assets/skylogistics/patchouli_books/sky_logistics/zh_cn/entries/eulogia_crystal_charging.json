@@ -1,0 +1,40 @@
+{
+  "name": "尤洛伽水晶与充能",
+  "icon": "skylogistics:eulogia_crystal",
+  "category": "skylogistics:offerings",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "尤洛伽水晶刚合成出来时还没有充能。把它带到足够高的地方就会开始吸收星辉；默认高度是 Y=200，服务器可能会调整这个高度。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:eulogia_crystal",
+      "text": "尤洛伽水晶以钻石为核心，不消耗末影珍珠。刚合成出的水晶尚未充能。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "未充能水晶放在背包里就能充能，也可以放在天穹供桌上等待充能。普通箱子不会充能水晶。默认约 60 秒完成，服务器可能会调整时间。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "充能完成后，水晶图标会变化，提示也会显示已注入高空星辉。充能水晶可以和任意石头合成天穹石；天穹玻璃则需要通过供奉获得。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone",
+      "text": "天穹石是祭坛法阵、供桌、物流节点和仓库的基础材料。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone_slab",
+      "recipe2": "skylogistics:celestial_stone_stairs",
+      "text": "天穹石台阶、楼梯和墙都可以参与一阶祭坛外圈框架。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone_wall"
+    }
+  ]
+}

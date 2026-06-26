@@ -1,0 +1,197 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_core"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "north": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_x_up_north"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "south": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_x_up_south"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "north": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_x_down_north"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "south": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_x_down_south"
+      }
+    },
+    {
+      "when": {
+        "north": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_y_north_west"
+      }
+    },
+    {
+      "when": {
+        "north": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_y_north_east"
+      }
+    },
+    {
+      "when": {
+        "south": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_y_south_west"
+      }
+    },
+    {
+      "when": {
+        "south": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_y_south_east"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_z_up_west"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_z_up_east"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_z_down_west"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_edge_z_down_east"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "north": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_up_north_west"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "north": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_up_north_east"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "south": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_up_south_west"
+      }
+    },
+    {
+      "when": {
+        "up": "false",
+        "south": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_up_south_east"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "north": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_down_north_west"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "north": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_down_north_east"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "south": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_down_south_west"
+      }
+    },
+    {
+      "when": {
+        "down": "false",
+        "south": "false",
+        "east": "false"
+      },
+      "apply": {
+        "model": "skylogistics:block/celestial_glass_corner_down_south_east"
+      }
+    }
+  ]
+}

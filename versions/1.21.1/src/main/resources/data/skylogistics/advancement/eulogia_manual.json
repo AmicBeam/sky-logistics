@@ -1,0 +1,21 @@
+{
+  "criteria": {
+    "has_eulogia_crystal": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "skylogistics:eulogia_crystal"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_eulogia_crystal"
+    ]
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "skylogistics:item/eulogia_crystal"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "skylogistics:charged": 1.0
+      },
+      "model": "skylogistics:item/eulogia_crystal_charged"
+    }
+  ]
+}
