@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.util.AmountFormatter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -88,16 +89,7 @@ final class ConfigPanel {
     }
 
     static String amount(long value) {
-        if (value >= 1_000_000_000L) {
-            return (value / 1_000_000_000L) + "B";
-        }
-        if (value >= 1_000_000L) {
-            return (value / 1_000_000L) + "M";
-        }
-        if (value >= 1_000L) {
-            return (value / 1_000L) + "K";
-        }
-        return Long.toString(value);
+        return AmountFormatter.compact(value);
     }
 
     private static final class ActionButton extends AbstractButton {

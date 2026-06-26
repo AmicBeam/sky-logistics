@@ -1,6 +1,7 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.util.AmountFormatter;
 import net.minecraft.resources.ResourceLocation;
 import snownee.jade.api.IJadeProvider;
 
@@ -22,15 +23,6 @@ abstract class BaseSkyLogisticsJadeProvider implements IJadeProvider {
     }
 
     protected static String compact(long value) {
-        if (value >= 1_000_000_000L) {
-            return (value / 1_000_000_000L) + "B";
-        }
-        if (value >= 1_000_000L) {
-            return (value / 1_000_000L) + "M";
-        }
-        if (value >= 1_000L) {
-            return (value / 1_000L) + "K";
-        }
-        return Long.toString(value);
+        return AmountFormatter.compact(value);
     }
 }
