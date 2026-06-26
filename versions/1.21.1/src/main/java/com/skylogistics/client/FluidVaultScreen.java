@@ -125,7 +125,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             int x = gridX(vault) + column * CELL_SIZE;
             int y = GRID_Y + row * CELL_SIZE;
             renderFluidCell(graphics, fluid.stack(), x, y);
-            renderAmountLabel(graphics, ConfigPanel.amount(fluid.amount()), x - 1, y - 1);
+            renderAmountLabel(graphics, ConfigPanel.amount(fluid.amount()), x, y);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
                 vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);

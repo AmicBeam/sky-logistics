@@ -117,10 +117,10 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             ItemVaultBlockEntity.StoredItem item = entries.get(start + visible);
             int column = visible % GRID_COLUMNS;
             int row = visible / GRID_COLUMNS;
-            int x = gridX(vault) + column * CELL_SIZE + 1;
-            int y = GRID_Y + row * CELL_SIZE + 1;
+            int x = gridX(vault) + column * CELL_SIZE;
+            int y = GRID_Y + row * CELL_SIZE;
             graphics.renderItem(item.stack(), x, y);
-            renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x - 1, y - 1);
+            renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x, y);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
                 vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);

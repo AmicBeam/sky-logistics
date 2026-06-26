@@ -44,8 +44,8 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     public FilterListScreen(FilterListMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 224;
-        imageHeight = 205;
-        inventoryLabelY = 111;
+        imageHeight = 191;
+        inventoryLabelY = 97;
     }
 
     @Override

@@ -41,7 +41,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, 31, 121);
+        addPlayerInventory(inventory, 31, 107);
     }
 
     public InteractionHand getHand() {
