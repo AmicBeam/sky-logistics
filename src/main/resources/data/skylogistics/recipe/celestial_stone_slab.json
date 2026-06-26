@@ -1,7 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "SSS",
     "SSS"
   ],
   "key": {
@@ -10,7 +9,7 @@
     }
   },
   "result": {
-    "item": "skylogistics:celestial_stone_wall",
+    "id": "skylogistics:celestial_stone_slab",
     "count": 6
   }
 }

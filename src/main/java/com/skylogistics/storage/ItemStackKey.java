@@ -1,56 +1,40 @@
 package com.skylogistics.storage;
 
-import java.util.Objects;
+import com.skylogistics.util.StackData;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public final class ItemStackKey {
-    private final Item item;
-    private final CompoundTag tag;
+    private final ItemStack stack;
 
-    private ItemStackKey(Item item, CompoundTag tag) {
-        this.item = item;
-        this.tag = tag == null ? null : tag.copy();
+    private ItemStackKey(ItemStack stack) {
+        this.stack = stack.copy();
+        if (!this.stack.isEmpty()) {
+            this.stack.setCount(1);
+        }
     }
 
     public static ItemStackKey of(ItemStack stack) {
-        return new ItemStackKey(stack.getItem(), stack.hasTag() ? stack.getTag() : null);
+        return new ItemStackKey(stack);
     }
 
     public Item item() {
-        return item;
+        return stack.getItem();
     }
 
     public ItemStack toStack(int amount) {
-        ItemStack stack = new ItemStack(item, amount);
-        if (tag != null) {
-            stack.setTag(tag.copy());
-        }
-        return stack;
+        ItemStack copy = stack.copy();
+        copy.setCount(amount);
+        return copy;
     }
 
     public CompoundTag save() {
-        CompoundTag data = new CompoundTag();
-        ResourceLocation id = ForgeRegistries.ITEMS.getKey(item);
-        data.putString("Item", id == null ? "minecraft:air" : id.toString());
-        if (tag != null) {
-            data.put("Tag", tag.copy());
-        }
-        return data;
+        return StackData.saveItem(stack);
     }
 
     public static ItemStackKey load(CompoundTag data) {
-        ResourceLocation id = ResourceLocation.tryParse(data.getString("Item"));
-        Item item = id == null ? Items.AIR : ForgeRegistries.ITEMS.getValue(id);
-        if (item == null) {
-            item = Items.AIR;
-        }
-        CompoundTag tag = data.contains("Tag") ? data.getCompound("Tag") : null;
-        return new ItemStackKey(item, tag);
+        return new ItemStackKey(StackData.loadItem(data));
     }
 
     @Override
@@ -58,14 +42,11 @@ public final class ItemStackKey {
         if (this == object) {
             return true;
         }
-        if (!(object instanceof ItemStackKey other)) {
-            return false;
-        }
-        return item == other.item && Objects.equals(tag, other.tag);
+        return object instanceof ItemStackKey other && StackData.sameItemAndComponents(stack, other.stack);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(item, tag);
+        return ItemStack.hashItemAndComponents(stack);
     }
 }

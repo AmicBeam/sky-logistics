@@ -1,22 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " P ",
-    "PRP",
-    " C "
+    "  A",
+    " S ",
+    "C  "
   ],
   "key": {
-    "P": {
-      "item": "minecraft:paper"
+    "A": {
+      "item": "minecraft:amethyst_shard"
     },
-    "R": {
-      "item": "minecraft:redstone"
+    "S": {
+      "item": "minecraft:stick"
     },
     "C": {
       "item": "skylogistics:celestial_stone"
     }
   },
   "result": {
-    "item": "skylogistics:filter_list"
+    "id": "skylogistics:configurator"
   }
 }

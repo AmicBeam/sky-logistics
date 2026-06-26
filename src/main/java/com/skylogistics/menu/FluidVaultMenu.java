@@ -11,11 +11,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidActionResult;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.FluidActionResult;
+import net.neoforged.neoforge.fluids.FluidUtil;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultMenu extends AbstractContainerMenu {
     private final BlockPos pos;
@@ -59,13 +58,10 @@ public class FluidVaultMenu extends AbstractContainerMenu {
             return ItemStack.EMPTY;
         }
         BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        if (blockEntity == null) {
+        if (!(blockEntity instanceof FluidVaultBlockEntity vault)) {
             return ItemStack.EMPTY;
         }
-        IFluidHandler fluidHandler = blockEntity.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse(null);
-        if (fluidHandler == null) {
-            return ItemStack.EMPTY;
-        }
+        IFluidHandler fluidHandler = vault.fluidHandler();
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
             return ItemStack.EMPTY;
@@ -81,7 +77,6 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!result.isSuccess()) {
             return ItemStack.EMPTY;
         }
-        FluidVaultBlockEntity vault = blockEntity instanceof FluidVaultBlockEntity fluidVault ? fluidVault : null;
         if (original.getCount() == 1) {
             slot.set(result.getResult());
         } else {
@@ -92,10 +87,8 @@ public class FluidVaultMenu extends AbstractContainerMenu {
             }
             slot.setChanged();
         }
-        if (vault != null) {
-            vault.syncToPlayerIfPresent(player);
-            noteVaultSnapshotSynced(vault.getSyncVersion());
-        }
+        vault.syncToPlayerIfPresent(player);
+        noteVaultSnapshotSynced(vault.getSyncVersion());
         broadcastChanges();
         return copy;
     }
@@ -114,10 +107,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!(blockEntity instanceof FluidVaultBlockEntity vault)) {
             return;
         }
-        IFluidHandler fluidHandler = blockEntity.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse(null);
-        if (fluidHandler == null) {
-            return;
-        }
+        IFluidHandler fluidHandler = vault.fluidHandler();
         ItemStack carried = getCarried();
         FluidActionResult result = interactCarriedWithVault(player, carried, viewedFluid, fluidHandler, vault);
         if (!result.isSuccess()) {

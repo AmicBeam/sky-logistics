@@ -1,5 +1,6 @@
 package com.skylogistics.block;
 
+import com.mojang.serialization.MapCodec;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.SkyNodeMenu;
@@ -12,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.SimpleMenuProvider;
@@ -34,9 +36,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.network.NetworkHooks;
 
 public class SkyNodeBlock extends BaseEntityBlock {
+    public static final MapCodec<SkyNodeBlock> CODEC = simpleCodec(SkyNodeBlock::new);
     public static final Map<Direction, BooleanProperty> PROPERTY_BY_DIRECTION = PipeBlock.PROPERTY_BY_DIRECTION;
     public static final Map<Direction, EnumProperty<NodeFaceMode>> MODE_PROPERTY_BY_DIRECTION = Map.of(
             Direction.DOWN, EnumProperty.create("down_mode", NodeFaceMode.class),
@@ -65,6 +67,11 @@ public class SkyNodeBlock extends BaseEntityBlock {
             state = state.setValue(property, NodeFaceMode.NONE);
         }
         registerDefaultState(state);
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
     }
 
     @Override
@@ -120,21 +127,33 @@ public class SkyNodeBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-            BlockHitResult hit) {
-        ItemStack stack = player.getItemInHand(hand);
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+            Player player, InteractionHand hand, BlockHitResult hit) {
         if (stack.getItem() instanceof ConfiguratorItem
                 && level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
-            return ConfiguratorItem.useOnNode(level, pos, node, player, hand, stack);
+            return SingleSlotDisplayBlock.toItemInteractionResult(
+                    ConfiguratorItem.useOnNode(level, pos, node, player, hand, stack));
         }
+        openNode(level, pos, player, hand);
+        return ItemInteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+            BlockHitResult hit) {
+        openNode(level, pos, player, InteractionHand.MAIN_HAND);
+        return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    private void openNode(Level level, BlockPos pos, Player player, InteractionHand hand) {
         if (level.isClientSide) {
-            return InteractionResult.SUCCESS;
+            return;
         }
         if (player instanceof ServerPlayer serverPlayer) {
             if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
                 node.claimDefaultLineName(player);
             }
-            NetworkHooks.openScreen(serverPlayer,
+            serverPlayer.openMenu(
                     new SimpleMenuProvider((id, inventory, ignored) -> new SkyNodeMenu(id, inventory, pos),
                             Component.translatable("menu.skylogistics.sky_node")),
                     buffer -> {
@@ -143,7 +162,6 @@ public class SkyNodeBlock extends BaseEntityBlock {
                         buffer.writeEnum(hand);
                     });
         }
-        return InteractionResult.CONSUME;
     }
 
     @Override

@@ -1,14 +1,21 @@
 package com.skylogistics.network;
 
+import com.skylogistics.SkyLogistics;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.SkyNodeMenu;
-import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record MenuActionPacket(int action) {
+public record MenuActionPacket(int action) implements CustomPacketPayload {
+    public static final Type<MenuActionPacket> TYPE = new Type<>(SkyLogistics.id("menu_action"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, MenuActionPacket> STREAM_CODEC =
+            StreamCodec.ofMember(MenuActionPacket::encode, MenuActionPacket::decode);
+
     public static void encode(MenuActionPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.action);
     }
@@ -17,11 +24,9 @@ public record MenuActionPacket(int action) {
         return new MenuActionPacket(buffer.readVarInt());
     }
 
-    public static void handle(MenuActionPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+    public static void handle(MenuActionPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
-            if (player == null) {
+            if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
             if (player.containerMenu instanceof ConfiguratorMenu menu) {
@@ -32,6 +37,10 @@ public record MenuActionPacket(int action) {
                 menu.applyAction(player, packet.action);
             }
         });
-        context.setPacketHandled(true);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

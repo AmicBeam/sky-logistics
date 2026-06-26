@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -43,8 +44,20 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+            Player player, InteractionHand hand, BlockHitResult hit) {
+        return toItemInteractionResult(handleDisplayInteraction(state, level, pos, player, hand,
+                player.getItemInHand(hand)));
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
             BlockHitResult hit) {
+        return handleDisplayInteraction(state, level, pos, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    protected InteractionResult handleDisplayInteraction(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, ItemStack held) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!(blockEntity instanceof SingleSlotDisplayBlockEntity display)) {
             return InteractionResult.PASS;
@@ -53,9 +66,18 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         }
 
-        ItemStack held = player.getItemInHand(hand);
         boolean changed = held.isEmpty() ? display.extractToPlayer(player) : display.insertFromPlayer(player, held);
         return changed ? InteractionResult.CONSUME : InteractionResult.PASS;
+    }
+
+    protected static ItemInteractionResult toItemInteractionResult(InteractionResult result) {
+        return switch (result) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> ItemInteractionResult.SUCCESS;
+            case CONSUME -> ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> ItemInteractionResult.FAIL;
+            case PASS -> ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        };
     }
 
     @Override

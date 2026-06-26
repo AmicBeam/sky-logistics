@@ -19,9 +19,9 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final int GRID_X = 8;
@@ -83,7 +83,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
         renderTerminalTooltip(graphics, mouseX, mouseY);
@@ -132,16 +132,16 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isOverGrid(mouseX, mouseY)) {
             FluidVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
             if (vault != null && shouldShowScrollbar(vault)) {
-                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY)));
             }
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
@@ -278,7 +278,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     private static String fluidModId(FluidVaultBlockEntity.StoredFluid fluid) {
-        var id = ForgeRegistries.FLUIDS.getKey(fluid.stack().getFluid());
+        var id = BuiltInRegistries.FLUID.getKey(fluid.stack().getFluid());
         return id == null ? "" : id.getNamespace();
     }
 

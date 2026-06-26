@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.StackData;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -31,7 +32,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkHooks;
 
 public class ConfiguratorItem extends Item {
     private static final String LINE_ID = "LineId";
@@ -106,7 +106,7 @@ public class ConfiguratorItem extends Item {
         }
 
         if (player instanceof ServerPlayer serverPlayer) {
-            NetworkHooks.openScreen(serverPlayer,
+            serverPlayer.openMenu(
                     new SimpleMenuProvider((id, inventory, ignored) -> new com.skylogistics.menu.SkyNodeMenu(id, inventory,
                             pos, true, hand), Component.translatable("menu.skylogistics.sky_node")),
                     buffer -> {
@@ -129,7 +129,7 @@ public class ConfiguratorItem extends Item {
             }
             readOrCreate(stack, player);
             if (player instanceof ServerPlayer serverPlayer) {
-                NetworkHooks.openScreen(serverPlayer,
+                serverPlayer.openMenu(
                         new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, hand),
                                 Component.translatable("menu.skylogistics.configurator")),
                         buffer -> buffer.writeEnum(hand));
@@ -147,7 +147,7 @@ public class ConfiguratorItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         ToolConfig config = read(stack);
         if (config == null) {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.unbound").withStyle(ChatFormatting.GRAY));
@@ -171,7 +171,7 @@ public class ConfiguratorItem extends Item {
             rememberKnownLineBindings(stack);
             return config;
         }
-        config = ToolConfig.createDefault(createLine(stack.getOrCreateTag(), FALLBACK_LINE_PREFIX, List.of()));
+        config = ToolConfig.createDefault(createLine(StackData.getOrEmpty(stack), FALLBACK_LINE_PREFIX, List.of()));
         writeConfig(stack, config);
         return config;
     }
@@ -186,13 +186,13 @@ public class ConfiguratorItem extends Item {
             rememberKnownLineBindings(stack);
             return config;
         }
-        config = ToolConfig.createDefault(createLine(stack.getOrCreateTag(), prefix, List.of()));
+        config = ToolConfig.createDefault(createLine(StackData.getOrEmpty(stack), prefix, List.of()));
         writeConfig(stack, config);
         return config;
     }
 
     public static ToolConfig read(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.hasUUID(LINE_ID)) {
             return null;
         }
@@ -220,7 +220,7 @@ public class ConfiguratorItem extends Item {
     }
 
     public static void writeConfig(ItemStack stack, ToolConfig config) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         tag.putUUID(LINE_ID, config.lineId());
         tag.putString(LINE_NAME, config.lineName());
         tag.put(PLACEMENT, config.placement().save());
@@ -236,6 +236,7 @@ public class ConfiguratorItem extends Item {
         tag.putBoolean(SPEED_UPGRADE, config.speedUpgrade());
         tag.putBoolean(DIMENSION_UPGRADE, config.dimensionUpgrade());
         ensureLineList(tag, config.lineId(), config.lineName());
+        StackData.set(stack, tag);
     }
 
     public static ToolConfig selectFirstLine(ItemStack stack) {
@@ -243,7 +244,7 @@ public class ConfiguratorItem extends Item {
     }
 
     public static ToolConfig selectPreviousLine(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         int index = Math.max(0, currentLineIndex(tag, lines) - 1);
         return selectLine(stack, index);
@@ -255,7 +256,7 @@ public class ConfiguratorItem extends Item {
 
     public static ToolConfig selectNextOrCreateLine(ItemStack stack, Player player) {
         ToolConfig config = readOrCreate(stack, player);
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
@@ -269,13 +270,14 @@ public class ConfiguratorItem extends Item {
         }
         lines.add(line);
         writeLineList(tag, lines, lines.size() - 1);
+        StackData.set(stack, tag);
         config = config.withLine(line.id(), line.name());
         writeConfig(stack, config);
         return config;
     }
 
     public static ToolConfig selectLastLine(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         return selectLine(stack, Math.max(0, lines.size() - 1));
     }
@@ -286,7 +288,7 @@ public class ConfiguratorItem extends Item {
 
     public static ToolConfig removeCurrentLine(ItemStack stack, Player player) {
         ToolConfig config = readOrCreate(stack, player);
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
@@ -295,6 +297,7 @@ public class ConfiguratorItem extends Item {
             lines.clear();
             lines.add(line);
             writeLineList(tag, lines, 0);
+            StackData.set(stack, tag);
             config = config.withLine(line.id(), line.name());
             writeConfig(stack, config);
             return config;
@@ -302,6 +305,7 @@ public class ConfiguratorItem extends Item {
         lines.remove(index);
         int nextIndex = Math.min(index, lines.size() - 1);
         writeLineList(tag, lines, nextIndex);
+        StackData.set(stack, tag);
         LineEntry nextLine = lines.get(nextIndex);
         config = config.withLine(nextLine.id(), nextLine.name());
         writeConfig(stack, config);
@@ -309,7 +313,7 @@ public class ConfiguratorItem extends Item {
     }
 
     public static int lineIndex(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null) {
             return 0;
         }
@@ -317,20 +321,20 @@ public class ConfiguratorItem extends Item {
     }
 
     public static int lineCount(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return tag == null ? 0 : readLineEntries(tag).size();
     }
 
     public static boolean isPasteMode(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return tag != null && tag.getBoolean(PASTE_MODE);
     }
 
     public static void setPasteMode(ItemStack stack, boolean enabled) {
         if (enabled) {
-            stack.getOrCreateTag().putBoolean(PASTE_MODE, true);
-        } else if (stack.hasTag()) {
-            stack.getTag().remove(PASTE_MODE);
+            StackData.update(stack, tag -> tag.putBoolean(PASTE_MODE, true));
+        } else if (StackData.has(stack)) {
+            StackData.remove(stack, PASTE_MODE);
         }
     }
 
@@ -382,10 +386,11 @@ public class ConfiguratorItem extends Item {
 
     private static ToolConfig selectLine(ItemStack stack, int index) {
         ToolConfig config = readOrCreate(stack);
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         int clamped = Math.max(0, Math.min(index, lines.size() - 1));
         writeLineList(tag, lines, clamped);
+        StackData.set(stack, tag);
         LineEntry line = lines.get(clamped);
         config = config.withLine(line.id(), line.name());
         writeConfig(stack, config);
@@ -466,7 +471,7 @@ public class ConfiguratorItem extends Item {
     }
 
     private static boolean ensureLineNames(ItemStack stack, String prefix) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         List<LineEntry> lines = readLineEntries(tag);
         boolean changed = false;
         for (int i = 0; i < lines.size(); i++) {
@@ -479,6 +484,7 @@ public class ConfiguratorItem extends Item {
         }
         if (changed) {
             writeLineList(tag, lines, currentLineIndex(tag, lines));
+            StackData.set(stack, tag);
         }
         return changed;
     }
@@ -489,8 +495,9 @@ public class ConfiguratorItem extends Item {
     }
 
     private static void rememberKnownLineBindings(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         rememberLineBindings(tag, readLineEntries(tag));
+        StackData.set(stack, tag);
     }
 
     private static LineEntry createLine(CompoundTag tag, String prefix, List<LineEntry> existing) {
@@ -656,7 +663,7 @@ public class ConfiguratorItem extends Item {
                 }
                 CompoundTag entry = new CompoundTag();
                 entry.putInt(SLOT, slot);
-                entry.put(STACK, filter.save(new CompoundTag()));
+                entry.put(STACK, StackData.saveItem(filter));
                 filterTags.add(entry);
             }
             if (!filterTags.isEmpty()) {
@@ -674,7 +681,7 @@ public class ConfiguratorItem extends Item {
                     CompoundTag entry = filterTags.getCompound(i);
                     int slot = entry.getInt(SLOT);
                     if (slot >= 0 && slot < filters.size()) {
-                        filters.set(slot, ItemStack.of(entry.getCompound(STACK)));
+                        filters.set(slot, StackData.loadItem(entry.getCompound(STACK)));
                     }
                 }
             }

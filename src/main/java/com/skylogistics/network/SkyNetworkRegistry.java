@@ -6,6 +6,7 @@ import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,13 +27,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class SkyNetworkRegistry {
     private static final int REJECTED_ITEM_CACHE_SIZE = 4;
@@ -190,7 +190,7 @@ public final class SkyNetworkRegistry {
                 continue;
             }
             BlockPos targetPos = node.getTargetPos(direction);
-            ResourceLocation targetId = ForgeRegistries.BLOCKS.getKey(level.getBlockState(targetPos).getBlock());
+            ResourceLocation targetId = BuiltInRegistries.BLOCK.getKey(level.getBlockState(targetPos).getBlock());
             details.add(new LineFaceDetail(dimension, node.getBlockPos().immutable(), direction, targetPos.immutable(),
                     targetId == null ? "unknown" : targetId.toString(), faceMode,
                     node.isItemsEnabled(direction), node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
@@ -527,9 +527,6 @@ public final class SkyNetworkRegistry {
         private final Direction direction;
         private final BlockPos targetPos;
         private final Direction accessSide;
-        private LazyOptional<IItemHandler> itemOptional = LazyOptional.empty();
-        private LazyOptional<IFluidHandler> fluidOptional = LazyOptional.empty();
-        private LazyOptional<IEnergyStorage> energyOptional = LazyOptional.empty();
         private IItemHandler itemHandler;
         private IFluidHandler fluidHandler;
         private IEnergyStorage energyHandler;
@@ -623,7 +620,7 @@ public final class SkyNetworkRegistry {
             if (!canTryItems(gameTime)) {
                 return null;
             }
-            if (itemHandler != null && itemOptional.isPresent()) {
+            if (itemHandler != null) {
                 return itemHandler;
             }
             clearItemCache();
@@ -637,12 +634,9 @@ public final class SkyNetworkRegistry {
                 recordItemFailure(gameTime);
                 return null;
             }
-            itemOptional = target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide);
-            itemHandler = itemOptional.orElse(null);
+            itemHandler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide);
             if (itemHandler == null) {
                 recordItemFailure(gameTime);
-            } else {
-                itemOptional.addListener(ignored -> clearItemCache());
             }
             return itemHandler;
         }
@@ -651,7 +645,7 @@ public final class SkyNetworkRegistry {
             if (!canTryFluids(gameTime)) {
                 return null;
             }
-            if (fluidHandler != null && fluidOptional.isPresent()) {
+            if (fluidHandler != null) {
                 return fluidHandler;
             }
             clearFluidCache();
@@ -665,12 +659,9 @@ public final class SkyNetworkRegistry {
                 recordFluidFailure(gameTime);
                 return null;
             }
-            fluidOptional = target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide);
-            fluidHandler = fluidOptional.orElse(null);
+            fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide);
             if (fluidHandler == null) {
                 recordFluidFailure(gameTime);
-            } else {
-                fluidOptional.addListener(ignored -> clearFluidCache());
             }
             return fluidHandler;
         }
@@ -679,7 +670,7 @@ public final class SkyNetworkRegistry {
             if (!canTryEnergy(gameTime)) {
                 return null;
             }
-            if (energyHandler != null && energyOptional.isPresent()) {
+            if (energyHandler != null) {
                 return energyHandler;
             }
             clearEnergyCache();
@@ -693,12 +684,9 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
                 return null;
             }
-            energyOptional = target.getCapability(ForgeCapabilities.ENERGY, accessSide);
-            energyHandler = energyOptional.orElse(null);
+            energyHandler = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
             if (energyHandler == null) {
                 recordEnergyFailure(gameTime);
-            } else {
-                energyOptional.addListener(ignored -> clearEnergyCache());
             }
             return energyHandler;
         }
@@ -735,7 +723,7 @@ public final class SkyNetworkRegistry {
         public boolean isItemFilterRejected(ItemStack stack, long gameTime) {
             for (int i = 0; i < rejectedItems.length; i++) {
                 if (gameTime < rejectedItemUntil[i] && !rejectedItems[i].isEmpty()
-                        && ItemStack.isSameItemSameTags(rejectedItems[i], stack)) {
+                        && StackData.sameItemAndComponents(rejectedItems[i], stack)) {
                     return true;
                 }
             }
@@ -993,21 +981,18 @@ public final class SkyNetworkRegistry {
 
         private void clearItemCache() {
             itemHandler = null;
-            itemOptional = LazyOptional.empty();
             clearItemSlotCaches();
             clearRejectedItemAccepts();
         }
 
         private void clearFluidCache() {
             fluidHandler = null;
-            fluidOptional = LazyOptional.empty();
             clearFluidTankCaches();
             clearRejectedFluidAccepts();
         }
 
         private void clearEnergyCache() {
             energyHandler = null;
-            energyOptional = LazyOptional.empty();
         }
 
         private void clearRejectedItems() {

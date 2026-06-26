@@ -17,7 +17,7 @@
     }
   },
   "result": {
-    "item": "skylogistics:sky_node",
+    "id": "skylogistics:sky_node",
     "count": 4
   }
 }

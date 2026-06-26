@@ -19,7 +19,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "When charging finishes, the crystal icon changes and its tooltip says it is charged. A charged Eulogia Crystal can be crafted with #forge:stone into Celestial Stone; Celestial Glass is made through offering."
+      "text": "When charging finishes, the crystal icon changes and its tooltip says it is charged. A charged Eulogia Crystal can be crafted with #c:stones into Celestial Stone; Celestial Glass is made through offering."
     },
     {
       "type": "patchouli:crafting",

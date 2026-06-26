@@ -6,12 +6,14 @@ import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModRecipes;
+import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -24,6 +26,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -95,8 +98,8 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         if (activeRecipeId != null) {
             tag.putString("ActiveRecipe", activeRecipeId.toString());
             tag.putInt("Progress", progress);
@@ -105,16 +108,16 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        activeRecipeId = tag.contains("ActiveRecipe") ? new ResourceLocation(tag.getString("ActiveRecipe")) : null;
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        activeRecipeId = tag.contains("ActiveRecipe") ? ResourceLocation.parse(tag.getString("ActiveRecipe")) : null;
         progress = tag.getInt("Progress");
         needsRecipeCheck = tag.getBoolean("NeedsRecipeCheck") || activeRecipeId == null;
     }
 
-    private void startRecipe(OfferingRecipe recipe) {
-        activeRecipeId = recipe.getId();
-        activeRecipe = recipe;
+    private void startRecipe(RecipeHolder<OfferingRecipe> recipe) {
+        activeRecipeId = recipe.id();
+        activeRecipe = recipe.value();
         progress = 0;
         needsRecipeCheck = false;
         setChanged();
@@ -150,7 +153,9 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
         int structureTier = hasTierTwoPillars() ? 2 : 1;
         ItemStack mainStack = getDisplayedItem();
-        List<OfferingRecipe> recipes = level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get());
+        List<OfferingRecipe> recipes = level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
+                .map(RecipeHolder::value)
+                .toList();
         if (recipes.isEmpty()) {
             return Component.translatable("message.skylogistics.offering_altar.no_recipes");
         }
@@ -229,7 +234,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (structureTier <= 0) {
             return;
         }
-        Optional<OfferingRecipe> recipe = findMatchingRecipe(level, structureTier);
+        Optional<RecipeHolder<OfferingRecipe>> recipe = findMatchingRecipe(level, structureTier);
         recipe.ifPresent(this::startRecipe);
     }
 
@@ -293,7 +298,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             placed.setCount(Math.min(placed.getCount(), Math.min(64, placed.getMaxStackSize())));
             setDisplayedItem(placed);
             remainder.shrink(placed.getCount());
-        } else if (ItemStack.isSameItemSameTags(stored, remainder)) {
+        } else if (StackData.sameItemAndComponents(stored, remainder)) {
             int limit = Math.min(64, stored.getMaxStackSize());
             int accepted = Math.min(remainder.getCount(), Math.max(0, limit - stored.getCount()));
             if (accepted > 0) {
@@ -309,15 +314,15 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         }
     }
 
-    private Optional<OfferingRecipe> findMatchingRecipe(ServerLevel level, int structureTier) {
+    private Optional<RecipeHolder<OfferingRecipe>> findMatchingRecipe(ServerLevel level, int structureTier) {
         ItemStack mainStack = getDisplayedItem();
         if (mainStack.isEmpty()) {
             return Optional.empty();
         }
         List<ItemStack> offeringStacks = getOfferingStacks();
         return level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
-                .filter(recipe -> structureTier >= recipe.requiredTier())
-                .filter(recipe -> recipe.matches(mainStack, offeringStacks))
+                .filter(recipe -> structureTier >= recipe.value().requiredTier())
+                .filter(recipe -> recipe.value().matches(mainStack, offeringStacks))
                 .findFirst();
     }
 
@@ -325,11 +330,12 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (activeRecipeId == null) {
             return null;
         }
-        if (activeRecipe != null && activeRecipeId.equals(activeRecipe.getId())) {
+        if (activeRecipe != null) {
             return activeRecipe;
         }
         activeRecipe = level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
-                .filter(recipe -> activeRecipeId.equals(recipe.getId()))
+                .filter(recipe -> activeRecipeId.equals(recipe.id()))
+                .map(RecipeHolder::value)
                 .findFirst()
                 .orElse(null);
         return activeRecipe;

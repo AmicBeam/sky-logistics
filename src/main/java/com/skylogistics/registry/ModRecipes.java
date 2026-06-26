@@ -5,18 +5,17 @@ import com.skylogistics.recipe.OfferingRecipe;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModRecipes {
     public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS =
-            DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, SkyLogistics.MOD_ID);
+            DeferredRegister.create(Registries.RECIPE_SERIALIZER, SkyLogistics.MOD_ID);
     public static final DeferredRegister<RecipeType<?>> TYPES =
             DeferredRegister.create(Registries.RECIPE_TYPE, SkyLogistics.MOD_ID);
 
-    public static final RegistryObject<RecipeType<OfferingRecipe>> SKY_OFFERING_TYPE = TYPES.register("sky_offering",
+    public static final DeferredHolder<RecipeType<?>, RecipeType<OfferingRecipe>> SKY_OFFERING_TYPE = TYPES.register("sky_offering",
             () -> new RecipeType<>() {
                 @Override
                 public String toString() {
@@ -24,7 +23,7 @@ public final class ModRecipes {
                 }
             });
 
-    public static final RegistryObject<RecipeSerializer<OfferingRecipe>> SKY_OFFERING_SERIALIZER =
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<OfferingRecipe>> SKY_OFFERING_SERIALIZER =
             SERIALIZERS.register("sky_offering", OfferingRecipe.Serializer::new);
 
     private ModRecipes() {

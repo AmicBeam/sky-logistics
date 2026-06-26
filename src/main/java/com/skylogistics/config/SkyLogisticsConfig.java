@@ -1,13 +1,13 @@
 package com.skylogistics.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
-    public static final ForgeConfigSpec SERVER_SPEC;
+    public static final ModConfigSpec SERVER_SPEC;
     public static final Server SERVER;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         SERVER = new Server(builder);
         SERVER_SPEC = builder.build();
     }
@@ -57,19 +57,19 @@ public final class SkyLogisticsConfig {
     }
 
     public static final class Server {
-        public final ForgeConfigSpec.IntValue maxVaultTypes;
-        public final ForgeConfigSpec.IntValue nodeItemTransferLimit;
-        public final ForgeConfigSpec.IntValue nodeEnergyTransferLimit;
-        public final ForgeConfigSpec.IntValue serverOpsPerTick;
-        public final ForgeConfigSpec.IntValue lineOpsPerTick;
-        public final ForgeConfigSpec.IntValue endpointTargetAttempts;
-        public final ForgeConfigSpec.IntValue externalTankScansPerEndpoint;
-        public final ForgeConfigSpec.IntValue preferredItemSlotCacheSize;
-        public final ForgeConfigSpec.IntValue skyRitualMinY;
-        public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
-        public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
+        public final ModConfigSpec.IntValue maxVaultTypes;
+        public final ModConfigSpec.IntValue nodeItemTransferLimit;
+        public final ModConfigSpec.IntValue nodeEnergyTransferLimit;
+        public final ModConfigSpec.IntValue serverOpsPerTick;
+        public final ModConfigSpec.IntValue lineOpsPerTick;
+        public final ModConfigSpec.IntValue endpointTargetAttempts;
+        public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
+        public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
+        public final ModConfigSpec.IntValue skyRitualMinY;
+        public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
+        public final ModConfigSpec.LongValue skyContainerTransferLimit;
 
-        private Server(ForgeConfigSpec.Builder builder) {
+        private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
             maxVaultTypes = builder
                     .comment("Maximum item/fluid type slots a Celestial Vault can be expanded to with capacity nectar.")

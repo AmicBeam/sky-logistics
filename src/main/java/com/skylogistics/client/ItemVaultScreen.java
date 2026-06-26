@@ -17,7 +17,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.inventory.Slot;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int GRID_X = 8;
@@ -78,7 +78,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
         renderTerminalTooltip(graphics, mouseX, mouseY);
@@ -127,16 +127,16 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isOverGrid(mouseX, mouseY)) {
             ItemVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
             if (vault != null && shouldShowScrollbar(vault)) {
-                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(delta)));
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY)));
             }
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
@@ -271,7 +271,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     }
 
     private static String itemModId(ItemVaultBlockEntity.StoredItem item) {
-        var id = ForgeRegistries.ITEMS.getKey(item.stack().getItem());
+        var id = BuiltInRegistries.ITEM.getKey(item.stack().getItem());
         return id == null ? "" : id.getNamespace();
     }
 

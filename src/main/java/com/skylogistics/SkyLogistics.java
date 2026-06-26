@@ -11,49 +11,66 @@ import com.skylogistics.registry.ModCreativeTabs;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
 @Mod(SkyLogistics.MOD_ID)
 public class SkyLogistics {
     public static final String MOD_ID = "skylogistics";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-    public SkyLogistics() {
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+    public SkyLogistics(IEventBus modBus, ModContainer container) {
         ModBlocks.register(modBus);
         ModItems.register(modBus);
         ModBlockEntities.register(modBus);
         ModMenus.register(modBus);
         ModCreativeTabs.register(modBus);
         ModRecipes.register(modBus);
-        ModNetworking.register();
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
+        modBus.addListener(ModNetworking::register);
+        modBus.addListener(this::registerCapabilities);
+        container.registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
 
-        MinecraftForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
-        MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
-        MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
+        NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
+        NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+    }
+
+    public static ResourceLocation id(String path) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
     private void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
                 && event.getItemStack().is(ModItems.SKY_NODE.get())) {
-            event.setUseBlock(Event.Result.DENY);
-            event.setUseItem(Event.Result.ALLOW);
+            event.setUseBlock(TriState.FALSE);
+            event.setUseItem(TriState.TRUE);
         }
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
         SkyNetworkRegistry.clear();
+    }
+
+    private void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.ITEM_VAULT.get(),
+                (vault, side) -> vault.itemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.FLUID_VAULT.get(),
+                (vault, side) -> vault.fluidHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.OFFERING_ALTAR.get(),
+                (altar, side) -> altar.itemHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.OFFERING_TABLE.get(),
+                (table, side) -> table.itemHandler());
     }
 }

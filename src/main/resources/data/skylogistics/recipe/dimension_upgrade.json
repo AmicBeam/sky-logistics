@@ -1,0 +1,33 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 240,
+  "altar_tier": 2,
+  "main": {
+    "ingredient": {
+      "item": "minecraft:nether_star"
+    }
+  },
+  "offerings": [
+    {
+      "ingredient": {
+        "item": "minecraft:ender_eye"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:ender_pearl"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "skylogistics:chora_nectar"
+      },
+      "count": 2
+    }
+  ],
+  "result": {
+    "id": "skylogistics:dimension_upgrade"
+  }
+}

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -12,7 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class VaultStorage extends SavedData {
     private static final String SHARDED_DATA_NAME = SkyLogistics.MOD_ID + "_vault_storage_";
@@ -24,11 +25,11 @@ public class VaultStorage extends SavedData {
         ServerLevel overworld = level.getServer().getLevel(Level.OVERWORLD);
         ServerLevel storageLevel = overworld == null ? level : overworld;
         DimensionDataStorage storage = storageLevel.getDataStorage();
-        return storage.computeIfAbsent(VaultStorage::load, VaultStorage::new,
+        return storage.computeIfAbsent(new SavedData.Factory<>(VaultStorage::new, VaultStorage::load),
                 SHARDED_DATA_NAME + shard(vaultId));
     }
 
-    public static VaultStorage load(CompoundTag tag) {
+    public static VaultStorage load(CompoundTag tag, HolderLookup.Provider registries) {
         VaultStorage storage = new VaultStorage();
         readFluidVaults(tag, storage);
         return storage;
@@ -39,7 +40,7 @@ public class VaultStorage extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.put("FluidVaults", writeFluidVaults());
         return tag;
     }

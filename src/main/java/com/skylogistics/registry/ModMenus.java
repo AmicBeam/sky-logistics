@@ -6,34 +6,34 @@ import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.FluidVaultMenu;
 import com.skylogistics.menu.ItemVaultMenu;
 import com.skylogistics.menu.SkyNodeMenu;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModMenus {
     public static final DeferredRegister<MenuType<?>> MENUS =
-            DeferredRegister.create(ForgeRegistries.MENU_TYPES, SkyLogistics.MOD_ID);
+            DeferredRegister.create(Registries.MENU, SkyLogistics.MOD_ID);
 
-    public static final RegistryObject<MenuType<ConfiguratorMenu>> CONFIGURATOR = MENUS.register("configurator",
-            () -> IForgeMenuType.create((id, inventory, buffer) ->
+    public static final DeferredHolder<MenuType<?>, MenuType<ConfiguratorMenu>> CONFIGURATOR = MENUS.register("configurator",
+            () -> IMenuTypeExtension.create((id, inventory, buffer) ->
                     new ConfiguratorMenu(id, inventory, buffer.readEnum(net.minecraft.world.InteractionHand.class))));
 
-    public static final RegistryObject<MenuType<SkyNodeMenu>> SKY_NODE = MENUS.register("sky_node",
-            () -> IForgeMenuType.create((id, inventory, buffer) -> new SkyNodeMenu(id, inventory, buffer.readBlockPos(),
+    public static final DeferredHolder<MenuType<?>, MenuType<SkyNodeMenu>> SKY_NODE = MENUS.register("sky_node",
+            () -> IMenuTypeExtension.create((id, inventory, buffer) -> new SkyNodeMenu(id, inventory, buffer.readBlockPos(),
                     buffer.readBoolean(), buffer.readEnum(net.minecraft.world.InteractionHand.class))));
 
-    public static final RegistryObject<MenuType<FilterListMenu>> FILTER_LIST = MENUS.register("filter_list",
-            () -> IForgeMenuType.create((id, inventory, buffer) ->
+    public static final DeferredHolder<MenuType<?>, MenuType<FilterListMenu>> FILTER_LIST = MENUS.register("filter_list",
+            () -> IMenuTypeExtension.create((id, inventory, buffer) ->
                     new FilterListMenu(id, inventory, buffer.readEnum(net.minecraft.world.InteractionHand.class))));
 
-    public static final RegistryObject<MenuType<ItemVaultMenu>> ITEM_VAULT = MENUS.register("item_vault",
-            () -> IForgeMenuType.create((id, inventory, buffer) -> new ItemVaultMenu(id, inventory, buffer.readBlockPos())));
+    public static final DeferredHolder<MenuType<?>, MenuType<ItemVaultMenu>> ITEM_VAULT = MENUS.register("item_vault",
+            () -> IMenuTypeExtension.create((id, inventory, buffer) -> new ItemVaultMenu(id, inventory, buffer.readBlockPos())));
 
-    public static final RegistryObject<MenuType<FluidVaultMenu>> FLUID_VAULT = MENUS.register("fluid_vault",
-            () -> IForgeMenuType.create((id, inventory, buffer) -> new FluidVaultMenu(id, inventory, buffer.readBlockPos())));
+    public static final DeferredHolder<MenuType<?>, MenuType<FluidVaultMenu>> FLUID_VAULT = MENUS.register("fluid_vault",
+            () -> IMenuTypeExtension.create((id, inventory, buffer) -> new FluidVaultMenu(id, inventory, buffer.readBlockPos())));
 
     private ModMenus() {
     }

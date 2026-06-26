@@ -1,6 +1,7 @@
 package com.skylogistics.item;
 
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.util.StackData;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
@@ -28,7 +29,7 @@ public class EulogiaCrystalItem extends Item {
     }
 
     public static boolean isCharged(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return stack.getItem() instanceof EulogiaCrystalItem
                 && tag != null
                 && tag.getInt(DAMAGE_TAG) >= CHARGED_DAMAGE_VALUE;
@@ -36,7 +37,7 @@ public class EulogiaCrystalItem extends Item {
 
     public static ItemStack chargedStack(Item item) {
         ItemStack stack = new ItemStack(item);
-        stack.getOrCreateTag().putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
+        StackData.update(stack, tag -> tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE));
         return stack;
     }
 
@@ -44,20 +45,22 @@ public class EulogiaCrystalItem extends Item {
         if (!(stack.getItem() instanceof EulogiaCrystalItem) || isCharged(stack)) {
             return false;
         }
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
         if (chargeSeconds >= requiredSeconds) {
             tag.remove(CHARGE_SECONDS_TAG);
             tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
+            StackData.set(stack, tag);
             return true;
         }
         tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
+        StackData.set(stack, tag);
         return false;
     }
 
     private static int storedChargeSeconds(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return tag == null ? 0 : storedChargeSeconds(tag);
     }
 
@@ -112,7 +115,7 @@ public class EulogiaCrystalItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         if (isCharged(stack)) {
             tooltip.add(Component.translatable("tooltip.skylogistics.eulogia_crystal.charged").withStyle(ChatFormatting.AQUA));
         } else {

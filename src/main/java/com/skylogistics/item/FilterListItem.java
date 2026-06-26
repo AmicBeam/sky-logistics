@@ -1,6 +1,7 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -18,8 +19,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.network.NetworkHooks;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FilterListItem extends Item {
     public static final int FILTER_SLOTS = 18;
@@ -41,7 +41,7 @@ public class FilterListItem extends Item {
             InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            NetworkHooks.openScreen(serverPlayer,
+            serverPlayer.openMenu(
                     new SimpleMenuProvider((id, inventory, ignored) -> new FilterListMenu(id, inventory, hand),
                             Component.translatable("menu.skylogistics.filter_list")),
                     buffer -> buffer.writeEnum(hand));
@@ -50,7 +50,7 @@ public class FilterListItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.list_mode",
                 Component.translatable(isWhitelist(stack) ? "screen.skylogistics.filter_whitelist"
                         : "screen.skylogistics.filter_blacklist")).withStyle(ChatFormatting.GRAY));
@@ -68,37 +68,37 @@ public class FilterListItem extends Item {
     }
 
     public static boolean isWhitelist(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = StackData.getOrEmpty(stack);
         return !tag.contains(WHITELIST) || tag.getBoolean(WHITELIST);
     }
 
     public static void setWhitelist(ItemStack stack, boolean whitelist) {
-        stack.getOrCreateTag().putBoolean(WHITELIST, whitelist);
+        StackData.update(stack, tag -> tag.putBoolean(WHITELIST, whitelist));
     }
 
     public static boolean matchNbt(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return tag != null && tag.getBoolean(MATCH_NBT);
     }
 
     public static void setMatchNbt(ItemStack stack, boolean matchNbt) {
-        stack.getOrCreateTag().putBoolean(MATCH_NBT, matchNbt);
+        StackData.update(stack, tag -> tag.putBoolean(MATCH_NBT, matchNbt));
     }
 
     public static boolean matchDurability(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         return tag != null && tag.getBoolean(MATCH_DURABILITY);
     }
 
     public static void setMatchDurability(ItemStack stack, boolean matchDurability) {
-        stack.getOrCreateTag().putBoolean(MATCH_DURABILITY, matchDurability);
+        StackData.update(stack, tag -> tag.putBoolean(MATCH_DURABILITY, matchDurability));
     }
 
     public static ItemStack getFilter(ItemStack stack, int slot) {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return ItemStack.EMPTY;
         }
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.contains(FILTERS, Tag.TAG_LIST)) {
             return ItemStack.EMPTY;
         }
@@ -106,7 +106,7 @@ public class FilterListItem extends Item {
         for (int i = 0; i < filters.size(); i++) {
             CompoundTag entry = filters.getCompound(i);
             if (entry.getInt(SLOT) == slot) {
-                return ItemStack.of(entry.getCompound(STACK));
+                return StackData.loadItem(entry.getCompound(STACK));
             }
         }
         return ItemStack.EMPTY;
@@ -132,7 +132,7 @@ public class FilterListItem extends Item {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return FluidStack.EMPTY;
         }
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.contains(FLUID_FILTERS, Tag.TAG_LIST)) {
             return FluidStack.EMPTY;
         }
@@ -140,7 +140,7 @@ public class FilterListItem extends Item {
         for (int i = 0; i < filters.size(); i++) {
             CompoundTag entry = filters.getCompound(i);
             if (entry.getInt(SLOT) == slot) {
-                return FluidStack.loadFluidStackFromNBT(entry.getCompound(FLUID));
+                return StackData.loadFluid(entry.getCompound(FLUID));
             }
         }
         return FluidStack.EMPTY;
@@ -171,13 +171,13 @@ public class FilterListItem extends Item {
     }
 
     public static void clearFilters(ItemStack stack) {
-        if (stack.hasTag()) {
-            stack.getTag().remove(FILTERS);
-            stack.getTag().remove(FLUID_FILTERS);
-            stack.getTag().remove("FilterMode");
-            stack.getTag().remove("Attributes");
-            stack.getTag().remove("MatchAllAttributes");
-        }
+        StackData.update(stack, tag -> {
+            tag.remove(FILTERS);
+            tag.remove(FLUID_FILTERS);
+            tag.remove("FilterMode");
+            tag.remove("Attributes");
+            tag.remove("MatchAllAttributes");
+        });
     }
 
     public static int countFilters(ItemStack stack) {
@@ -205,7 +205,7 @@ public class FilterListItem extends Item {
         for (int i = 0; i < FILTER_SLOTS; i++) {
             filters.add(ItemStack.EMPTY);
         }
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.contains(FILTERS, Tag.TAG_LIST)) {
             return filters;
         }
@@ -214,7 +214,7 @@ public class FilterListItem extends Item {
             CompoundTag entry = entries.getCompound(i);
             int slot = entry.getInt(SLOT);
             if (slot >= 0 && slot < FILTER_SLOTS) {
-                filters.set(slot, ItemStack.of(entry.getCompound(STACK)));
+                filters.set(slot, StackData.loadItem(entry.getCompound(STACK)));
             }
         }
         return filters;
@@ -225,7 +225,7 @@ public class FilterListItem extends Item {
         for (int i = 0; i < FILTER_SLOTS; i++) {
             filters.add(FluidStack.EMPTY);
         }
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.contains(FLUID_FILTERS, Tag.TAG_LIST)) {
             return filters;
         }
@@ -234,7 +234,7 @@ public class FilterListItem extends Item {
             CompoundTag entry = entries.getCompound(i);
             int slot = entry.getInt(SLOT);
             if (slot >= 0 && slot < FILTER_SLOTS) {
-                filters.set(slot, FluidStack.loadFluidStackFromNBT(entry.getCompound(FLUID)));
+                filters.set(slot, StackData.loadFluid(entry.getCompound(FLUID)));
             }
         }
         return filters;
@@ -296,7 +296,7 @@ public class FilterListItem extends Item {
     }
 
     private static CompoundTag comparableTag(ItemStack stack, boolean includeDurability) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = StackData.get(stack);
         if (tag == null) {
             return null;
         }
@@ -316,10 +316,10 @@ public class FilterListItem extends Item {
             }
             CompoundTag entry = new CompoundTag();
             entry.putInt(SLOT, slot);
-            entry.put(STACK, filter.save(new CompoundTag()));
+            entry.put(STACK, StackData.saveItem(filter));
             entries.add(entry);
         }
-        stack.getOrCreateTag().put(FILTERS, entries);
+        StackData.update(stack, tag -> tag.put(FILTERS, entries));
     }
 
     private static void saveFluidFilters(ItemStack stack, List<FluidStack> filters) {
@@ -333,10 +333,10 @@ public class FilterListItem extends Item {
             copy.setAmount(1);
             CompoundTag entry = new CompoundTag();
             entry.putInt(SLOT, slot);
-            entry.put(FLUID, copy.writeToNBT(new CompoundTag()));
+            entry.put(FLUID, StackData.saveFluid(copy));
             entries.add(entry);
         }
-        stack.getOrCreateTag().put(FLUID_FILTERS, entries);
+        StackData.update(stack, tag -> tag.put(FLUID_FILTERS, entries));
     }
 
     private static ItemStack fluidDisplayStack(FluidStack fluid) {

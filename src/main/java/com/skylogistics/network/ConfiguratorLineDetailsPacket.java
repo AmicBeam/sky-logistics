@@ -1,20 +1,25 @@
 package com.skylogistics.network;
 
+import com.skylogistics.SkyLogistics;
 import com.skylogistics.client.ClientConfiguratorLineDetails;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) {
+public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) implements CustomPacketPayload {
+    public static final Type<ConfiguratorLineDetailsPacket> TYPE = new Type<>(SkyLogistics.id("configurator_line_details"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, ConfiguratorLineDetailsPacket> STREAM_CODEC =
+            StreamCodec.ofMember(ConfiguratorLineDetailsPacket::encode, ConfiguratorLineDetailsPacket::decode);
+
     private static final int MAX_ENTRIES = 64;
 
     public record Entry(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
@@ -56,10 +61,12 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) {
         return new ConfiguratorLineDetailsPacket(lineId, entries);
     }
 
-    public static void handle(ConfiguratorLineDetailsPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> ClientConfiguratorLineDetails.apply(packet)));
-        context.setPacketHandled(true);
+    public static void handle(ConfiguratorLineDetailsPacket packet, IPayloadContext context) {
+        context.enqueueWork(() -> ClientConfiguratorLineDetails.apply(packet));
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

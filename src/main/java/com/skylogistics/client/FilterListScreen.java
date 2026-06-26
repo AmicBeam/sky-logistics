@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     private static final int FILTER_GRID_X = 31;
@@ -99,7 +99,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderControlIcons(graphics);
         renderTooltip(graphics, mouseX, mouseY);

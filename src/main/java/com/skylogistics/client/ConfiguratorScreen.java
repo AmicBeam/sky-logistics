@@ -23,7 +23,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
     private static final int DETAIL_X = 14;
@@ -115,7 +115,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
     }
@@ -165,16 +165,16 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         ConfiguratorItem.ToolConfig config = config();
         if (config != null && isOverDetails(mouseX, mouseY)) {
             int maxScroll = maxDetailScroll(config.lineId());
             if (maxScroll > 0) {
-                detailScroll = Mth.clamp(detailScroll - (int) Math.signum(delta), 0, maxScroll);
+                detailScroll = Mth.clamp(detailScroll - (int) Math.signum(scrollY), 0, maxScroll);
                 return true;
             }
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
@@ -278,7 +278,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (id == null) {
             return ItemStack.EMPTY;
         }
-        Block block = ForgeRegistries.BLOCKS.getValue(id);
+        Block block = BuiltInRegistries.BLOCK.get(id);
         return block == null ? ItemStack.EMPTY : block.asItem().getDefaultInstance();
     }
 

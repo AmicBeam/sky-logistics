@@ -9,12 +9,14 @@ import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -29,9 +31,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.items.IItemHandler;
 
 public class SkyNodeBlockEntity extends BlockEntity {
     public static final int UPGRADE_SLOTS = 2;
@@ -279,7 +281,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             copy.setCount(1);
         }
         ItemStack previous = upgrades.get(slot);
-        if (ItemStack.isSameItemSameTags(previous, copy)) {
+        if (StackData.sameItemAndComponents(previous, copy)) {
             return;
         }
         upgrades.set(slot, copy);
@@ -299,7 +301,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             copy.setCount(1);
         }
         ItemStack previous = filters.get(slot);
-        if (ItemStack.isSameItemSameTags(previous, copy)) {
+        if (StackData.sameItemAndComponents(previous, copy)) {
             return;
         }
         filters.set(slot, copy);
@@ -556,9 +558,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private static boolean consumeUpgradeFromItemHandler(ItemStack container, Item item) {
-        return container.getCapability(ForgeCapabilities.ITEM_HANDLER, null)
-                .map(handler -> consumeUpgradeFromItemHandler(handler, item))
-                .orElse(false);
+        IItemHandler handler = container.getCapability(Capabilities.ItemHandler.ITEM);
+        return handler != null && consumeUpgradeFromItemHandler(handler, item);
     }
 
     private static boolean consumeUpgradeFromItemHandler(IItemHandler handler, Item item) {
@@ -590,7 +591,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
                 copy.setCount(1);
             }
             ItemStack previous = filters.get(slot);
-            if (ItemStack.isSameItemSameTags(previous, copy)) {
+            if (StackData.sameItemAndComponents(previous, copy)) {
                 continue;
             }
             filters.set(slot, copy);
@@ -889,8 +890,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         ensureLineList();
         tag.putUUID(LINE_ID_TAG, lineId);
         tag.putString(LINE_NAME_TAG, lineName);
@@ -915,7 +916,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
             CompoundTag entry = new CompoundTag();
             entry.putInt("Slot", slot);
-            entry.put("Stack", upgrade.save(new CompoundTag()));
+            entry.put("Stack", StackData.saveItem(upgrade, registries));
             upgradeTags.add(entry);
         }
         if (!upgradeTags.isEmpty()) {
@@ -941,7 +942,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
                     }
                     CompoundTag entry = new CompoundTag();
                     entry.putInt("Slot", slot);
-                    entry.put("Stack", filter.save(new CompoundTag()));
+                    entry.put("Stack", StackData.saveItem(filter, registries));
                     filterTags.add(entry);
                 }
             }
@@ -955,8 +956,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         if (tag.hasUUID(LINE_ID_TAG)) {
             lineId = tag.getUUID(LINE_ID_TAG);
         }
@@ -1014,7 +1015,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             for (int i = 0; i < upgradeTags.size(); i++) {
                 CompoundTag entry = upgradeTags.getCompound(i);
                 int slot = entry.getInt("Slot");
-                ItemStack stack = ItemStack.of(entry.getCompound("Stack"));
+                ItemStack stack = StackData.loadItem(entry.getCompound("Stack"), registries);
                 if (canAcceptUpgrade(slot, stack)) {
                     ItemStack copy = stack.copy();
                     copy.setCount(1);
@@ -1062,7 +1063,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
                     for (int i = 0; i < filterTags.size(); i++) {
                         CompoundTag entry = filterTags.getCompound(i);
                         int slot = entry.getInt("Slot");
-                        ItemStack filter = ItemStack.of(entry.getCompound("Stack"));
+                        ItemStack filter = StackData.loadItem(entry.getCompound("Stack"), registries);
                         setFaceFilterDirect(direction, slot, filter);
                     }
                 }
@@ -1074,8 +1075,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        return saveWithoutMetadata();
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return saveWithoutMetadata(registries);
     }
 
     @Override

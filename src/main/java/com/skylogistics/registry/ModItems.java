@@ -8,50 +8,50 @@ import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyNodeBlockItem;
 import com.skylogistics.item.UpgradeCardItem;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModItems {
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SkyLogistics.MOD_ID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, SkyLogistics.MOD_ID);
 
-    public static final RegistryObject<Item> ITEM_VAULT = ITEMS.register("item_vault",
+    public static final DeferredHolder<Item, BlockItem> ITEM_VAULT = ITEMS.register("item_vault",
             () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), new Item.Properties()));
-    public static final RegistryObject<Item> FLUID_VAULT = ITEMS.register("fluid_vault",
+    public static final DeferredHolder<Item, BlockItem> FLUID_VAULT = ITEMS.register("fluid_vault",
             () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties()));
-    public static final RegistryObject<Item> SKY_NODE = ITEMS.register("sky_node",
+    public static final DeferredHolder<Item, SkyNodeBlockItem> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
-    public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",
+    public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), new Item.Properties()));
-    public static final RegistryObject<Item> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
+    public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_SLAB.get(), new Item.Properties()));
-    public static final RegistryObject<Item> CELESTIAL_STONE_STAIRS = ITEMS.register("celestial_stone_stairs",
+    public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_STAIRS = ITEMS.register("celestial_stone_stairs",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_STAIRS.get(), new Item.Properties()));
-    public static final RegistryObject<Item> CELESTIAL_STONE_WALL = ITEMS.register("celestial_stone_wall",
+    public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_WALL = ITEMS.register("celestial_stone_wall",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_WALL.get(), new Item.Properties()));
-    public static final RegistryObject<Item> CELESTIAL_GLASS = ITEMS.register("celestial_glass",
+    public static final DeferredHolder<Item, BlockItem> CELESTIAL_GLASS = ITEMS.register("celestial_glass",
             () -> new BlockItem(ModBlocks.CELESTIAL_GLASS.get(), new Item.Properties()));
-    public static final RegistryObject<Item> OFFERING_ALTAR = ITEMS.register("offering_altar",
+    public static final DeferredHolder<Item, OfferingAltarBlockItem> OFFERING_ALTAR = ITEMS.register("offering_altar",
             () -> new OfferingAltarBlockItem(ModBlocks.OFFERING_ALTAR.get(), new Item.Properties()));
-    public static final RegistryObject<Item> OFFERING_TABLE = ITEMS.register("offering_table",
+    public static final DeferredHolder<Item, BlockItem> OFFERING_TABLE = ITEMS.register("offering_table",
             () -> new BlockItem(ModBlocks.OFFERING_TABLE.get(), new Item.Properties()));
 
-    public static final RegistryObject<Item> CONFIGURATOR = ITEMS.register("configurator",
+    public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
-    public static final RegistryObject<Item> FILTER_LIST = ITEMS.register("filter_list",
+    public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",
             () -> new FilterListItem(new Item.Properties().stacksTo(1)));
-    public static final RegistryObject<Item> SPEED_UPGRADE = ITEMS.register("speed_upgrade",
+    public static final DeferredHolder<Item, UpgradeCardItem> SPEED_UPGRADE = ITEMS.register("speed_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(1),
                     "tooltip.skylogistics.speed_upgrade"));
-    public static final RegistryObject<Item> DIMENSION_UPGRADE = ITEMS.register("dimension_upgrade",
+    public static final DeferredHolder<Item, UpgradeCardItem> DIMENSION_UPGRADE = ITEMS.register("dimension_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(1),
                     "tooltip.skylogistics.dimension_upgrade"));
-    public static final RegistryObject<Item> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
+    public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
-    public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
+    public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(new Item.Properties()));
 
     private ModItems() {

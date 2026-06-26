@@ -1,56 +1,40 @@
 package com.skylogistics.storage;
 
-import java.util.Objects;
+import com.skylogistics.util.StackData;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class FluidStackKey {
-    private final Fluid fluid;
-    private final CompoundTag tag;
+    private final FluidStack stack;
 
-    private FluidStackKey(Fluid fluid, CompoundTag tag) {
-        this.fluid = fluid;
-        this.tag = tag == null ? null : tag.copy();
+    private FluidStackKey(FluidStack stack) {
+        this.stack = stack.copy();
+        if (!this.stack.isEmpty()) {
+            this.stack.setAmount(1);
+        }
     }
 
     public static FluidStackKey of(FluidStack stack) {
-        return new FluidStackKey(stack.getFluid(), stack.hasTag() ? stack.getTag() : null);
+        return new FluidStackKey(stack);
     }
 
     public Fluid fluid() {
-        return fluid;
+        return stack.getFluid();
     }
 
     public FluidStack toStack(int amount) {
-        FluidStack stack = new FluidStack(fluid, amount);
-        if (tag != null) {
-            stack.setTag(tag.copy());
-        }
-        return stack;
+        FluidStack copy = stack.copy();
+        copy.setAmount(amount);
+        return copy;
     }
 
     public CompoundTag save() {
-        CompoundTag data = new CompoundTag();
-        ResourceLocation id = ForgeRegistries.FLUIDS.getKey(fluid);
-        data.putString("Fluid", id == null ? "minecraft:empty" : id.toString());
-        if (tag != null) {
-            data.put("Tag", tag.copy());
-        }
-        return data;
+        return StackData.saveFluid(stack);
     }
 
     public static FluidStackKey load(CompoundTag data) {
-        ResourceLocation id = ResourceLocation.tryParse(data.getString("Fluid"));
-        Fluid fluid = id == null ? Fluids.EMPTY : ForgeRegistries.FLUIDS.getValue(id);
-        if (fluid == null) {
-            fluid = Fluids.EMPTY;
-        }
-        CompoundTag tag = data.contains("Tag") ? data.getCompound("Tag") : null;
-        return new FluidStackKey(fluid, tag);
+        return new FluidStackKey(StackData.loadFluid(data));
     }
 
     @Override
@@ -58,14 +42,11 @@ public final class FluidStackKey {
         if (this == object) {
             return true;
         }
-        if (!(object instanceof FluidStackKey other)) {
-            return false;
-        }
-        return fluid == other.fluid && Objects.equals(tag, other.tag);
+        return object instanceof FluidStackKey other && FluidStack.isSameFluidSameComponents(stack, other.stack);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fluid, tag);
+        return FluidStack.hashFluidAndComponents(stack);
     }
 }

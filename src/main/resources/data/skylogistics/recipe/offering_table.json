@@ -2,20 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     " S ",
-    "SXS",
+    "S S",
     "SSS"
   ],
   "key": {
     "S": {
       "item": "skylogistics:celestial_stone"
-    },
-    "X": {
-      "type": "forge:partial_nbt",
-      "item": "skylogistics:eulogia_crystal",
-      "nbt": "{Damage:1}"
     }
   },
   "result": {
-    "item": "skylogistics:offering_altar"
+    "id": "skylogistics:offering_table"
   }
 }

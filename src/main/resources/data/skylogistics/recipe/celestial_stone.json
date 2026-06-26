@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SSS",
+    "SXS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "tag": "c:stones"
+    },
+    "X": {
+      "type": "neoforge:components",
+      "items": "skylogistics:eulogia_crystal",
+      "components": {
+        "minecraft:custom_data": {
+          "Damage": 1
+        }
+      }
+    }
+  },
+  "result": {
+    "id": "skylogistics:celestial_stone",
+    "count": 8
+  }
+}

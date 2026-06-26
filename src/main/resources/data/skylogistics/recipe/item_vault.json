@@ -20,6 +20,6 @@
     }
   },
   "result": {
-    "item": "skylogistics:item_vault"
+    "id": "skylogistics:item_vault"
   }
 }

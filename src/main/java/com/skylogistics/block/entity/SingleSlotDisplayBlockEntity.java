@@ -1,6 +1,7 @@
 package com.skylogistics.block.entity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -11,11 +12,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     private final ItemStackHandler items = new ItemStackHandler(1) {
@@ -29,10 +27,13 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
             markSlotChanged();
         }
     };
-    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> items);
 
     protected SingleSlotDisplayBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+    }
+
+    public IItemHandler itemHandler() {
+        return items;
     }
 
     public ItemStack getDisplayedItem() {
@@ -92,41 +93,27 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        tag.put("Item", items.serializeNBT());
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.put("Item", items.serializeNBT(registries));
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        items.deserializeNBT(tag.getCompound("Item"));
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        items.deserializeNBT(registries, tag.getCompound("Item"));
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability, net.minecraft.core.Direction side) {
-        if (capability == ForgeCapabilities.ITEM_HANDLER) {
-            return itemCapability.cast();
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemCapability.invalidate();
     }
 
     protected void markSlotChanged() {

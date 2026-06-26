@@ -1,6 +1,6 @@
 # Sky Logistics / 天穹物流
 
-Forge 1.20.1 public test build for celestial wireless logistics.
+NeoForge 1.21.1 public test build for celestial wireless logistics.
 
 ## Current MVP
 
@@ -8,13 +8,13 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Aggregate item storage.
   - Starts with 1 item type.
   - Stackable items are stored as `long` amounts internally.
-  - Exposes Forge item handler capability.
+  - Exposes NeoForge item handler capability.
   - Opens a terminal-style UI with searchable, scrollable storage rows and the player inventory below.
 
 - `Celestial Fluid Vault` / `天穹流体库`
   - Aggregate fluid storage.
   - Starts with 1 fluid type.
-  - Exposes Forge fluid handler capability.
+  - Exposes NeoForge fluid handler capability.
   - Opens a terminal-style UI with searchable, scrollable fluid rows and the player inventory below.
 
 - `Sky Logistics Node` / `天穹物流节点`
@@ -44,7 +44,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Starts uncharged.
   - Charges at or above the configured sky ritual height while in a player inventory or in a Sky Offering Table. The default is `Y >= 200`.
   - Uses item damage state to switch to a charged model.
-  - A charged crystal plus eight `#forge:stone` items crafts Celestial Stone.
+  - A charged crystal plus eight `#c:stones` items crafts Celestial Stone.
 
 - `Celestial Stone` / `天穹石`
   - Decorative/structure block for the sky offering circle.
@@ -85,31 +85,28 @@ Forge 1.20.1 public test build for celestial wireless logistics.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.
 
-Patchouli support is data-only and adds one guide book plus one multiblock preview when Patchouli is installed. JEI support is optional source code: provide `-Dskylogistics.jeiApiJar=/path/to/jei-api.jar` to compile the Sky Offering category.
+Patchouli support is data-only and adds one guide book plus one multiblock preview when Patchouli is installed. Jade and JEI optional source folders are retained under `src/jade/java` and `src/jei/java`, but the verified 1.21.1 ModDev build currently compiles only the core `src/main` source set.
 
 ## Build Note
 
-Use the cached JDK 17 explicitly, matching the Recipe Linkage 1.20.1 build style. Prefer offline mode in this workspace:
+Use Java 21, matching the `recipe-linkage` 1.21.1 NeoForge ModDev build style:
 
 ```bash
-env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x/jdk-17.0.19+10/Contents/Home \
-  PATH=/Users/bytedance/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x/jdk-17.0.19+10/Contents/Home/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-  ./gradlew --no-daemon --offline \
-  -Dskylogistics.offlineRepo=/private/tmp/skylogistics-offline-maven \
-  -Dskylogistics.jadeApiJar=/path/to/Jade-1.20.1-Forge-11.x.x.jar \
-  clean build
+env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/jdk-21.0.9+10/Contents/Home \
+  PATH=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/jdk-21.0.9+10/Contents/Home/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+  ./gradlew --no-daemon build
 ```
 
-`javac` source compilation passes against the local Forge mapped jar. Full Gradle build also passes with `--offline` when `skylogistics.offlineRepo` points at a local Maven-style repository containing cached Forge dependency jars. The produced public test jar is `build/libs/skylogistics-0.0.1.jar`.
+The verified output jar is `build/libs/skylogistics-0.0.1+1.21.1.jar`.
 
-Jade support is optional and lives under `src/jade/java`. To include it in a local build, provide a real Jade 1.20.1 11.x API/mod jar with `-Dskylogistics.jadeApiJar=/path/to/Jade-1.20.1-Forge-11.x.x.jar`. Do not use the old minimal `/private/tmp/jade-api.jar` stub: it lacks `snownee.jade.api.Accessor`, compiles an incompatible `IServerDataProvider` bridge, and causes Jade data requests to fail at runtime.
+This branch uses NeoForge ModDev, Java 21 toolchains, Parchment `1.21-2024.11.10`, and NeoForge `21.1.169`. Runtime metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml`.
 
-JEI support is optional and lives under `src/jei/java`. To include the Sky Offering recipe category in a local build, provide a JEI API jar with `-Dskylogistics.jeiApiJar=/path/to/jei-api.jar`.
+Data resources use 1.21 singular paths such as `data/skylogistics/recipe`, `loot_table`, `advancement`, `tags/block`, and `tags/item`. Crafting outputs use `result.id`, common tags use the `c:` namespace, and optional recipe conditions use `neoforge:conditions`.
 
-Online builds in this workspace can still print or fail on SSL certificate validation when ForgeGradle resolves `libraries.minecraft.net`.
+The optional Jade and JEI compatibility sources still need 1.21.1 API jars and source-set wiring before they can be included in this ModDev build.
 
-Recipe Linkage is not a single comparable build path:
+## Simulated Project Compatibility
 
-- The current `recipe-linkage` checkout is the `1.21.1` branch and uses NeoForge ModDev with Java 21 toolchains.
-- The `recipe-linkage` `1.20.1` branch uses ForgeGradle 6.0.54, Forge 47.1.3 and the same JDK 17 startup command as this project.
-- A clean online ForgeGradle 1.20.1 build can hit the same `libraries.minecraft.net` certificate problem in this workspace, so prefer cached/offline builds until the network/JDK trust state is fixed.
+Checked against `Creators-of-Aeronautics/Simulated-Project` `main`, which targets Minecraft 1.21.1, Java 21 and NeoForge 21.1.228. Sky Logistics nodes and vaults are ordinary block entities that expose/use NeoForge item, fluid and energy capabilities, while Simulated assembles real block entities into Sable sub-levels and also talks to inventories through `Level#getCapability`. Structurally, the core logistics network should run inside assembled Simulated contraptions.
+
+The important limitation is coordinate space: Sky Logistics targets adjacent block positions in the block entity's current local level/sub-level grid. A node on a moving simulated contraption can interact with adjacent machines that are part of that same simulated structure, but it will not automatically target unrelated world blocks merely because the moving structure passes near them in physical space. Configurator line details may also show local/sub-level coordinates rather than rendered world-space positions.

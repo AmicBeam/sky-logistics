@@ -6,6 +6,7 @@ import com.skylogistics.network.ItemVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -27,11 +29,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandler;
 
 public class ItemVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
@@ -41,7 +39,6 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private final LinkedHashMap<ItemStackKey, Long> clientStored = new LinkedHashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
     private final IItemHandler itemHandler = new VaultItemHandler();
-    private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> itemHandler);
     private int typeLimit = 1;
     private int clientUsedTypes = -1;
     private long clientTotalAmount = -1L;
@@ -95,6 +92,10 @@ public class ItemVaultBlockEntity extends BlockEntity {
         return syncVersion;
     }
 
+    public IItemHandler itemHandler() {
+        return itemHandler;
+    }
+
     public List<StoredItem> getStoredItems(int limit) {
         List<StoredItem> result = new ArrayList<>();
         int added = 0;
@@ -144,7 +145,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         for (int slot = 0; slot < slots && remaining > 0; slot++) {
             ItemStack stack = templateInSlot(slot);
             long storedAmount = amountInSlot(slot);
-            if (stack.isEmpty() || storedAmount <= 0 || !ItemStack.isSameItemSameTags(stack, template)) {
+            if (stack.isEmpty() || storedAmount <= 0 || !StackData.sameItemAndComponents(stack, template)) {
                 continue;
             }
             int toExtract = (int) Math.min(remaining, storedAmount);
@@ -231,8 +232,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         saveMetadata(tag);
         ListTag itemTags = new ListTag();
         int slots = Math.min(items.size(), getConfiguredMaxTypes());
@@ -247,7 +248,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
             CompoundTag entry = new CompoundTag();
             entry.putInt("Slot", slot);
             entry.putLong("Amount", amount);
-            entry.put("Stack", savedStack.save(new CompoundTag()));
+            entry.put("Stack", StackData.saveItem(savedStack, registries));
             itemTags.add(entry);
         }
         if (!itemTags.isEmpty()) {
@@ -256,8 +257,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         typeLimit = tag.contains("TypeLimit") ? Math.max(1, tag.getInt("TypeLimit")) : 1;
         ensureItemCapacity();
         clearItems();
@@ -269,7 +270,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
                 if (slot < 0 || slot >= items.size()) {
                     continue;
                 }
-                ItemStack stack = ItemStack.of(entry.getCompound("Stack"));
+                ItemStack stack = StackData.loadItem(entry.getCompound("Stack"), registries);
                 long amount = entry.contains("Amount", Tag.TAG_LONG) ? entry.getLong("Amount") : stack.getCount();
                 setStored(slot, stack, amount);
             }
@@ -283,7 +284,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         saveMetadata(tag);
         return tag;
@@ -292,20 +293,6 @@ public class ItemVaultBlockEntity extends BlockEntity {
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability, net.minecraft.core.Direction side) {
-        if (capability == ForgeCapabilities.ITEM_HANDLER) {
-            return itemCapability.cast();
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        itemCapability.invalidate();
     }
 
     private void saveMetadata(CompoundTag tag) {
@@ -360,7 +347,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots && !remainder.isEmpty(); slot++) {
             ItemStack existing = templateInSlot(slot);
-            if (!existing.isEmpty() && ItemHandlerHelper.canItemStacksStack(existing, remainder)) {
+            if (!existing.isEmpty() && StackData.sameItemAndComponents(existing, remainder)) {
                 remainder = insertIntoSlot(slot, remainder, simulate);
             }
         }
@@ -382,7 +369,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots && remaining > 0; slot++) {
             ItemStack existing = templateInSlot(slot);
-            if (!existing.isEmpty() && ItemHandlerHelper.canItemStacksStack(existing, normalized)) {
+            if (!existing.isEmpty() && StackData.sameItemAndComponents(existing, normalized)) {
                 remaining -= insertAmountIntoSlot(slot, normalized, remaining, simulate);
             }
         }
@@ -420,7 +407,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         }
         ItemStack existing = templateInSlot(slot);
         long current = amountInSlot(slot);
-        if (!existing.isEmpty() && !ItemHandlerHelper.canItemStacksStack(existing, template)) {
+        if (!existing.isEmpty() && !StackData.sameItemAndComponents(existing, template)) {
             return 0L;
         }
         long space = Long.MAX_VALUE - current;
@@ -619,7 +606,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
                 return false;
             }
             ItemStack existing = templateInSlot(slot);
-            return existing.isEmpty() || ItemHandlerHelper.canItemStacksStack(existing, stack);
+            return existing.isEmpty() || StackData.sameItemAndComponents(existing, stack);
         }
     }
 }

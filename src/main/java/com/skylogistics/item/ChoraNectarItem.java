@@ -83,7 +83,7 @@ public class ChoraNectarItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.skylogistics.chora_nectar").withStyle(ChatFormatting.GRAY));
     }
 

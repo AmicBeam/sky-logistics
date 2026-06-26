@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -25,11 +26,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
@@ -38,7 +36,6 @@ public class FluidVaultBlockEntity extends BlockEntity {
     private final List<FluidStackKey> contentIndex = new ArrayList<>();
     private final Set<UUID> viewers = new HashSet<>();
     private final IFluidHandler fluidHandler = new VaultFluidHandler();
-    private final LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(() -> fluidHandler);
     private LinkedHashMap<FluidStackKey, Long> indexedContents;
     private int indexedContentSize = -1;
     private UUID vaultId = UUID.randomUUID();
@@ -92,6 +89,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
 
     public long getSyncVersion() {
         return syncVersion;
+    }
+
+    public IFluidHandler fluidHandler() {
+        return fluidHandler;
     }
 
     public List<StoredFluid> getStoredFluids(int limit) {
@@ -194,14 +195,14 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         saveMetadata(tag);
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         if (tag.hasUUID("VaultId")) {
             vaultId = tag.getUUID("VaultId");
         }
@@ -216,7 +217,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         saveMetadata(tag);
         return tag;
@@ -225,20 +226,6 @@ public class FluidVaultBlockEntity extends BlockEntity {
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability, net.minecraft.core.Direction side) {
-        if (capability == ForgeCapabilities.FLUID_HANDLER) {
-            return fluidCapability.cast();
-        }
-        return super.getCapability(capability, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        fluidCapability.invalidate();
     }
 
     private LinkedHashMap<FluidStackKey, Long> contents() {

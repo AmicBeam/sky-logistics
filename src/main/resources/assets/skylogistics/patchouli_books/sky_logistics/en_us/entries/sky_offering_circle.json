@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 8 #forge:glass and 8 Glowstone Dust on two offering tables. Duration is 160 ticks and the result is 1 Celestial Glass."
+      "text": "Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 8 #c:glass_blocks and 8 Glowstone Dust on two offering tables. Duration is 160 ticks and the result is 1 Celestial Glass."
     },
     {
       "type": "patchouli:multiblock",

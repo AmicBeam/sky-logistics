@@ -5,18 +5,18 @@ import com.skylogistics.compat.PatchouliCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.entity.player.AdvancementEvent;
+import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 
 public final class ManualGiftHandler {
     private static final ResourceLocation EULOGIA_MANUAL_ADVANCEMENT =
-            new ResourceLocation(SkyLogistics.MOD_ID, "eulogia_manual");
+            ResourceLocation.fromNamespaceAndPath(SkyLogistics.MOD_ID, "eulogia_manual");
 
     private ManualGiftHandler() {
     }
 
     public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
-                || !EULOGIA_MANUAL_ADVANCEMENT.equals(event.getAdvancement().getId())) {
+                || !EULOGIA_MANUAL_ADVANCEMENT.equals(event.getAdvancement().id())) {
             return;
         }
 

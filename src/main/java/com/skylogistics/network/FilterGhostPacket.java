@@ -1,14 +1,20 @@
 package com.skylogistics.network;
 
+import com.skylogistics.SkyLogistics;
 import com.skylogistics.menu.FilterListMenu;
-import java.util.function.Supplier;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, boolean fluidEntry) {
+public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, boolean fluidEntry) implements CustomPacketPayload {
+    public static final Type<FilterGhostPacket> TYPE = new Type<>(SkyLogistics.id("filter_ghost"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, FilterGhostPacket> STREAM_CODEC =
+            StreamCodec.ofMember(FilterGhostPacket::encode, FilterGhostPacket::decode);
+
     public static FilterGhostPacket item(int slot, ItemStack item) {
         ItemStack copy = item.copy();
         if (!copy.isEmpty()) {
@@ -25,30 +31,28 @@ public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, bool
         return new FilterGhostPacket(slot, ItemStack.EMPTY, copy, true);
     }
 
-    public static void encode(FilterGhostPacket packet, FriendlyByteBuf buffer) {
+    public static void encode(FilterGhostPacket packet, RegistryFriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.slot);
         buffer.writeBoolean(packet.fluidEntry);
         if (packet.fluidEntry) {
-            packet.fluid.writeToPacket(buffer);
+            FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, packet.fluid);
         } else {
-            buffer.writeItem(packet.item);
+            ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, packet.item);
         }
     }
 
-    public static FilterGhostPacket decode(FriendlyByteBuf buffer) {
+    public static FilterGhostPacket decode(RegistryFriendlyByteBuf buffer) {
         int slot = buffer.readVarInt();
         boolean fluidEntry = buffer.readBoolean();
         if (fluidEntry) {
-            return fluid(slot, FluidStack.readFromPacket(buffer));
+            return fluid(slot, FluidStack.OPTIONAL_STREAM_CODEC.decode(buffer));
         }
-        return item(slot, buffer.readItem());
+        return item(slot, ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
     }
 
-    public static void handle(FilterGhostPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+    public static void handle(FilterGhostPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
-            if (player == null || !(player.containerMenu instanceof FilterListMenu menu)) {
+            if (!(context.player() instanceof ServerPlayer player) || !(player.containerMenu instanceof FilterListMenu menu)) {
                 return;
             }
             if (packet.fluidEntry) {
@@ -57,6 +61,10 @@ public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, bool
                 menu.setGhostItem(packet.slot, packet.item);
             }
         });
-        context.setPacketHandled(true);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

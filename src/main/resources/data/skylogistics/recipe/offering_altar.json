@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "SXS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "skylogistics:celestial_stone"
+    },
+    "X": {
+      "type": "neoforge:components",
+      "items": "skylogistics:eulogia_crystal",
+      "components": {
+        "minecraft:custom_data": {
+          "Damage": 1
+        }
+      }
+    }
+  },
+  "result": {
+    "id": "skylogistics:offering_altar"
+  }
+}

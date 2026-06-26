@@ -1,9 +1,11 @@
 package com.skylogistics.block;
 
+import com.mojang.serialization.MapCodec;
 import com.skylogistics.block.entity.OfferingTableBlockEntity;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -13,6 +15,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class OfferingTableBlock extends SingleSlotDisplayBlock {
+    public static final MapCodec<OfferingTableBlock> CODEC = simpleCodec(OfferingTableBlock::new);
     private static final VoxelShape SHAPE = Shapes.or(
             Block.box(2.0D, 0.0D, 2.0D, 14.0D, 2.0D, 14.0D),
             Block.box(4.0D, 2.0D, 4.0D, 12.0D, 4.0D, 12.0D),
@@ -27,6 +30,11 @@ public class OfferingTableBlock extends SingleSlotDisplayBlock {
 
     public OfferingTableBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
     }
 
     @Override
