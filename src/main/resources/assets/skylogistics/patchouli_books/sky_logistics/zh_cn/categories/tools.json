@@ -1,5 +1,5 @@
 {
   "name": "工具",
-  "description": "用于配置线路、节点和过滤规则的随身工具。",
+  "description": "随身管理线路、复制节点设置，并快速布置整套物流网络。",
   "icon": "skylogistics:configurator"
 }

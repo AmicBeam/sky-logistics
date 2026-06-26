@@ -1,5 +1,5 @@
 {
   "name": "物流",
-  "description": "天穹物流的无线线路、节点、配置器、升级、过滤和容器。",
+  "description": "学习用节点和配置器建立无线物流线路，并连接仓库、过滤列表和升级卡。",
   "icon": "skylogistics:sky_node"
 }
