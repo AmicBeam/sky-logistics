@@ -539,8 +539,6 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, particleStack), sourceX, sourceY, sourceZ,
                     0, (targetX - sourceX) * 0.1D, (targetY - sourceY) * 0.1D + 0.03D,
                     (targetZ - sourceZ) * 0.1D, 1.0D);
-            level.sendParticles(ParticleTypes.END_ROD, sourceX, sourceY + 0.05D, sourceZ,
-                    1, 0.03D, 0.02D, 0.03D, 0.004D);
         }
     }
 

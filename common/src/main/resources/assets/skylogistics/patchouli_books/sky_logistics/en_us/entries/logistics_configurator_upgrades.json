@@ -18,7 +18,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Speed upgrades go into node upgrade slots. Without one, a node processes 1 item slot or fluid tank per tick; with one, it processes 2 slots or tanks per tick. This improves the node's slot/tank throughput, but it does not add a hidden line buffer."
+      "text": "Speed upgrades go into node upgrade slots. Without one, a node processes 1 item stack or fluid tank per tick; with one, it processes 2 stacks or tanks per tick. This improves the node's stack/tank throughput, but it does not add a hidden line buffer."
     },
     {
       "type": "patchouli:text",
