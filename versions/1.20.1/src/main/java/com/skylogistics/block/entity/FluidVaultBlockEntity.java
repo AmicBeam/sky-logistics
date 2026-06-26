@@ -365,14 +365,12 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (current <= 0 && contents.size() >= getTypeLimit()) {
             return 0L;
         }
-        long space = capacityPerType == Long.MAX_VALUE ? Long.MAX_VALUE - current : Math.max(0L, capacityPerType - current);
-        long accepted = Math.min(amount, space);
-        if (accepted <= 0) {
-            return 0L;
+        long updated = Math.min(capacityPerType, saturatingAdd(current, amount));
+        if (updated != current) {
+            contents.put(key, updated);
+            markContentsChanged();
         }
-        contents.put(key, current + accepted);
-        markContentsChanged();
-        return accepted;
+        return amount;
     }
 
     private void removeStored(FluidStackKey key, long amount) {
@@ -451,8 +449,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
             normalized.setAmount(1);
             FluidStackKey key = FluidStackKey.of(normalized);
             LinkedHashMap<FluidStackKey, Long> contents = contents();
-            return contents.getOrDefault(key, 0L) < capacityPerType
-                    && (contents.containsKey(key) || contents.size() < getTypeLimit());
+            return contents.containsKey(key) || contents.size() < getTypeLimit();
         }
 
         @Override
@@ -468,16 +465,14 @@ public class FluidVaultBlockEntity extends BlockEntity {
             if (current <= 0 && contents.size() >= getTypeLimit()) {
                 return 0;
             }
-            long space = capacityPerType == Long.MAX_VALUE ? Long.MAX_VALUE - current : Math.max(0L, capacityPerType - current);
-            long accepted = Math.min(resource.getAmount(), space);
-            if (accepted <= 0) {
-                return 0;
-            }
             if (action.execute()) {
-                contents.put(key, current + accepted);
-                markContentsChanged();
+                long updated = Math.min(capacityPerType, saturatingAdd(current, resource.getAmount()));
+                if (updated != current) {
+                    contents.put(key, updated);
+                    markContentsChanged();
+                }
             }
-            return (int) Math.min(Integer.MAX_VALUE, accepted);
+            return resource.getAmount();
         }
 
         @Override

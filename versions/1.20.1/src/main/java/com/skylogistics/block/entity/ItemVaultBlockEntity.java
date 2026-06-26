@@ -273,6 +273,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
                 long amount = entry.contains("Amount", Tag.TAG_LONG) ? entry.getLong("Amount") : stack.getCount();
                 setStored(slot, stack, amount);
             }
+            compactDuplicateStoredItems();
         }
         if (tag.contains("UsedTypes")) {
             clientUsedTypes = Math.max(0, tag.getInt("UsedTypes"));
@@ -423,22 +424,17 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (!existing.isEmpty() && !ItemHandlerHelper.canItemStacksStack(existing, template)) {
             return 0L;
         }
-        long space = Long.MAX_VALUE - current;
-        long accepted = Math.min(amount, space);
-        if (accepted <= 0) {
-            return 0L;
-        }
         if (!simulate) {
             if (existing.isEmpty() || current <= 0) {
                 ItemStack stored = template.copy();
                 stored.setCount(1);
                 items.set(slot, stored);
-                amounts.set(slot, accepted);
+                amounts.set(slot, amount);
             } else {
-                amounts.set(slot, current + accepted);
+                amounts.set(slot, saturatingAdd(current, amount));
             }
         }
-        return accepted;
+        return amount;
     }
 
     private ItemStack stackInSlot(int slot) {
@@ -529,6 +525,25 @@ public class ItemVaultBlockEntity extends BlockEntity {
         for (int i = 0; i < items.size(); i++) {
             items.set(i, ItemStack.EMPTY);
             amounts.set(i, 0L);
+        }
+    }
+
+    private void compactDuplicateStoredItems() {
+        for (int slot = 0; slot < items.size(); slot++) {
+            ItemStack stack = templateInSlot(slot);
+            if (stack.isEmpty() || amountInSlot(slot) <= 0) {
+                continue;
+            }
+            for (int otherSlot = slot + 1; otherSlot < items.size(); otherSlot++) {
+                ItemStack other = templateInSlot(otherSlot);
+                long otherAmount = amountInSlot(otherSlot);
+                if (other.isEmpty() || otherAmount <= 0 || !ItemHandlerHelper.canItemStacksStack(stack, other)) {
+                    continue;
+                }
+                amounts.set(slot, saturatingAdd(amountInSlot(slot), otherAmount));
+                items.set(otherSlot, ItemStack.EMPTY);
+                amounts.set(otherSlot, 0L);
+            }
         }
     }
 
