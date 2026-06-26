@@ -93,10 +93,12 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
-        int gridX = gridX();
+        FluidVaultBlockEntity vault = vault();
+        int gridX = gridX(vault);
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int column = 0; column < GRID_COLUMNS; column++) {
-                ConfigPanel.drawSlotBackground(graphics, leftPos + gridX + column * CELL_SIZE,
+                int visibleIndex = row * GRID_COLUMNS + column;
+                drawVaultSlotBackground(graphics, vault, visibleIndex, leftPos + gridX + column * CELL_SIZE,
                         topPos + GRID_Y + row * CELL_SIZE);
             }
         }
@@ -280,6 +282,16 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static String fluidModId(FluidVaultBlockEntity.StoredFluid fluid) {
         var id = ForgeRegistries.FLUIDS.getKey(fluid.stack().getFluid());
         return id == null ? "" : id.getNamespace();
+    }
+
+    private void drawVaultSlotBackground(GuiGraphics graphics, FluidVaultBlockEntity vault, int visibleIndex,
+            int x, int y) {
+        int slotIndex = scrollRow * GRID_COLUMNS + visibleIndex;
+        if (vault != null && slotIndex >= vault.getTypeLimit()) {
+            ConfigPanel.drawLockedSlotBackground(graphics, x, y);
+        } else {
+            ConfigPanel.drawSlotBackground(graphics, x, y);
+        }
     }
 
     private void renderMenuSlotBackgrounds(GuiGraphics graphics) {

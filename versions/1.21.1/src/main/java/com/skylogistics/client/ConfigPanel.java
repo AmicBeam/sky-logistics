@@ -24,7 +24,11 @@ final class ConfigPanel {
     static final int SLOT_DIVIDER = 0xFF2B4C57;
     static final int SLOT_SHADOW = 0xFF142A33;
     static final int SLOT_FILL = 0xFF24424C;
+    private static final int SLOT_LOCKED_DIVIDER = 0xFF172830;
+    private static final int SLOT_LOCKED_SHADOW = 0xFF071016;
+    private static final int SLOT_LOCKED_FILL = 0xFF0A141A;
     private static final int SLOT_HIGHLIGHT = 0x444D6D78;
+    private static final int SLOT_LOCKED_HIGHLIGHT = 0x221A3038;
 
     private ConfigPanel() {
     }
@@ -70,6 +74,13 @@ final class ConfigPanel {
         graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
         graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
+    }
+
+    static void drawLockedSlotBackground(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_LOCKED_DIVIDER);
+        graphics.fill(x, y, x + 17, y + 17, SLOT_LOCKED_SHADOW);
+        graphics.fill(x, y, x + 16, y + 16, SLOT_LOCKED_FILL);
+        graphics.fill(x, y, x + 16, y + 1, SLOT_LOCKED_HIGHLIGHT);
     }
 
     static String yesNo(boolean value) {
