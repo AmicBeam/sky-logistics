@@ -17,7 +17,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
-    private static final int FILTER_ROW_Y = 66;
+    private static final int FILTER_ROW_Y = 58;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<InsertSlotsButton> insertSlotsButtons = new ArrayList<>();
