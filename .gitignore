@@ -4,3 +4,14 @@ dist/
 **/build/
 **/run/
 **/mcmodsrepo/
+
+# Local Codex/workflow metadata
+.codex/
+
+# Generated art review exports and helper scratch files
+art_review_exports/
+docs/art-style-adjustment-plan.md
+docs/slot-spacing-study.png
+docs/slot-spacing-study.svg
+scripts/export_art_review.py
+scripts/refine_art_assets.py
