@@ -4,6 +4,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.event.ManualGiftHandler;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
+import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
@@ -42,6 +43,7 @@ public class SkyLogistics {
         container.registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
 
         NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
+        NeoForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
@@ -61,6 +63,7 @@ public class SkyLogistics {
 
     private void onServerStopping(ServerStoppingEvent event) {
         SkyNetworkRegistry.clear();
+        SkyNecklaceTicker.clear();
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

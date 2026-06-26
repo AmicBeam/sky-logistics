@@ -23,6 +23,7 @@ public final class ModCreativeTabs {
                         PatchouliCompat.createManualStack().ifPresent(output::accept);
                         output.accept(ModItems.CONFIGURATOR.get());
                         output.accept(ModItems.FILTER_LIST.get());
+                        output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());

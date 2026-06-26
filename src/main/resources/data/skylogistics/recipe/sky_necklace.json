@@ -1,0 +1,34 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 200,
+  "altar_tier": 1,
+  "main": {
+    "ingredient": {
+      "item": "skylogistics:eulogia_crystal"
+    },
+    "charged": true
+  },
+  "offerings": [
+    {
+      "ingredient": {
+        "item": "minecraft:chain"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:gold_ingot"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "skylogistics:filter_list"
+      },
+      "count": 1
+    }
+  ],
+  "result": {
+    "id": "skylogistics:sky_necklace"
+  }
+}

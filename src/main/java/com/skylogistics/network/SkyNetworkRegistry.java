@@ -168,7 +168,22 @@ public final class SkyNetworkRegistry {
                 outputs += line.outputCount();
             }
         }
+        inputs += SkyNecklaceTicker.activeExtractorCount(lineId);
         return new LineStats(nodes, inputs, outputs);
+    }
+
+    public static synchronized List<CachedEndpoint> lineItemOutputs(MinecraftServer server,
+            ResourceKey<Level> dimension, UUID lineId) {
+        rebuildDirty(server);
+        if (server.getLevel(dimension) == null) {
+            return List.of();
+        }
+        DimensionIndex index = DIMENSIONS.get(dimension);
+        if (index == null) {
+            return List.of();
+        }
+        LineIndex line = index.lines.get(lineId);
+        return line == null ? List.of() : List.copyOf(line.priorityItemOutputs());
     }
 
     public static synchronized List<LineFaceDetail> lineDetails(MinecraftServer server, UUID lineId, int limit) {

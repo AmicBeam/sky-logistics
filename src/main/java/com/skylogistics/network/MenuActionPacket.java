@@ -4,6 +4,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.SkyNodeMenu;
+import com.skylogistics.menu.SkyNecklaceMenu;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -32,6 +33,8 @@ public record MenuActionPacket(int action) implements CustomPacketPayload {
             if (player.containerMenu instanceof ConfiguratorMenu menu) {
                 menu.applyAction(player, packet.action);
             } else if (player.containerMenu instanceof SkyNodeMenu menu) {
+                menu.applyAction(player, packet.action);
+            } else if (player.containerMenu instanceof SkyNecklaceMenu menu) {
                 menu.applyAction(player, packet.action);
             } else if (player.containerMenu instanceof FilterListMenu menu) {
                 menu.applyAction(player, packet.action);
