@@ -4,6 +4,9 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
 import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
@@ -43,6 +46,7 @@ public final class SkyNetworkTicker {
             long nextWake = Long.MAX_VALUE;
             List<CachedEndpoint> globalItemOutputs = null;
             List<CachedEndpoint> globalFluidOutputs = null;
+            List<CachedEndpoint> globalChemicalOutputs = null;
             List<CachedEndpoint> globalEnergyOutputs = null;
             boolean lineBudgetExhausted = false;
             int inputCount = line.inputCount();
@@ -108,6 +112,29 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
+                if (MekanismCompat.isLoaded() && node.isFluidsEnabled(input.direction())
+                        && input.canTryChemicals(gameTime)) {
+                    if (dimensionUpgrade && globalChemicalOutputs == null) {
+                        globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityChemicalOutputs(),
+                            globalChemicalOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordChemicalFailure(gameTime);
+                    } else {
+                        operations += transferChemicals(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
+                }
+                if (operations >= serverOpsPerTick) {
+                    line.advanceInputCursor();
+                    return;
+                }
+                remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
+                if (remainingLineBudget <= 0) {
+                    lineBudgetExhausted = true;
+                    break;
+                }
                 if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
@@ -151,6 +178,9 @@ public final class SkyNetworkTicker {
         }
         if (node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
+            if (MekanismCompat.isLoaded()) {
+                nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
+            }
         }
         if (node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
@@ -528,6 +558,165 @@ public final class SkyNetworkTicker {
         }
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordFluidFailure(gameTime);
+        }
+        return new MoveResult(false, operations);
+    }
+
+    private static int transferChemicals(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
+        ChemicalHandlerBridge source = sourceEndpoint.chemicalHandler(gameTime);
+        if (source == null || budget <= 0) {
+            return 0;
+        }
+        int tanks = source.getTanks();
+        if (tanks <= 0) {
+            sourceEndpoint.recordChemicalFailure(gameTime);
+            return 0;
+        }
+        int operations = 0;
+        boolean foundCandidate = false;
+        int tankChecks = Math.min(tanks,
+                Math.min(sourceNode.getOperationRate(), SkyLogisticsConfig.externalTankScansPerEndpoint()));
+        int firstTriedTank = -1;
+        int secondTriedTank = -1;
+        boolean sourceTanksExhausted = false;
+        for (int i = 0; i < tankChecks && operations < budget; i++) {
+            int tank = nextChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime, firstTriedTank, secondTriedTank);
+            if (tank < 0) {
+                sourceTanksExhausted = true;
+                break;
+            }
+            if (firstTriedTank < 0) {
+                firstTriedTank = tank;
+            } else {
+                secondTriedTank = tank;
+            }
+            ChemicalStackView inTank = source.getChemicalInTank(tank);
+            operations++;
+            if (inTank.isEmpty()) {
+                sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
+                continue;
+            }
+            ChemicalStackView simulated = source.extractChemical(tank, Long.MAX_VALUE, true);
+            if (simulated.isEmpty()) {
+                sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
+                continue;
+            }
+            foundCandidate = true;
+            sourceEndpoint.recordChemicalCandidateFound();
+            MoveResult result = tryMoveChemical(sourceEndpoint, source, tank, simulated, targets,
+                    budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                sourceEndpoint.recordChemicalTankSuccess(tank, tanks);
+                sourceEndpoint.recordChemicalSuccess();
+                return operations;
+            }
+        }
+        if (!foundCandidate) {
+            sourceEndpoint.recordChemicalSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
+        }
+        return operations;
+    }
+
+    private static int nextChemicalTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int tanks,
+            long gameTime, int firstTriedTank, int secondTriedTank) {
+        if (sourceEndpoint.isChemicalTankDiscoveryActive()) {
+            int discoveryTank = nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                    firstTriedTank, secondTriedTank, true);
+            if (discoveryTank >= 0) {
+                sourceEndpoint.recordChemicalTankDiscoveryCheck();
+                return discoveryTank;
+            }
+            sourceEndpoint.clearChemicalTankDiscovery();
+        }
+        int preferredTank = sourceEndpoint.nextPreferredChemicalTank(tanks, gameTime, firstTriedTank, secondTriedTank);
+        if (preferredTank >= 0) {
+            return preferredTank;
+        }
+        return nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                firstTriedTank, secondTriedTank, false);
+    }
+
+    private static int nextSequentialChemicalTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
+            int tanks, long gameTime, int firstTriedTank, int secondTriedTank, boolean ignoreEmptyCooldown) {
+        for (int attempts = 0; attempts < tanks; attempts++) {
+            int tank = sourceNode.nextFluidStart(tanks);
+            if (wasSlotTried(firstTriedTank, secondTriedTank, tank)
+                    || (!ignoreEmptyCooldown && !sourceEndpoint.canTryChemicalTank(tank, gameTime))) {
+                continue;
+            }
+            return tank;
+        }
+        return -1;
+    }
+
+    private static MoveResult tryMoveChemical(CachedEndpoint sourceEndpoint, ChemicalHandlerBridge source,
+            int sourceTank, ChemicalStackView simulated, List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0) {
+            return new MoveResult(false, 0);
+        }
+        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        targetLoop:
+        for (int groupStart = 0; groupStart < targets.size();) {
+            int groupEnd = priorityGroupEnd(targets, groupStart);
+            int groupSize = groupEnd - groupStart;
+            int groupCursor = Math.floorMod(targetCursor, groupSize);
+            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
+                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
+                        groupOffset);
+                if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    redstoneBlocked = true;
+                    continue;
+                }
+                if (!targetEndpoint.canTryChemicals(gameTime)
+                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())
+                        || targetEndpoint.isChemicalAcceptRejected(simulated, gameTime)) {
+                    continue;
+                }
+                if (operations >= targetAttemptBudget) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                operations++;
+                ChemicalHandlerBridge target = targetEndpoint.chemicalHandler(gameTime);
+                if (target == null) {
+                    continue;
+                }
+                long accepted = target.insertChemical(simulated, true);
+                if (accepted <= 0L) {
+                    targetEndpoint.recordChemicalAcceptReject(simulated, gameTime);
+                    continue;
+                }
+                ChemicalStackView drained = source.extractChemical(sourceTank, accepted, false);
+                if (drained.isEmpty()) {
+                    sourceEndpoint.recordChemicalFailure(gameTime);
+                    return new MoveResult(false, operations);
+                }
+                long inserted = target.insertChemical(drained, false);
+                if (inserted < drained.getAmount()) {
+                    ChemicalStackView rollback = drained.copyWithAmount(drained.getAmount() - inserted);
+                    long rolledBack = source.insertChemical(rollback, false);
+                    if (rolledBack < rollback.getAmount()) {
+                        SkyLogistics.LOGGER.warn(
+                                "Chemical rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, drained {}, inserted {}, rollback remainder {}",
+                                sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                                targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceTank, drained,
+                                inserted, rollback.getAmount() - rolledBack);
+                    }
+                }
+                targetEndpoint.recordChemicalSuccess();
+                return new MoveResult(true, operations);
+            }
+            groupStart = groupEnd;
+        }
+        if (!redstoneBlocked && !budgetExhausted) {
+            sourceEndpoint.recordChemicalFailure(gameTime);
         }
         return new MoveResult(false, operations);
     }

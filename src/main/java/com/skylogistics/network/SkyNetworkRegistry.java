@@ -1,6 +1,9 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
@@ -43,6 +46,10 @@ public final class SkyNetworkRegistry {
     private static final int EMPTY_FLUID_TANK_CACHE_SIZE = 16;
     private static final int PREFERRED_FLUID_TANK_MISS_LIMIT = 3;
     private static final int EMPTY_FLUID_TANK_RETRY_TICKS = 20;
+    private static final int PREFERRED_CHEMICAL_TANK_CACHE_SIZE = 4;
+    private static final int EMPTY_CHEMICAL_TANK_CACHE_SIZE = 16;
+    private static final int PREFERRED_CHEMICAL_TANK_MISS_LIMIT = 3;
+    private static final int EMPTY_CHEMICAL_TANK_RETRY_TICKS = 20;
     private static final int REJECTED_ACCEPT_CACHE_SIZE = 8;
     private static final int REJECTED_ACCEPT_RETRY_TICKS = 20;
     private static final int FIRST_FAILURE_RETRY_TICKS = 5;
@@ -56,6 +63,7 @@ public final class SkyNetworkRegistry {
     private static final Map<LineIndex, Long> SCHEDULED_WAKE = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ITEM_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_FLUID_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_CHEMICAL_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ENERGY_OUTPUTS = new HashMap<>();
     private static boolean runtimeCachesDirty = true;
     private static boolean globalOutputsDirty = true;
@@ -131,6 +139,11 @@ public final class SkyNetworkRegistry {
 
     public static synchronized List<CachedEndpoint> globalFluidOutputs(UUID lineId) {
         List<CachedEndpoint> outputs = GLOBAL_FLUID_OUTPUTS.get(lineId);
+        return outputs == null ? List.of() : outputs;
+    }
+
+    public static synchronized List<CachedEndpoint> globalChemicalOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_CHEMICAL_OUTPUTS.get(lineId);
         return outputs == null ? List.of() : outputs;
     }
 
@@ -234,6 +247,7 @@ public final class SkyNetworkRegistry {
         SCHEDULED_WAKE.clear();
         GLOBAL_ITEM_OUTPUTS.clear();
         GLOBAL_FLUID_OUTPUTS.clear();
+        GLOBAL_CHEMICAL_OUTPUTS.clear();
         GLOBAL_ENERGY_OUTPUTS.clear();
         runtimeCachesDirty = true;
         globalOutputsDirty = true;
@@ -314,6 +328,7 @@ public final class SkyNetworkRegistry {
     private static void rebuildGlobalOutputs(MinecraftServer server) {
         GLOBAL_ITEM_OUTPUTS.clear();
         GLOBAL_FLUID_OUTPUTS.clear();
+        GLOBAL_CHEMICAL_OUTPUTS.clear();
         GLOBAL_ENERGY_OUTPUTS.clear();
         for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
             if (server.getLevel(entry.getKey()) == null) {
@@ -323,11 +338,13 @@ public final class SkyNetworkRegistry {
             for (LineIndex line : index.lines.values()) {
                 addGlobalOutputs(GLOBAL_ITEM_OUTPUTS, line.lineId(), line.priorityItemOutputs());
                 addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, line.lineId(), line.priorityFluidOutputs());
+                addGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS, line.lineId(), line.priorityChemicalOutputs());
                 addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, line.lineId(), line.priorityEnergyOutputs());
             }
         }
         sortGlobalOutputs(GLOBAL_ITEM_OUTPUTS);
         sortGlobalOutputs(GLOBAL_FLUID_OUTPUTS);
+        sortGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS);
         sortGlobalOutputs(GLOBAL_ENERGY_OUTPUTS);
     }
 
@@ -491,13 +508,16 @@ public final class SkyNetworkRegistry {
         private final List<CachedEndpoint> outputs = new ArrayList<>();
         private final List<CachedEndpoint> itemInputs = new ArrayList<>();
         private final List<CachedEndpoint> fluidInputs = new ArrayList<>();
+        private final List<CachedEndpoint> chemicalInputs = new ArrayList<>();
         private final List<CachedEndpoint> energyInputs = new ArrayList<>();
         private final List<CachedEndpoint> itemOutputs = new ArrayList<>();
         private final List<CachedEndpoint> fluidOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> chemicalOutputs = new ArrayList<>();
         private final List<CachedEndpoint> energyOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityItemOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityFluidOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityChemicalOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityEnergyOutputs = new ArrayList<>();
         private long retryAfter;
         private int nodeCount;
@@ -553,12 +573,17 @@ public final class SkyNetworkRegistry {
             return priorityFluidOutputs;
         }
 
+        public List<CachedEndpoint> priorityChemicalOutputs() {
+            return priorityChemicalOutputs;
+        }
+
         public List<CachedEndpoint> priorityEnergyOutputs() {
             return priorityEnergyOutputs;
         }
 
         public boolean hasProcessableInputs() {
-            return !itemInputs.isEmpty() || !fluidInputs.isEmpty() || !energyInputs.isEmpty();
+            return !itemInputs.isEmpty() || !fluidInputs.isEmpty() || !chemicalInputs.isEmpty()
+                    || !energyInputs.isEmpty();
         }
 
         public boolean canProcess(long gameTime) {
@@ -575,12 +600,12 @@ public final class SkyNetworkRegistry {
 
         private void addInput(CachedEndpoint endpoint) {
             inputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemInputs, fluidInputs, energyInputs);
+            addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs, energyInputs);
         }
 
         private void addOutput(CachedEndpoint endpoint) {
             outputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, energyOutputs);
+            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, chemicalOutputs, energyOutputs);
         }
 
         private void rebuildPriorityOutputs() {
@@ -596,13 +621,18 @@ public final class SkyNetworkRegistry {
             priorityFluidOutputs.addAll(fluidOutputs);
             sortByPriority(priorityFluidOutputs);
 
+            priorityChemicalOutputs.clear();
+            priorityChemicalOutputs.addAll(chemicalOutputs);
+            sortByPriority(priorityChemicalOutputs);
+
             priorityEnergyOutputs.clear();
             priorityEnergyOutputs.addAll(energyOutputs);
             sortByPriority(priorityEnergyOutputs);
         }
 
         private static void addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
-                List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> energyEndpoints) {
+                List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> chemicalEndpoints,
+                List<CachedEndpoint> energyEndpoints) {
             SkyNodeBlockEntity node = endpoint.node();
             Direction direction = endpoint.direction();
             if (node.isItemsEnabled(direction)) {
@@ -610,6 +640,9 @@ public final class SkyNetworkRegistry {
             }
             if (node.isFluidsEnabled(direction)) {
                 fluidEndpoints.add(endpoint);
+                if (MekanismCompat.isLoaded()) {
+                    chemicalEndpoints.add(endpoint);
+                }
             }
             if (node.isEnergyEnabled(direction)) {
                 energyEndpoints.add(endpoint);
@@ -625,15 +658,19 @@ public final class SkyNetworkRegistry {
         private final Direction accessSide;
         private IItemHandler itemHandler;
         private IFluidHandler fluidHandler;
+        private ChemicalHandlerBridge chemicalHandler;
         private IEnergyStorage energyHandler;
         private long itemRetryAfter;
         private long fluidRetryAfter;
+        private long chemicalRetryAfter;
         private long energyRetryAfter;
         private int itemFailures;
         private int fluidFailures;
+        private int chemicalFailures;
         private int energyFailures;
         private int itemSourceMisses;
         private int fluidSourceMisses;
+        private int chemicalSourceMisses;
         private final int[] preferredItemSlots = new int[SkyLogisticsConfig.preferredItemSlotCacheSize()];
         private final int[] preferredItemSlotMisses = new int[preferredItemSlots.length];
         private int preferredItemSlotCursor;
@@ -650,6 +687,14 @@ public final class SkyNetworkRegistry {
         private final int[] emptyFluidTanks = new int[EMPTY_FLUID_TANK_CACHE_SIZE];
         private final long[] emptyFluidTankUntil = new long[EMPTY_FLUID_TANK_CACHE_SIZE];
         private int emptyFluidTankCursor;
+        private final int[] preferredChemicalTanks = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
+        private final int[] preferredChemicalTankMisses = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
+        private int preferredChemicalTankCursor;
+        private int preferredChemicalTankWriteCursor;
+        private int chemicalTankDiscoveryRemaining;
+        private final int[] emptyChemicalTanks = new int[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
+        private final long[] emptyChemicalTankUntil = new long[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
+        private int emptyChemicalTankCursor;
         private final ItemStack[] rejectedItems = new ItemStack[REJECTED_ITEM_CACHE_SIZE];
         private final long[] rejectedItemUntil = new long[REJECTED_ITEM_CACHE_SIZE];
         private int rejectedItemCursor;
@@ -659,6 +704,9 @@ public final class SkyNetworkRegistry {
         private final FluidStackKey[] rejectedFluidAccepts = new FluidStackKey[REJECTED_ACCEPT_CACHE_SIZE];
         private final long[] rejectedFluidAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
         private int rejectedFluidAcceptCursor;
+        private final ChemicalStackView[] rejectedChemicalAccepts = new ChemicalStackView[REJECTED_ACCEPT_CACHE_SIZE];
+        private final long[] rejectedChemicalAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+        private int rejectedChemicalAcceptCursor;
 
         private CachedEndpoint(SkyNodeBlockEntity node, Direction direction) {
             this.node = node;
@@ -667,6 +715,7 @@ public final class SkyNetworkRegistry {
             this.accessSide = node.getAccessSide(direction);
             clearItemSlotCaches();
             clearFluidTankCaches();
+            clearChemicalTankCaches();
             for (int i = 0; i < rejectedItems.length; i++) {
                 rejectedItems[i] = ItemStack.EMPTY;
             }
@@ -696,6 +745,10 @@ public final class SkyNetworkRegistry {
             return gameTime >= fluidRetryAfter;
         }
 
+        public boolean canTryChemicals(long gameTime) {
+            return gameTime >= chemicalRetryAfter;
+        }
+
         public boolean canTryEnergy(long gameTime) {
             return gameTime >= energyRetryAfter;
         }
@@ -706,6 +759,10 @@ public final class SkyNetworkRegistry {
 
         public long nextFluidWake(long gameTime) {
             return fluidRetryAfter > gameTime ? fluidRetryAfter : gameTime;
+        }
+
+        public long nextChemicalWake(long gameTime) {
+            return chemicalRetryAfter > gameTime ? chemicalRetryAfter : gameTime;
         }
 
         public long nextEnergyWake(long gameTime) {
@@ -760,6 +817,31 @@ public final class SkyNetworkRegistry {
                 recordFluidFailure(gameTime);
             }
             return fluidHandler;
+        }
+
+        public ChemicalHandlerBridge chemicalHandler(long gameTime) {
+            if (!canTryChemicals(gameTime)) {
+                return null;
+            }
+            if (chemicalHandler != null) {
+                return chemicalHandler;
+            }
+            clearChemicalCache();
+            Level level = node.getLevel();
+            if (level == null || !level.isLoaded(targetPos)) {
+                recordChemicalFailure(gameTime);
+                return null;
+            }
+            BlockEntity target = level.getBlockEntity(targetPos);
+            if (target == null) {
+                recordChemicalFailure(gameTime);
+                return null;
+            }
+            chemicalHandler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
+            if (chemicalHandler == null) {
+                recordChemicalFailure(gameTime);
+            }
+            return chemicalHandler;
         }
 
         public IEnergyStorage energyHandler(long gameTime) {
@@ -1065,6 +1147,127 @@ public final class SkyNetworkRegistry {
             recordEmptyFluidTank(tank, gameTime, gameTime + EMPTY_FLUID_TANK_RETRY_TICKS);
         }
 
+        public void recordChemicalSuccess() {
+            chemicalFailures = 0;
+            chemicalRetryAfter = 0L;
+            chemicalSourceMisses = 0;
+            clearRejectedChemicalAccepts();
+        }
+
+        public void recordChemicalCandidateFound() {
+            chemicalSourceMisses = 0;
+        }
+
+        public void recordChemicalSourceMiss(int checkedTanks, int totalTanks, long gameTime) {
+            if (totalTanks <= 0) {
+                recordChemicalFailure(gameTime);
+                return;
+            }
+            chemicalSourceMisses += Math.max(0, checkedTanks);
+            if (chemicalSourceMisses >= totalTanks) {
+                chemicalSourceMisses = 0;
+                recordChemicalFailure(gameTime);
+            }
+        }
+
+        public void recordChemicalFailure(long gameTime) {
+            chemicalFailures = Math.min(chemicalFailures + 1, 8);
+            chemicalRetryAfter = gameTime + delay(chemicalFailures);
+        }
+
+        public boolean isChemicalAcceptRejected(ChemicalStackView key, long gameTime) {
+            for (int i = 0; i < rejectedChemicalAccepts.length; i++) {
+                if (gameTime < rejectedChemicalAcceptUntil[i]
+                        && rejectedChemicalAccepts[i] != null
+                        && rejectedChemicalAccepts[i].isSameChemical(key)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void recordChemicalAcceptReject(ChemicalStackView key, long gameTime) {
+            rejectedChemicalAccepts[rejectedChemicalAcceptCursor] = key.copyWithAmount(1L);
+            rejectedChemicalAcceptUntil[rejectedChemicalAcceptCursor] = gameTime + REJECTED_ACCEPT_RETRY_TICKS;
+            rejectedChemicalAcceptCursor = (rejectedChemicalAcceptCursor + 1) % rejectedChemicalAccepts.length;
+        }
+
+        public int nextPreferredChemicalTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
+            for (int i = 0; i < preferredChemicalTanks.length; i++) {
+                int index = Math.floorMod(preferredChemicalTankCursor + i, preferredChemicalTanks.length);
+                int tank = preferredChemicalTanks[index];
+                if (tank < 0) {
+                    continue;
+                }
+                if (tank >= tanks) {
+                    preferredChemicalTanks[index] = -1;
+                    preferredChemicalTankMisses[index] = 0;
+                    continue;
+                }
+                if (wasSlotTried(firstTriedTank, secondTriedTank, tank) || !canTryChemicalTank(tank, gameTime)) {
+                    continue;
+                }
+                preferredChemicalTankCursor = (index + 1) % preferredChemicalTanks.length;
+                return tank;
+            }
+            return -1;
+        }
+
+        public boolean canTryChemicalTank(int tank, long gameTime) {
+            int index = findEmptyChemicalTank(tank);
+            return index < 0 || gameTime >= emptyChemicalTankUntil[index];
+        }
+
+        public void recordChemicalTankSuccess(int tank, int totalTanks) {
+            int preferredCount = preferredChemicalTankCount();
+            int preferredIndex = findPreferredChemicalTank(tank);
+            if (preferredIndex >= 0) {
+                preferredChemicalTankMisses[preferredIndex] = 0;
+            } else {
+                int insertIndex = firstFreePreferredChemicalTank();
+                if (insertIndex < 0) {
+                    insertIndex = preferredChemicalTankWriteCursor;
+                    preferredChemicalTankWriteCursor = (preferredChemicalTankWriteCursor + 1) % preferredChemicalTanks.length;
+                }
+                preferredChemicalTanks[insertIndex] = tank;
+                preferredChemicalTankMisses[insertIndex] = 0;
+                if (preferredCount == 0 && totalTanks > 1) {
+                    chemicalTankDiscoveryRemaining = Math.max(chemicalTankDiscoveryRemaining, totalTanks - 1);
+                }
+            }
+            clearEmptyChemicalTank(tank);
+        }
+
+        public boolean isChemicalTankDiscoveryActive() {
+            return chemicalTankDiscoveryRemaining > 0;
+        }
+
+        public void recordChemicalTankDiscoveryCheck() {
+            if (chemicalTankDiscoveryRemaining > 0) {
+                chemicalTankDiscoveryRemaining--;
+            }
+        }
+
+        public void clearChemicalTankDiscovery() {
+            chemicalTankDiscoveryRemaining = 0;
+        }
+
+        public void recordChemicalTankMiss(int tank, long gameTime) {
+            int preferredIndex = findPreferredChemicalTank(tank);
+            if (preferredIndex >= 0) {
+                int misses = preferredChemicalTankMisses[preferredIndex] + 1;
+                if (misses >= PREFERRED_CHEMICAL_TANK_MISS_LIMIT) {
+                    preferredChemicalTanks[preferredIndex] = -1;
+                    preferredChemicalTankMisses[preferredIndex] = 0;
+                    recordEmptyChemicalTank(tank, gameTime, gameTime + EMPTY_CHEMICAL_TANK_RETRY_TICKS);
+                } else {
+                    preferredChemicalTankMisses[preferredIndex] = misses;
+                }
+                return;
+            }
+            recordEmptyChemicalTank(tank, gameTime, gameTime + EMPTY_CHEMICAL_TANK_RETRY_TICKS);
+        }
+
         public void recordEnergySuccess() {
             energyFailures = 0;
             energyRetryAfter = 0L;
@@ -1085,6 +1288,12 @@ public final class SkyNetworkRegistry {
             fluidHandler = null;
             clearFluidTankCaches();
             clearRejectedFluidAccepts();
+        }
+
+        private void clearChemicalCache() {
+            chemicalHandler = null;
+            clearChemicalTankCaches();
+            clearRejectedChemicalAccepts();
         }
 
         private void clearEnergyCache() {
@@ -1115,6 +1324,14 @@ public final class SkyNetworkRegistry {
             rejectedFluidAcceptCursor = 0;
         }
 
+        private void clearRejectedChemicalAccepts() {
+            for (int i = 0; i < rejectedChemicalAccepts.length; i++) {
+                rejectedChemicalAccepts[i] = null;
+                rejectedChemicalAcceptUntil[i] = 0L;
+            }
+            rejectedChemicalAcceptCursor = 0;
+        }
+
         private void clearItemSlotCaches() {
             for (int i = 0; i < preferredItemSlots.length; i++) {
                 preferredItemSlots[i] = -1;
@@ -1143,6 +1360,21 @@ public final class SkyNetworkRegistry {
             preferredFluidTankWriteCursor = 0;
             fluidTankDiscoveryRemaining = 0;
             emptyFluidTankCursor = 0;
+        }
+
+        private void clearChemicalTankCaches() {
+            for (int i = 0; i < preferredChemicalTanks.length; i++) {
+                preferredChemicalTanks[i] = -1;
+                preferredChemicalTankMisses[i] = 0;
+            }
+            for (int i = 0; i < emptyChemicalTanks.length; i++) {
+                emptyChemicalTanks[i] = -1;
+                emptyChemicalTankUntil[i] = 0L;
+            }
+            preferredChemicalTankCursor = 0;
+            preferredChemicalTankWriteCursor = 0;
+            chemicalTankDiscoveryRemaining = 0;
+            emptyChemicalTankCursor = 0;
         }
 
         private int preferredItemSlotCount() {
@@ -1280,6 +1512,73 @@ public final class SkyNetworkRegistry {
             if (index >= 0) {
                 emptyFluidTanks[index] = -1;
                 emptyFluidTankUntil[index] = 0L;
+            }
+        }
+
+        private int preferredChemicalTankCount() {
+            int count = 0;
+            for (int tank : preferredChemicalTanks) {
+                if (tank >= 0) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private int findPreferredChemicalTank(int tank) {
+            for (int i = 0; i < preferredChemicalTanks.length; i++) {
+                if (preferredChemicalTanks[i] == tank) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int firstFreePreferredChemicalTank() {
+            for (int i = 0; i < preferredChemicalTanks.length; i++) {
+                if (preferredChemicalTanks[i] < 0) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int findEmptyChemicalTank(int tank) {
+            for (int i = 0; i < emptyChemicalTanks.length; i++) {
+                if (emptyChemicalTanks[i] == tank) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void recordEmptyChemicalTank(int tank, long gameTime, long until) {
+            int index = findEmptyChemicalTank(tank);
+            if (index < 0) {
+                index = firstFreeOrExpiredEmptyChemicalTank(gameTime);
+            }
+            if (index < 0) {
+                index = emptyChemicalTankCursor;
+                emptyChemicalTankCursor = (emptyChemicalTankCursor + 1) % emptyChemicalTanks.length;
+            }
+            emptyChemicalTanks[index] = tank;
+            emptyChemicalTankUntil[index] = until;
+        }
+
+        private int firstFreeOrExpiredEmptyChemicalTank(long gameTime) {
+            for (int i = 0; i < emptyChemicalTanks.length; i++) {
+                if (emptyChemicalTanks[i] < 0 || gameTime >= emptyChemicalTankUntil[i]) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void clearEmptyChemicalTank(int tank) {
+            int index = findEmptyChemicalTank(tank);
+            if (index >= 0) {
+                emptyChemicalTanks[index] = -1;
+                emptyChemicalTankUntil[index] = 0L;
             }
         }
 

@@ -16,6 +16,10 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
     mavenCentral()
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev'
+    }
 }
 
 neoForge {
@@ -58,6 +62,7 @@ configurations {
 }
 
 dependencies {
+    compileOnly "mekanism:Mekanism:${mekanism_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
