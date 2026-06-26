@@ -1,8 +1,10 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.client.ClientLineNames;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
@@ -44,11 +46,14 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private static final String LINE_ENTRY_ID_TAG = "Id";
     private static final String LINE_NAME_TAG = "LineName";
     private static final String LINE_ENTRY_NAME_TAG = "Name";
+    private static final String LINE_ENTRY_ASSIGNED_NAME_TAG = "AssignedName";
+    private static final int MAX_LINE_NAME_LENGTH = 48;
 
     private String lineName = ConfiguratorItem.lineName("Line", 0);
     private UUID lineId = ConfiguratorItem.lineIdForName(lineName);
     private final List<UUID> lines = new ArrayList<>();
     private final List<String> lineNames = new ArrayList<>();
+    private final List<String> lineAssignedNames = new ArrayList<>();
     private int lineIndex;
     private NodeMode mode = NodeMode.OUTPUT;
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
@@ -74,6 +79,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         super(ModBlockEntities.SKY_NODE.get(), pos, state);
         lines.add(lineId);
         lineNames.add(lineName);
+        lineAssignedNames.add(lineName);
         for (Direction direction : Direction.values()) {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
@@ -117,7 +123,26 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public String getLineName() {
         ensureLineList();
+        String fallback = localAssignedLineName();
+        if (level != null && level.isClientSide) {
+            return ClientLineNames.displayName(lineId, lineName);
+        }
+        if (level != null && level.getServer() != null) {
+            return SkyLineNames.displayName(level.getServer(), lineId, fallback, lineName);
+        }
         return lineName;
+    }
+
+    public String getAssignedLineName() {
+        ensureLineList();
+        String fallback = localAssignedLineName();
+        if (level != null && level.isClientSide) {
+            return ClientLineNames.assignedName(lineId, fallback);
+        }
+        if (level != null && level.getServer() != null) {
+            return SkyLineNames.assignedName(level.getServer(), lineId, fallback);
+        }
+        return fallback;
     }
 
     public int getLineIndex() {
@@ -646,9 +671,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean changed = !lineId.equals(newLineId)
                 || !lineName.equals(newLineName)
                 || !lines.get(currentIndex).equals(newLineId)
-                || !lineNames.get(currentIndex).equals(newLineName);
+                || !lineNames.get(currentIndex).equals(newLineName)
+                || !lineAssignedNames.get(currentIndex).equals(newLineName);
         lines.set(currentIndex, newLineId);
         lineNames.set(currentIndex, newLineName);
+        lineAssignedNames.set(currentIndex, newLineName);
         lineId = newLineId;
         lineName = newLineName;
         lineIndex = currentIndex;
@@ -676,6 +703,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         UUID newLineId = ConfiguratorItem.lineIdForName(newLineName);
         lines.add(newLineId);
         lineNames.add(newLineName);
+        lineAssignedNames.add(newLineName);
         selectLine(lines.size() - 1);
     }
 
@@ -689,21 +717,32 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (lines.size() <= 1) {
             lines.clear();
             lineNames.clear();
+            lineAssignedNames.clear();
             String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), -1);
             lines.add(ConfiguratorItem.lineIdForName(newLineName));
             lineNames.add(newLineName);
+            lineAssignedNames.add(newLineName);
             selectLine(0);
             return;
         }
         lines.remove(lineIndex);
         lineNames.remove(lineIndex);
+        lineAssignedNames.remove(lineIndex);
         selectLine(Math.min(lineIndex, lines.size() - 1));
+    }
+
+    public void lineNameChanged(UUID targetLineId) {
+        ensureLineList();
+        if (lines.contains(targetLineId)) {
+            markLineNameChanged();
+        }
     }
 
     private void selectLine(int index) {
         if (lines.isEmpty()) {
             lines.add(lineId);
             lineNames.add(lineName);
+            lineAssignedNames.add(lineName);
             lineIndex = 0;
         }
         normalizeLineNames();
@@ -719,16 +758,19 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (lines.isEmpty()) {
             lines.add(lineId);
             lineNames.add(lineName);
+            lineAssignedNames.add(lineName);
             lineIndex = 0;
         }
         normalizeLineNames();
         int index = lines.indexOf(newLineId);
         if (index < 0) {
             lines.add(newLineId);
-            lineNames.add(validLineName(newLineName, fallbackLineName(lines.size() - 1)));
+            String assignedName = validLineName(newLineName, fallbackLineName(lines.size() - 1));
+            lineNames.add(assignedName);
+            lineAssignedNames.add(assignedName);
             index = lines.size() - 1;
         } else if (newLineName != null && !newLineName.isBlank() && !lineNames.get(index).equals(newLineName)) {
-            lineNames.set(index, newLineName);
+            lineNames.set(index, validLineName(newLineName, lineAssignedNames.get(index)));
         }
         String selectedName = lineNames.get(index);
         boolean changed = !lineId.equals(newLineId) || lineIndex != index || !lineName.equals(selectedName);
@@ -743,6 +785,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (lines.isEmpty()) {
             lines.add(lineId);
             lineNames.add(lineName);
+            lineAssignedNames.add(lineName);
             lineIndex = 0;
             return;
         }
@@ -757,15 +800,27 @@ public class SkyNodeBlockEntity extends BlockEntity {
         lineName = lineNames.get(lineIndex);
     }
 
+    private String localAssignedLineName() {
+        ensureLineList();
+        return lineAssignedNames.get(Math.max(0, Math.min(lineIndex, lineAssignedNames.size() - 1)));
+    }
+
     private void normalizeLineNames() {
         while (lineNames.size() < lines.size()) {
             lineNames.add(fallbackLineName(lineNames.size()));
         }
+        while (lineAssignedNames.size() < lines.size()) {
+            lineAssignedNames.add(lineNames.get(lineAssignedNames.size()));
+        }
         while (lineNames.size() > lines.size()) {
             lineNames.remove(lineNames.size() - 1);
         }
+        while (lineAssignedNames.size() > lines.size()) {
+            lineAssignedNames.remove(lineAssignedNames.size() - 1);
+        }
         for (int i = 0; i < lineNames.size(); i++) {
-            lineNames.set(i, validLineName(lineNames.get(i), fallbackLineName(i)));
+            lineAssignedNames.set(i, validLineName(lineAssignedNames.get(i), fallbackLineName(i)));
+            lineNames.set(i, validLineName(lineNames.get(i), lineAssignedNames.get(i)));
         }
     }
 
@@ -777,7 +832,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             if (i == replacingIndex) {
                 continue;
             }
-            String name = lineNames.get(i);
+            String name = lineAssignedNames.get(i);
             if (!name.startsWith(marker)) {
                 continue;
             }
@@ -791,7 +846,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private static String validLineName(String name, String fallback) {
-        return name == null || name.isBlank() ? fallback : name;
+        String clean = name == null ? "" : name.trim().replaceAll("\\s+", " ");
+        if (clean.isBlank()) {
+            clean = fallback == null ? "" : fallback.trim().replaceAll("\\s+", " ");
+        }
+        return clean.length() > MAX_LINE_NAME_LENGTH ? clean.substring(0, MAX_LINE_NAME_LENGTH) : clean;
     }
 
     private static String fallbackLineName(int index) {
@@ -912,7 +971,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
         for (int i = 0; i < lines.size(); i++) {
             CompoundTag entry = new CompoundTag();
             entry.putUUID(LINE_ENTRY_ID_TAG, lines.get(i));
-            entry.putString(LINE_ENTRY_NAME_TAG, validLineName(lineNames.get(i), fallbackLineName(i)));
+            String assignedName = validLineName(lineAssignedNames.get(i), fallbackLineName(i));
+            entry.putString(LINE_ENTRY_NAME_TAG, validLineName(lineNames.get(i), assignedName));
+            entry.putString(LINE_ENTRY_ASSIGNED_NAME_TAG, assignedName);
             lineTags.add(entry);
         }
         tag.put(LINES_TAG, lineTags);
@@ -978,6 +1039,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         lines.clear();
         lineNames.clear();
+        lineAssignedNames.clear();
         if (tag.contains(LINES_TAG, Tag.TAG_LIST)) {
             ListTag lineTags = tag.getList(LINES_TAG, Tag.TAG_COMPOUND);
             for (int i = 0; i < lineTags.size(); i++) {
@@ -986,10 +1048,17 @@ public class SkyNodeBlockEntity extends BlockEntity {
                     UUID savedLineId = entry.getUUID(LINE_ENTRY_ID_TAG);
                     if (!lines.contains(savedLineId)) {
                         lines.add(savedLineId);
+                        String savedAssignedName = entry.contains(LINE_ENTRY_ASSIGNED_NAME_TAG, Tag.TAG_STRING)
+                                ? entry.getString(LINE_ENTRY_ASSIGNED_NAME_TAG)
+                                : (entry.contains(LINE_ENTRY_NAME_TAG, Tag.TAG_STRING)
+                                        ? entry.getString(LINE_ENTRY_NAME_TAG)
+                                        : fallbackLineName(lineAssignedNames.size()));
+                        savedAssignedName = validLineName(savedAssignedName, fallbackLineName(lineAssignedNames.size()));
                         String savedLineName = entry.contains(LINE_ENTRY_NAME_TAG, Tag.TAG_STRING)
                                 ? entry.getString(LINE_ENTRY_NAME_TAG)
-                                : fallbackLineName(lineNames.size());
-                        lineNames.add(validLineName(savedLineName, fallbackLineName(lineNames.size())));
+                                : savedAssignedName;
+                        lineNames.add(validLineName(savedLineName, savedAssignedName));
+                        lineAssignedNames.add(savedAssignedName);
                     }
                 }
             }
@@ -997,6 +1066,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (lines.isEmpty()) {
             lines.add(lineId);
             lineNames.add(lineName);
+            lineAssignedNames.add(lineName);
         }
         normalizeLineNames();
         lineIndex = tag.contains(LINE_INDEX_TAG) ? tag.getInt(LINE_INDEX_TAG) : 0;
@@ -1009,6 +1079,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (activeLine < 0) {
             lines.add(lineId);
             lineNames.add(lineName);
+            lineAssignedNames.add(lineName);
             activeLine = lines.size() - 1;
         }
         lineIndex = Math.max(0, Math.min(activeLine, lines.size() - 1));
@@ -1106,6 +1177,13 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     private void markPriorityChanged() {
         markChanged(ChangeKind.PRIORITY);
+    }
+
+    private void markLineNameChanged() {
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
     }
 
     private void markCompositeChanged(boolean topologyChanged, boolean priorityChanged, boolean runtimeChanged) {

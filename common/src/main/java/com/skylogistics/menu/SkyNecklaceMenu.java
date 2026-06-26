@@ -3,6 +3,7 @@ package com.skylogistics.menu;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModItems;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
@@ -152,6 +153,25 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         broadcastChanges();
     }
 
+    public void renameCurrentLine(Player player, String lineName) {
+        ItemStack stack = necklace();
+        if (!stack.is(ModItems.SKY_NECKLACE.get())) {
+            return;
+        }
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        if (!player.level().isClientSide && player.level().getServer() != null) {
+            SkyNetworkRegistry.renameLine(player.level().getServer(), config.lineId(), lineName,
+                    ConfiguratorItem.assignedLineName(stack));
+        }
+        broadcastChanges();
+    }
+
+    @Override
+    public void broadcastChanges() {
+        syncCurrentLineName();
+        super.broadcastChanges();
+    }
+
     private void setFilter(ItemStack filter) {
         ItemStack stack = necklace();
         if (!stack.is(ModItems.SKY_NECKLACE.get())) {
@@ -170,6 +190,18 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     private ItemStack necklace() {
         return player.getItemInHand(hand);
+    }
+
+    private void syncCurrentLineName() {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ItemStack stack = necklace();
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
+        if (config != null) {
+            SkyNetworkRegistry.syncLineName(serverPlayer, config.lineId(),
+                    ConfiguratorItem.assignedLineName(stack), config.lineName());
+        }
     }
 
     private void syncHeldStack(ItemStack stack) {

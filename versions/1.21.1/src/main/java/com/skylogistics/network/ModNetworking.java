@@ -26,10 +26,16 @@ public final class ModNetworking {
                 ConfiguratorLineDetailsPacket::handle);
         registrar.playToServer(VaultTerminalClickPacket.TYPE, VaultTerminalClickPacket.STREAM_CODEC,
                 VaultTerminalClickPacket::handle);
+        registrar.playToServer(LineRenamePacket.TYPE, LineRenamePacket.STREAM_CODEC, LineRenamePacket::handle);
+        registrar.playToClient(LineNamePacket.TYPE, LineNamePacket.STREAM_CODEC, LineNamePacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         PacketDistributor.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendLineRename(String lineName) {
+        PacketDistributor.sendToServer(new LineRenamePacket(lineName));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {

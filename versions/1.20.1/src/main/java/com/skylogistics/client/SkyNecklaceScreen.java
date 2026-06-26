@@ -7,16 +7,23 @@ import com.skylogistics.menu.SkyNecklaceMenu;
 import com.skylogistics.network.ModNetworking;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.lwjgl.glfw.GLFW;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
+    private static final int LINE_NAME_EDIT_X = 112;
+    private static final int LINE_NAME_EDIT_Y = 7;
+    private static final int LINE_NAME_EDIT_WIDTH = 128;
+    private static final int LINE_NAME_EDIT_HEIGHT = 16;
     private static final int TITLE_ROW_Y = 12;
     private static final int LINE_ROW_Y = 36;
     private static final int LINE_BUTTON_ROW_Y = 31;
@@ -37,6 +44,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<InsertSlotsButton> insertSlotsButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
+    private EditBox lineNameEdit;
+    private boolean lineNameEditWasFocused;
+    private UUID lineNameEditLine;
 
     public SkyNecklaceScreen(SkyNecklaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -57,6 +67,13 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         addLineButton(leftPos + 164, topPos + LINE_BUTTON_ROW_Y, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
         addLineButton(leftPos + 191, topPos + LINE_BUTTON_ROW_Y, 22, Component.literal(">|"), MenuAction.LINE_LAST);
         addLineButton(leftPos + 216, topPos + LINE_BUTTON_ROW_Y, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
+                LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
+                Component.translatable("screen.skylogistics.line_name"));
+        lineNameEdit.setMaxLength(48);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        addRenderableWidget(lineNameEdit);
         addModeButton(leftPos + 54, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.EXTRACT,
                 MenuAction.MODE_EXTRACT);
         addModeButton(leftPos + 130, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.INSERT,
@@ -104,6 +121,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         for (LineButton button : lineButtons) {
             button.refresh(index, count);
         }
+        refreshLineNameEdit(ConfiguratorItem.read(stack));
         for (ModeButton button : modeButtons) {
             button.refresh(SkyNecklaceItem.mode(stack));
         }
@@ -139,9 +157,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         } else {
             int lineIndex = ConfiguratorItem.lineIndex(stack) + 1;
             int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack));
-            graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
-                            config.lineName())
-                    .append(Component.literal(" " + lineIndex + "/" + lineCount)),
+            graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                     14, LINE_ROW_Y, ConfigPanel.TEXT, false);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.mode_label"),
@@ -177,6 +193,77 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         super.renderTooltip(graphics, x, y);
     }
 
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (lineNameEdit != null && lineNameEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            commitLineNameEdit();
+            lineNameEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void removed() {
+        commitLineNameEdit();
+        super.removed();
+    }
+
+    private void refreshLineNameEdit(ConfiguratorItem.ToolConfig currentConfig) {
+        if (lineNameEdit == null) {
+            return;
+        }
+        boolean focused = lineNameEdit.isFocused();
+        if (lineNameEditWasFocused && !focused) {
+            commitLineNameEdit();
+            currentConfig = ConfiguratorItem.read(stack());
+            focused = lineNameEdit.isFocused();
+        }
+        lineNameEditWasFocused = focused;
+        lineNameEdit.visible = currentConfig != null;
+        lineNameEdit.active = currentConfig != null;
+        if (currentConfig == null) {
+            lineNameEditLine = null;
+            lineNameEdit.setValue("");
+            return;
+        }
+        String displayName = displayLineName(currentConfig);
+        if (!focused && (!currentConfig.lineId().equals(lineNameEditLine)
+                || !lineNameEdit.getValue().equals(displayName))) {
+            lineNameEditLine = currentConfig.lineId();
+            lineNameEdit.setValue(displayName);
+        }
+    }
+
+    private void commitLineNameEdit() {
+        if (lineNameEdit == null) {
+            return;
+        }
+        ConfiguratorItem.ToolConfig currentConfig = ConfiguratorItem.read(stack());
+        if (currentConfig == null) {
+            return;
+        }
+        String oldName = displayLineName(currentConfig);
+        String assignedName = assignedLineName(currentConfig);
+        String newName = ClientLineNames.editedName(currentConfig.lineId(), lineNameEdit.getValue(), assignedName);
+        ClientLineNames.apply(currentConfig.lineId(), assignedName, newName);
+        lineNameEditLine = currentConfig.lineId();
+        lineNameEdit.setValue(newName);
+        if (!oldName.equals(newName)) {
+            ModNetworking.sendLineRename(lineNameEdit.getValue());
+        }
+    }
+
+    private String displayLineName(ConfiguratorItem.ToolConfig config) {
+        return ClientLineNames.displayName(config.lineId(), config.lineName());
+    }
+
+    private String assignedLineName(ConfiguratorItem.ToolConfig config) {
+        return ClientLineNames.assignedName(config.lineId(), ConfiguratorItem.assignedLineName(stack()));
+    }
+
     private boolean isMouseOverInsertSlotsLabel(int x, int y) {
         Component label = Component.translatable("screen.skylogistics.sky_necklace.insert_slots");
         int labelY = INSERT_SLOTS_ROW_Y + 6;
@@ -200,7 +287,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
     }
 
-    private static final class LineButton extends AbstractButton {
+    private final class LineButton extends AbstractButton {
         private final int action;
 
         private LineButton(int x, int y, int width, Component message, int action) {
@@ -220,6 +307,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         @Override
         public void onPress() {
             if (active) {
+                commitLineNameEdit();
                 ModNetworking.sendMenuAction(action);
             }
         }

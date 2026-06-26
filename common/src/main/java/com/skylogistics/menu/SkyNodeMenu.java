@@ -1,6 +1,7 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
@@ -9,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -18,9 +20,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class SkyNodeMenu extends AbstractContainerMenu {
-    public static final int UPGRADE_ROW_Y = 164;
+    public static final int UPGRADE_ROW_Y = 153;
+    public static final int FACE_FILTER_SLOT_X = 176;
+    public static final int FACE_FILTER_ROW_Y = 126;
+    private static final int UPGRADE_SLOT_X = 78;
+    private static final int PLAYER_INVENTORY_X = 46;
+    private static final int PLAYER_INVENTORY_Y = 179;
 
     private final BlockPos pos;
+    private final Player player;
     private final boolean openedWithConfigurator;
     private final NodeUpgradeContainer upgradeContainer;
     private final FaceFilterContainer faceFilterContainer;
@@ -35,6 +43,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             InteractionHand ignoredConfiguratorHand) {
         super(ModMenus.SKY_NODE.get(), containerId);
         this.pos = pos;
+        this.player = inventory.player;
         this.openedWithConfigurator = openedWithConfigurator;
         this.upgradeContainer = new NodeUpgradeContainer(inventory.player, pos);
         this.faceFilterContainer = new FaceFilterContainer(inventory.player, pos, this);
@@ -55,7 +64,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
             int slotIndex = slot;
-            addSlot(new Slot(faceFilterContainer, slotIndex, 176 + slot * 20, 112) {
+            addSlot(new Slot(faceFilterContainer, slotIndex, FACE_FILTER_SLOT_X + slot * 20, FACE_FILTER_ROW_Y) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;
@@ -77,11 +86,11 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, 46, 190);
+        addPlayerInventory(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
     }
 
     public static int upgradeSlotX(boolean openedWithConfigurator) {
-        return 82;
+        return UPGRADE_SLOT_X;
     }
 
     public BlockPos getPos() {
@@ -205,6 +214,18 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             broadcastChanges();
             return;
         }
+        face = faceForAction(action, MenuAction.FACE_PRIORITY_DOWN_FAST_BASE);
+        if (face != null) {
+            node.adjustPriority(face, -10);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_PRIORITY_UP_FAST_BASE);
+        if (face != null) {
+            node.adjustPriority(face, 10);
+            broadcastChanges();
+            return;
+        }
         face = faceForAction(action, MenuAction.FACE_REDSTONE_BASE);
         if (face != null) {
             node.cycleRedstoneControl(face);
@@ -232,6 +253,35 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             }
         }
         broadcastChanges();
+    }
+
+    public void renameCurrentLine(Player player, String lineName) {
+        BlockEntity blockEntity = player.level().getBlockEntity(pos);
+        if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+            return;
+        }
+        if (!player.level().isClientSide && player.level().getServer() != null) {
+            SkyNetworkRegistry.renameLine(player.level().getServer(), node.getLineId(), lineName,
+                    node.getAssignedLineName());
+        }
+        broadcastChanges();
+    }
+
+    @Override
+    public void broadcastChanges() {
+        syncCurrentLineName();
+        super.broadcastChanges();
+    }
+
+    private void syncCurrentLineName() {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        BlockEntity blockEntity = player.level().getBlockEntity(pos);
+        if (blockEntity instanceof SkyNodeBlockEntity node) {
+            SkyNetworkRegistry.syncLineName(serverPlayer, node.getLineId(), node.getAssignedLineName(),
+                    node.getLineName());
+        }
     }
 
     private static Direction faceForAction(int action, int base) {

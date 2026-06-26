@@ -55,7 +55,9 @@ public class ConfiguratorItem extends Item {
     private static final String LINE_ENTRY_ID = "Id";
     private static final String LINE_NAME = "LineName";
     private static final String LINE_ENTRY_NAME = "Name";
+    private static final String LINE_ENTRY_ASSIGNED_NAME = "AssignedName";
     private static final String FALLBACK_LINE_PREFIX = "Line";
+    private static final int MAX_LINE_NAME_LENGTH = 48;
 
     public ConfiguratorItem(Properties properties) {
         super(properties);
@@ -317,6 +319,18 @@ public class ConfiguratorItem extends Item {
         return config;
     }
 
+    public static String assignedLineName(ItemStack stack) {
+        CompoundTag tag = StackData.get(stack);
+        if (tag == null) {
+            return fallbackLineName(0);
+        }
+        List<LineEntry> lines = readLineEntries(tag);
+        if (lines.isEmpty()) {
+            return fallbackLineName(0);
+        }
+        return lines.get(currentLineIndex(tag, lines)).assignedName();
+    }
+
     public static int lineIndex(ItemStack stack) {
         CompoundTag tag = StackData.get(stack);
         if (tag == null) {
@@ -406,10 +420,12 @@ public class ConfiguratorItem extends Item {
         List<LineEntry> lines = readLineEntries(tag);
         int index = indexOfLine(lines, lineId);
         if (index < 0) {
-            lines.add(new LineEntry(lineId, validLineName(lineName, fallbackLineName(lines.size()))));
+            String assignedName = validLineName(lineName, fallbackLineName(lines.size()));
+            lines.add(new LineEntry(lineId, assignedName, assignedName));
             index = lines.size() - 1;
         } else if (lines.get(index).name().isBlank() || lines.get(index).name().startsWith(FALLBACK_LINE_PREFIX + "-")) {
-            lines.set(index, new LineEntry(lineId, validLineName(lineName, fallbackLineName(index))));
+            String assignedName = lines.get(index).assignedName();
+            lines.set(index, new LineEntry(lineId, validLineName(lineName, assignedName), assignedName));
         }
         writeLineList(tag, lines, index);
     }
@@ -423,10 +439,16 @@ public class ConfiguratorItem extends Item {
                 if (entry.hasUUID(LINE_ENTRY_ID)) {
                     UUID lineId = entry.getUUID(LINE_ENTRY_ID);
                     if (indexOfLine(lines, lineId) < 0) {
+                        String assignedName = entry.contains(LINE_ENTRY_ASSIGNED_NAME, Tag.TAG_STRING)
+                                ? entry.getString(LINE_ENTRY_ASSIGNED_NAME)
+                                : (entry.contains(LINE_ENTRY_NAME, Tag.TAG_STRING)
+                                        ? entry.getString(LINE_ENTRY_NAME)
+                                        : fallbackLineName(lines.size()));
+                        assignedName = validLineName(assignedName, fallbackLineName(lines.size()));
                         String name = entry.contains(LINE_ENTRY_NAME, Tag.TAG_STRING)
                                 ? entry.getString(LINE_ENTRY_NAME)
-                                : fallbackLineName(lines.size());
-                        lines.add(new LineEntry(lineId, validLineName(name, fallbackLineName(lines.size()))));
+                                : assignedName;
+                        lines.add(new LineEntry(lineId, validLineName(name, assignedName), assignedName));
                     }
                 }
             }
@@ -435,7 +457,8 @@ public class ConfiguratorItem extends Item {
             String name = tag.contains(LINE_NAME, Tag.TAG_STRING)
                     ? tag.getString(LINE_NAME)
                     : fallbackLineName(0);
-            lines.add(new LineEntry(tag.getUUID(LINE_ID), validLineName(name, fallbackLineName(0))));
+            String assignedName = validLineName(name, fallbackLineName(0));
+            lines.add(new LineEntry(tag.getUUID(LINE_ID), validLineName(name, assignedName), assignedName));
         }
         if (lines.isEmpty()) {
             lines.add(createLine(FALLBACK_LINE_PREFIX, List.of()));
@@ -465,13 +488,15 @@ public class ConfiguratorItem extends Item {
             LineEntry line = lines.get(i);
             CompoundTag entry = new CompoundTag();
             entry.putUUID(LINE_ENTRY_ID, line.id());
-            entry.putString(LINE_ENTRY_NAME, validLineName(line.name(), fallbackLineName(i)));
+            String assignedName = validLineName(line.assignedName(), fallbackLineName(i));
+            entry.putString(LINE_ENTRY_NAME, validLineName(line.name(), assignedName));
+            entry.putString(LINE_ENTRY_ASSIGNED_NAME, assignedName);
             list.add(entry);
         }
         tag.put(LINES, list);
         tag.putInt(LINE_INDEX, clamped);
         tag.putUUID(LINE_ID, lines.get(clamped).id());
-        tag.putString(LINE_NAME, validLineName(lines.get(clamped).name(), fallbackLineName(clamped)));
+        tag.putString(LINE_NAME, validLineName(lines.get(clamped).name(), lines.get(clamped).assignedName()));
         rememberLineBindings(tag, lines);
     }
 
@@ -481,9 +506,9 @@ public class ConfiguratorItem extends Item {
         boolean changed = false;
         for (int i = 0; i < lines.size(); i++) {
             LineEntry line = lines.get(i);
-            if (line.name().startsWith(FALLBACK_LINE_PREFIX + "-")) {
+            if (line.assignedName().startsWith(FALLBACK_LINE_PREFIX + "-")) {
                 String name = nextLineName(prefix, lines, i);
-                lines.set(i, new LineEntry(lineIdForName(name), name));
+                lines.set(i, new LineEntry(lineIdForName(name), name, name));
                 changed = true;
             }
         }
@@ -495,8 +520,8 @@ public class ConfiguratorItem extends Item {
     }
 
     private static LineEntry createLine(String prefix, List<LineEntry> existing) {
-        String name = nextLineName(prefix, existing, -1);
-        return new LineEntry(lineIdForName(name), name);
+        String assignedName = nextLineName(prefix, existing, -1);
+        return new LineEntry(lineIdForName(assignedName), assignedName, assignedName);
     }
 
     private static void rememberKnownLineBindings(ItemStack stack) {
@@ -506,15 +531,18 @@ public class ConfiguratorItem extends Item {
     }
 
     private static LineEntry createLine(CompoundTag tag, String prefix, List<LineEntry> existing) {
-        String name = nextLineName(prefix, existing, -1);
-        LineEntry line = new LineEntry(lineIdForName(name), name);
+        String assignedName = nextLineName(prefix, existing, -1);
+        LineEntry bound = lineBinding(tag, assignedName);
+        LineEntry line = bound == null
+                ? new LineEntry(lineIdForName(assignedName), assignedName, assignedName)
+                : bound;
         rememberLineBinding(tag, line);
         return line;
     }
 
-    private static LineEntry lineBinding(CompoundTag tag, String name) {
+    private static LineEntry lineBinding(CompoundTag tag, String assignedName) {
         List<LineEntry> bindings = readLineBindings(tag);
-        int index = indexOfLineName(bindings, name);
+        int index = indexOfLineAssignedName(bindings, assignedName);
         return index < 0 ? null : bindings.get(index);
     }
 
@@ -529,9 +557,13 @@ public class ConfiguratorItem extends Item {
             if (!entry.hasUUID(LINE_ENTRY_ID) || !entry.contains(LINE_ENTRY_NAME, Tag.TAG_STRING)) {
                 continue;
             }
-            String name = validLineName(entry.getString(LINE_ENTRY_NAME), "");
-            if (!name.isBlank() && indexOfLineName(bindings, name) < 0) {
-                bindings.add(new LineEntry(entry.getUUID(LINE_ENTRY_ID), name));
+            String assignedName = entry.contains(LINE_ENTRY_ASSIGNED_NAME, Tag.TAG_STRING)
+                    ? entry.getString(LINE_ENTRY_ASSIGNED_NAME)
+                    : entry.getString(LINE_ENTRY_NAME);
+            assignedName = validLineName(assignedName, "");
+            String name = validLineName(entry.getString(LINE_ENTRY_NAME), assignedName);
+            if (!assignedName.isBlank() && indexOfLineAssignedName(bindings, assignedName) < 0) {
+                bindings.add(new LineEntry(entry.getUUID(LINE_ENTRY_ID), name, assignedName));
             }
         }
         return bindings;
@@ -546,8 +578,17 @@ public class ConfiguratorItem extends Item {
         boolean changed = false;
         for (LineEntry line : lines) {
             String name = validLineName(line.name(), "");
-            if (!name.isBlank() && indexOfLineName(bindings, name) < 0) {
-                bindings.add(new LineEntry(line.id(), name));
+            String assignedName = validLineName(line.assignedName(), "");
+            if (assignedName.isBlank()) {
+                continue;
+            }
+            int index = indexOfLineAssignedName(bindings, assignedName);
+            LineEntry remembered = new LineEntry(line.id(), name, assignedName);
+            if (index < 0) {
+                bindings.add(remembered);
+                changed = true;
+            } else if (!bindings.get(index).equals(remembered)) {
+                bindings.set(index, remembered);
                 changed = true;
             }
         }
@@ -559,13 +600,15 @@ public class ConfiguratorItem extends Item {
     private static void writeLineBindings(CompoundTag tag, List<LineEntry> bindings) {
         ListTag list = new ListTag();
         for (LineEntry binding : bindings) {
-            String name = validLineName(binding.name(), "");
-            if (name.isBlank()) {
+            String assignedName = validLineName(binding.assignedName(), "");
+            if (assignedName.isBlank()) {
                 continue;
             }
+            String name = validLineName(binding.name(), assignedName);
             CompoundTag entry = new CompoundTag();
             entry.putUUID(LINE_ENTRY_ID, binding.id());
             entry.putString(LINE_ENTRY_NAME, name);
+            entry.putString(LINE_ENTRY_ASSIGNED_NAME, assignedName);
             list.add(entry);
         }
         tag.put(LINE_BINDINGS, list);
@@ -579,7 +622,7 @@ public class ConfiguratorItem extends Item {
             if (i == replacingIndex) {
                 continue;
             }
-            String name = existing.get(i).name();
+            String name = existing.get(i).assignedName();
             if (name.startsWith(marker)) {
                 try {
                     int suffix = Integer.parseInt(name.substring(marker.length()));
@@ -608,11 +651,15 @@ public class ConfiguratorItem extends Item {
 
     private static String lineName(List<LineEntry> lines, UUID lineId) {
         int index = indexOfLine(lines, lineId);
-        return index < 0 ? fallbackLineName(0) : validLineName(lines.get(index).name(), fallbackLineName(index));
+        return index < 0 ? fallbackLineName(0) : validLineName(lines.get(index).name(), lines.get(index).assignedName());
     }
 
     private static String validLineName(String name, String fallback) {
-        return name == null || name.isBlank() ? fallback : name;
+        String clean = name == null ? "" : name.trim().replaceAll("\\s+", " ");
+        if (clean.isBlank()) {
+            clean = fallback == null ? "" : fallback.trim().replaceAll("\\s+", " ");
+        }
+        return clean.length() > MAX_LINE_NAME_LENGTH ? clean.substring(0, MAX_LINE_NAME_LENGTH) : clean;
     }
 
     private static String fallbackLineName(int index) {
@@ -637,7 +684,16 @@ public class ConfiguratorItem extends Item {
         return -1;
     }
 
-    private record LineEntry(UUID id, String name) {
+    private static int indexOfLineAssignedName(List<LineEntry> lines, String assignedName) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).assignedName().equals(assignedName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private record LineEntry(UUID id, String name, String assignedName) {
     }
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,

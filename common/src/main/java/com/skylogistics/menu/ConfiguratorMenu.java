@@ -141,6 +141,21 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         broadcastChanges();
     }
 
+    public void renameCurrentLine(Player player, String lineName) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+            return;
+        }
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        if (!player.level().isClientSide && player.level().getServer() != null) {
+            SkyNetworkRegistry.renameLine(player.level().getServer(), config.lineId(), lineName,
+                    ConfiguratorItem.assignedLineName(stack));
+        }
+        refreshLineStats();
+        syncLineDetails(true);
+        broadcastChanges();
+    }
+
     @Override
     public void broadcastChanges() {
         refreshLineStats();
@@ -212,6 +227,8 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
                     detail.fluidsEnabled(), detail.energyEnabled(), detail.redstoneControl(), detail.priority()));
         }
         ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorLineDetailsPacket(config.lineId(), entries));
+        SkyNetworkRegistry.syncLineName(serverPlayer, config.lineId(),
+                ConfiguratorItem.assignedLineName(stack), config.lineName());
         lastDetailLine = config.lineId();
         lastDetailSyncTime = gameTime;
     }

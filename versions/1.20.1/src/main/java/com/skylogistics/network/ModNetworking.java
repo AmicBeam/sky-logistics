@@ -34,10 +34,18 @@ public final class ModNetworking {
                 ConfiguratorLineDetailsPacket::decode, ConfiguratorLineDetailsPacket::handle);
         CHANNEL.registerMessage(5, VaultTerminalClickPacket.class, VaultTerminalClickPacket::encode,
                 VaultTerminalClickPacket::decode, VaultTerminalClickPacket::handle);
+        CHANNEL.registerMessage(6, LineRenamePacket.class, LineRenamePacket::encode, LineRenamePacket::decode,
+                LineRenamePacket::handle);
+        CHANNEL.registerMessage(7, LineNamePacket.class, LineNamePacket::encode, LineNamePacket::decode,
+                LineNamePacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         CHANNEL.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendLineRename(String lineName) {
+        CHANNEL.sendToServer(new LineRenamePacket(lineName));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {

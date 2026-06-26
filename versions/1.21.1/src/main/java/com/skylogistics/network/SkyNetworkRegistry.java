@@ -27,6 +27,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.item.ItemStack;
@@ -171,6 +172,48 @@ public final class SkyNetworkRegistry {
         inputs += SkyNecklaceTicker.activeExtractorCount(lineId);
         outputs += SkyNecklaceTicker.activeInserterCount(lineId);
         return new LineStats(nodes, inputs, outputs);
+    }
+
+    public static synchronized void renameLine(MinecraftServer server, UUID lineId, String lineName) {
+        renameLine(server, lineId, lineName, lineName);
+    }
+
+    public static synchronized void renameLine(MinecraftServer server, UUID lineId, String lineName,
+            String assignedFallback) {
+        if (server == null || lineId == null) {
+            return;
+        }
+        SkyLineNames.Entry line = SkyLineNames.rename(server, lineId, lineName, assignedFallback);
+        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
+            ServerLevel level = server.getLevel(entry.getKey());
+            if (level == null) {
+                continue;
+            }
+            for (BlockPos pos : entry.getValue().nodes) {
+                if (!level.isLoaded(pos)) {
+                    continue;
+                }
+                BlockEntity blockEntity = level.getBlockEntity(pos);
+                if (blockEntity instanceof SkyNodeBlockEntity node) {
+                    node.lineNameChanged(lineId);
+                }
+            }
+        }
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            ModNetworking.sendToPlayer(player, new LineNamePacket(lineId, line.assignedName(), line.displayName()));
+        }
+    }
+
+    public static void syncLineName(ServerPlayer player, UUID lineId, String assignedFallback) {
+        syncLineName(player, lineId, assignedFallback, assignedFallback);
+    }
+
+    public static void syncLineName(ServerPlayer player, UUID lineId, String assignedFallback, String displayFallback) {
+        if (player == null || lineId == null || player.server == null) {
+            return;
+        }
+        SkyLineNames.Entry line = SkyLineNames.ensure(player.server, lineId, assignedFallback, displayFallback);
+        ModNetworking.sendToPlayer(player, new LineNamePacket(lineId, line.assignedName(), line.displayName()));
     }
 
     public static synchronized List<CachedEndpoint> lineItemOutputs(MinecraftServer server,

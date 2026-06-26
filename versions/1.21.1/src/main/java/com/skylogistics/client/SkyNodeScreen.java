@@ -9,9 +9,11 @@ import com.skylogistics.util.NodeFaceMode;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Direction;
@@ -21,11 +23,27 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.lwjgl.glfw.GLFW;
 
 public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
+    private static final int LINE_NAME_EDIT_X = 112;
+    private static final int LINE_NAME_EDIT_Y = 7;
+    private static final int LINE_NAME_EDIT_WIDTH = 128;
+    private static final int LINE_NAME_EDIT_HEIGHT = 16;
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
+    private static final int FIRST_DETAIL_ROW_Y = 100;
+    private static final int SECOND_DETAIL_ROW_Y = 126;
+    private static final int DETAIL_LABEL_OFFSET_Y = 6;
+    private static final int ADVANCED_CONTROL_X = 62;
+    private static final int ADVANCED_CONTROL_WIDTH = 86;
+    private static final int PRIORITY_BUTTON_WIDTH = 20;
+    private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
+    private static final int PRIORITY_UP_X = 128;
+    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
+    private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
+    private static final int MORE_BUTTON_X = 162;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -37,13 +55,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private Boolean localEnergyEnabled;
     private Direction selectedFace = Direction.NORTH;
     private MoreButton moreButton;
+    private EditBox lineNameEdit;
+    private boolean lineNameEditWasFocused;
+    private UUID lineNameEditLine;
     private boolean advancedPanel;
 
     public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = 276;
-        inventoryLabelY = 180;
+        imageHeight = 265;
+        inventoryLabelY = 169;
     }
 
     @Override
@@ -64,6 +85,13 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
         addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
         addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
+                LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
+                Component.translatable("screen.skylogistics.line_name"));
+        lineNameEdit.setMaxLength(48);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        addRenderableWidget(lineNameEdit);
 
         int x = leftPos + 14;
         int y = topPos + 48;
@@ -83,14 +111,14 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 Component.translatable("button.skylogistics.extract"));
         addModeButton(leftPos + 162, topPos + 126, 48, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
-        int upgradeX = SkyNodeMenu.upgradeSlotX(menu.isOpenedWithConfigurator());
         int moreWidth = 48;
-        moreButton = new MoreButton(leftPos + upgradeX + SkyNodeBlockEntity.UPGRADE_SLOTS * 20 + 6,
-                topPos + SkyNodeMenu.UPGRADE_ROW_Y, moreWidth);
+        moreButton = new MoreButton(leftPos + MORE_BUTTON_X, topPos + SkyNodeMenu.UPGRADE_ROW_Y, moreWidth);
         addRenderableWidget(moreButton);
-        addAdvancedButton(new RedstoneButton(leftPos + 70, topPos + 112));
-        addAdvancedButton(new PriorityButton(leftPos + 70, topPos + 138, -1, Component.literal("-")));
-        addAdvancedButton(new PriorityButton(leftPos + 144, topPos + 138, 1, Component.literal("+")));
+        addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + FIRST_DETAIL_ROW_Y));
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + SECOND_DETAIL_ROW_Y,
+                -1, Component.literal("-")));
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + SECOND_DETAIL_ROW_Y,
+                1, Component.literal("+")));
 
     }
 
@@ -130,6 +158,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         for (LineButton button : lineButtons) {
             button.refresh(lineIndex, lineCount);
         }
+        refreshLineNameEdit(node);
         Direction firstSelectable = firstSelectableFace(node);
         if (!hasTargetBlock(node, selectedFace) && selectedFace != firstSelectable) {
             selectedFace = firstSelectable;
@@ -201,9 +230,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         int lineIndex = node.getLineIndex() + 1;
         int lineCount = Math.max(1, node.getLineCount());
-        graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
-                        node.getLineName())
-                .append(Component.literal(" " + lineIndex + "/" + lineCount)),
+        graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                 14, 34, ConfigPanel.TEXT, false);
 
         Direction face = selectedFace;
@@ -211,13 +238,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
         if (advancedPanel) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
-                    14, 118, ConfigPanel.MUTED, false);
+                    14, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.face_filters"),
-                    176, 100, ConfigPanel.MUTED, false);
+                    SkyNodeMenu.FACE_FILTER_SLOT_X, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                    14, 142, ConfigPanel.MUTED, false);
-            graphics.drawString(font, Component.literal(String.valueOf(node.getPriority(face))),
-                    106, 142, ConfigPanel.TEXT, false);
+                    14, SECOND_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
+            graphics.drawCenteredString(font, Component.literal(String.valueOf(node.getPriority(face))),
+                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, SECOND_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.TEXT);
         } else {
             graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
                     14, 106, ConfigPanel.MUTED, false);
@@ -237,6 +266,73 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             return;
         }
         super.renderTooltip(graphics, x, y);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (lineNameEdit != null && lineNameEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            commitLineNameEdit();
+            lineNameEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void removed() {
+        commitLineNameEdit();
+        super.removed();
+    }
+
+    private void refreshLineNameEdit(SkyNodeBlockEntity node) {
+        if (lineNameEdit == null) {
+            return;
+        }
+        boolean focused = lineNameEdit.isFocused();
+        if (lineNameEditWasFocused && !focused) {
+            commitLineNameEdit();
+            node = node();
+            focused = lineNameEdit.isFocused();
+        }
+        lineNameEditWasFocused = focused;
+        lineNameEdit.visible = node != null;
+        lineNameEdit.active = node != null;
+        if (node == null) {
+            lineNameEditLine = null;
+            lineNameEdit.setValue("");
+            return;
+        }
+        String displayName = displayLineName(node);
+        if (!focused && (!node.getLineId().equals(lineNameEditLine)
+                || !lineNameEdit.getValue().equals(displayName))) {
+            lineNameEditLine = node.getLineId();
+            lineNameEdit.setValue(displayName);
+        }
+    }
+
+    private void commitLineNameEdit() {
+        if (lineNameEdit == null) {
+            return;
+        }
+        SkyNodeBlockEntity node = node();
+        if (node == null) {
+            return;
+        }
+        String oldName = displayLineName(node);
+        String assignedName = node.getAssignedLineName();
+        String newName = ClientLineNames.editedName(node.getLineId(), lineNameEdit.getValue(), assignedName);
+        ClientLineNames.apply(node.getLineId(), assignedName, newName);
+        lineNameEditLine = node.getLineId();
+        lineNameEdit.setValue(newName);
+        if (!oldName.equals(newName)) {
+            ModNetworking.sendLineRename(lineNameEdit.getValue());
+        }
+    }
+
+    private String displayLineName(SkyNodeBlockEntity node) {
+        return ClientLineNames.displayName(node.getLineId(), node.getLineName());
     }
 
     private FaceButton hoveredFaceButton(double mouseX, double mouseY) {
@@ -398,6 +494,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         public void onPress() {
             if (active) {
+                commitLineNameEdit();
                 ModNetworking.sendMenuAction(action);
             }
         }
@@ -511,7 +608,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private final class RedstoneButton extends AdvancedButton {
         private RedstoneButton(int x, int y) {
-            super(x, y, 96, 18, Component.translatable("screen.skylogistics.redstone"));
+            super(x, y, ADVANCED_CONTROL_WIDTH, 18, Component.translatable("screen.skylogistics.redstone"));
         }
 
         @Override
@@ -531,16 +628,20 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final int delta;
 
         private PriorityButton(int x, int y, int delta, Component message) {
-            super(x, y, 22, 18, message);
+            super(x, y, PRIORITY_BUTTON_WIDTH, 18, message);
             this.delta = delta;
         }
 
         @Override
         public void onPress() {
             if (active) {
-                ModNetworking.sendMenuAction(delta < 0
-                        ? MenuAction.facePriorityDown(selectedFace)
-                        : MenuAction.facePriorityUp(selectedFace));
+                boolean fast = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+                int action = delta < 0
+                        ? (fast ? MenuAction.facePriorityDownFast(selectedFace)
+                                : MenuAction.facePriorityDown(selectedFace))
+                        : (fast ? MenuAction.facePriorityUpFast(selectedFace)
+                                : MenuAction.facePriorityUp(selectedFace));
+                ModNetworking.sendMenuAction(action);
             }
         }
     }

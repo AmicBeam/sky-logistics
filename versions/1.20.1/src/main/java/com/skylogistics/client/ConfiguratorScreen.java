@@ -14,6 +14,7 @@ import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
@@ -26,9 +27,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.lwjgl.glfw.GLFW;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
     private static final String SKY_NECKLACE_ID = "skylogistics:sky_necklace";
+    private static final int LINE_NAME_EDIT_X = 112;
+    private static final int LINE_NAME_EDIT_Y = 7;
+    private static final int LINE_NAME_EDIT_WIDTH = 128;
+    private static final int LINE_NAME_EDIT_HEIGHT = 16;
     private static final int DETAIL_X = 14;
     private static final int DETAIL_Y = 76;
     private static final int DETAIL_WIDTH = 226;
@@ -48,6 +54,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
     private RedstoneButton redstoneButton;
+    private EditBox lineNameEdit;
+    private boolean lineNameEditWasFocused;
+    private UUID lineNameEditLine;
     private UUID detailLine;
     private int detailScroll;
 
@@ -69,6 +78,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
         addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
         addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
+                LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
+                Component.translatable("screen.skylogistics.line_name"));
+        lineNameEdit.setMaxLength(48);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        addRenderableWidget(lineNameEdit);
 
         addTypeButton(leftPos + CONTROL_START_X, topPos + 166, ResourceType.ITEMS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 166, ResourceType.FLUIDS);
@@ -112,6 +128,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         for (LineButton button : lineButtons) {
             button.refresh(index, count);
         }
+        refreshLineNameEdit(currentConfig);
         for (TypeToggleButton button : typeButtons) {
             button.active = config() != null;
         }
@@ -156,9 +173,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         int lineIndex = ConfiguratorItem.lineIndex(stack()) + 1;
         int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack()));
-        graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
-                        config.lineName())
-                .append(Component.literal(" " + lineIndex + "/" + lineCount)),
+        graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                 14, 34, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_monitor",
                         menu.getLineNodes(), menu.getLineInputs(), menu.getLineOutputs()),
@@ -185,6 +200,77 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             }
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (lineNameEdit != null && lineNameEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            commitLineNameEdit();
+            lineNameEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void removed() {
+        commitLineNameEdit();
+        super.removed();
+    }
+
+    private void refreshLineNameEdit(ConfiguratorItem.ToolConfig currentConfig) {
+        if (lineNameEdit == null) {
+            return;
+        }
+        boolean focused = lineNameEdit.isFocused();
+        if (lineNameEditWasFocused && !focused) {
+            commitLineNameEdit();
+            currentConfig = config();
+            focused = lineNameEdit.isFocused();
+        }
+        lineNameEditWasFocused = focused;
+        lineNameEdit.visible = currentConfig != null;
+        lineNameEdit.active = currentConfig != null;
+        if (currentConfig == null) {
+            lineNameEditLine = null;
+            lineNameEdit.setValue("");
+            return;
+        }
+        String displayName = displayLineName(currentConfig);
+        if (!focused && (!currentConfig.lineId().equals(lineNameEditLine)
+                || !lineNameEdit.getValue().equals(displayName))) {
+            lineNameEditLine = currentConfig.lineId();
+            lineNameEdit.setValue(displayName);
+        }
+    }
+
+    private void commitLineNameEdit() {
+        if (lineNameEdit == null) {
+            return;
+        }
+        ConfiguratorItem.ToolConfig currentConfig = config();
+        if (currentConfig == null) {
+            return;
+        }
+        String oldName = displayLineName(currentConfig);
+        String assignedName = assignedLineName(currentConfig);
+        String newName = ClientLineNames.editedName(currentConfig.lineId(), lineNameEdit.getValue(), assignedName);
+        ClientLineNames.apply(currentConfig.lineId(), assignedName, newName);
+        lineNameEditLine = currentConfig.lineId();
+        lineNameEdit.setValue(newName);
+        if (!oldName.equals(newName)) {
+            ModNetworking.sendLineRename(lineNameEdit.getValue());
+        }
+    }
+
+    private String displayLineName(ConfiguratorItem.ToolConfig config) {
+        return ClientLineNames.displayName(config.lineId(), config.lineName());
+    }
+
+    private String assignedLineName(ConfiguratorItem.ToolConfig config) {
+        return ClientLineNames.assignedName(config.lineId(), ConfiguratorItem.assignedLineName(stack()));
     }
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
@@ -425,6 +511,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         public void onPress() {
             if (active) {
+                commitLineNameEdit();
                 previewAction(action);
                 ModNetworking.sendMenuAction(action);
             }
