@@ -147,8 +147,7 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static UUID lineId(ItemStack necklace) {
-        ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(necklace);
-        return config == null ? null : config.lineId();
+        return ConfiguratorItem.readLineId(necklace);
     }
 
     private static int clampInsertSlots(int slots) {

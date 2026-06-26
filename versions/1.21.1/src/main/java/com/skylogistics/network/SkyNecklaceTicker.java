@@ -23,7 +23,6 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 public final class SkyNecklaceTicker {
-    private static final int TICK_INTERVAL = 5;
     private static final Map<UUID, Integer> ACTIVE_EXTRACTORS = new HashMap<>();
     private static final Map<UUID, Integer> ACTIVE_INSERTERS = new HashMap<>();
     private static final Map<UUID, List<ActiveNecklaceDetail>> ACTIVE_DETAILS = new HashMap<>();
@@ -32,7 +31,11 @@ public final class SkyNecklaceTicker {
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
-        process(event.getServer());
+        MinecraftServer server = event.getServer();
+        if (server.overworld().getGameTime() % SkyLogisticsConfig.skyNecklaceTickInterval() != 0L) {
+            return;
+        }
+        process(server);
     }
 
     public static int activeExtractorCount(UUID lineId) {
@@ -55,7 +58,6 @@ public final class SkyNecklaceTicker {
 
     private static void process(MinecraftServer server) {
         long gameTime = server.overworld().getGameTime();
-        boolean moveThisTick = gameTime % TICK_INTERVAL == 0L;
         Map<UUID, Integer> activeExtractors = new HashMap<>();
         Map<UUID, Integer> activeInserters = new HashMap<>();
         Map<UUID, List<ActiveNecklaceDetail>> activeDetails = new HashMap<>();
@@ -75,7 +77,7 @@ public final class SkyNecklaceTicker {
                 activeInserters.merge(lineId, 1, Integer::sum);
             }
             activeDetails.computeIfAbsent(lineId, ignored -> new ArrayList<>()).add(activeDetail(player, mode));
-            FilterListItem.CompiledFilter itemWhitelist = moveThisTick ? itemWhitelist(necklace) : null;
+            FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(necklace);
             if (itemWhitelist != null) {
                 if (mode == SkyNecklaceItem.NecklaceMode.EXTRACT) {
                     tryExtract(player, lineId, itemWhitelist, gameTime);

@@ -219,6 +219,11 @@ public class ConfiguratorItem extends Item {
                 placement, faces, copiedFaces, tag.getBoolean(SPEED_UPGRADE), tag.getBoolean(DIMENSION_UPGRADE));
     }
 
+    public static UUID readLineId(ItemStack stack) {
+        CompoundTag tag = StackData.get(stack);
+        return tag != null && tag.hasUUID(LINE_ID) ? tag.getUUID(LINE_ID) : null;
+    }
+
     public static void writeConfig(ItemStack stack, ToolConfig config) {
         CompoundTag tag = StackData.getOrEmpty(stack);
         tag.putUUID(LINE_ID, config.lineId());

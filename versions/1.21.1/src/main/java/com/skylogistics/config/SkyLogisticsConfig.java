@@ -48,6 +48,10 @@ public final class SkyLogisticsConfig {
         return SERVER.preferredItemSlotCacheSize.get();
     }
 
+    public static int skyNecklaceTickInterval() {
+        return SERVER.skyNecklaceTickInterval.get();
+    }
+
     public static int skyRitualMinY() {
         return SERVER.skyRitualMinY.get();
     }
@@ -65,6 +69,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue endpointTargetAttempts;
         public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
+        public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
@@ -101,6 +106,12 @@ public final class SkyLogisticsConfig {
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
+            builder.pop();
+
+            builder.push("necklaces");
+            skyNecklaceTickInterval = builder
+                    .comment("Server ticks between Sky Necklace work scans. Higher values reduce player inventory and backpack scanning frequency.")
+                    .defineInRange("skyNecklaceTickInterval", 10, 1, 1200);
             builder.pop();
 
             builder.push("rituals");
