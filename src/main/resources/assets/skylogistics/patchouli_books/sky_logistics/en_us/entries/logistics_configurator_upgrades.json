@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Sky Configurator stores a line ID and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
+      "text": "The Sky Configurator stores a line name, line ID, and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
     },
     {
       "type": "patchouli:crafting",
@@ -27,8 +27,11 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "recipe2": "skylogistics:dimension_upgrade",
-      "text": "The dimension upgrade requires a Nether Star. It only needs to be installed on the extracting node."
+      "text": "Speed upgrades are still crafted at a crafting table."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender, 2 Ender Pearls, and 2 Chora Nectar on offering tables. Duration is 240 ticks. It only needs to be installed on the extracting node."
     }
   ]
 }

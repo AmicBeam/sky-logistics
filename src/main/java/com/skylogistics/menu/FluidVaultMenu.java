@@ -19,13 +19,17 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultMenu extends AbstractContainerMenu {
     private final BlockPos pos;
+    private final Inventory inventory;
+    private long lastSyncedVaultVersion = Long.MIN_VALUE;
 
     public FluidVaultMenu(int containerId, Inventory inventory, BlockPos pos) {
         super(ModMenus.FLUID_VAULT.get(), containerId);
         this.pos = pos;
+        this.inventory = inventory;
         FluidVaultBlockEntity vault = vault(inventory.player);
         if (vault != null) {
             vault.addViewer(inventory.player);
+            lastSyncedVaultVersion = vault.getSyncVersion();
         }
         addPlayerInventory(inventory, 17, 138);
     }
@@ -77,6 +81,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!result.isSuccess()) {
             return ItemStack.EMPTY;
         }
+        FluidVaultBlockEntity vault = blockEntity instanceof FluidVaultBlockEntity fluidVault ? fluidVault : null;
         if (original.getCount() == 1) {
             slot.set(result.getResult());
         } else {
@@ -87,7 +92,18 @@ public class FluidVaultMenu extends AbstractContainerMenu {
             }
             slot.setChanged();
         }
+        if (vault != null) {
+            vault.syncToPlayerIfPresent(player);
+            noteVaultSnapshotSynced(vault.getSyncVersion());
+        }
+        broadcastChanges();
         return copy;
+    }
+
+    @Override
+    public void broadcastChanges() {
+        syncVaultSnapshotIfChanged();
+        super.broadcastChanges();
     }
 
     public void handleTerminalClick(ServerPlayer player, FluidStack viewedFluid, int button, boolean shiftDown) {
@@ -109,6 +125,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         }
         applyCarriedContainerResult(player, carried, result.getResult());
         vault.syncTo(player);
+        noteVaultSnapshotSynced(vault.getSyncVersion());
         broadcastChanges();
     }
 
@@ -152,6 +169,22 @@ public class FluidVaultMenu extends AbstractContainerMenu {
     private FluidVaultBlockEntity vault(Player player) {
         BlockEntity blockEntity = player.level().getBlockEntity(pos);
         return blockEntity instanceof FluidVaultBlockEntity vault ? vault : null;
+    }
+
+    private void syncVaultSnapshotIfChanged() {
+        if (!(inventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        FluidVaultBlockEntity vault = vault(serverPlayer);
+        if (vault == null || vault.getSyncVersion() == lastSyncedVaultVersion) {
+            return;
+        }
+        vault.syncTo(serverPlayer);
+        noteVaultSnapshotSynced(vault.getSyncVersion());
+    }
+
+    public void noteVaultSnapshotSynced(long version) {
+        lastSyncedVaultVersion = version;
     }
 
     private static final class ViewedFluidSource implements IFluidHandler {

@@ -21,8 +21,8 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Placed against a machine/container side.
   - Main-hand node placement blocks the target machine GUI.
   - Normal right-click links in insert mode; sneak right-click links in extract mode.
-  - Stores a line id, per-face connection modes, item/fluid/FE toggles, priority, redstone control and operation rate.
-  - Creating a new line generates a fresh line id; the UI displays a short id such as `A1B2-C3`.
+  - Stores a line id, line name, per-face connection modes, item/fluid/FE toggles, priority, redstone control and operation rate.
+  - New line ids are stably derived from their line names; placing without an offhand configurator uses the player's `name-0` line.
   - The node GUI configures all six faces independently as disconnected, extract or insert and shows adjacent block icons.
   - The node GUI has a More page for the selected face: every face can set priority and redstone control.
   - Transfer targets are grouped by priority and round-robined within the same priority.
@@ -53,7 +53,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
 - `Celestial Glass` / `天穹玻璃`
   - Full-bright, high-clarity glass block with connected outer-frame rendering.
   - Crafted from charged Sky Crystal and glass.
-  - Add above the four outer corners of the tier 1 offering circle to make a tier 2 altar.
+  - Place on top of the four outer corner pillars to make a tier 2 altar.
 
 - `Sky Offering Altar` / `天穹供奉祭坛`
   - Single-slot block entity with no GUI.
@@ -71,15 +71,16 @@ Forge 1.20.1 public test build for celestial wireless logistics.
 
 - `Sky Configurator` / `天穹配置器`
   - Right-click opens its GUI instead of cycling line/mode directly.
-  - The GUI configures line id plus item/fluid toggles, and can enter paste mode.
+  - The GUI configures line name plus item/fluid toggles, and can enter paste mode.
   - In paste mode, right-clicking a node pastes the tool config instead of opening the node GUI.
-  - Sneak right-click, opening the configurator GUI or moving the configurator out of the main hand exits paste mode.
+  - Sneak right-click, opening the configurator GUI or no longer holding the configurator exits paste mode.
   - Right-click a node with the configurator outside paste mode opens the node GUI with a `Copy Config` action.
   - Hold in offhand while placing a node: new node inherits line/type toggles from the tool while preserving placement mode.
 
 - `Sky Filter List` / `天穹过滤列表`
   - Right-click opens a filter GUI.
-  - Supports 9 ghost filter entries, whitelist/blacklist mode and optional item tag matching.
+  - Supports 18 ghost filter entries, whitelist/blacklist mode and optional NBT/durability matching.
+  - Node face filter slots copy the filter list state as a ghost reference; inserting or pasting one does not consume the item.
   - Insert a configured filter list into a node's filter slot to filter both extraction and insertion item transfers.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.

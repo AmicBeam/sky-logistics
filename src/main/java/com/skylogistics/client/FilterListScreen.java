@@ -3,7 +3,7 @@ package com.skylogistics.client;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.MenuAction;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
@@ -19,6 +19,12 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     private static final int FILTER_COLUMNS = 9;
     private static final int FILTER_SLOT_STEP = 18;
     private static final int FILTER_SLOT_SIZE = 18;
+    private static final int FILTER_ROWS = (FilterListItem.FILTER_SLOTS + FILTER_COLUMNS - 1) / FILTER_COLUMNS;
+    private static final int FILTER_PANEL_PADDING = 6;
+    private static final int FILTER_PANEL_X = FILTER_GRID_X - FILTER_PANEL_PADDING;
+    private static final int FILTER_PANEL_Y = FILTER_GRID_Y - FILTER_PANEL_PADDING;
+    private static final int FILTER_PANEL_WIDTH = FILTER_COLUMNS * FILTER_SLOT_STEP + FILTER_PANEL_PADDING * 2;
+    private static final int FILTER_PANEL_HEIGHT = FILTER_ROWS * FILTER_SLOT_STEP + FILTER_PANEL_PADDING * 2;
     private static final int CONTROL_Y = 75;
     private static final int SEGMENT_WIDTH = 21;
     private static final int SEGMENT_GROUP_WIDTH = SEGMENT_WIDTH * 2;
@@ -27,13 +33,13 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     private static final int CONTROL_ROW_WIDTH = SEGMENT_GROUP_WIDTH * 3 + CONTROL_GROUP_GAP * 3 + ACTION_BUTTON_SIZE;
     private static final int COLOR_ALLOW = 0xFF8FEF8A;
     private static final int COLOR_DENY = 0xFFFF7979;
-    private Button whitelistAllowButton;
-    private Button whitelistDenyButton;
-    private Button nbtIgnoreButton;
-    private Button nbtMatchButton;
-    private Button durabilityIgnoreButton;
-    private Button durabilityMatchButton;
-    private Button clearButton;
+    private AbstractButton whitelistAllowButton;
+    private AbstractButton whitelistDenyButton;
+    private AbstractButton nbtIgnoreButton;
+    private AbstractButton nbtMatchButton;
+    private AbstractButton durabilityIgnoreButton;
+    private AbstractButton durabilityMatchButton;
+    private AbstractButton clearButton;
 
     public FilterListScreen(FilterListMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -75,18 +81,18 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         setEmptyMessage(clearButton);
     }
 
-    private static void setEmptyMessage(Button button) {
+    private static void setEmptyMessage(AbstractButton button) {
         if (button != null) {
             button.setMessage(Component.empty());
         }
     }
 
-    private Button addSegmentButton(int x, int action) {
+    private AbstractButton addSegmentButton(int x, int action) {
         return addRenderableWidget(ConfigPanel.actionButton(x, topPos + CONTROL_Y, SEGMENT_WIDTH,
                 Component.empty(), action));
     }
 
-    private Button addActionButton(int x, int action) {
+    private AbstractButton addActionButton(int x, int action) {
         return addRenderableWidget(ConfigPanel.actionButton(x, topPos + CONTROL_Y, ACTION_BUTTON_SIZE,
                 Component.empty(), action));
     }
@@ -101,12 +107,9 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BG);
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 2, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + 12, topPos + 19, leftPos + 196, topPos + 66, 0x80101B22);
+        ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        ConfigPanel.drawContentPanel(graphics, leftPos + FILTER_PANEL_X, topPos + FILTER_PANEL_Y,
+                FILTER_PANEL_WIDTH, FILTER_PANEL_HEIGHT);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
             int x = leftPos + filterSlotX(slot);
             int y = topPos + filterSlotY(slot);
@@ -237,24 +240,24 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         drawClearIcon(graphics, clearButton);
     }
 
-    private static void drawSegmentGroup(GuiGraphics graphics, Button leftButton) {
+    private static void drawSegmentGroup(GuiGraphics graphics, AbstractButton leftButton) {
         if (leftButton == null) {
             return;
         }
         int x = leftButton.getX();
         int y = leftButton.getY();
-        graphics.fill(x, y, x + SEGMENT_GROUP_WIDTH, y + 1, ConfigPanel.BORDER);
-        graphics.fill(x, y + 19, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER);
-        graphics.fill(x, y, x + 1, y + 20, ConfigPanel.BORDER);
-        graphics.fill(x + SEGMENT_GROUP_WIDTH - 1, y, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER);
+        graphics.fill(x, y, x + SEGMENT_GROUP_WIDTH, y + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(x, y + 19, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER_DIM);
+        graphics.fill(x, y, x + 1, y + 20, ConfigPanel.BORDER_DIM);
+        graphics.fill(x + SEGMENT_GROUP_WIDTH - 1, y, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER_DIM);
     }
 
-    private static void drawSegmentState(GuiGraphics graphics, Button button, boolean selected, int color) {
+    private static void drawSegmentState(GuiGraphics graphics, AbstractButton button, boolean selected, int color) {
         if (button == null) {
             return;
         }
         if (selected) {
-            int fill = 0x55000000 | (color & 0x00FFFFFF);
+            int fill = 0x33000000 | (color & 0x00FFFFFF);
             graphics.fill(button.getX() + 2, button.getY() + 2, button.getX() + SEGMENT_WIDTH - 2,
                     button.getY() + 18, fill);
             graphics.fill(button.getX() + 3, button.getY() + 17, button.getX() + SEGMENT_WIDTH - 3,
@@ -262,7 +265,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
     }
 
-    private static void drawSegmentDivider(GuiGraphics graphics, Button leftButton) {
+    private static void drawSegmentDivider(GuiGraphics graphics, AbstractButton leftButton) {
         if (leftButton == null) {
             return;
         }
@@ -270,7 +273,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         graphics.fill(x - 1, leftButton.getY() + 3, x, leftButton.getY() + 17, 0x80344954);
     }
 
-    private static void drawWhitelistIcon(GuiGraphics graphics, Button button, boolean allow, boolean selected) {
+    private static void drawWhitelistIcon(GuiGraphics graphics, AbstractButton button, boolean allow, boolean selected) {
         if (button == null) {
             return;
         }
@@ -282,7 +285,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
     }
 
-    private static void drawNbtIcon(GuiGraphics graphics, Button button, boolean enabled, boolean selected) {
+    private static void drawNbtIcon(GuiGraphics graphics, AbstractButton button, boolean enabled, boolean selected) {
         if (button == null) {
             return;
         }
@@ -300,7 +303,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
     }
 
-    private static void drawDurabilityIcon(GuiGraphics graphics, Button button, boolean enabled, boolean selected) {
+    private static void drawDurabilityIcon(GuiGraphics graphics, AbstractButton button, boolean enabled, boolean selected) {
         if (button == null) {
             return;
         }
@@ -317,7 +320,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
     }
 
-    private static void drawClearIcon(GuiGraphics graphics, Button button) {
+    private static void drawClearIcon(GuiGraphics graphics, AbstractButton button) {
         if (button == null) {
             return;
         }

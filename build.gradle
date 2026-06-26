@@ -38,7 +38,18 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
-def jadeApiJar = jadeApiPath ? file(jadeApiPath) : null
+def defaultJadeApiJar = file('/private/tmp/jade-api.jar')
+def cachedJadeApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1",
+        include: [
+                '**/jade-1.20.1-forge-11*.jar',
+                '**/Jade-1.20.1-forge-11*.jar',
+                '**/Jade-1.20.1-Forge-11*.jar'
+        ]
+).files.toList().sort { it.absolutePath }
+def jadeApiJar = jadeApiPath ? file(jadeApiPath)
+        : (defaultJadeApiJar.exists() ? defaultJadeApiJar
+        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null))
 def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
 def defaultJeiApiJar = file('/private/tmp/jei-api.jar')
 def cachedJeiApiJars = fileTree(

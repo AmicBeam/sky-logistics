@@ -1,8 +1,0 @@
-{
-  "name": "天穹物流手册",
-  "landing_text": "高空之下的天穹存储、无线物流与供奉仪式。",
-  "version": 1,
-  "creative_tab": "skylogistics:main",
-  "model": "skylogistics:sky_logistics_manual",
-  "book_texture": "skylogistics:textures/gui/sky_logistics_manual.png"
-}

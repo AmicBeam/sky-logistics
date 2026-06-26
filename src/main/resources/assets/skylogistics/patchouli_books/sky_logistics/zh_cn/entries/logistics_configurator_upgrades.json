@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "天穹配置器用于保存线路 ID 和资源开关。右击空气打开配置器界面；右击节点可打开节点界面。副手持配置器放置节点时，新节点会继承配置器中的线路和资源开关。"
+      "text": "天穹配置器用于保存线路名、线路 ID 和资源开关。右击空气打开配置器界面；右击节点可打开节点界面。副手持配置器放置节点时，新节点会继承配置器中的线路和资源开关。"
     },
     {
       "type": "patchouli:crafting",
@@ -27,8 +27,11 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "recipe2": "skylogistics:dimension_upgrade",
-      "text": "维度升级需要下界之星。它只需要安装在抽取端节点上。"
+      "text": "速度升级卡仍通过工作台合成。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "维度升级卡通过二阶天穹供奉获得：祭坛放下界之星，供桌放 4 个末影之眼、2 个末影珍珠和 2 个柯拉甘露，Duration 为 240 tick。它只需要安装在抽取端节点上。"
     }
   ]
 }

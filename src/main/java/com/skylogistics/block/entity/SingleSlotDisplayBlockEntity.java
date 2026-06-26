@@ -80,7 +80,8 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         if (stored.isEmpty()) {
             return false;
         }
-        if (!player.getInventory().add(stored)) {
+        player.getInventory().add(stored);
+        if (!stored.isEmpty()) {
             player.drop(stored, false);
         }
         return true;

@@ -1,6 +1,8 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.compat.PatchouliCompat;
+import com.skylogistics.item.EulogiaCrystalItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -18,11 +20,13 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.CONFIGURATOR.get()))
                     .title(Component.translatable("itemGroup.skylogistics"))
                     .displayItems((parameters, output) -> {
+                        PatchouliCompat.createManualStack().ifPresent(output::accept);
                         output.accept(ModItems.CONFIGURATOR.get());
                         output.accept(ModItems.FILTER_LIST.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
+                        output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
                         output.accept(ModItems.CELESTIAL_STONE.get());
                         output.accept(ModItems.CELESTIAL_STONE_SLAB.get());

@@ -124,8 +124,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     protected void renderTooltip(GuiGraphics graphics, int x, int y) {
         ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailIcon(x, y);
         if (entry != null) {
-            graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry),
-                    Component.literal(pos(entry.targetPos()) + " " + entry.dimension())), x, y);
+            graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry)), x, y);
             return;
         }
         super.renderTooltip(graphics, x, y);
@@ -133,11 +132,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BG);
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 2, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
+        ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
     }
 
     @Override
@@ -152,7 +147,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         int lineIndex = ConfiguratorItem.lineIndex(stack()) + 1;
         int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack()));
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
-                        ConfiguratorItem.shortLine(config.lineId()))
+                        config.lineName())
                 .append(Component.literal(" " + lineIndex + "/" + lineCount)),
                 14, 34, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_monitor",
@@ -191,7 +186,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             graphics.drawString(font, Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size()),
                     DETAIL_X + DETAIL_WIDTH - 44, DETAIL_Y - 11, ConfigPanel.MUTED, false);
         }
-        borderedBox(graphics, DETAIL_X, DETAIL_Y, DETAIL_WIDTH, DETAIL_HEIGHT, 0xFF0A141B, 0xFF2D4D5A);
+        ConfigPanel.drawContentPanel(graphics, DETAIL_X, DETAIL_Y, DETAIL_WIDTH, DETAIL_HEIGHT);
         if (entries.isEmpty()) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces_empty"),
                     DETAIL_X + 8, DETAIL_Y + 30, ConfigPanel.MUTED, false);
@@ -355,16 +350,21 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private ConfiguratorItem.ToolConfig previewNextLine(ItemStack stack) {
         int index = ConfiguratorItem.lineIndex(stack);
         int count = ConfiguratorItem.lineCount(stack);
-        return index < count - 1 ? ConfiguratorItem.selectNextOrCreateLine(stack) : null;
+        return index < count - 1 ? ConfiguratorItem.selectNextOrCreateLine(stack, Minecraft.getInstance().player) : null;
     }
 
     private ConfiguratorItem.ToolConfig previewRemoveLine(ItemStack stack) {
-        return ConfiguratorItem.lineCount(stack) > 1 ? ConfiguratorItem.removeCurrentLine(stack) : null;
+        return canRemoveCurrentLine() && ConfiguratorItem.lineCount(stack) > 0
+                ? ConfiguratorItem.removeCurrentLine(stack, Minecraft.getInstance().player)
+                : null;
+    }
+
+    private boolean canRemoveCurrentLine() {
+        return menu.getLineInputs() <= 0 && menu.getLineOutputs() <= 0;
     }
 
     private void borderedBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {
-        graphics.fill(x, y, x + width, y + height, border);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, fill);
+        ConfigPanel.drawBox(graphics, x, y, width, height, fill, border);
     }
 
     private final class LineButton extends AbstractButton {
@@ -379,7 +379,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             active = switch (action) {
                 case MenuAction.LINE_FIRST, MenuAction.LINE_PREVIOUS -> count > 1 && index > 0;
                 case MenuAction.LINE_LAST -> count > 1 && index < count - 1;
-                case MenuAction.LINE_REMOVE_CURRENT -> count > 0;
+                case MenuAction.LINE_REMOVE_CURRENT -> count > 0 && canRemoveCurrentLine();
                 default -> true;
             };
         }
@@ -394,9 +394,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            int fill = active ? 0xFF0C1A24 : 0xFF101820;
-            int border = active ? ConfigPanel.BORDER : 0xFF2A3C46;
-            borderedBox(graphics, getX(), getY(), width, height, fill, border);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
             graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -423,8 +421,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfiguratorItem.ToolConfig config = config();
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
-            borderedBox(graphics, getX(), getY(), width, height, active ? 0xFF0C1A24 : 0xFF101820,
-                    active ? ConfigPanel.BORDER : 0xFF2D4D5A);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
             graphics.drawCenteredString(font, Component.translatable(control.translationKey()),
                     getX() + width / 2, getY() + 6, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -454,8 +451,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            borderedBox(graphics, getX(), getY(), width, height, active ? 0xFF0C1A24 : 0xFF101820,
-                    active ? ConfigPanel.BORDER : 0xFF2D4D5A);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
             graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -501,8 +497,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
-            int fill = enabled ? 0xFF123B45 : 0xFF0C1A24;
-            borderedBox(graphics, getX(), getY(), width, height, fill, enabled ? ConfigPanel.BORDER : 0xFF2D4D5A);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
             graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }

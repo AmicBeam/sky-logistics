@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -57,7 +58,12 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             addSlot(new Slot(faceFilterContainer, slotIndex, 176 + slot * 20, 112) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
-                    return faceFilterContainer.canPlace(slotIndex, stack);
+                    return false;
+                }
+
+                @Override
+                public boolean mayPickup(Player player) {
+                    return false;
                 }
 
                 @Override
@@ -105,6 +111,20 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     @Override
+    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (isFaceFilterSlot(slotId)) {
+            int slot = slotId - SkyNodeBlockEntity.UPGRADE_SLOTS;
+            ItemStack carried = getCarried();
+            if (carried.isEmpty() || SkyNodeBlockEntity.isFaceFilterItem(carried)) {
+                faceFilterContainer.setGhost(slot, carried);
+                broadcastChanges();
+            }
+            return;
+        }
+        super.clicked(slotId, button, clickType, player);
+    }
+
+    @Override
     public ItemStack quickMoveStack(Player player, int index) {
         if (index < 0 || index >= slots.size()) {
             return ItemStack.EMPTY;
@@ -123,18 +143,17 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             }
             slot.setChanged();
         } else if (index < faceFilterEnd) {
-            if (!moveItemStackTo(original, faceFilterEnd, slots.size(), true)) {
-                return ItemStack.EMPTY;
-            }
-            slot.setChanged();
+            faceFilterContainer.setGhost(index - upgradeEnd, ItemStack.EMPTY);
+            broadcastChanges();
+            return ItemStack.EMPTY;
         } else if (SkyNodeBlockEntity.isUpgradeItem(original)) {
             if (!moveItemStackTo(original, 0, upgradeEnd, false)) {
                 return ItemStack.EMPTY;
             }
         } else if (SkyNodeBlockEntity.isFaceFilterItem(original)) {
-            if (!moveItemStackTo(original, upgradeEnd, faceFilterEnd, false)) {
-                return ItemStack.EMPTY;
-            }
+            faceFilterContainer.setGhost(0, original);
+            broadcastChanges();
+            return ItemStack.EMPTY;
         } else {
             return ItemStack.EMPTY;
         }
@@ -146,6 +165,11 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         return copy;
     }
 
+    private static boolean isFaceFilterSlot(int slotId) {
+        return slotId >= SkyNodeBlockEntity.UPGRADE_SLOTS
+                && slotId < SkyNodeBlockEntity.UPGRADE_SLOTS + SkyNodeBlockEntity.FACE_FILTER_SLOTS;
+    }
+
     public void applyAction(Player player, int action) {
         BlockEntity blockEntity = player.level().getBlockEntity(pos);
         if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
@@ -153,7 +177,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         Direction face = faceForAction(action, MenuAction.FACE_NONE_BASE);
         if (face != null) {
-            node.setFaceMode(face, NodeFaceMode.OUTPUT);
+            node.setFaceMode(face, NodeFaceMode.NONE);
             broadcastChanges();
             return;
         }
@@ -194,11 +218,11 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             return;
         }
         switch (action) {
-            case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> node.selectNextOrCreateLine();
+            case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> node.selectNextOrCreateLine(player);
             case MenuAction.LINE_FIRST -> node.selectFirstLine();
             case MenuAction.LINE_PREVIOUS -> node.selectPreviousLine();
             case MenuAction.LINE_LAST -> node.selectLastLine();
-            case MenuAction.LINE_REMOVE_CURRENT -> node.removeCurrentLine();
+            case MenuAction.LINE_REMOVE_CURRENT -> node.removeCurrentLine(player);
             case MenuAction.TOGGLE_ITEMS -> node.setItemsEnabled(selectedFace, !node.isItemsEnabled(selectedFace));
             case MenuAction.TOGGLE_FLUIDS -> node.setFluidsEnabled(selectedFace, !node.isFluidsEnabled(selectedFace));
             case MenuAction.TOGGLE_ENERGY -> node.setEnergyEnabled(selectedFace, !node.isEnergyEnabled(selectedFace));
@@ -359,9 +383,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (node == null || node.getFaceFilter(menu.selectedFace(), slot).isEmpty()) {
                 return ItemStack.EMPTY;
             }
-            ItemStack current = node.getFaceFilter(menu.selectedFace(), slot).copy();
             node.setFaceFilter(menu.selectedFace(), slot, ItemStack.EMPTY);
-            return current;
+            return ItemStack.EMPTY;
         }
 
         @Override
@@ -371,15 +394,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
         @Override
         public void setItem(int slot, ItemStack stack) {
+            setGhost(slot, stack);
+        }
+
+        private void setGhost(int slot, ItemStack stack) {
             SkyNodeBlockEntity node = node();
             if (node != null) {
                 node.setFaceFilter(menu.selectedFace(), slot, stack);
             }
-        }
-
-        private boolean canPlace(int slot, ItemStack stack) {
-            SkyNodeBlockEntity node = node();
-            return node != null && node.canAcceptFaceFilter(slot, stack);
         }
 
         @Override

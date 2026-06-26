@@ -21,6 +21,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int GRID_X = 8;
+    private static final int CENTERED_GRID_X = 17;
     private static final int GRID_Y = 44;
     private static final int GRID_COLUMNS = 9;
     private static final int GRID_ROWS = 4;
@@ -85,15 +86,12 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BG);
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 2, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + GRID_BOTTOM + 3, 0x80101B22);
+        ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
+        int gridX = gridX();
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int column = 0; column < GRID_COLUMNS; column++) {
-                ConfigPanel.drawSlotBackground(graphics, leftPos + GRID_X + column * CELL_SIZE,
+                ConfigPanel.drawSlotBackground(graphics, leftPos + gridX + column * CELL_SIZE,
                         topPos + GRID_Y + row * CELL_SIZE);
             }
         }
@@ -117,7 +115,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             ItemVaultBlockEntity.StoredItem item = entries.get(start + visible);
             int column = visible % GRID_COLUMNS;
             int row = visible / GRID_COLUMNS;
-            int x = GRID_X + column * CELL_SIZE + 1;
+            int x = gridX(vault) + column * CELL_SIZE + 1;
             int y = GRID_Y + row * CELL_SIZE + 1;
             graphics.renderItem(item.stack(), x, y);
             renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x - 1, y - 1);
@@ -172,7 +170,8 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         if (vault == null) {
             return null;
         }
-        int column = ((int) mouseX - leftPos - GRID_X) / CELL_SIZE;
+        int gridX = gridX(vault);
+        int column = ((int) mouseX - leftPos - gridX) / CELL_SIZE;
         int row = ((int) mouseY - topPos - GRID_Y) / CELL_SIZE;
         int index = scrollRow * GRID_COLUMNS + row * GRID_COLUMNS + column;
         List<ItemVaultBlockEntity.StoredItem> entries = filtered(vault);
@@ -180,7 +179,8 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     }
 
     private boolean isOverGrid(double mouseX, double mouseY) {
-        return mouseX >= leftPos + GRID_X && mouseX < leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE
+        int gridX = gridX();
+        return mouseX >= leftPos + gridX && mouseX < leftPos + gridX + GRID_COLUMNS * CELL_SIZE
                 && mouseY >= topPos + GRID_Y && mouseY < topPos + GRID_Y + GRID_ROWS * CELL_SIZE;
     }
 
@@ -226,19 +226,19 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             return;
         }
         int max = maxScrollRow(filtered(vault).size());
-        int x = leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE + 5;
+        int x = leftPos + gridX(vault) + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
-        graphics.fill(x, y, x + 5, y + height, 0xFF07101B);
-        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER);
-        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER);
+        graphics.fill(x, y, x + 5, y + height, ConfigPanel.PANEL);
+        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER_DIM);
         if (max <= 0) {
-            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, 0xFF2D4D5A);
+            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, ConfigPanel.BORDER_DIM);
             return;
         }
         int thumbHeight = Math.max(14, height / (max + 1));
         int thumbY = y + 1 + (height - thumbHeight - 2) * scrollRow / max;
-        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER);
+        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER_ACTIVE);
     }
 
     private void sort(List<ItemVaultBlockEntity.StoredItem> result) {
@@ -256,6 +256,14 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     private boolean shouldShowScrollbar(ItemVaultBlockEntity vault) {
         return vault.getTypeLimit() > VISIBLE_CELLS;
+    }
+
+    private int gridX() {
+        return gridX(vault());
+    }
+
+    private int gridX(ItemVaultBlockEntity vault) {
+        return vault != null && shouldShowScrollbar(vault) ? GRID_X : CENTERED_GRID_X;
     }
 
     private static String itemName(ItemVaultBlockEntity.StoredItem item) {

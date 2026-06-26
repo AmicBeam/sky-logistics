@@ -9,6 +9,7 @@ import com.skylogistics.registry.ModMenus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -99,14 +100,25 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         if (!stack.is(ModItems.CONFIGURATOR.get())) {
             return;
         }
-        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack);
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
         switch (action) {
-            case MenuAction.NEW_LINE -> config = config.withLine(UUID.randomUUID());
+            case MenuAction.NEW_LINE -> config = ConfiguratorItem.selectNextOrCreateLine(stack, player);
             case MenuAction.LINE_FIRST -> config = ConfiguratorItem.selectFirstLine(stack);
             case MenuAction.LINE_PREVIOUS -> config = ConfiguratorItem.selectPreviousLine(stack);
-            case MenuAction.LINE_NEXT_OR_CREATE -> config = ConfiguratorItem.selectNextOrCreateLine(stack);
+            case MenuAction.LINE_NEXT_OR_CREATE -> config = ConfiguratorItem.selectNextOrCreateLine(stack, player);
             case MenuAction.LINE_LAST -> config = ConfiguratorItem.selectLastLine(stack);
-            case MenuAction.LINE_REMOVE_CURRENT -> config = ConfiguratorItem.removeCurrentLine(stack);
+            case MenuAction.LINE_REMOVE_CURRENT -> {
+                if (currentLineInUse(config)) {
+                    player.displayClientMessage(Component.translatable(
+                            "message.skylogistics.configurator.line_in_use"), true);
+                    syncHeldStack(stack);
+                    refreshLineStats();
+                    syncLineDetails(true);
+                    broadcastChanges();
+                    return;
+                }
+                config = ConfiguratorItem.removeCurrentLine(stack, player);
+            }
             case MenuAction.TOGGLE_ITEMS -> config = config.withItemsEnabled(!config.itemsEnabled());
             case MenuAction.TOGGLE_FLUIDS -> config = config.withFluidsEnabled(!config.fluidsEnabled());
             case MenuAction.TOGGLE_ENERGY -> config = config.withEnergyEnabled(!config.energyEnabled());
@@ -129,6 +141,14 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         refreshLineStats();
         syncLineDetails(false);
         super.broadcastChanges();
+    }
+
+    private boolean currentLineInUse(ConfiguratorItem.ToolConfig config) {
+        if (player.level().isClientSide || player.level().getServer() == null) {
+            return false;
+        }
+        SkyNetworkRegistry.LineStats stats = SkyNetworkRegistry.lineStats(player.level().getServer(), config.lineId());
+        return stats.inputs() > 0 || stats.outputs() > 0;
     }
 
     private void refreshLineStats() {

@@ -88,11 +88,15 @@ public class ChoraNectarItem extends Item {
     }
 
     private static void playEffects(Level level, BlockPos pos) {
-        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.8F, 1.25F);
-        level.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 0.35F, 1.6F);
+        level.playSound(null, pos, SoundEvents.ANVIL_USE, SoundSource.BLOCKS, 0.7F, 1.15F);
+        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.55F, 1.35F);
         if (level instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(ParticleTypes.END_ROD, pos.getX() + 0.5D, pos.getY() + 0.9D, pos.getZ() + 0.5D,
-                    18, 0.35D, 0.35D, 0.35D, 0.025D);
+            double x = pos.getX() + 0.5D;
+            double y = pos.getY() + 0.9D;
+            double z = pos.getZ() + 0.5D;
+            serverLevel.sendParticles(ParticleTypes.END_ROD, x, y, z, 20, 0.35D, 0.35D, 0.35D, 0.025D);
+            serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y + 0.1D, z, 10, 0.3D, 0.18D, 0.3D,
+                    0.025D);
         }
     }
 }

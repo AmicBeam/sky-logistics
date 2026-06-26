@@ -23,11 +23,15 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.items.IItemHandler;
 
 public class SkyNodeBlockEntity extends BlockEntity {
     public static final int UPGRADE_SLOTS = 2;
@@ -36,9 +40,13 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private static final String LINES_TAG = "Lines";
     private static final String LINE_INDEX_TAG = "LineIndex";
     private static final String LINE_ENTRY_ID_TAG = "Id";
+    private static final String LINE_NAME_TAG = "LineName";
+    private static final String LINE_ENTRY_NAME_TAG = "Name";
 
-    private UUID lineId = UUID.randomUUID();
+    private String lineName = ConfiguratorItem.lineName("Line", 0);
+    private UUID lineId = ConfiguratorItem.lineIdForName(lineName);
     private final List<UUID> lines = new ArrayList<>();
+    private final List<String> lineNames = new ArrayList<>();
     private int lineIndex;
     private NodeMode mode = NodeMode.OUTPUT;
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
@@ -63,8 +71,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
     public SkyNodeBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SKY_NODE.get(), pos, state);
         lines.add(lineId);
+        lineNames.add(lineName);
         for (Direction direction : Direction.values()) {
-            faceModes.put(direction, NodeFaceMode.OUTPUT);
+            faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             faceItemsEnabled.put(direction, true);
@@ -85,6 +94,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     @Override
     public void onLoad() {
         super.onLoad();
+        updateVisualState();
         if (level instanceof ServerLevel serverLevel) {
             SkyNetworkRegistry.register(serverLevel, worldPosition);
         }
@@ -100,6 +110,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public UUID getLineId() {
         return lineId;
+    }
+
+    public String getLineName() {
+        ensureLineList();
+        return lineName;
     }
 
     public int getLineIndex() {
@@ -343,7 +358,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public NodeFaceMode getFaceMode(Direction direction) {
-        return faceModes.getOrDefault(direction, NodeFaceMode.OUTPUT);
+        return faceModes.getOrDefault(direction, NodeFaceMode.NONE);
     }
 
     public RedstoneControl getRedstoneControl(Direction direction) {
@@ -401,7 +416,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void applyPlacementToolConfig(ConfiguratorItem.ToolConfig config, boolean includeMode) {
-        boolean topologyChanged = assignLineId(config.lineId());
+        boolean topologyChanged = assignLine(config.lineId(), config.lineName());
         boolean runtimeChanged = false;
         boolean priorityChanged = false;
         Direction direction = getTargetDirection();
@@ -435,16 +450,24 @@ public class SkyNodeBlockEntity extends BlockEntity {
             priorities.put(direction, face.priority());
             priorityChanged = true;
         }
+        if (config.hasCopiedFaces() && applyFaceFilters(direction, face)) {
+            runtimeChanged = true;
+        }
         refreshGlobalToggles();
         markCompositeChanged(topologyChanged, priorityChanged, runtimeChanged);
     }
 
     public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config) {
+        applyCopiedToolConfig(config, null);
+    }
+
+    public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config, Player player) {
         if (!config.hasCopiedFaces()) {
             applyPlacementToolConfig(config, true);
+            installCopiedUpgrades(config, player);
             return;
         }
-        boolean topologyChanged = assignLineId(config.lineId());
+        boolean topologyChanged = assignLine(config.lineId(), config.lineName());
         boolean runtimeChanged = false;
         boolean priorityChanged = false;
         for (Direction direction : Direction.values()) {
@@ -473,10 +496,108 @@ public class SkyNodeBlockEntity extends BlockEntity {
                 priorities.put(direction, face.priority());
                 priorityChanged = true;
             }
+            if (applyFaceFilters(direction, face)) {
+                runtimeChanged = true;
+            }
         }
         mode = visualMode();
         refreshGlobalToggles();
         markCompositeChanged(topologyChanged, priorityChanged, runtimeChanged);
+        installCopiedUpgrades(config, player);
+    }
+
+    private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
+        installCopiedUpgrade(config.speedUpgrade(), ModItems.SPEED_UPGRADE.get(), player);
+        installCopiedUpgrade(config.dimensionUpgrade(), ModItems.DIMENSION_UPGRADE.get(), player);
+    }
+
+    private void installCopiedUpgrade(boolean shouldInstall, Item item, Player player) {
+        if (!shouldInstall || hasUpgrade(item)) {
+            return;
+        }
+        int slot = firstUpgradeSlotFor(item);
+        if (slot < 0 || !consumeUpgradeFromPlayer(player, item)) {
+            return;
+        }
+        setUpgrade(slot, new ItemStack(item));
+    }
+
+    private int firstUpgradeSlotFor(Item item) {
+        ItemStack stack = new ItemStack(item);
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            if (canAcceptUpgrade(slot, stack)) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean consumeUpgradeFromPlayer(Player player, Item item) {
+        if (player == null) {
+            return false;
+        }
+        Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.is(item)) {
+                stack.shrink(1);
+                inventory.setChanged();
+                return true;
+            }
+        }
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack container = inventory.getItem(slot);
+            if (!container.isEmpty() && !container.is(item) && consumeUpgradeFromItemHandler(container, item)) {
+                inventory.setChanged();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean consumeUpgradeFromItemHandler(ItemStack container, Item item) {
+        return container.getCapability(ForgeCapabilities.ITEM_HANDLER, null)
+                .map(handler -> consumeUpgradeFromItemHandler(handler, item))
+                .orElse(false);
+    }
+
+    private static boolean consumeUpgradeFromItemHandler(IItemHandler handler, Item item) {
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack simulated = handler.extractItem(slot, 1, true);
+            if (simulated.is(item)) {
+                ItemStack extracted = handler.extractItem(slot, 1, false);
+                if (extracted.is(item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean applyFaceFilters(Direction direction, ConfiguratorItem.FaceConfig face) {
+        NonNullList<ItemStack> filters = faceFilters.get(direction);
+        if (filters == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            ItemStack stack = face.filter(slot);
+            if (!canAcceptFaceFilter(slot, stack)) {
+                stack = ItemStack.EMPTY;
+            }
+            ItemStack copy = stack.copy();
+            if (!copy.isEmpty()) {
+                copy.setCount(1);
+            }
+            ItemStack previous = filters.get(slot);
+            if (ItemStack.isSameItemSameTags(previous, copy)) {
+                continue;
+            }
+            filters.set(slot, copy);
+            markFaceFilterDirty(direction, slot);
+            changed = true;
+        }
+        return changed;
     }
 
     public ConfiguratorItem.ToolConfig toToolConfig() {
@@ -494,6 +615,35 @@ public class SkyNodeBlockEntity extends BlockEntity {
         markTopologyChanged();
     }
 
+    private void setLine(UUID lineId, String lineName) {
+        if (!assignLine(lineId, lineName)) {
+            return;
+        }
+        markTopologyChanged();
+    }
+
+    public void claimDefaultLineName(Player player) {
+        ensureLineList();
+        if (!lineName.startsWith("Line-")) {
+            return;
+        }
+        String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), lineIndex);
+        UUID newLineId = ConfiguratorItem.lineIdForName(newLineName);
+        int currentIndex = Math.max(0, Math.min(lineIndex, lines.size() - 1));
+        boolean changed = !lineId.equals(newLineId)
+                || !lineName.equals(newLineName)
+                || !lines.get(currentIndex).equals(newLineId)
+                || !lineNames.get(currentIndex).equals(newLineName);
+        lines.set(currentIndex, newLineId);
+        lineNames.set(currentIndex, newLineName);
+        lineId = newLineId;
+        lineName = newLineName;
+        lineIndex = currentIndex;
+        if (changed) {
+            markTopologyChanged();
+        }
+    }
+
     public void selectFirstLine() {
         selectLine(0);
     }
@@ -503,14 +653,16 @@ public class SkyNodeBlockEntity extends BlockEntity {
         selectLine(Math.max(0, lineIndex - 1));
     }
 
-    public void selectNextOrCreateLine() {
+    public void selectNextOrCreateLine(Player player) {
         ensureLineList();
         if (lineIndex < lines.size() - 1) {
             selectLine(lineIndex + 1);
             return;
         }
-        UUID newLineId = UUID.randomUUID();
+        String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), -1);
+        UUID newLineId = ConfiguratorItem.lineIdForName(newLineName);
         lines.add(newLineId);
+        lineNames.add(newLineName);
         selectLine(lines.size() - 1);
     }
 
@@ -519,56 +671,118 @@ public class SkyNodeBlockEntity extends BlockEntity {
         selectLine(lines.size() - 1);
     }
 
-    public void removeCurrentLine() {
+    public void removeCurrentLine(Player player) {
         ensureLineList();
         if (lines.size() <= 1) {
             lines.clear();
-            lines.add(UUID.randomUUID());
+            lineNames.clear();
+            String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), -1);
+            lines.add(ConfiguratorItem.lineIdForName(newLineName));
+            lineNames.add(newLineName);
             selectLine(0);
             return;
         }
         lines.remove(lineIndex);
+        lineNames.remove(lineIndex);
         selectLine(Math.min(lineIndex, lines.size() - 1));
     }
 
     private void selectLine(int index) {
         if (lines.isEmpty()) {
             lines.add(lineId);
+            lineNames.add(lineName);
             lineIndex = 0;
         }
+        normalizeLineNames();
         int clamped = Math.max(0, Math.min(index, lines.size() - 1));
-        setLineId(lines.get(clamped));
+        setLine(lines.get(clamped), lineNames.get(clamped));
     }
 
     private boolean assignLineId(UUID newLineId) {
+        return assignLine(newLineId, null);
+    }
+
+    private boolean assignLine(UUID newLineId, String newLineName) {
         if (lines.isEmpty()) {
             lines.add(lineId);
+            lineNames.add(lineName);
             lineIndex = 0;
         }
+        normalizeLineNames();
         int index = lines.indexOf(newLineId);
         if (index < 0) {
             lines.add(newLineId);
+            lineNames.add(validLineName(newLineName, fallbackLineName(lines.size() - 1)));
             index = lines.size() - 1;
+        } else if (newLineName != null && !newLineName.isBlank() && !lineNames.get(index).equals(newLineName)) {
+            lineNames.set(index, newLineName);
         }
-        boolean changed = !lineId.equals(newLineId) || lineIndex != index;
+        String selectedName = lineNames.get(index);
+        boolean changed = !lineId.equals(newLineId) || lineIndex != index || !lineName.equals(selectedName);
         lineId = newLineId;
+        lineName = selectedName;
         lineIndex = index;
         return changed;
     }
 
     private void ensureLineList() {
+        normalizeLineNames();
         if (lines.isEmpty()) {
             lines.add(lineId);
+            lineNames.add(lineName);
             lineIndex = 0;
             return;
         }
         int active = lines.indexOf(lineId);
         if (active >= 0) {
             lineIndex = active;
+            lineName = lineNames.get(active);
             return;
         }
         lineIndex = Math.max(0, Math.min(lineIndex, lines.size() - 1));
         lineId = lines.get(lineIndex);
+        lineName = lineNames.get(lineIndex);
+    }
+
+    private void normalizeLineNames() {
+        while (lineNames.size() < lines.size()) {
+            lineNames.add(fallbackLineName(lineNames.size()));
+        }
+        while (lineNames.size() > lines.size()) {
+            lineNames.remove(lineNames.size() - 1);
+        }
+        for (int i = 0; i < lineNames.size(); i++) {
+            lineNames.set(i, validLineName(lineNames.get(i), fallbackLineName(i)));
+        }
+    }
+
+    private String nextLineName(String prefix, int replacingIndex) {
+        String marker = ConfiguratorItem.lineName(prefix, 0);
+        marker = marker.substring(0, marker.lastIndexOf('-') + 1);
+        int next = 0;
+        for (int i = 0; i < lineNames.size(); i++) {
+            if (i == replacingIndex) {
+                continue;
+            }
+            String name = lineNames.get(i);
+            if (!name.startsWith(marker)) {
+                continue;
+            }
+            try {
+                next = Math.max(next, Integer.parseInt(name.substring(marker.length())) + 1);
+            } catch (NumberFormatException ignored) {
+                next++;
+            }
+        }
+        return ConfiguratorItem.lineName(prefix, next);
+    }
+
+    private static String validLineName(String name, String fallback) {
+        return name == null || name.isBlank() ? fallback : name;
+    }
+
+    private static String fallbackLineName(int index) {
+        return ConfiguratorItem.lineName("Line", index);
     }
 
     public void setMode(NodeMode mode) {
@@ -648,9 +862,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
-        if (faceMode == NodeFaceMode.NONE) {
-            faceMode = NodeFaceMode.OUTPUT;
-        }
         if (getFaceMode(direction) == faceMode) {
             return;
         }
@@ -682,11 +893,13 @@ public class SkyNodeBlockEntity extends BlockEntity {
         super.saveAdditional(tag);
         ensureLineList();
         tag.putUUID(LINE_ID_TAG, lineId);
+        tag.putString(LINE_NAME_TAG, lineName);
         tag.putInt(LINE_INDEX_TAG, lineIndex);
         ListTag lineTags = new ListTag();
-        for (UUID line : lines) {
+        for (int i = 0; i < lines.size(); i++) {
             CompoundTag entry = new CompoundTag();
-            entry.putUUID(LINE_ENTRY_ID_TAG, line);
+            entry.putUUID(LINE_ENTRY_ID_TAG, lines.get(i));
+            entry.putString(LINE_ENTRY_NAME_TAG, validLineName(lineNames.get(i), fallbackLineName(i)));
             lineTags.add(entry);
         }
         tag.put(LINES_TAG, lineTags);
@@ -747,7 +960,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (tag.hasUUID(LINE_ID_TAG)) {
             lineId = tag.getUUID(LINE_ID_TAG);
         }
+        if (tag.contains(LINE_NAME_TAG, Tag.TAG_STRING)) {
+            lineName = validLineName(tag.getString(LINE_NAME_TAG), fallbackLineName(0));
+        }
         lines.clear();
+        lineNames.clear();
         if (tag.contains(LINES_TAG, Tag.TAG_LIST)) {
             ListTag lineTags = tag.getList(LINES_TAG, Tag.TAG_COMPOUND);
             for (int i = 0; i < lineTags.size(); i++) {
@@ -756,25 +973,34 @@ public class SkyNodeBlockEntity extends BlockEntity {
                     UUID savedLineId = entry.getUUID(LINE_ENTRY_ID_TAG);
                     if (!lines.contains(savedLineId)) {
                         lines.add(savedLineId);
+                        String savedLineName = entry.contains(LINE_ENTRY_NAME_TAG, Tag.TAG_STRING)
+                                ? entry.getString(LINE_ENTRY_NAME_TAG)
+                                : fallbackLineName(lineNames.size());
+                        lineNames.add(validLineName(savedLineName, fallbackLineName(lineNames.size())));
                     }
                 }
             }
         }
         if (lines.isEmpty()) {
             lines.add(lineId);
+            lineNames.add(lineName);
         }
+        normalizeLineNames();
         lineIndex = tag.contains(LINE_INDEX_TAG) ? tag.getInt(LINE_INDEX_TAG) : 0;
         if (!tag.hasUUID(LINE_ID_TAG)) {
             lineIndex = Math.max(0, Math.min(lineIndex, lines.size() - 1));
             lineId = lines.get(lineIndex);
+            lineName = lineNames.get(lineIndex);
         }
         int activeLine = lines.indexOf(lineId);
         if (activeLine < 0) {
             lines.add(lineId);
+            lineNames.add(lineName);
             activeLine = lines.size() - 1;
         }
         lineIndex = Math.max(0, Math.min(activeLine, lines.size() - 1));
         lineId = lines.get(lineIndex);
+        lineName = lineNames.get(lineIndex);
         mode = NodeMode.byName(tag.getString("Mode"));
         itemsEnabled = !tag.contains("ItemsEnabled") || tag.getBoolean("ItemsEnabled");
         fluidsEnabled = !tag.contains("FluidsEnabled") || tag.getBoolean("FluidsEnabled");
@@ -797,7 +1023,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
         }
         for (Direction direction : Direction.values()) {
-            faceModes.put(direction, NodeFaceMode.OUTPUT);
+            faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             faceItemsEnabled.put(direction, itemsEnabled);
@@ -808,7 +1034,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             CompoundTag faces = tag.getCompound("Faces");
             for (Direction direction : Direction.values()) {
                 NodeFaceMode faceMode = NodeFaceMode.byName(faces.getString(direction.getSerializedName()));
-                faceModes.put(direction, faceMode == NodeFaceMode.NONE ? NodeFaceMode.OUTPUT : faceMode);
+                faceModes.put(direction, faceMode);
             }
         } else {
             faceModes.put(getTargetDirection(), mode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
@@ -880,11 +1106,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private void markChanged(ChangeKind changeKind) {
-        NodeMode visualMode = visualMode();
-        if (level != null && getBlockState().hasProperty(SkyNodeBlock.MODE)
-                && getBlockState().getValue(SkyNodeBlock.MODE) != visualMode) {
-            level.setBlock(worldPosition, getBlockState().setValue(SkyNodeBlock.MODE, visualMode), 3);
-        }
+        updateVisualState();
         setChanged();
         if (level != null) {
             if (level instanceof ServerLevel serverLevel) {
@@ -921,6 +1143,30 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
         }
         return mode;
+    }
+
+    private void updateVisualState() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        BlockState current = getBlockState();
+        BlockState updated = current;
+        if (updated.hasProperty(SkyNodeBlock.MODE)) {
+            updated = updated.setValue(SkyNodeBlock.MODE, visualMode());
+        }
+        for (Direction direction : Direction.values()) {
+            NodeFaceMode faceMode = getFaceMode(direction);
+            if (updated.hasProperty(SkyNodeBlock.connectedProperty(direction))) {
+                updated = updated.setValue(SkyNodeBlock.connectedProperty(direction),
+                        faceMode != NodeFaceMode.NONE);
+            }
+            if (updated.hasProperty(SkyNodeBlock.faceModeProperty(direction))) {
+                updated = updated.setValue(SkyNodeBlock.faceModeProperty(direction), faceMode);
+            }
+        }
+        if (!updated.equals(current)) {
+            level.setBlock(worldPosition, updated, 3);
+        }
     }
 
     private FilterListItem.CompiledFilter compiledFaceFilter(Direction direction, int slot) {

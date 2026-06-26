@@ -7,11 +7,31 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class OfferingTableBlock extends SingleSlotDisplayBlock {
+    private static final VoxelShape SHAPE = Shapes.or(
+            Block.box(2.0D, 0.0D, 2.0D, 14.0D, 2.0D, 14.0D),
+            Block.box(4.0D, 2.0D, 4.0D, 12.0D, 4.0D, 12.0D),
+            Block.box(5.0D, 4.0D, 5.0D, 11.0D, 11.0D, 11.0D),
+            Block.box(2.0D, 11.0D, 2.0D, 14.0D, 13.0D, 14.0D),
+            Block.box(3.0D, 13.0D, 3.0D, 13.0D, 14.0D, 13.0D),
+            Block.box(5.0D, 14.0D, 5.0D, 11.0D, 15.0D, 11.0D),
+            Block.box(2.0D, 13.0D, 2.0D, 4.0D, 15.0D, 4.0D),
+            Block.box(12.0D, 13.0D, 2.0D, 14.0D, 15.0D, 4.0D),
+            Block.box(2.0D, 13.0D, 12.0D, 4.0D, 15.0D, 14.0D),
+            Block.box(12.0D, 13.0D, 12.0D, 14.0D, 15.0D, 14.0D));
+
     public OfferingTableBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    protected VoxelShape getDisplayShape(BlockState state) {
+        return SHAPE;
     }
 
     @Override

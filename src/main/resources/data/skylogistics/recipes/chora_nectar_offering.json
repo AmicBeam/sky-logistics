@@ -8,20 +8,20 @@
   },
   "offerings": [
     {
-      "item": "minecraft:honeycomb",
-      "count": 64
+      "item": "minecraft:dragon_breath",
+      "count": 4
     },
     {
-      "item": "minecraft:glowstone_dust",
-      "count": 64
+      "item": "minecraft:diamond",
+      "count": 16
     },
     {
       "item": "minecraft:amethyst_shard",
-      "count": 64
+      "count": 32
     },
     {
       "item": "minecraft:glass_bottle",
-      "count": 64
+      "count": 1
     }
   ],
   "result": {

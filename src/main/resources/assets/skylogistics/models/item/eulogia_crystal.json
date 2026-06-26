@@ -6,7 +6,7 @@
   "overrides": [
     {
       "predicate": {
-        "damage": 1.0
+        "skylogistics:charged": 1.0
       },
       "model": "skylogistics:item/eulogia_crystal_charged"
     }

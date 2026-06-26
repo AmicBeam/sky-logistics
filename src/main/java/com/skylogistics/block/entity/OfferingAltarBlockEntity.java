@@ -1,22 +1,28 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModRecipes;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -25,6 +31,11 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     private static final int ACTIVE_STRUCTURE_CHECK_INTERVAL = 20;
+    private static final int TIER_ONE_FRAME_RADIUS = 2;
+    private static final int TIER_TWO_PILLAR_RADIUS = 3;
+    private static final int FRAME_Y_OFFSET = -1;
+    private static final int PILLAR_SHAFT_Y_OFFSET = 0;
+    private static final int PILLAR_CAP_Y_OFFSET = 1;
 
     private ResourceLocation activeRecipeId;
     private OfferingRecipe activeRecipe;
@@ -109,8 +120,104 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
             serverLevel.playSound(null, worldPosition, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 0.55F, 1.6F);
-            sendWorkingParticles(serverLevel, 24);
+            sendStartParticles(serverLevel);
         }
+    }
+
+    public void sendRecipeStartFailureMessage(Player player) {
+        if (activeRecipeId != null || getDisplayedItem().isEmpty() || !(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        Component message = recipeStartFailureMessage(serverLevel);
+        if (message != null) {
+            player.displayClientMessage(message, true);
+        }
+    }
+
+    private Component recipeStartFailureMessage(ServerLevel level) {
+        int minY = SkyLogisticsConfig.skyRitualMinY();
+        if (worldPosition.getY() < minY) {
+            return Component.translatable("message.skylogistics.offering_altar.too_low", worldPosition.getY(), minY);
+        }
+
+        List<OfferingTableBlockEntity> tables = getOfferingTables();
+        if (tables.size() != 4) {
+            return Component.translatable("message.skylogistics.offering_altar.tables", tables.size());
+        }
+        if (!hasTierOneFrame()) {
+            return Component.translatable("message.skylogistics.offering_altar.frame");
+        }
+
+        int structureTier = hasTierTwoPillars() ? 2 : 1;
+        ItemStack mainStack = getDisplayedItem();
+        List<OfferingRecipe> recipes = level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get());
+        if (recipes.isEmpty()) {
+            return Component.translatable("message.skylogistics.offering_altar.no_recipes");
+        }
+
+        Optional<OfferingRecipe> sameMainItemRecipe = recipes.stream()
+                .filter(recipe -> recipe.main().ingredient().test(mainStack))
+                .findFirst();
+        if (sameMainItemRecipe.isEmpty()) {
+            return Component.translatable("message.skylogistics.offering_altar.no_main_recipe",
+                    mainStack.getHoverName());
+        }
+
+        List<OfferingRecipe> mainMatches = recipes.stream()
+                .filter(recipe -> recipe.main().matches(mainStack))
+                .toList();
+        if (mainMatches.isEmpty()) {
+            OfferingRecipe.CountedIngredient main = sameMainItemRecipe.get().main();
+            if (main.requireChargedCrystal() && !EulogiaCrystalItem.isCharged(mainStack)) {
+                return Component.translatable("message.skylogistics.offering_altar.main_uncharged",
+                        mainStack.getHoverName());
+            }
+            if (mainStack.getCount() < main.count()) {
+                return Component.translatable("message.skylogistics.offering_altar.main_count",
+                        describeIngredient(main));
+            }
+            return Component.translatable("message.skylogistics.offering_altar.no_main_recipe",
+                    mainStack.getHoverName());
+        }
+
+        List<ItemStack> offeringStacks = tables.stream()
+                .map(OfferingTableBlockEntity::getDisplayedItem)
+                .toList();
+        Optional<OfferingRecipe> matchedHigherTierRecipe = mainMatches.stream()
+                .filter(recipe -> structureTier < recipe.requiredTier())
+                .filter(recipe -> OfferingCheck.evaluate(recipe, offeringStacks).score() == 0)
+                .min(Comparator.comparingInt(OfferingRecipe::requiredTier));
+        if (matchedHigherTierRecipe.isPresent()) {
+            return Component.translatable("message.skylogistics.offering_altar.tier",
+                    matchedHigherTierRecipe.get().requiredTier(), structureTier);
+        }
+
+        List<OfferingRecipe> tierMatches = mainMatches.stream()
+                .filter(recipe -> structureTier >= recipe.requiredTier())
+                .toList();
+        if (tierMatches.isEmpty()) {
+            int requiredTier = mainMatches.stream()
+                    .mapToInt(OfferingRecipe::requiredTier)
+                    .min()
+                    .orElse(1);
+            return Component.translatable("message.skylogistics.offering_altar.tier", requiredTier, structureTier);
+        }
+
+        OfferingCheck bestCheck = tierMatches.stream()
+                .map(recipe -> OfferingCheck.evaluate(recipe, offeringStacks))
+                .min(Comparator.comparingInt(OfferingCheck::score))
+                .orElse(null);
+        if (bestCheck == null) {
+            return Component.translatable("message.skylogistics.offering_altar.no_recipe_match");
+        }
+        if (!bestCheck.missing().isEmpty()) {
+            return Component.translatable("message.skylogistics.offering_altar.missing_offerings",
+                    describeIngredients(bestCheck.missing()));
+        }
+        if (bestCheck.extraCount() > 0) {
+            return Component.translatable("message.skylogistics.offering_altar.extra_offerings");
+        }
+        return Component.translatable("message.skylogistics.offering_altar.no_recipe_match");
     }
 
     private void tryStartRecipe(ServerLevel level) {
@@ -136,7 +243,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         }
         progress++;
         if (progress % 5 == 0) {
-            sendWorkingParticles(level, 6);
+            sendRitualParticles(level, recipe);
         }
         if (progress < recipe.duration()) {
             return;
@@ -161,7 +268,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             suppressRecipeRefresh = false;
         }
         level.playSound(null, worldPosition, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 0.8F, 1.25F);
-        sendWorkingParticles(level, 36);
+        sendCompletionParticles(level);
         tryStartRecipe(level);
     }
 
@@ -258,23 +365,38 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (level == null || getOfferingTables().size() != 4) {
             return 0;
         }
-        boolean tierTwo = true;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                if (Math.abs(dx) != 2 && Math.abs(dz) != 2) {
+        if (!hasTierOneFrame()) {
+            return 0;
+        }
+        return hasTierTwoPillars() ? 2 : 1;
+    }
+
+    private boolean hasTierOneFrame() {
+        for (int dx = -TIER_ONE_FRAME_RADIUS; dx <= TIER_ONE_FRAME_RADIUS; dx++) {
+            for (int dz = -TIER_ONE_FRAME_RADIUS; dz <= TIER_ONE_FRAME_RADIUS; dz++) {
+                if (Math.abs(dx) != TIER_ONE_FRAME_RADIUS && Math.abs(dz) != TIER_ONE_FRAME_RADIUS) {
                     continue;
                 }
-                BlockState frameState = level.getBlockState(worldPosition.offset(dx, 0, dz));
+                BlockState frameState = level.getBlockState(worldPosition.offset(dx, FRAME_Y_OFFSET, dz));
                 if (!isCelestialStoneFrameBlock(frameState)) {
-                    return 0;
-                }
-                if (Math.abs(dx) == 2 && Math.abs(dz) == 2
-                        && !isCelestialGlass(level.getBlockState(worldPosition.offset(dx, 1, dz)))) {
-                    tierTwo = false;
+                    return false;
                 }
             }
         }
-        return tierTwo ? 2 : 1;
+        return true;
+    }
+
+    private boolean hasTierTwoPillars() {
+        for (int dx : new int[] {-TIER_TWO_PILLAR_RADIUS, TIER_TWO_PILLAR_RADIUS}) {
+            for (int dz : new int[] {-TIER_TWO_PILLAR_RADIUS, TIER_TWO_PILLAR_RADIUS}) {
+                if (!isCelestialStoneFrameBlock(level.getBlockState(worldPosition.offset(dx, FRAME_Y_OFFSET, dz)))
+                        || !isCelestialStoneFrameBlock(level.getBlockState(worldPosition.offset(dx, PILLAR_SHAFT_Y_OFFSET, dz)))
+                        || !isCelestialGlass(level.getBlockState(worldPosition.offset(dx, PILLAR_CAP_Y_OFFSET, dz)))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static boolean isCelestialStoneFrameBlock(BlockState state) {
@@ -299,11 +421,134 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         return -1;
     }
 
-    private void sendWorkingParticles(ServerLevel level, int count) {
+    private static Component describeIngredients(List<OfferingRecipe.CountedIngredient> ingredients) {
+        MutableComponent description = Component.empty();
+        for (int i = 0; i < ingredients.size(); i++) {
+            if (i > 0) {
+                description.append(", ");
+            }
+            description.append(describeIngredient(ingredients.get(i)));
+        }
+        return description;
+    }
+
+    private static Component describeIngredient(OfferingRecipe.CountedIngredient ingredient) {
+        ItemStack[] examples = ingredient.ingredient().getItems();
+        Component name = examples.length == 0
+                ? Component.translatable("message.skylogistics.offering_altar.unknown_ingredient")
+                : examples[0].getHoverName();
+        return Component.literal(ingredient.count() + "x ").append(name);
+    }
+
+    private record OfferingCheck(List<OfferingRecipe.CountedIngredient> missing, int extraCount) {
+        private static OfferingCheck evaluate(OfferingRecipe recipe, List<ItemStack> offeringStacks) {
+            boolean[] used = new boolean[offeringStacks.size()];
+            List<OfferingRecipe.CountedIngredient> missing = new ArrayList<>();
+            for (OfferingRecipe.CountedIngredient ingredient : recipe.offerings()) {
+                int found = findMatchingOffering(ingredient, offeringStacks, used);
+                if (found < 0) {
+                    missing.add(ingredient);
+                } else {
+                    used[found] = true;
+                }
+            }
+
+            int extraCount = 0;
+            for (int i = 0; i < offeringStacks.size(); i++) {
+                if (!used[i] && !offeringStacks.get(i).isEmpty()) {
+                    extraCount++;
+                }
+            }
+            return new OfferingCheck(missing, extraCount);
+        }
+
+        private static int findMatchingOffering(OfferingRecipe.CountedIngredient ingredient,
+                List<ItemStack> stacks, boolean[] used) {
+            for (int i = 0; i < stacks.size(); i++) {
+                if (!used[i] && ingredient.matches(stacks.get(i))) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int score() {
+            return missing.size() * 2 + extraCount;
+        }
+    }
+
+    private void sendStartParticles(ServerLevel level) {
         double x = worldPosition.getX() + 0.5D;
         double y = worldPosition.getY() + 1.15D;
         double z = worldPosition.getZ() + 0.5D;
-        level.sendParticles(ParticleTypes.END_ROD, x, y, z, count, 0.55D, 0.18D, 0.55D, 0.015D);
-        level.sendParticles(ParticleTypes.ENCHANT, x, y + 0.15D, z, Math.max(2, count / 3), 0.7D, 0.1D, 0.7D, 0.04D);
+        level.sendParticles(ParticleTypes.END_ROD, x, y, z, 12, 0.4D, 0.08D, 0.4D, 0.012D);
+        level.sendParticles(ParticleTypes.GLOW, x, y + 0.15D, z, 6, 0.35D, 0.05D, 0.35D, 0.006D);
+        sendFramePulse(level, 0.2D);
+    }
+
+    private void sendRitualParticles(ServerLevel level, OfferingRecipe recipe) {
+        double progressRatio = recipe.duration() <= 0 ? 1.0D : Math.min(1.0D, (double) progress / recipe.duration());
+        double x = worldPosition.getX() + 0.5D;
+        double y = worldPosition.getY() + 1.15D;
+        double z = worldPosition.getZ() + 0.5D;
+        level.sendParticles(ParticleTypes.END_ROD, x, y + progressRatio * 0.25D, z,
+                2, 0.18D, 0.04D, 0.18D, 0.012D + progressRatio * 0.008D);
+        level.sendParticles(ParticleTypes.ENCHANT, x, y + 0.2D, z, 1, 0.48D, 0.04D, 0.48D, 0.018D);
+        if (progress % 10 == 0) {
+            sendTableTrails(level);
+        }
+        if (progress % 20 == 0) {
+            sendFramePulse(level, progressRatio);
+        }
+        if (progressRatio > 0.85D && progress % 10 == 0) {
+            level.sendParticles(ParticleTypes.GLOW, x, y + 0.55D, z, 2, 0.25D, 0.06D, 0.25D, 0.004D);
+        }
+    }
+
+    private void sendCompletionParticles(ServerLevel level) {
+        double x = worldPosition.getX() + 0.5D;
+        double y = worldPosition.getY() + 1.18D;
+        double z = worldPosition.getZ() + 0.5D;
+        sendFramePulse(level, 1.0D);
+        level.sendParticles(ParticleTypes.END_ROD, x, y, z, 18, 0.5D, 0.16D, 0.5D, 0.018D);
+        level.sendParticles(ParticleTypes.GLOW, x, y + 0.35D, z, 10, 0.32D, 0.12D, 0.32D, 0.01D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y + 0.2D, z, 6, 0.35D, 0.08D, 0.35D, 0.025D);
+    }
+
+    private void sendTableTrails(ServerLevel level) {
+        double targetX = worldPosition.getX() + 0.5D;
+        double targetY = worldPosition.getY() + 1.25D;
+        double targetZ = worldPosition.getZ() + 0.5D;
+        for (OfferingTableBlockEntity table : getOfferingTables()) {
+            ItemStack stack = table.getDisplayedItem();
+            if (stack.isEmpty()) {
+                continue;
+            }
+            BlockPos tablePos = table.getBlockPos();
+            double sourceX = tablePos.getX() + 0.5D;
+            double sourceY = tablePos.getY() + 1.18D;
+            double sourceZ = tablePos.getZ() + 0.5D;
+            ItemStack particleStack = stack.copy();
+            particleStack.setCount(1);
+            level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, particleStack), sourceX, sourceY, sourceZ,
+                    0, (targetX - sourceX) * 0.1D, (targetY - sourceY) * 0.1D + 0.03D,
+                    (targetZ - sourceZ) * 0.1D, 1.0D);
+            level.sendParticles(ParticleTypes.END_ROD, sourceX, sourceY + 0.05D, sourceZ,
+                    1, 0.03D, 0.02D, 0.03D, 0.004D);
+        }
+    }
+
+    private void sendFramePulse(ServerLevel level, double progressRatio) {
+        int[][] points = {
+                {-2, -2}, {0, -2}, {2, -2},
+                {-2, 0}, {2, 0},
+                {-2, 2}, {0, 2}, {2, 2}
+        };
+        double y = worldPosition.getY() + 0.05D;
+        double lift = 0.012D + progressRatio * 0.018D;
+        for (int[] point : points) {
+            level.sendParticles(ParticleTypes.GLOW, worldPosition.getX() + point[0] + 0.5D, y,
+                    worldPosition.getZ() + point[1] + 0.5D, 1, 0.0D, lift, 0.0D, 0.0D);
+        }
     }
 }

@@ -35,9 +35,9 @@ import net.minecraftforge.items.ItemHandlerHelper;
 
 public class ItemVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
-    private static final int VIEWER_SYNC_INTERVAL_TICKS = 10;
 
     private final List<ItemStack> items = new ArrayList<>();
+    private final List<Long> amounts = new ArrayList<>();
     private final LinkedHashMap<ItemStackKey, Long> clientStored = new LinkedHashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
     private final IItemHandler itemHandler = new VaultItemHandler();
@@ -45,8 +45,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private int typeLimit = 1;
     private int clientUsedTypes = -1;
     private long clientTotalAmount = -1L;
+    private long syncVersion;
     private long clientSnapshotVersion;
-    private long lastViewerSyncTime = Long.MIN_VALUE;
 
     public ItemVaultBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ITEM_VAULT.get(), pos, state);
@@ -91,6 +91,10 @@ public class ItemVaultBlockEntity extends BlockEntity {
         return clientSnapshotVersion;
     }
 
+    public long getSyncVersion() {
+        return syncVersion;
+    }
+
     public List<StoredItem> getStoredItems(int limit) {
         List<StoredItem> result = new ArrayList<>();
         int added = 0;
@@ -98,8 +102,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (added++ >= limit) {
                 break;
             }
-            result.add(new StoredItem(entry.getKey().toStack((int) Math.min(Integer.MAX_VALUE, entry.getValue())),
-                    entry.getValue()));
+            result.add(new StoredItem(entry.getKey().toStack(1), entry.getValue()));
         }
         return result;
     }
@@ -139,20 +142,18 @@ public class ItemVaultBlockEntity extends BlockEntity {
         ItemStack result = ItemStack.EMPTY;
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots && remaining > 0; slot++) {
-            ItemStack stack = stackInSlot(slot);
-            if (stack.isEmpty() || !ItemStack.isSameItemSameTags(stack, template)) {
+            ItemStack stack = templateInSlot(slot);
+            long storedAmount = amountInSlot(slot);
+            if (stack.isEmpty() || storedAmount <= 0 || !ItemStack.isSameItemSameTags(stack, template)) {
                 continue;
             }
-            int toExtract = Math.min(remaining, stack.getCount());
+            int toExtract = (int) Math.min(remaining, storedAmount);
             if (result.isEmpty()) {
                 result = stack.copy();
                 result.setCount(0);
             }
             result.grow(toExtract);
-            stack.shrink(toExtract);
-            if (stack.isEmpty()) {
-                items.set(slot, ItemStack.EMPTY);
-            }
+            decreaseStored(slot, toExtract);
             remaining -= toExtract;
         }
         if (!result.isEmpty()) {
@@ -165,21 +166,17 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (target == this || sourceSlot < 0 || sourceSlot >= getTypeLimit() || maxAmount <= 0) {
             return 0L;
         }
-        ItemStack source = stackInSlot(sourceSlot);
-        if (source.isEmpty()) {
+        ItemStack source = templateInSlot(sourceSlot);
+        long storedAmount = amountInSlot(sourceSlot);
+        if (source.isEmpty() || storedAmount <= 0) {
             return 0L;
         }
-        ItemStack moving = source.copy();
-        moving.setCount((int) Math.min(Math.min(Integer.MAX_VALUE, maxAmount), source.getCount()));
-        ItemStack remainder = target.insertStack(moving, false);
-        int moved = moving.getCount() - remainder.getCount();
+        long requested = Math.min(maxAmount, storedAmount);
+        long moved = target.insertStored(source, requested, false);
         if (moved <= 0) {
             return 0L;
         }
-        source.shrink(moved);
-        if (source.isEmpty()) {
-            items.set(sourceSlot, ItemStack.EMPTY);
-        }
+        decreaseStored(sourceSlot, moved);
         markContentsChanged();
         return moved;
     }
@@ -240,13 +237,17 @@ public class ItemVaultBlockEntity extends BlockEntity {
         ListTag itemTags = new ListTag();
         int slots = Math.min(items.size(), getConfiguredMaxTypes());
         for (int slot = 0; slot < slots; slot++) {
-            ItemStack stack = items.get(slot);
-            if (stack.isEmpty()) {
+            ItemStack stack = templateInSlot(slot);
+            long amount = amountInSlot(slot);
+            if (stack.isEmpty() || amount <= 0) {
                 continue;
             }
+            ItemStack savedStack = stack.copy();
+            savedStack.setCount(1);
             CompoundTag entry = new CompoundTag();
             entry.putInt("Slot", slot);
-            entry.put("Stack", stack.save(new CompoundTag()));
+            entry.putLong("Amount", amount);
+            entry.put("Stack", savedStack.save(new CompoundTag()));
             itemTags.add(entry);
         }
         if (!itemTags.isEmpty()) {
@@ -269,7 +270,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
                     continue;
                 }
                 ItemStack stack = ItemStack.of(entry.getCompound("Stack"));
-                items.set(slot, stack);
+                long amount = entry.contains("Amount", Tag.TAG_LONG) ? entry.getLong("Amount") : stack.getCount();
+                setStored(slot, stack, amount);
             }
         }
         if (tag.contains("UsedTypes")) {
@@ -313,32 +315,29 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     private void markContentsChanged() {
+        syncVersion++;
         setChanged();
         if (level instanceof ServerLevel) {
-            syncToViewingPlayers(false);
+            syncToViewingPlayers();
         }
     }
 
     private void markMetadataChanged() {
+        syncVersion++;
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
             serverLevel.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-            syncToViewingPlayers(true);
+            syncToViewingPlayers();
         }
     }
 
-    private void syncToViewingPlayers(boolean immediate) {
+    private void syncToViewingPlayers() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
         if (viewers.isEmpty()) {
             return;
         }
-        long gameTime = serverLevel.getGameTime();
-        if (!immediate && gameTime - lastViewerSyncTime < VIEWER_SYNC_INTERVAL_TICKS) {
-            return;
-        }
-        boolean synced = false;
         Iterator<UUID> iterator = viewers.iterator();
         while (iterator.hasNext()) {
             UUID viewer = iterator.next();
@@ -349,10 +348,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
                 continue;
             }
             syncTo(player);
-            synced = true;
-        }
-        if (synced) {
-            lastViewerSyncTime = gameTime;
+            menu.noteVaultSnapshotSynced(syncVersion);
         }
     }
 
@@ -363,57 +359,111 @@ public class ItemVaultBlockEntity extends BlockEntity {
         ItemStack remainder = stack.copy();
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots && !remainder.isEmpty(); slot++) {
-            ItemStack existing = stackInSlot(slot);
+            ItemStack existing = templateInSlot(slot);
             if (!existing.isEmpty() && ItemHandlerHelper.canItemStacksStack(existing, remainder)) {
                 remainder = insertIntoSlot(slot, remainder, simulate);
             }
         }
         for (int slot = 0; slot < slots && !remainder.isEmpty(); slot++) {
-            if (stackInSlot(slot).isEmpty()) {
+            if (templateInSlot(slot).isEmpty()) {
                 remainder = insertIntoSlot(slot, remainder, simulate);
             }
         }
         return remainder;
+    }
+
+    private long insertStored(ItemStack template, long amount, boolean simulate) {
+        if (template.isEmpty() || amount <= 0) {
+            return 0L;
+        }
+        ItemStack normalized = template.copy();
+        normalized.setCount(1);
+        long remaining = amount;
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots && remaining > 0; slot++) {
+            ItemStack existing = templateInSlot(slot);
+            if (!existing.isEmpty() && ItemHandlerHelper.canItemStacksStack(existing, normalized)) {
+                remaining -= insertAmountIntoSlot(slot, normalized, remaining, simulate);
+            }
+        }
+        for (int slot = 0; slot < slots && remaining > 0; slot++) {
+            if (templateInSlot(slot).isEmpty()) {
+                remaining -= insertAmountIntoSlot(slot, normalized, remaining, simulate);
+            }
+        }
+        long inserted = amount - remaining;
+        if (inserted > 0 && !simulate) {
+            markContentsChanged();
+        }
+        return inserted;
     }
 
     private ItemStack insertIntoSlot(int slot, ItemStack stack, boolean simulate) {
         if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
             return stack;
         }
-        ItemStack existing = stackInSlot(slot);
-        int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
-        if (!existing.isEmpty()) {
-            if (!ItemHandlerHelper.canItemStacksStack(existing, stack)) {
-                return stack;
-            }
-            limit -= existing.getCount();
-        }
-        if (limit <= 0) {
+        ItemStack remainder = stack.copy();
+        long accepted = insertAmountIntoSlot(slot, stack, stack.getCount(), simulate);
+        if (accepted <= 0) {
             return stack;
         }
-        int accepted = Math.min(limit, stack.getCount());
         if (!simulate) {
-            if (existing.isEmpty()) {
-                ItemStack inserted = stack.copy();
-                inserted.setCount(accepted);
-                items.set(slot, inserted);
-            } else {
-                existing.grow(accepted);
-            }
             markContentsChanged();
         }
-        ItemStack remainder = stack.copy();
-        remainder.shrink(accepted);
+        remainder.shrink((int) accepted);
         return remainder;
     }
 
+    private long insertAmountIntoSlot(int slot, ItemStack template, long amount, boolean simulate) {
+        if (slot < 0 || slot >= getTypeLimit() || template.isEmpty() || amount <= 0) {
+            return 0L;
+        }
+        ItemStack existing = templateInSlot(slot);
+        long current = amountInSlot(slot);
+        if (!existing.isEmpty() && !ItemHandlerHelper.canItemStacksStack(existing, template)) {
+            return 0L;
+        }
+        long space = Long.MAX_VALUE - current;
+        long accepted = Math.min(amount, space);
+        if (accepted <= 0) {
+            return 0L;
+        }
+        if (!simulate) {
+            if (existing.isEmpty() || current <= 0) {
+                ItemStack stored = template.copy();
+                stored.setCount(1);
+                items.set(slot, stored);
+                amounts.set(slot, accepted);
+            } else {
+                amounts.set(slot, current + accepted);
+            }
+        }
+        return accepted;
+    }
+
     private ItemStack stackInSlot(int slot) {
+        ItemStack template = templateInSlot(slot);
+        long amount = amountInSlot(slot);
+        if (template.isEmpty() || amount <= 0) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack stack = template.copy();
+        stack.setCount((int) Math.min(Integer.MAX_VALUE, amount));
+        return stack;
+    }
+
+    private ItemStack templateInSlot(int slot) {
         ensureItemCapacity();
         return slot >= 0 && slot < items.size() ? items.get(slot) : ItemStack.EMPTY;
     }
 
+    private long amountInSlot(int slot) {
+        ensureItemCapacity();
+        return slot >= 0 && slot < amounts.size() ? Math.max(0L, amounts.get(slot)) : 0L;
+    }
+
     private int getSlotLimit(int slot) {
-        return slot >= 0 && slot < getTypeLimit() ? 64 : 0;
+        return slot >= 0 && slot < getTypeLimit() ? Integer.MAX_VALUE : 0;
     }
 
     private LinkedHashMap<ItemStackKey, Long> displayContents() {
@@ -423,14 +473,15 @@ public class ItemVaultBlockEntity extends BlockEntity {
         LinkedHashMap<ItemStackKey, Long> contents = new LinkedHashMap<>();
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots; slot++) {
-            ItemStack stack = stackInSlot(slot);
-            if (stack.isEmpty()) {
+            ItemStack stack = templateInSlot(slot);
+            long amount = amountInSlot(slot);
+            if (stack.isEmpty() || amount <= 0) {
                 continue;
             }
             ItemStack normalized = stack.copy();
             normalized.setCount(1);
             ItemStackKey key = ItemStackKey.of(normalized);
-            contents.put(key, saturatingAdd(contents.getOrDefault(key, 0L), stack.getCount()));
+            contents.put(key, saturatingAdd(contents.getOrDefault(key, 0L), amount));
         }
         return contents;
     }
@@ -439,7 +490,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         int occupied = 0;
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots; slot++) {
-            if (!stackInSlot(slot).isEmpty()) {
+            if (!templateInSlot(slot).isEmpty() && amountInSlot(slot) > 0) {
                 occupied++;
             }
         }
@@ -450,10 +501,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         long total = 0L;
         int slots = getTypeLimit();
         for (int slot = 0; slot < slots; slot++) {
-            ItemStack stack = stackInSlot(slot);
-            if (!stack.isEmpty()) {
-                total = saturatingAdd(total, stack.getCount());
-            }
+            total = saturatingAdd(total, amountInSlot(slot));
         }
         return total;
     }
@@ -462,9 +510,17 @@ public class ItemVaultBlockEntity extends BlockEntity {
         int max = Math.max(1, SkyLogisticsConfig.maxVaultTypes());
         while (items.size() < max) {
             items.add(ItemStack.EMPTY);
+            amounts.add(0L);
         }
         while (items.size() > max) {
             items.remove(items.size() - 1);
+            amounts.remove(amounts.size() - 1);
+        }
+        while (amounts.size() < items.size()) {
+            amounts.add(0L);
+        }
+        while (amounts.size() > items.size()) {
+            amounts.remove(amounts.size() - 1);
         }
         typeLimit = Math.max(1, Math.min(typeLimit, max));
     }
@@ -472,6 +528,34 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private void clearItems() {
         for (int i = 0; i < items.size(); i++) {
             items.set(i, ItemStack.EMPTY);
+            amounts.set(i, 0L);
+        }
+    }
+
+    private void setStored(int slot, ItemStack stack, long amount) {
+        if (slot < 0 || slot >= items.size() || stack.isEmpty() || amount <= 0) {
+            if (slot >= 0 && slot < items.size()) {
+                items.set(slot, ItemStack.EMPTY);
+                amounts.set(slot, 0L);
+            }
+            return;
+        }
+        ItemStack stored = stack.copy();
+        stored.setCount(1);
+        items.set(slot, stored);
+        amounts.set(slot, amount);
+    }
+
+    private void decreaseStored(int slot, long amount) {
+        if (slot < 0 || slot >= items.size() || amount <= 0) {
+            return;
+        }
+        long remaining = amountInSlot(slot) - Math.min(amountInSlot(slot), amount);
+        if (remaining <= 0) {
+            items.set(slot, ItemStack.EMPTY);
+            amounts.set(slot, 0L);
+        } else {
+            amounts.set(slot, remaining);
         }
     }
 
@@ -509,18 +593,16 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit() || amount <= 0) {
                 return ItemStack.EMPTY;
             }
-            ItemStack existing = stackInSlot(slot);
-            if (existing.isEmpty()) {
+            ItemStack existing = templateInSlot(slot);
+            long storedAmount = amountInSlot(slot);
+            if (existing.isEmpty() || storedAmount <= 0) {
                 return ItemStack.EMPTY;
             }
-            int extractedAmount = Math.min(amount, existing.getCount());
+            int extractedAmount = (int) Math.min(amount, storedAmount);
             ItemStack extracted = existing.copy();
             extracted.setCount(extractedAmount);
             if (!simulate) {
-                existing.shrink(extractedAmount);
-                if (existing.isEmpty()) {
-                    items.set(slot, ItemStack.EMPTY);
-                }
+                decreaseStored(slot, extractedAmount);
                 markContentsChanged();
             }
             return extracted;
@@ -536,7 +618,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
                 return false;
             }
-            ItemStack existing = stackInSlot(slot);
+            ItemStack existing = templateInSlot(slot);
             return existing.isEmpty() || ItemHandlerHelper.canItemStacksStack(existing, stack);
         }
     }

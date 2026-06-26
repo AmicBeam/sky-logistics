@@ -9,7 +9,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Sneak-right-click a Sky Logistics Node while holding the configurator to copy that node's line and resource toggles, then enter paste mode without opening the node screen. A hotbar message shows the copied line's short ID."
+      "text": "Sneak-right-click a Sky Logistics Node while holding the configurator to copy that node's line and resource toggles, then enter paste mode without opening the node screen. A hotbar message shows the copied line name."
     },
     {
       "type": "patchouli:text",

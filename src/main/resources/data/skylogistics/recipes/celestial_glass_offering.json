@@ -9,15 +9,15 @@
   "offerings": [
     {
       "tag": "forge:glass",
-      "count": 64
+      "count": 8
     },
     {
       "item": "minecraft:glowstone_dust",
-      "count": 64
+      "count": 8
     }
   ],
   "result": {
     "item": "skylogistics:celestial_glass",
-    "count": 8
+    "count": 1
   }
 }

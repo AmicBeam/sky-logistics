@@ -1,6 +1,7 @@
 package com.skylogistics;
 
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.event.ManualGiftHandler;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.ModNetworking;
@@ -39,6 +40,7 @@ public class SkyLogistics {
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
 
         MinecraftForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }

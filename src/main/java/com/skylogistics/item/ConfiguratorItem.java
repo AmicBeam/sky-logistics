@@ -4,9 +4,13 @@ import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
@@ -40,9 +44,18 @@ public class ConfiguratorItem extends Item {
     private static final String MODE = "Mode";
     private static final String REDSTONE = "Redstone";
     private static final String PRIORITY = "Priority";
+    private static final String FILTERS = "Filters";
+    private static final String SLOT = "Slot";
+    private static final String STACK = "Stack";
+    private static final String SPEED_UPGRADE = "SpeedUpgrade";
+    private static final String DIMENSION_UPGRADE = "DimensionUpgrade";
     private static final String LINES = "Lines";
+    private static final String LINE_BINDINGS = "LineBindings";
     private static final String LINE_INDEX = "LineIndex";
     private static final String LINE_ENTRY_ID = "Id";
+    private static final String LINE_NAME = "LineName";
+    private static final String LINE_ENTRY_NAME = "Name";
+    private static final String FALLBACK_LINE_PREFIX = "Line";
 
     public ConfiguratorItem(Properties properties) {
         super(properties);
@@ -73,20 +86,21 @@ public class ConfiguratorItem extends Item {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
+        node.claimDefaultLineName(player);
 
         if (player != null && player.isShiftKeyDown()) {
             writeConfig(stack, ToolConfig.fromNode(node));
             setPasteMode(stack, true);
             player.displayClientMessage(Component.translatable("message.skylogistics.configurator.copied_paste",
-                    shortLine(node.getLineId())), true);
+                    node.getLineName()), true);
             return InteractionResult.CONSUME;
         }
 
         if (isPasteMode(stack)) {
-            node.applyCopiedToolConfig(readOrCreate(stack));
+            node.applyCopiedToolConfig(readOrCreate(stack, player), player);
             if (player != null) {
                 player.displayClientMessage(Component.translatable("message.skylogistics.configurator.pasted",
-                        shortLine(node.getLineId())), true);
+                        node.getLineName()), true);
             }
             return InteractionResult.CONSUME;
         }
@@ -139,7 +153,7 @@ public class ConfiguratorItem extends Item {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.unbound").withStyle(ChatFormatting.GRAY));
             return;
         }
-        tooltip.add(Component.translatable("tooltip.skylogistics.configurator.line", shortLine(config.lineId()))
+        tooltip.add(Component.translatable("tooltip.skylogistics.configurator.line", config.lineName())
                 .withStyle(ChatFormatting.AQUA));
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.types",
                 config.itemsEnabled(), config.fluidsEnabled(), config.energyEnabled()).withStyle(ChatFormatting.GRAY));
@@ -154,19 +168,25 @@ public class ConfiguratorItem extends Item {
     public static ToolConfig readOrCreate(ItemStack stack) {
         ToolConfig config = read(stack);
         if (config != null) {
+            rememberKnownLineBindings(stack);
             return config;
         }
-        config = ToolConfig.createDefault(UUID.randomUUID());
+        config = ToolConfig.createDefault(createLine(stack.getOrCreateTag(), FALLBACK_LINE_PREFIX, List.of()));
         writeConfig(stack, config);
         return config;
     }
 
     public static ToolConfig readOrCreate(ItemStack stack, Player player) {
+        String prefix = linePrefix(player);
         ToolConfig config = read(stack);
         if (config != null) {
+            if (ensureLineNames(stack, prefix)) {
+                config = read(stack);
+            }
+            rememberKnownLineBindings(stack);
             return config;
         }
-        config = ToolConfig.createDefault(UUID.randomUUID());
+        config = ToolConfig.createDefault(createLine(stack.getOrCreateTag(), prefix, List.of()));
         writeConfig(stack, config);
         return config;
     }
@@ -190,12 +210,19 @@ public class ConfiguratorItem extends Item {
                 }
             }
         }
-        return new ToolConfig(tag.getUUID(LINE_ID), placement, faces, copiedFaces);
+        List<LineEntry> lines = readLineEntries(tag);
+        UUID activeLineId = tag.getUUID(LINE_ID);
+        String activeLineName = tag.contains(LINE_NAME, Tag.TAG_STRING)
+                ? tag.getString(LINE_NAME)
+                : lineName(lines, activeLineId);
+        return new ToolConfig(activeLineId, validLineName(activeLineName, lineName(lines, activeLineId)),
+                placement, faces, copiedFaces, tag.getBoolean(SPEED_UPGRADE), tag.getBoolean(DIMENSION_UPGRADE));
     }
 
     public static void writeConfig(ItemStack stack, ToolConfig config) {
         CompoundTag tag = stack.getOrCreateTag();
         tag.putUUID(LINE_ID, config.lineId());
+        tag.putString(LINE_NAME, config.lineName());
         tag.put(PLACEMENT, config.placement().save());
         if (config.hasCopiedFaces()) {
             CompoundTag faces = new CompoundTag();
@@ -206,7 +233,9 @@ public class ConfiguratorItem extends Item {
         } else {
             tag.remove(FACES);
         }
-        ensureLineList(tag, config.lineId());
+        tag.putBoolean(SPEED_UPGRADE, config.speedUpgrade());
+        tag.putBoolean(DIMENSION_UPGRADE, config.dimensionUpgrade());
+        ensureLineList(tag, config.lineId(), config.lineName());
     }
 
     public static ToolConfig selectFirstLine(ItemStack stack) {
@@ -215,51 +244,66 @@ public class ConfiguratorItem extends Item {
 
     public static ToolConfig selectPreviousLine(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
-        List<UUID> lines = readLineList(tag);
+        List<LineEntry> lines = readLineEntries(tag);
         int index = Math.max(0, currentLineIndex(tag, lines) - 1);
         return selectLine(stack, index);
     }
 
     public static ToolConfig selectNextOrCreateLine(ItemStack stack) {
-        ToolConfig config = readOrCreate(stack);
+        return selectNextOrCreateLine(stack, null);
+    }
+
+    public static ToolConfig selectNextOrCreateLine(ItemStack stack, Player player) {
+        ToolConfig config = readOrCreate(stack, player);
         CompoundTag tag = stack.getOrCreateTag();
-        List<UUID> lines = readLineList(tag);
+        List<LineEntry> lines = readLineEntries(tag);
+        rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
         if (index < lines.size() - 1) {
             return selectLine(stack, index + 1);
         }
-        UUID lineId = UUID.randomUUID();
-        lines.add(lineId);
+        LineEntry line = createLine(tag, linePrefix(player), lines);
+        int existingIndex = indexOfLine(lines, line.id());
+        if (existingIndex >= 0) {
+            return selectLine(stack, existingIndex);
+        }
+        lines.add(line);
         writeLineList(tag, lines, lines.size() - 1);
-        config = config.withLine(lineId);
+        config = config.withLine(line.id(), line.name());
         writeConfig(stack, config);
         return config;
     }
 
     public static ToolConfig selectLastLine(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
-        List<UUID> lines = readLineList(tag);
+        List<LineEntry> lines = readLineEntries(tag);
         return selectLine(stack, Math.max(0, lines.size() - 1));
     }
 
     public static ToolConfig removeCurrentLine(ItemStack stack) {
-        ToolConfig config = readOrCreate(stack);
+        return removeCurrentLine(stack, null);
+    }
+
+    public static ToolConfig removeCurrentLine(ItemStack stack, Player player) {
+        ToolConfig config = readOrCreate(stack, player);
         CompoundTag tag = stack.getOrCreateTag();
-        List<UUID> lines = readLineList(tag);
+        List<LineEntry> lines = readLineEntries(tag);
+        rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
         if (lines.size() <= 1) {
-            UUID lineId = UUID.randomUUID();
+            LineEntry line = createLine(tag, linePrefix(player), List.of());
             lines.clear();
-            lines.add(lineId);
+            lines.add(line);
             writeLineList(tag, lines, 0);
-            config = config.withLine(lineId);
+            config = config.withLine(line.id(), line.name());
             writeConfig(stack, config);
             return config;
         }
         lines.remove(index);
         int nextIndex = Math.min(index, lines.size() - 1);
         writeLineList(tag, lines, nextIndex);
-        config = config.withLine(lines.get(nextIndex));
+        LineEntry nextLine = lines.get(nextIndex);
+        config = config.withLine(nextLine.id(), nextLine.name());
         writeConfig(stack, config);
         return config;
     }
@@ -269,12 +313,12 @@ public class ConfiguratorItem extends Item {
         if (tag == null) {
             return 0;
         }
-        return currentLineIndex(tag, readLineList(tag));
+        return currentLineIndex(tag, readLineEntries(tag));
     }
 
     public static int lineCount(ItemStack stack) {
         CompoundTag tag = stack.getTag();
-        return tag == null ? 0 : readLineList(tag).size();
+        return tag == null ? 0 : readLineEntries(tag).size();
     }
 
     public static boolean isPasteMode(ItemStack stack) {
@@ -290,9 +334,21 @@ public class ConfiguratorItem extends Item {
         }
     }
 
-    public static String shortLine(UUID lineId) {
-        String raw = lineId.toString().replace("-", "").toUpperCase(java.util.Locale.ROOT);
-        return raw.substring(0, 4) + "-" + raw.substring(4, 6);
+    public static String linePrefix(Player player) {
+        if (player == null || player.getGameProfile() == null || player.getGameProfile().getName() == null
+                || player.getGameProfile().getName().isBlank()) {
+            return FALLBACK_LINE_PREFIX;
+        }
+        return cleanLinePrefix(player.getGameProfile().getName());
+    }
+
+    public static String lineName(String prefix, int index) {
+        return cleanLinePrefix(prefix) + "-" + Math.max(0, index);
+    }
+
+    public static UUID lineIdForName(String lineName) {
+        String normalized = validLineName(lineName == null ? "" : lineName.trim(), fallbackLineName(0));
+        return UUID.nameUUIDFromBytes(("skylogistics:line:" + normalized).getBytes(StandardCharsets.UTF_8));
     }
 
     private static EnumMap<Direction, FaceConfig> defaultFaces() {
@@ -303,54 +359,84 @@ public class ConfiguratorItem extends Item {
         return faces;
     }
 
+    private static List<ItemStack> emptyFaceFilters() {
+        ArrayList<ItemStack> filters = new ArrayList<>(SkyNodeBlockEntity.FACE_FILTER_SLOTS);
+        for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
+            filters.add(ItemStack.EMPTY);
+        }
+        return filters;
+    }
+
+    private static List<ItemStack> copyFaceFilters(List<ItemStack> filters) {
+        ArrayList<ItemStack> copies = new ArrayList<>(SkyNodeBlockEntity.FACE_FILTER_SLOTS);
+        for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
+            ItemStack stack = filters != null && slot < filters.size() ? filters.get(slot) : ItemStack.EMPTY;
+            ItemStack copy = stack.copy();
+            if (!copy.isEmpty()) {
+                copy.setCount(1);
+            }
+            copies.add(copy);
+        }
+        return copies;
+    }
+
     private static ToolConfig selectLine(ItemStack stack, int index) {
         ToolConfig config = readOrCreate(stack);
         CompoundTag tag = stack.getOrCreateTag();
-        List<UUID> lines = readLineList(tag);
+        List<LineEntry> lines = readLineEntries(tag);
         int clamped = Math.max(0, Math.min(index, lines.size() - 1));
         writeLineList(tag, lines, clamped);
-        config = config.withLine(lines.get(clamped));
+        LineEntry line = lines.get(clamped);
+        config = config.withLine(line.id(), line.name());
         writeConfig(stack, config);
         return config;
     }
 
-    private static void ensureLineList(CompoundTag tag, UUID lineId) {
-        List<UUID> lines = readLineList(tag);
-        int index = lines.indexOf(lineId);
+    private static void ensureLineList(CompoundTag tag, UUID lineId, String lineName) {
+        List<LineEntry> lines = readLineEntries(tag);
+        int index = indexOfLine(lines, lineId);
         if (index < 0) {
-            lines.add(lineId);
+            lines.add(new LineEntry(lineId, validLineName(lineName, fallbackLineName(lines.size()))));
             index = lines.size() - 1;
+        } else if (lines.get(index).name().isBlank() || lines.get(index).name().startsWith(FALLBACK_LINE_PREFIX + "-")) {
+            lines.set(index, new LineEntry(lineId, validLineName(lineName, fallbackLineName(index))));
         }
         writeLineList(tag, lines, index);
     }
 
-    private static List<UUID> readLineList(CompoundTag tag) {
-        java.util.ArrayList<UUID> lines = new java.util.ArrayList<>();
+    private static List<LineEntry> readLineEntries(CompoundTag tag) {
+        ArrayList<LineEntry> lines = new ArrayList<>();
         if (tag.contains(LINES, Tag.TAG_LIST)) {
             ListTag list = tag.getList(LINES, Tag.TAG_COMPOUND);
             for (int i = 0; i < list.size(); i++) {
                 CompoundTag entry = list.getCompound(i);
                 if (entry.hasUUID(LINE_ENTRY_ID)) {
                     UUID lineId = entry.getUUID(LINE_ENTRY_ID);
-                    if (!lines.contains(lineId)) {
-                        lines.add(lineId);
+                    if (indexOfLine(lines, lineId) < 0) {
+                        String name = entry.contains(LINE_ENTRY_NAME, Tag.TAG_STRING)
+                                ? entry.getString(LINE_ENTRY_NAME)
+                                : fallbackLineName(lines.size());
+                        lines.add(new LineEntry(lineId, validLineName(name, fallbackLineName(lines.size()))));
                     }
                 }
             }
         }
         if (lines.isEmpty() && tag.hasUUID(LINE_ID)) {
-            lines.add(tag.getUUID(LINE_ID));
+            String name = tag.contains(LINE_NAME, Tag.TAG_STRING)
+                    ? tag.getString(LINE_NAME)
+                    : fallbackLineName(0);
+            lines.add(new LineEntry(tag.getUUID(LINE_ID), validLineName(name, fallbackLineName(0))));
         }
         if (lines.isEmpty()) {
-            lines.add(UUID.randomUUID());
+            lines.add(createLine(FALLBACK_LINE_PREFIX, List.of()));
         }
         return lines;
     }
 
-    private static int currentLineIndex(CompoundTag tag, List<UUID> lines) {
+    private static int currentLineIndex(CompoundTag tag, List<LineEntry> lines) {
         int index = tag.contains(LINE_INDEX) ? tag.getInt(LINE_INDEX) : -1;
         if (tag.hasUUID(LINE_ID)) {
-            int active = lines.indexOf(tag.getUUID(LINE_ID));
+            int active = indexOfLine(lines, tag.getUUID(LINE_ID));
             if (active >= 0) {
                 index = active;
             }
@@ -358,35 +444,200 @@ public class ConfiguratorItem extends Item {
         return Math.max(0, Math.min(index, Math.max(0, lines.size() - 1)));
     }
 
-    private static void writeLineList(CompoundTag tag, List<UUID> lines, int index) {
+    private static void writeLineList(CompoundTag tag, List<LineEntry> lines, int index) {
         if (lines.isEmpty()) {
-            lines = List.of(UUID.randomUUID());
+            lines = List.of(createLine(tag, FALLBACK_LINE_PREFIX, List.of()));
             index = 0;
         }
         int clamped = Math.max(0, Math.min(index, lines.size() - 1));
         ListTag list = new ListTag();
-        for (UUID lineId : lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            LineEntry line = lines.get(i);
             CompoundTag entry = new CompoundTag();
-            entry.putUUID(LINE_ENTRY_ID, lineId);
+            entry.putUUID(LINE_ENTRY_ID, line.id());
+            entry.putString(LINE_ENTRY_NAME, validLineName(line.name(), fallbackLineName(i)));
             list.add(entry);
         }
         tag.put(LINES, list);
         tag.putInt(LINE_INDEX, clamped);
-        tag.putUUID(LINE_ID, lines.get(clamped));
+        tag.putUUID(LINE_ID, lines.get(clamped).id());
+        tag.putString(LINE_NAME, validLineName(lines.get(clamped).name(), fallbackLineName(clamped)));
+        rememberLineBindings(tag, lines);
+    }
+
+    private static boolean ensureLineNames(ItemStack stack, String prefix) {
+        CompoundTag tag = stack.getOrCreateTag();
+        List<LineEntry> lines = readLineEntries(tag);
+        boolean changed = false;
+        for (int i = 0; i < lines.size(); i++) {
+            LineEntry line = lines.get(i);
+            if (line.name().startsWith(FALLBACK_LINE_PREFIX + "-")) {
+                String name = nextLineName(prefix, lines, i);
+                lines.set(i, new LineEntry(lineIdForName(name), name));
+                changed = true;
+            }
+        }
+        if (changed) {
+            writeLineList(tag, lines, currentLineIndex(tag, lines));
+        }
+        return changed;
+    }
+
+    private static LineEntry createLine(String prefix, List<LineEntry> existing) {
+        String name = nextLineName(prefix, existing, -1);
+        return new LineEntry(lineIdForName(name), name);
+    }
+
+    private static void rememberKnownLineBindings(ItemStack stack) {
+        CompoundTag tag = stack.getOrCreateTag();
+        rememberLineBindings(tag, readLineEntries(tag));
+    }
+
+    private static LineEntry createLine(CompoundTag tag, String prefix, List<LineEntry> existing) {
+        String name = nextLineName(prefix, existing, -1);
+        LineEntry line = new LineEntry(lineIdForName(name), name);
+        rememberLineBinding(tag, line);
+        return line;
+    }
+
+    private static LineEntry lineBinding(CompoundTag tag, String name) {
+        List<LineEntry> bindings = readLineBindings(tag);
+        int index = indexOfLineName(bindings, name);
+        return index < 0 ? null : bindings.get(index);
+    }
+
+    private static List<LineEntry> readLineBindings(CompoundTag tag) {
+        ArrayList<LineEntry> bindings = new ArrayList<>();
+        if (!tag.contains(LINE_BINDINGS, Tag.TAG_LIST)) {
+            return bindings;
+        }
+        ListTag list = tag.getList(LINE_BINDINGS, Tag.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++) {
+            CompoundTag entry = list.getCompound(i);
+            if (!entry.hasUUID(LINE_ENTRY_ID) || !entry.contains(LINE_ENTRY_NAME, Tag.TAG_STRING)) {
+                continue;
+            }
+            String name = validLineName(entry.getString(LINE_ENTRY_NAME), "");
+            if (!name.isBlank() && indexOfLineName(bindings, name) < 0) {
+                bindings.add(new LineEntry(entry.getUUID(LINE_ENTRY_ID), name));
+            }
+        }
+        return bindings;
+    }
+
+    private static void rememberLineBinding(CompoundTag tag, LineEntry line) {
+        rememberLineBindings(tag, List.of(line));
+    }
+
+    private static void rememberLineBindings(CompoundTag tag, List<LineEntry> lines) {
+        List<LineEntry> bindings = readLineBindings(tag);
+        boolean changed = false;
+        for (LineEntry line : lines) {
+            String name = validLineName(line.name(), "");
+            if (!name.isBlank() && indexOfLineName(bindings, name) < 0) {
+                bindings.add(new LineEntry(line.id(), name));
+                changed = true;
+            }
+        }
+        if (changed) {
+            writeLineBindings(tag, bindings);
+        }
+    }
+
+    private static void writeLineBindings(CompoundTag tag, List<LineEntry> bindings) {
+        ListTag list = new ListTag();
+        for (LineEntry binding : bindings) {
+            String name = validLineName(binding.name(), "");
+            if (name.isBlank()) {
+                continue;
+            }
+            CompoundTag entry = new CompoundTag();
+            entry.putUUID(LINE_ENTRY_ID, binding.id());
+            entry.putString(LINE_ENTRY_NAME, name);
+            list.add(entry);
+        }
+        tag.put(LINE_BINDINGS, list);
+    }
+
+    private static String nextLineName(String prefix, List<LineEntry> existing, int replacingIndex) {
+        String cleanPrefix = cleanLinePrefix(prefix);
+        String marker = cleanPrefix + "-";
+        Set<Integer> used = new HashSet<>();
+        for (int i = 0; i < existing.size(); i++) {
+            if (i == replacingIndex) {
+                continue;
+            }
+            String name = existing.get(i).name();
+            if (name.startsWith(marker)) {
+                try {
+                    int suffix = Integer.parseInt(name.substring(marker.length()));
+                    if (suffix >= 0) {
+                        used.add(suffix);
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        int next = 0;
+        while (used.contains(next)) {
+            next++;
+        }
+        return lineName(cleanPrefix, next);
+    }
+
+    private static String cleanLinePrefix(String prefix) {
+        String clean = prefix == null ? "" : prefix.trim();
+        if (clean.isEmpty()) {
+            clean = FALLBACK_LINE_PREFIX;
+        }
+        clean = clean.replaceAll("\\s+", "_");
+        return clean.length() > 24 ? clean.substring(0, 24) : clean;
+    }
+
+    private static String lineName(List<LineEntry> lines, UUID lineId) {
+        int index = indexOfLine(lines, lineId);
+        return index < 0 ? fallbackLineName(0) : validLineName(lines.get(index).name(), fallbackLineName(index));
+    }
+
+    private static String validLineName(String name, String fallback) {
+        return name == null || name.isBlank() ? fallback : name;
+    }
+
+    private static String fallbackLineName(int index) {
+        return lineName(FALLBACK_LINE_PREFIX, index);
+    }
+
+    private static int indexOfLine(List<LineEntry> lines, UUID lineId) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).id().equals(lineId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int indexOfLineName(List<LineEntry> lines, String lineName) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).name().equals(lineName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private record LineEntry(UUID id, String name) {
     }
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,
-                             RedstoneControl redstoneControl, int priority) {
+                             RedstoneControl redstoneControl, int priority, List<ItemStack> filters) {
         private static final FaceConfig DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                RedstoneControl.IGNORE, 0);
+                RedstoneControl.IGNORE, 0, emptyFaceFilters());
         private static final FaceConfig PLACEMENT_DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                RedstoneControl.IGNORE, 0);
+                RedstoneControl.IGNORE, 0, emptyFaceFilters());
 
         public FaceConfig {
-            if (mode == NodeFaceMode.NONE) {
-                mode = NodeFaceMode.OUTPUT;
-            }
             priority = Math.max(-99, Math.min(99, priority));
+            filters = List.copyOf(copyFaceFilters(filters));
         }
 
         private CompoundTag save() {
@@ -397,33 +648,64 @@ public class ConfiguratorItem extends Item {
             tag.putBoolean(ENERGY, energyEnabled);
             tag.putString(REDSTONE, redstoneControl.name());
             tag.putInt(PRIORITY, priority);
+            ListTag filterTags = new ListTag();
+            for (int slot = 0; slot < filters.size(); slot++) {
+                ItemStack filter = filters.get(slot);
+                if (filter.isEmpty()) {
+                    continue;
+                }
+                CompoundTag entry = new CompoundTag();
+                entry.putInt(SLOT, slot);
+                entry.put(STACK, filter.save(new CompoundTag()));
+                filterTags.add(entry);
+            }
+            if (!filterTags.isEmpty()) {
+                tag.put(FILTERS, filterTags);
+            }
             return tag;
         }
 
         private static FaceConfig load(CompoundTag tag, FaceConfig fallback) {
+            List<ItemStack> filters = fallback.filters();
+            if (tag.contains(FILTERS, Tag.TAG_LIST)) {
+                filters = emptyFaceFilters();
+                ListTag filterTags = tag.getList(FILTERS, Tag.TAG_COMPOUND);
+                for (int i = 0; i < filterTags.size(); i++) {
+                    CompoundTag entry = filterTags.getCompound(i);
+                    int slot = entry.getInt(SLOT);
+                    if (slot >= 0 && slot < filters.size()) {
+                        filters.set(slot, ItemStack.of(entry.getCompound(STACK)));
+                    }
+                }
+            }
             return new FaceConfig(
                     tag.contains(MODE) ? NodeFaceMode.byName(tag.getString(MODE)) : fallback.mode(),
                     tag.contains(ITEMS) ? tag.getBoolean(ITEMS) : fallback.itemsEnabled(),
                     tag.contains(FLUIDS) ? tag.getBoolean(FLUIDS) : fallback.fluidsEnabled(),
                     tag.contains(ENERGY) ? tag.getBoolean(ENERGY) : fallback.energyEnabled(),
                     tag.contains(REDSTONE) ? RedstoneControl.byName(tag.getString(REDSTONE)) : fallback.redstoneControl(),
-                    tag.contains(PRIORITY) ? tag.getInt(PRIORITY) : fallback.priority());
+                    tag.contains(PRIORITY) ? tag.getInt(PRIORITY) : fallback.priority(),
+                    filters);
+        }
+
+        public ItemStack filter(int slot) {
+            return slot < 0 || slot >= filters.size() ? ItemStack.EMPTY : filters.get(slot);
         }
 
         public FaceConfig withItemsEnabled(boolean enabled) {
-            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, redstoneControl, priority);
+            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, redstoneControl, priority, filters);
         }
 
         public FaceConfig withFluidsEnabled(boolean enabled) {
-            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, redstoneControl, priority);
+            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, redstoneControl, priority, filters);
         }
 
         public FaceConfig withEnergyEnabled(boolean enabled) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, redstoneControl, priority);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, redstoneControl, priority, filters);
         }
 
         public FaceConfig withRedstoneControl(RedstoneControl control) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, control, priority);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, control, priority, filters);
         }
 
         public FaceConfig cycleRedstoneControl() {
@@ -431,25 +713,32 @@ public class ConfiguratorItem extends Item {
         }
 
         public FaceConfig adjustPriority(int delta) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, redstoneControl, priority + delta);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, redstoneControl, priority + delta,
+                    filters);
         }
     }
 
-    public record ToolConfig(UUID lineId, FaceConfig placement, Map<Direction, FaceConfig> faces,
-                             boolean hasCopiedFaces) {
-        public static ToolConfig createDefault(UUID lineId) {
-            return new ToolConfig(lineId, FaceConfig.PLACEMENT_DEFAULT, defaultFaces(), false);
+    public record ToolConfig(UUID lineId, String lineName, FaceConfig placement, Map<Direction, FaceConfig> faces,
+                             boolean hasCopiedFaces, boolean speedUpgrade, boolean dimensionUpgrade) {
+        private static ToolConfig createDefault(LineEntry line) {
+            return new ToolConfig(line.id(), line.name(), FaceConfig.PLACEMENT_DEFAULT, defaultFaces(), false,
+                    false, false);
         }
 
         public static ToolConfig fromNode(SkyNodeBlockEntity node) {
             EnumMap<Direction, FaceConfig> faces = new EnumMap<>(Direction.class);
             for (Direction direction : Direction.values()) {
+                ArrayList<ItemStack> filters = new ArrayList<>(SkyNodeBlockEntity.FACE_FILTER_SLOTS);
+                for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
+                    filters.add(node.getFaceFilter(direction, slot));
+                }
                 faces.put(direction, new FaceConfig(node.getFaceMode(direction), node.isItemsEnabled(direction),
                         node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
-                        node.getRedstoneControl(direction), node.getPriority(direction)));
+                        node.getRedstoneControl(direction), node.getPriority(direction), filters));
             }
-            return new ToolConfig(node.getLineId(), faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT),
-                    faces, true);
+            return new ToolConfig(node.getLineId(), node.getLineName(),
+                    faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT), faces, true,
+                    node.hasSpeedUpgrade(), node.hasDimensionUpgrade());
         }
 
         public ToolConfig {
@@ -473,11 +762,16 @@ public class ConfiguratorItem extends Item {
         }
 
         public ToolConfig withLine(UUID newLineId) {
-            return new ToolConfig(newLineId, placement, faces, hasCopiedFaces);
+            return withLine(newLineId, fallbackLineName(0));
+        }
+
+        public ToolConfig withLine(UUID newLineId, String newLineName) {
+            return new ToolConfig(newLineId, validLineName(newLineName, fallbackLineName(0)),
+                    placement, faces, hasCopiedFaces, speedUpgrade, dimensionUpgrade);
         }
 
         public ToolConfig withPlacement(FaceConfig placement) {
-            return new ToolConfig(lineId, placement, faces, hasCopiedFaces);
+            return new ToolConfig(lineId, lineName, placement, faces, hasCopiedFaces, speedUpgrade, dimensionUpgrade);
         }
 
         public ToolConfig withItemsEnabled(boolean enabled) {

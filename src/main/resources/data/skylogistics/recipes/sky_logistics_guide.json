@@ -5,7 +5,7 @@
       "modid": "patchouli"
     }
   ],
-  "type": "minecraft:crafting_shapeless",
+  "type": "patchouli:shapeless_book_recipe",
   "ingredients": [
     {
       "item": "minecraft:book"
@@ -14,8 +14,5 @@
       "item": "skylogistics:eulogia_crystal"
     }
   ],
-  "result": {
-    "item": "patchouli:guide_book",
-    "nbt": "{\"patchouli:book\":\"skylogistics:sky_logistics\"}"
-  }
+  "book": "skylogistics:sky_logistics"
 }

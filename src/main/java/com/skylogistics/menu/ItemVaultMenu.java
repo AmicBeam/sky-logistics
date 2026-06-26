@@ -14,13 +14,17 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class ItemVaultMenu extends AbstractContainerMenu {
     private final BlockPos pos;
+    private final Inventory inventory;
+    private long lastSyncedVaultVersion = Long.MIN_VALUE;
 
     public ItemVaultMenu(int containerId, Inventory inventory, BlockPos pos) {
         super(ModMenus.ITEM_VAULT.get(), containerId);
         this.pos = pos;
+        this.inventory = inventory;
         ItemVaultBlockEntity vault = vault(inventory.player);
         if (vault != null) {
             vault.addViewer(inventory.player);
+            lastSyncedVaultVersion = vault.getSyncVersion();
         }
         addPlayerInventory(inventory, 17, 138);
     }
@@ -67,7 +71,16 @@ public class ItemVaultMenu extends AbstractContainerMenu {
         } else {
             slot.setChanged();
         }
+        vault.syncToPlayerIfPresent(player);
+        noteVaultSnapshotSynced(vault.getSyncVersion());
+        broadcastChanges();
         return copy;
+    }
+
+    @Override
+    public void broadcastChanges() {
+        syncVaultSnapshotIfChanged();
+        super.broadcastChanges();
     }
 
     public void handleTerminalClick(ServerPlayer player, ItemStack viewedStack, int button, boolean shiftDown) {
@@ -87,6 +100,7 @@ public class ItemVaultMenu extends AbstractContainerMenu {
         }
         if (changed) {
             vault.syncTo(player);
+            noteVaultSnapshotSynced(vault.getSyncVersion());
             broadcastChanges();
         }
     }
@@ -144,5 +158,21 @@ public class ItemVaultMenu extends AbstractContainerMenu {
     private ItemVaultBlockEntity vault(Player player) {
         BlockEntity blockEntity = player.level().getBlockEntity(pos);
         return blockEntity instanceof ItemVaultBlockEntity vault ? vault : null;
+    }
+
+    private void syncVaultSnapshotIfChanged() {
+        if (!(inventory.player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ItemVaultBlockEntity vault = vault(serverPlayer);
+        if (vault == null || vault.getSyncVersion() == lastSyncedVaultVersion) {
+            return;
+        }
+        vault.syncTo(serverPlayer);
+        noteVaultSnapshotSynced(vault.getSyncVersion());
+    }
+
+    public void noteVaultSnapshotSynced(long version) {
+        lastSyncedVaultVersion = version;
     }
 }

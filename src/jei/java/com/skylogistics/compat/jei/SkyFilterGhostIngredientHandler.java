@@ -34,11 +34,16 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
     public void onComplete() {
     }
 
+    @Override
+    public boolean shouldHighlightTargets() {
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     private static <I> List<Target<I>> itemTargets(FilterListScreen gui) {
         List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-            targets.add((Target<I>) new ItemTarget(gui.getFilterSlotArea(slot), slot));
+            targets.add((Target<I>) new ItemTarget(gui, gui.getFilterSlotArea(slot), slot));
         }
         return targets;
     }
@@ -47,12 +52,12 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
     private static <I> List<Target<I>> fluidTargets(FilterListScreen gui) {
         List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-            targets.add((Target<I>) new FluidTarget(gui.getFilterSlotArea(slot), slot));
+            targets.add((Target<I>) new FluidTarget(gui, gui.getFilterSlotArea(slot), slot));
         }
         return targets;
     }
 
-    private record ItemTarget(Rect2i area, int slot) implements Target<ItemStack> {
+    private record ItemTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<ItemStack> {
         @Override
         public Rect2i getArea() {
             return area;
@@ -60,11 +65,16 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
 
         @Override
         public void accept(ItemStack ingredient) {
-            ModNetworking.sendFilterGhostItem(slot, ingredient);
+            ItemStack ghost = ingredient.copy();
+            if (!ghost.isEmpty()) {
+                ghost.setCount(1);
+            }
+            gui.setGhostItemPreview(slot, ghost);
+            ModNetworking.sendFilterGhostItem(slot, ghost);
         }
     }
 
-    private record FluidTarget(Rect2i area, int slot) implements Target<FluidStack> {
+    private record FluidTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<FluidStack> {
         @Override
         public Rect2i getArea() {
             return area;
@@ -72,7 +82,12 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
 
         @Override
         public void accept(FluidStack ingredient) {
-            ModNetworking.sendFilterGhostFluid(slot, ingredient);
+            FluidStack ghost = ingredient.copy();
+            if (!ghost.isEmpty()) {
+                ghost.setAmount(1);
+            }
+            gui.setGhostFluidPreview(slot, ghost);
+            ModNetworking.sendFilterGhostFluid(slot, ghost);
         }
     }
 }

@@ -19,7 +19,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The Sky Filter Upgrade limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, tag matching, and other rules. Place the configured filter upgrade into a node upgrade slot to make extraction and insertion obey it."
+      "text": "The Sky Filter List limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, NBT matching, durability matching, and other rules. Placing a configured filter list into a node face filter slot does not consume the item; the node copies that list state. Copying and pasting node settings also copies these filter states."
     },
     {
       "type": "patchouli:crafting",

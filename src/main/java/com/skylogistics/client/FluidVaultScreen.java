@@ -12,8 +12,11 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -22,10 +25,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final int GRID_X = 8;
+    private static final int CENTERED_GRID_X = 17;
     private static final int GRID_Y = 44;
     private static final int GRID_COLUMNS = 9;
     private static final int GRID_ROWS = 4;
     private static final int CELL_SIZE = 18;
+    private static final int FLUID_ICON_SIZE = 14;
     private static final int VISIBLE_CELLS = GRID_COLUMNS * GRID_ROWS;
     private static final int GRID_BOTTOM = GRID_Y + GRID_ROWS * CELL_SIZE;
     private static final int STATS_Y = GRID_BOTTOM + 10;
@@ -86,17 +91,12 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, ConfigPanel.BG);
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + 2, ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos + imageHeight - 2, leftPos + imageWidth, topPos + imageHeight,
-                ConfigPanel.BORDER);
-        graphics.fill(leftPos, topPos, leftPos + 2, topPos + imageHeight, ConfigPanel.BORDER);
-        graphics.fill(leftPos + imageWidth - 2, topPos, leftPos + imageWidth, topPos + imageHeight,
-                ConfigPanel.BORDER);
-        graphics.fill(leftPos + 7, topPos + 42, leftPos + imageWidth - 7, topPos + GRID_BOTTOM + 3, 0x80101B22);
+        ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
+        int gridX = gridX();
         for (int row = 0; row < GRID_ROWS; row++) {
             for (int column = 0; column < GRID_COLUMNS; column++) {
-                ConfigPanel.drawSlotBackground(graphics, leftPos + GRID_X + column * CELL_SIZE,
+                ConfigPanel.drawSlotBackground(graphics, leftPos + gridX + column * CELL_SIZE,
                         topPos + GRID_Y + row * CELL_SIZE);
             }
         }
@@ -120,7 +120,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             FluidVaultBlockEntity.StoredFluid fluid = entries.get(start + visible);
             int column = visible % GRID_COLUMNS;
             int row = visible / GRID_COLUMNS;
-            int x = GRID_X + column * CELL_SIZE;
+            int x = gridX(vault) + column * CELL_SIZE;
             int y = GRID_Y + row * CELL_SIZE;
             renderFluidCell(graphics, fluid.stack(), x, y);
             renderAmountLabel(graphics, ConfigPanel.amount(fluid.amount()), x - 1, y - 1);
@@ -176,7 +176,8 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         if (vault == null) {
             return null;
         }
-        int column = ((int) mouseX - leftPos - GRID_X) / CELL_SIZE;
+        int gridX = gridX(vault);
+        int column = ((int) mouseX - leftPos - gridX) / CELL_SIZE;
         int row = ((int) mouseY - topPos - GRID_Y) / CELL_SIZE;
         int index = scrollRow * GRID_COLUMNS + row * GRID_COLUMNS + column;
         List<FluidVaultBlockEntity.StoredFluid> entries = filtered(vault);
@@ -184,7 +185,8 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     private boolean isOverGrid(double mouseX, double mouseY) {
-        return mouseX >= leftPos + GRID_X && mouseX < leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE
+        int gridX = gridX();
+        return mouseX >= leftPos + gridX && mouseX < leftPos + gridX + GRID_COLUMNS * CELL_SIZE
                 && mouseY >= topPos + GRID_Y && mouseY < topPos + GRID_Y + GRID_ROWS * CELL_SIZE;
     }
 
@@ -231,19 +233,19 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             return;
         }
         int max = maxScrollRow(filtered(vault).size());
-        int x = leftPos + GRID_X + GRID_COLUMNS * CELL_SIZE + 5;
+        int x = leftPos + gridX(vault) + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
-        graphics.fill(x, y, x + 5, y + height, 0xFF07101B);
-        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER);
-        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER);
+        graphics.fill(x, y, x + 5, y + height, ConfigPanel.PANEL);
+        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER_DIM);
         if (max <= 0) {
-            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, 0xFF2D4D5A);
+            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, ConfigPanel.BORDER_DIM);
             return;
         }
         int thumbHeight = Math.max(14, height / (max + 1));
         int thumbY = y + 1 + (height - thumbHeight - 2) * scrollRow / max;
-        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER);
+        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER_ACTIVE);
     }
 
     private void sort(List<FluidVaultBlockEntity.StoredFluid> result) {
@@ -261,6 +263,14 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
 
     private boolean shouldShowScrollbar(FluidVaultBlockEntity vault) {
         return vault.getTypeLimit() > VISIBLE_CELLS;
+    }
+
+    private int gridX() {
+        return gridX(vault());
+    }
+
+    private int gridX(FluidVaultBlockEntity vault) {
+        return vault != null && shouldShowScrollbar(vault) ? GRID_X : CENTERED_GRID_X;
     }
 
     private static String fluidName(FluidVaultBlockEntity.StoredFluid fluid) {
@@ -281,10 +291,28 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     private void renderFluidCell(GuiGraphics graphics, FluidStack stack, int x, int y) {
-        int tint = IClientFluidTypeExtensions.of(stack.getFluid()).getTintColor(stack);
-        int color = 0xFF000000 | (tint & 0x00FFFFFF);
-        graphics.fill(x + 2, y + 2, x + 16, y + 16, color);
-        graphics.fill(x + 3, y + 3, x + 15, y + 7, 0x55FFFFFF);
+        IClientFluidTypeExtensions extensions = IClientFluidTypeExtensions.of(stack.getFluid());
+        int tint = extensions.getTintColor(stack);
+        ResourceLocation texture = extensions.getStillTexture(stack);
+        int iconX = x + 2;
+        int iconY = y + 2;
+        if (texture == null) {
+            graphics.fill(iconX, iconY, iconX + FLUID_ICON_SIZE, iconY + FLUID_ICON_SIZE,
+                    0xFF000000 | (tint & 0x00FFFFFF));
+        } else {
+            TextureAtlasSprite sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
+                    .apply(texture);
+            int alpha = tint >>> 24;
+            if (alpha == 0) {
+                alpha = 0xFF;
+            }
+            graphics.blit(iconX, iconY, 0, FLUID_ICON_SIZE, FLUID_ICON_SIZE, sprite,
+                    ((tint >> 16) & 0xFF) / 255.0F,
+                    ((tint >> 8) & 0xFF) / 255.0F,
+                    (tint & 0xFF) / 255.0F,
+                    alpha / 255.0F);
+        }
+        graphics.fill(iconX + 1, iconY + 1, iconX + FLUID_ICON_SIZE - 1, iconY + 5, 0x33FFFFFF);
     }
 
     private void renderAmountLabel(GuiGraphics graphics, String text, int x, int y) {

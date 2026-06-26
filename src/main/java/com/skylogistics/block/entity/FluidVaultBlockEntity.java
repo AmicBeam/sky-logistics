@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -34,7 +33,6 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
-    private static final int VIEWER_SYNC_INTERVAL_TICKS = 10;
 
     private final LinkedHashMap<FluidStackKey, Long> stored = new LinkedHashMap<>();
     private final List<FluidStackKey> contentIndex = new ArrayList<>();
@@ -49,8 +47,8 @@ public class FluidVaultBlockEntity extends BlockEntity {
     private int clientUsedTypes = -1;
     private long clientTotalAmount = -1L;
     private long cachedServerTotalAmount = -1L;
+    private long syncVersion;
     private long clientSnapshotVersion;
-    private long lastViewerSyncTime = Long.MIN_VALUE;
 
     public FluidVaultBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FLUID_VAULT.get(), pos, state);
@@ -90,6 +88,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
 
     public long getClientSnapshotVersion() {
         return clientSnapshotVersion;
+    }
+
+    public long getSyncVersion() {
+        return syncVersion;
     }
 
     public List<StoredFluid> getStoredFluids(int limit) {
@@ -204,7 +206,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
             vaultId = tag.getUUID("VaultId");
         }
         typeLimit = Math.max(1, tag.getInt("TypeLimit"));
-        capacityPerType = tag.contains("CapacityPerType", Tag.TAG_LONG) ? tag.getLong("CapacityPerType") : Long.MAX_VALUE;
+        capacityPerType = Long.MAX_VALUE;
         if (tag.contains("UsedTypes")) {
             clientUsedTypes = Math.max(0, tag.getInt("UsedTypes"));
         }
@@ -255,34 +257,31 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     private void markContentsChanged() {
+        syncVersion++;
         invalidateSummaryCache();
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
             VaultStorage.get(serverLevel, vaultId).setDirty();
-            syncToViewingPlayers(false);
+            syncToViewingPlayers();
         }
     }
 
     private void markMetadataChanged() {
+        syncVersion++;
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-            syncToViewingPlayers(true);
+            syncToViewingPlayers();
         }
     }
 
-    private void syncToViewingPlayers(boolean immediate) {
+    private void syncToViewingPlayers() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
         if (viewers.isEmpty()) {
             return;
         }
-        long gameTime = serverLevel.getGameTime();
-        if (!immediate && gameTime - lastViewerSyncTime < VIEWER_SYNC_INTERVAL_TICKS) {
-            return;
-        }
-        boolean synced = false;
         Iterator<UUID> iterator = viewers.iterator();
         while (iterator.hasNext()) {
             UUID viewer = iterator.next();
@@ -293,10 +292,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
                 continue;
             }
             syncTo(player);
-            synced = true;
-        }
-        if (synced) {
-            lastViewerSyncTime = gameTime;
+            menu.noteVaultSnapshotSynced(syncVersion);
         }
     }
 

@@ -5,6 +5,7 @@ import com.skylogistics.item.ChoraNectarItem;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.EulogiaCrystalItem;
+import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyNodeBlockItem;
 import com.skylogistics.item.UpgradeCardItem;
 import net.minecraft.world.item.BlockItem;
@@ -34,7 +35,7 @@ public final class ModItems {
     public static final RegistryObject<Item> CELESTIAL_GLASS = ITEMS.register("celestial_glass",
             () -> new BlockItem(ModBlocks.CELESTIAL_GLASS.get(), new Item.Properties()));
     public static final RegistryObject<Item> OFFERING_ALTAR = ITEMS.register("offering_altar",
-            () -> new BlockItem(ModBlocks.OFFERING_ALTAR.get(), new Item.Properties()));
+            () -> new OfferingAltarBlockItem(ModBlocks.OFFERING_ALTAR.get(), new Item.Properties()));
     public static final RegistryObject<Item> OFFERING_TABLE = ITEMS.register("offering_table",
             () -> new BlockItem(ModBlocks.OFFERING_TABLE.get(), new Item.Properties()));
 
@@ -49,7 +50,7 @@ public final class ModItems {
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(1),
                     "tooltip.skylogistics.dimension_upgrade"));
     public static final RegistryObject<Item> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
-            () -> new EulogiaCrystalItem(new Item.Properties().durability(1)));
+            () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(new Item.Properties()));
 

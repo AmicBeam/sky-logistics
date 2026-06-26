@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "node": "skylogistics:block/sky_node",
+    "particle": "skylogistics:block/sky_node"
+  },
+  "elements": [
+    {
+      "from": [5, 5, 5],
+      "to": [11, 11, 11],
+      "faces": {
+        "north": { "texture": "#node" },
+        "south": { "texture": "#node" },
+        "east": { "texture": "#node" },
+        "west": { "texture": "#node" },
+        "up": { "texture": "#node" },
+        "down": { "texture": "#node" }
+      }
+    }
+  ]
+}
