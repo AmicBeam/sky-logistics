@@ -17,15 +17,31 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
-    private static final int FILTER_ROW_Y = 58;
+    private static final int TITLE_ROW_Y = 12;
+    private static final int LINE_ROW_Y = 36;
+    private static final int LINE_BUTTON_ROW_Y = 31;
+    private static final int FILTER_ROW_Y = 60;
+    private static final int MODE_ROW_Y = 84;
+    private static final int MODE_BUTTON_ROW_Y = 78;
+    private static final int INSERT_SLOTS_LABEL_X = 14;
+    private static final int INSERT_SLOTS_ROW_Y = 102;
+    private static final int PRIORITY_ROW_Y = 126;
+    private static final int WARNING_Y = 146;
+    private static final int ADJUST_DOWN_X = 54;
+    private static final int ADJUST_VALUE_X = 76;
+    private static final int ADJUST_VALUE_WIDTH = 54;
+    private static final int ADJUST_UP_X = 130;
+    private static final int ADJUST_BUTTON_WIDTH = 22;
+    private static final int ADJUST_BUTTON_HEIGHT = 18;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<InsertSlotsButton> insertSlotsButtons = new ArrayList<>();
+    private final List<PriorityButton> priorityButtons = new ArrayList<>();
 
     public SkyNecklaceScreen(SkyNecklaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = 240;
+        imageHeight = 252;
         inventoryLabelY = 10_000;
     }
 
@@ -35,17 +51,24 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         lineButtons.clear();
         modeButtons.clear();
         insertSlotsButtons.clear();
-        addLineButton(leftPos + 116, topPos + 29, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 141, topPos + 29, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
-        addModeButton(leftPos + 54, topPos + 86, 70, SkyNecklaceItem.NecklaceMode.EXTRACT, MenuAction.MODE_EXTRACT);
-        addModeButton(leftPos + 130, topPos + 86, 70, SkyNecklaceItem.NecklaceMode.INSERT, MenuAction.MODE_INSERT);
-        addInsertSlotsButton(leftPos + 54, topPos + 110, Component.literal("-"),
-                MenuAction.NECKLACE_INSERT_SLOTS_DOWN);
-        addInsertSlotsButton(leftPos + 130, topPos + 110, Component.literal("+"),
-                MenuAction.NECKLACE_INSERT_SLOTS_UP);
+        priorityButtons.clear();
+        addLineButton(leftPos + 116, topPos + LINE_BUTTON_ROW_Y, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 141, topPos + LINE_BUTTON_ROW_Y, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 164, topPos + LINE_BUTTON_ROW_Y, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 191, topPos + LINE_BUTTON_ROW_Y, 22, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 216, topPos + LINE_BUTTON_ROW_Y, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addModeButton(leftPos + 54, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.EXTRACT,
+                MenuAction.MODE_EXTRACT);
+        addModeButton(leftPos + 130, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.INSERT,
+                MenuAction.MODE_INSERT);
+        addInsertSlotsButton(leftPos + ADJUST_DOWN_X, topPos + INSERT_SLOTS_ROW_Y, Component.literal("-"),
+                MenuAction.NECKLACE_INSERT_SLOTS_DOWN, MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST);
+        addInsertSlotsButton(leftPos + ADJUST_UP_X, topPos + INSERT_SLOTS_ROW_Y, Component.literal("+"),
+                MenuAction.NECKLACE_INSERT_SLOTS_UP, MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST);
+        addPriorityButton(leftPos + ADJUST_DOWN_X, topPos + PRIORITY_ROW_Y, Component.literal("-"),
+                MenuAction.NECKLACE_PRIORITY_DOWN, MenuAction.NECKLACE_PRIORITY_DOWN_FAST);
+        addPriorityButton(leftPos + ADJUST_UP_X, topPos + PRIORITY_ROW_Y, Component.literal("+"),
+                MenuAction.NECKLACE_PRIORITY_UP, MenuAction.NECKLACE_PRIORITY_UP_FAST);
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -60,9 +83,15 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         addRenderableWidget(button);
     }
 
-    private void addInsertSlotsButton(int x, int y, Component message, int action) {
-        InsertSlotsButton button = new InsertSlotsButton(x, y, message, action);
+    private void addInsertSlotsButton(int x, int y, Component message, int action, int fastAction) {
+        InsertSlotsButton button = new InsertSlotsButton(x, y, message, action, fastAction);
         insertSlotsButtons.add(button);
+        addRenderableWidget(button);
+    }
+
+    private void addPriorityButton(int x, int y, Component message, int action, int fastAction) {
+        PriorityButton button = new PriorityButton(x, y, message, action, fastAction);
+        priorityButtons.add(button);
         addRenderableWidget(button);
     }
 
@@ -79,6 +108,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             button.refresh(SkyNecklaceItem.mode(stack));
         }
         for (InsertSlotsButton button : insertSlotsButtons) {
+            button.refresh(stack);
+        }
+        for (PriorityButton button : priorityButtons) {
             button.refresh(stack);
         }
     }
@@ -100,35 +132,59 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemStack stack = stack();
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
-        graphics.drawString(font, title, 14, 12, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, 14, TITLE_ROW_Y, ConfigPanel.ACCENT, false);
         if (config == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.unbound"),
-                    14, 42, ConfigPanel.MUTED, false);
+                    14, LINE_ROW_Y, ConfigPanel.MUTED, false);
         } else {
             int lineIndex = ConfiguratorItem.lineIndex(stack) + 1;
             int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack));
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_name",
                             config.lineName())
                     .append(Component.literal(" " + lineIndex + "/" + lineCount)),
-                    14, 34, ConfigPanel.TEXT, false);
+                    14, LINE_ROW_Y, ConfigPanel.TEXT, false);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.mode_label"),
-                14, 92, ConfigPanel.MUTED, false);
+                14, MODE_ROW_Y, ConfigPanel.MUTED, false);
         boolean insertMode = SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT;
         int insertTextColor = insertMode ? ConfigPanel.TEXT : ConfigPanel.MUTED;
         graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots"),
-                14, 116, insertTextColor, false);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots_value",
+                14, INSERT_SLOTS_ROW_Y + 6, insertTextColor, false);
+        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots_value",
                         SkyNecklaceItem.insertSlots(stack)),
-                82, 116, insertTextColor, false);
+                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, INSERT_SLOTS_ROW_Y + 5, insertTextColor);
+        graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
+                14, PRIORITY_ROW_Y + 6, ConfigPanel.MUTED, false);
+        graphics.drawCenteredString(font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
+                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 5, ConfigPanel.TEXT);
         graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.item_only"),
                 14, FILTER_ROW_Y, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.filter_slot"),
                 SkyNecklaceMenu.FILTER_LABEL_X, FILTER_ROW_Y, ConfigPanel.MUTED, false);
         if (!SkyNecklaceItem.hasValidItemWhitelist(stack)) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist"),
-                    14, 134, 0xFFFF9A8A, false);
+                    14, WARNING_Y, 0xFFFF9A8A, false);
         }
+    }
+
+    @Override
+    protected void renderTooltip(GuiGraphics graphics, int x, int y) {
+        if (isMouseOverInsertSlotsLabel(x, y)) {
+            graphics.renderComponentTooltip(font, List.of(Component.translatable(
+                    "tooltip.skylogistics.sky_necklace.insert_slots_hint")), x, y);
+            return;
+        }
+        super.renderTooltip(graphics, x, y);
+    }
+
+    private boolean isMouseOverInsertSlotsLabel(int x, int y) {
+        Component label = Component.translatable("screen.skylogistics.sky_necklace.insert_slots");
+        int labelY = INSERT_SLOTS_ROW_Y + 6;
+        int labelWidth = Math.min(font.width(label), ADJUST_DOWN_X - INSERT_SLOTS_LABEL_X - 2);
+        return x >= leftPos + INSERT_SLOTS_LABEL_X
+                && x < leftPos + INSERT_SLOTS_LABEL_X + labelWidth
+                && y >= topPos + labelY
+                && y < topPos + labelY + font.lineHeight;
     }
 
     private ItemStack stack() {
@@ -216,10 +272,12 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
     private static final class InsertSlotsButton extends AbstractButton {
         private final int action;
+        private final int fastAction;
 
-        private InsertSlotsButton(int x, int y, Component message, int action) {
-            super(x, y, 22, 18, message);
+        private InsertSlotsButton(int x, int y, Component message, int action, int fastAction) {
+            super(x, y, ADJUST_BUTTON_WIDTH, ADJUST_BUTTON_HEIGHT, message);
             this.action = action;
+            this.fastAction = fastAction;
         }
 
         private void refresh(ItemStack stack) {
@@ -235,7 +293,48 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         @Override
         public void onPress() {
             if (active) {
-                ModNetworking.sendMenuAction(action);
+                int selectedAction = net.minecraft.client.gui.screens.Screen.hasShiftDown() ? fastAction : action;
+                ModNetworking.sendMenuAction(selectedAction);
+            }
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private static final class PriorityButton extends AbstractButton {
+        private final int action;
+        private final int fastAction;
+
+        private PriorityButton(int x, int y, Component message, int action, int fastAction) {
+            super(x, y, ADJUST_BUTTON_WIDTH, ADJUST_BUTTON_HEIGHT, message);
+            this.action = action;
+            this.fastAction = fastAction;
+        }
+
+        private void refresh(ItemStack stack) {
+            int priority = SkyNecklaceItem.priority(stack);
+            active = stack.is(com.skylogistics.registry.ModItems.SKY_NECKLACE.get()) && switch (action) {
+                case MenuAction.NECKLACE_PRIORITY_DOWN -> priority > SkyNecklaceItem.MIN_PRIORITY;
+                case MenuAction.NECKLACE_PRIORITY_UP -> priority < SkyNecklaceItem.MAX_PRIORITY;
+                default -> false;
+            };
+        }
+
+        @Override
+        public void onPress() {
+            if (active) {
+                int selectedAction = net.minecraft.client.gui.screens.Screen.hasShiftDown() ? fastAction : action;
+                ModNetworking.sendMenuAction(selectedAction);
             }
         }
 

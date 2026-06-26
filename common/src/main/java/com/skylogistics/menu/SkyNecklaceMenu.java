@@ -21,7 +21,8 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
     private static final int FILTER_SLOT = 0;
     public static final int FILTER_LABEL_X = 166;
     public static final int FILTER_SLOT_X = 200;
-    public static final int FILTER_SLOT_Y = 61;
+    public static final int FILTER_SLOT_Y = 55;
+    private static final int PLAYER_INVENTORY_Y = 158;
 
     private final InteractionHand hand;
     private final Player player;
@@ -62,7 +63,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                 return 1;
             }
         });
-        addPlayerInventory(inventory, 44, 146);
+        addPlayerInventory(inventory, 44, PLAYER_INVENTORY_Y);
     }
 
     public InteractionHand getHand() {
@@ -128,6 +129,20 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                     SkyNecklaceItem.adjustInsertSlots(stack, 1);
                 }
             }
+            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST -> {
+                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
+                    SkyNecklaceItem.adjustInsertSlots(stack, -10);
+                }
+            }
+            case MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST -> {
+                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
+                    SkyNecklaceItem.adjustInsertSlots(stack, 10);
+                }
+            }
+            case MenuAction.NECKLACE_PRIORITY_DOWN -> SkyNecklaceItem.adjustPriority(stack, -1);
+            case MenuAction.NECKLACE_PRIORITY_UP -> SkyNecklaceItem.adjustPriority(stack, 1);
+            case MenuAction.NECKLACE_PRIORITY_DOWN_FAST -> SkyNecklaceItem.adjustPriority(stack, -10);
+            case MenuAction.NECKLACE_PRIORITY_UP_FAST -> SkyNecklaceItem.adjustPriority(stack, 10);
             default -> {
                 return;
             }

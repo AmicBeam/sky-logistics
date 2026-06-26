@@ -22,9 +22,12 @@ import net.minecraftforge.network.NetworkHooks;
 public class SkyNecklaceItem extends Item {
     public static final int MIN_INSERT_SLOTS = 1;
     public static final int MAX_INSERT_SLOTS = 36;
+    public static final int MIN_PRIORITY = -99;
+    public static final int MAX_PRIORITY = 99;
     private static final String MODE = "SkyNecklaceMode";
     private static final String FILTER = "SkyNecklaceFilter";
     private static final String INSERT_SLOTS = "SkyNecklaceInsertSlots";
+    private static final String PRIORITY = "SkyNecklacePriority";
 
     public SkyNecklaceItem(Properties properties) {
         super(properties);
@@ -69,6 +72,8 @@ public class SkyNecklaceItem extends Item {
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.insert_slots",
                 insertSlots(stack)).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.priority",
+                priority(stack)).withStyle(ChatFormatting.GRAY));
         if (!filter.isEmpty()) {
             FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);
         }
@@ -100,6 +105,22 @@ public class SkyNecklaceItem extends Item {
 
     public static void setInsertSlots(ItemStack stack, int slots) {
         stack.getOrCreateTag().putInt(INSERT_SLOTS, clampInsertSlots(slots));
+    }
+
+    public static int priority(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(PRIORITY, Tag.TAG_INT)) {
+            return 0;
+        }
+        return clampPriority(tag.getInt(PRIORITY));
+    }
+
+    public static void adjustPriority(ItemStack stack, int delta) {
+        setPriority(stack, priority(stack) + delta);
+    }
+
+    public static void setPriority(ItemStack stack, int priority) {
+        stack.getOrCreateTag().putInt(PRIORITY, clampPriority(priority));
     }
 
     public static ItemStack filterList(ItemStack stack) {
@@ -151,6 +172,10 @@ public class SkyNecklaceItem extends Item {
 
     private static int clampInsertSlots(int slots) {
         return Math.max(MIN_INSERT_SLOTS, Math.min(MAX_INSERT_SLOTS, slots));
+    }
+
+    private static int clampPriority(int priority) {
+        return Math.max(MIN_PRIORITY, Math.min(MAX_PRIORITY, priority));
     }
 
     public enum NecklaceMode {

@@ -9,6 +9,7 @@ import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ public final class SkyNecklaceTicker {
         Map<UUID, Integer> activeExtractors = new HashMap<>();
         Map<UUID, Integer> activeInserters = new HashMap<>();
         Map<UUID, List<ActiveNecklaceDetail>> activeDetails = new HashMap<>();
+        List<ActiveNecklace> activeNecklaces = new ArrayList<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             ItemStack necklace = activeNecklace(player);
             if (necklace.isEmpty()) {
@@ -79,14 +81,23 @@ public final class SkyNecklaceTicker {
             } else {
                 activeInserters.merge(lineId, 1, Integer::sum);
             }
-            activeDetails.computeIfAbsent(lineId, ignored -> new ArrayList<>()).add(activeDetail(player, mode));
+            int priority = SkyNecklaceItem.priority(necklace);
+            activeDetails.computeIfAbsent(lineId, ignored -> new ArrayList<>())
+                    .add(activeDetail(player, mode, priority));
             FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(necklace);
             if (itemWhitelist != null) {
-                if (mode == SkyNecklaceItem.NecklaceMode.EXTRACT) {
-                    tryExtract(player, lineId, itemWhitelist, gameTime);
-                } else {
-                    tryInsert(player, necklace, lineId, itemWhitelist, gameTime);
-                }
+                activeNecklaces.add(new ActiveNecklace(player, necklace, lineId, mode, priority, itemWhitelist));
+            }
+        }
+        activeNecklaces.sort(Comparator.comparingInt(ActiveNecklace::priority).reversed());
+        for (List<ActiveNecklaceDetail> details : activeDetails.values()) {
+            details.sort(Comparator.comparingInt(ActiveNecklaceDetail::priority).reversed());
+        }
+        for (ActiveNecklace active : activeNecklaces) {
+            if (active.mode() == SkyNecklaceItem.NecklaceMode.EXTRACT) {
+                tryExtract(active.player(), active.lineId(), active.itemWhitelist(), gameTime);
+            } else {
+                tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             }
         }
         ACTIVE_EXTRACTORS.clear();
@@ -104,10 +115,12 @@ public final class SkyNecklaceTicker {
         return ItemStack.EMPTY;
     }
 
-    private static ActiveNecklaceDetail activeDetail(ServerPlayer player, SkyNecklaceItem.NecklaceMode mode) {
+    private static ActiveNecklaceDetail activeDetail(ServerPlayer player, SkyNecklaceItem.NecklaceMode mode,
+            int priority) {
         return new ActiveNecklaceDetail(player.getGameProfile().getName(),
                 player.level().dimension().location().toString(), player.blockPosition().immutable(),
-                mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
+                mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT,
+                priority);
     }
 
     private static FilterListItem.CompiledFilter itemWhitelist(ItemStack necklace) {
@@ -253,7 +266,13 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    public record ActiveNecklaceDetail(String playerName, String dimension, BlockPos pos, NodeFaceMode mode) {
+    private record ActiveNecklace(ServerPlayer player, ItemStack necklace, UUID lineId,
+                                  SkyNecklaceItem.NecklaceMode mode, int priority,
+                                  FilterListItem.CompiledFilter itemWhitelist) {
+    }
+
+    public record ActiveNecklaceDetail(String playerName, String dimension, BlockPos pos, NodeFaceMode mode,
+                                       int priority) {
     }
 
     private static final class PlayerMainInventoryHandler implements IItemHandler {
