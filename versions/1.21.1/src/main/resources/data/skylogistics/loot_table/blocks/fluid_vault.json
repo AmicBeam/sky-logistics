@@ -13,11 +13,6 @@
               "source": "block_entity",
               "ops": [
                 {
-                  "source": "VaultId",
-                  "target": "BlockEntityTag.VaultId",
-                  "op": "replace"
-                },
-                {
                   "source": "TypeLimit",
                   "target": "BlockEntityTag.TypeLimit",
                   "op": "replace"

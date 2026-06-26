@@ -6,7 +6,6 @@ import com.skylogistics.network.FluidVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.FluidStackKey;
-import com.skylogistics.storage.VaultStorage;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,6 +16,8 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -41,7 +42,6 @@ public class FluidVaultBlockEntity extends BlockEntity {
     private final LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(() -> fluidHandler);
     private LinkedHashMap<FluidStackKey, Long> indexedContents;
     private int indexedContentSize = -1;
-    private UUID vaultId = UUID.randomUUID();
     private int typeLimit = 1;
     private long capacityPerType = Long.MAX_VALUE;
     private int clientUsedTypes = -1;
@@ -107,8 +107,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     public long transferTo(FluidVaultBlockEntity target, int sourceTank, long maxAmount) {
-        if (target == this || vaultId.equals(target.vaultId) || sourceTank < 0 || sourceTank >= getTypeLimit()
-                || maxAmount <= 0) {
+        if (target == this || sourceTank < 0 || sourceTank >= getTypeLimit() || maxAmount <= 0) {
             return 0L;
         }
         Map.Entry<FluidStackKey, Long> entry = entryAt(sourceTank);
@@ -197,16 +196,43 @@ public class FluidVaultBlockEntity extends BlockEntity {
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         saveMetadata(tag);
+        ListTag fluidTags = new ListTag();
+        for (Map.Entry<FluidStackKey, Long> fluid : stored.entrySet()) {
+            long amount = fluid.getValue();
+            if (amount <= 0) {
+                continue;
+            }
+            CompoundTag entry = new CompoundTag();
+            entry.put("Key", fluid.getKey().save());
+            entry.putLong("Amount", amount);
+            fluidTags.add(entry);
+        }
+        if (!fluidTags.isEmpty()) {
+            tag.put("Fluids", fluidTags);
+        }
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        if (tag.hasUUID("VaultId")) {
-            vaultId = tag.getUUID("VaultId");
-        }
         typeLimit = Math.max(1, tag.getInt("TypeLimit"));
         capacityPerType = Long.MAX_VALUE;
+        stored.clear();
+        invalidateContentIndex();
+        invalidateSummaryCache();
+        if (tag.contains("Fluids", Tag.TAG_LIST)) {
+            ListTag fluidTags = tag.getList("Fluids", Tag.TAG_COMPOUND);
+            int maxEntries = Math.min(fluidTags.size(), getTypeLimit());
+            for (int i = 0; i < maxEntries; i++) {
+                CompoundTag entry = fluidTags.getCompound(i);
+                long amount = entry.getLong("Amount");
+                FluidStackKey key = FluidStackKey.load(entry.getCompound("Key"));
+                FluidStack stack = key.toStack(1);
+                if (amount > 0 && !stack.isEmpty()) {
+                    stored.put(key, amount);
+                }
+            }
+        }
         if (tag.contains("UsedTypes")) {
             clientUsedTypes = Math.max(0, tag.getInt("UsedTypes"));
         }
@@ -242,14 +268,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     private LinkedHashMap<FluidStackKey, Long> contents() {
-        if (level instanceof ServerLevel serverLevel) {
-            return VaultStorage.get(serverLevel, vaultId).fluids(vaultId);
-        }
         return stored;
     }
 
     private void saveMetadata(CompoundTag tag) {
-        tag.putUUID("VaultId", vaultId);
         tag.putInt("TypeLimit", typeLimit);
         tag.putLong("CapacityPerType", capacityPerType);
         tag.putInt("UsedTypes", contents().size());
@@ -260,8 +282,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
         syncVersion++;
         invalidateSummaryCache();
         setChanged();
-        if (level instanceof ServerLevel serverLevel) {
-            VaultStorage.get(serverLevel, vaultId).setDirty();
+        if (level instanceof ServerLevel) {
             syncToViewingPlayers();
         }
     }

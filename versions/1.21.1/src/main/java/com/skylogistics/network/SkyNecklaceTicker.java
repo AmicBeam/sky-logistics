@@ -4,6 +4,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.curios.CuriosCompat;
 import com.skylogistics.compat.sophisticated.SophisticatedBackpacksCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
 import java.util.ArrayList;
@@ -52,8 +53,9 @@ public final class SkyNecklaceTicker {
                 continue;
             }
             active.merge(lineId, 1, Integer::sum);
-            if (moveThisTick && SkyNecklaceItem.hasValidItemWhitelist(necklace)) {
-                tryExtract(player, necklace, lineId, gameTime);
+            FilterListItem.CompiledFilter itemWhitelist = moveThisTick ? itemWhitelist(necklace) : null;
+            if (itemWhitelist != null) {
+                tryExtract(player, lineId, itemWhitelist, gameTime);
             }
         }
         ACTIVE_EXTRACTORS.clear();
@@ -69,7 +71,17 @@ public final class SkyNecklaceTicker {
         return ItemStack.EMPTY;
     }
 
-    private static void tryExtract(ServerPlayer player, ItemStack necklace, UUID lineId, long gameTime) {
+    private static FilterListItem.CompiledFilter itemWhitelist(ItemStack necklace) {
+        ItemStack filter = SkyNecklaceItem.filterList(necklace);
+        if (filter.isEmpty() || !FilterListItem.isWhitelist(filter)) {
+            return null;
+        }
+        FilterListItem.CompiledFilter compiled = FilterListItem.compile(filter);
+        return compiled.hasItemRules() ? compiled : null;
+    }
+
+    private static void tryExtract(ServerPlayer player, UUID lineId, FilterListItem.CompiledFilter itemWhitelist,
+            long gameTime) {
         List<CachedEndpoint> targets = SkyNetworkRegistry.lineItemOutputs(player.server, player.level().dimension(), lineId);
         if (targets.isEmpty()) {
             return;
@@ -78,8 +90,7 @@ public final class SkyNecklaceTicker {
         for (IItemHandler source : sources(player)) {
             for (int slot = 0; slot < source.getSlots(); slot++) {
                 ItemStack simulated = source.extractItem(slot, transferLimit, true);
-                if (simulated.isEmpty() || shouldSkipSourceStack(simulated)
-                        || !SkyNecklaceItem.matchesWhitelist(necklace, simulated)) {
+                if (simulated.isEmpty() || shouldSkipSourceStack(simulated) || !itemWhitelist.matches(simulated)) {
                     continue;
                 }
                 if (tryMove(source, slot, simulated, targets, gameTime)) {
@@ -134,7 +145,6 @@ public final class SkyNecklaceTicker {
                 }
             }
             targetEndpoint.recordItemSuccess();
-            targetEndpoint.node().setChanged();
             return true;
         }
         return false;
