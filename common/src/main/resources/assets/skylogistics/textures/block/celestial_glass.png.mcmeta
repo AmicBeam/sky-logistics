@@ -1,0 +1,13 @@
+{
+  "ctm": {
+    "ctm_version": 1,
+    "type": "ctm:ctm",
+    "layer": "TRANSLUCENT",
+    "textures": [
+      "skylogistics:block/celestial_glass_connected"
+    ],
+    "extra": {
+      "ignore_states": true
+    }
+  }
+}
