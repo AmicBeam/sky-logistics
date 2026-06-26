@@ -286,10 +286,10 @@ public final class SkyNecklaceTicker {
             }
             ItemStack existing = inventory.getItem(slot);
             int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+            if (isInsertLimited() && fullWhitelistSlots() >= insertSlotLimit) {
+                return stack;
+            }
             if (existing.isEmpty()) {
-                if (isInsertLimited() && occupiedWhitelistSlots() >= insertSlotLimit) {
-                    return stack;
-                }
                 int inserted = Math.min(limit, stack.getCount());
                 if (!simulate) {
                     ItemStack copy = stack.copy();
@@ -300,9 +300,6 @@ public final class SkyNecklaceTicker {
                 return remainder(stack, inserted);
             }
             if (!ItemStack.isSameItemSameTags(existing, stack)) {
-                return stack;
-            }
-            if (isInsertLimited() && occupiedWhitelistSlots() > insertSlotLimit) {
                 return stack;
             }
             int inserted = Math.min(limit - existing.getCount(), stack.getCount());
@@ -345,7 +342,7 @@ public final class SkyNecklaceTicker {
 
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return valid(slot);
+            return valid(slot) && (insertFilter == null || insertFilter.matches(stack));
         }
 
         private static boolean valid(int slot) {
@@ -356,15 +353,19 @@ public final class SkyNecklaceTicker {
             return insertFilter != null;
         }
 
-        private int occupiedWhitelistSlots() {
-            int occupied = 0;
+        private int fullWhitelistSlots() {
+            int full = 0;
             for (int slot = 0; slot < MAIN_SLOTS; slot++) {
                 ItemStack existing = inventory.getItem(slot);
-                if (!existing.isEmpty() && insertFilter.matches(existing)) {
-                    occupied++;
+                if (existing.isEmpty() || !insertFilter.matches(existing)) {
+                    continue;
+                }
+                int limit = Math.min(getSlotLimit(slot), existing.getMaxStackSize());
+                if (existing.getCount() >= limit) {
+                    full++;
                 }
             }
-            return occupied;
+            return full;
         }
 
         private static ItemStack remainder(ItemStack original, int inserted) {
