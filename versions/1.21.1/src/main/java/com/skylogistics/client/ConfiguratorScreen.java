@@ -35,9 +35,11 @@ import org.lwjgl.glfw.GLFW;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
     private static final String SKY_NECKLACE_ID = "skylogistics:sky_necklace";
-    private static final int LINE_NAME_EDIT_X = 112;
+    private static final int LINE_NAME_LABEL_X = 92;
+    private static final int LINE_NAME_LABEL_Y = 12;
+    private static final int LINE_NAME_EDIT_X = 146;
     private static final int LINE_NAME_EDIT_Y = 7;
-    private static final int LINE_NAME_EDIT_WIDTH = 128;
+    private static final int LINE_NAME_EDIT_WIDTH = 92;
     private static final int LINE_NAME_EDIT_HEIGHT = 16;
     private static final int DETAIL_X = 14;
     private static final int DETAIL_Y = 76;
@@ -177,6 +179,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         int lineIndex = ConfiguratorItem.lineIndex(stack()) + 1;
         int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack()));
+        graphics.drawString(font, Component.translatable("screen.skylogistics.line_name"),
+                LINE_NAME_LABEL_X, LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                 14, 34, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_monitor",
@@ -216,6 +220,16 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
+            commitLineNameEdit();
+            lineNameEdit.setFocused(false);
+            setFocused(null);
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
