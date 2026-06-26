@@ -296,6 +296,9 @@ public final class SkyNecklaceTicker {
             if (!ItemStack.isSameItemSameComponents(existing, stack)) {
                 return stack;
             }
+            if (isInsertLimited() && occupiedWhitelistSlots() > insertSlotLimit) {
+                return stack;
+            }
             int inserted = Math.min(limit - existing.getCount(), stack.getCount());
             if (inserted <= 0) {
                 return stack;
