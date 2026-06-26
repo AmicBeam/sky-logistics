@@ -1,10 +1,13 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -352,10 +355,11 @@ public class FilterListItem extends Item {
     }
 
     public static final class CompiledFilter {
+        private static final int HASH_LOOKUP_THRESHOLD = 5;
         private static final Entry[] NO_ENTRIES = new Entry[0];
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
         public static final CompiledFilter ALLOW_ALL = new CompiledFilter(Mode.ALLOW_ALL, true, false, false,
-                NO_ENTRIES, NO_FLUID_ENTRIES);
+                NO_ENTRIES, NO_FLUID_ENTRIES, null, null);
 
         private final Mode mode;
         private final boolean whitelist;
@@ -363,20 +367,26 @@ public class FilterListItem extends Item {
         private final boolean matchDurability;
         private final Entry[] entries;
         private final FluidEntry[] fluidEntries;
+        private final Set<ItemFilterKey> itemKeys;
+        private final Set<FluidStackKey> fluidKeys;
 
         private CompiledFilter(Mode mode, boolean whitelist, boolean matchNbt, boolean matchDurability,
-                Entry[] entries, FluidEntry[] fluidEntries) {
+                Entry[] entries, FluidEntry[] fluidEntries, Set<ItemFilterKey> itemKeys,
+                Set<FluidStackKey> fluidKeys) {
             this.mode = mode;
             this.whitelist = whitelist;
             this.matchNbt = matchNbt;
             this.matchDurability = matchDurability;
             this.entries = entries;
             this.fluidEntries = fluidEntries;
+            this.itemKeys = itemKeys;
+            this.fluidKeys = fluidKeys;
         }
 
         private static CompiledFilter list(boolean whitelist, boolean matchNbt, boolean matchDurability, Entry[] entries,
                 FluidEntry[] fluidEntries) {
-            return new CompiledFilter(Mode.LIST, whitelist, matchNbt, matchDurability, entries, fluidEntries);
+            return new CompiledFilter(Mode.LIST, whitelist, matchNbt, matchDurability, entries, fluidEntries,
+                    compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
         }
 
         public boolean matches(ItemStack candidate) {
@@ -396,14 +406,19 @@ public class FilterListItem extends Item {
             if (entries.length == 0) {
                 return true;
             }
-            boolean matched = false;
+            boolean matched = itemKeys == null
+                    ? matchesItemEntries(candidate)
+                    : itemKeys.contains(ItemFilterKey.of(candidate, matchNbt, matchDurability));
+            return whitelist == matched;
+        }
+
+        private boolean matchesItemEntries(ItemStack candidate) {
             for (Entry entry : entries) {
                 if (matchesItemSample(entry.stack(), candidate, matchNbt, matchDurability)) {
-                    matched = true;
-                    break;
+                    return true;
                 }
             }
-            return whitelist == matched;
+            return false;
         }
 
         public boolean matchesFluid(FluidStack candidate) {
@@ -413,14 +428,18 @@ public class FilterListItem extends Item {
             if (candidate.isEmpty()) {
                 return false;
             }
-            boolean matched = false;
+            boolean matched = fluidKeys == null ? matchesFluidEntries(candidate)
+                    : fluidKeys.contains(FluidStackKey.of(candidate));
+            return whitelist == matched;
+        }
+
+        private boolean matchesFluidEntries(FluidStack candidate) {
             for (FluidEntry entry : fluidEntries) {
-                if (entry.stack().isFluidEqual(candidate)) {
-                    matched = true;
-                    break;
+                if (FluidStack.isSameFluidSameComponents(entry.stack(), candidate)) {
+                    return true;
                 }
             }
-            return whitelist == matched;
+            return false;
         }
 
         public boolean whitelist() {
@@ -444,6 +463,36 @@ public class FilterListItem extends Item {
         }
 
         private record FluidEntry(FluidStack stack) {
+        }
+
+        private record ItemFilterKey(Item item, int damage, CompoundTag tag) {
+            private static ItemFilterKey of(ItemStack stack, boolean matchNbt, boolean matchDurability) {
+                int damage = matchDurability && stack.isDamageableItem() ? stack.getDamageValue() : 0;
+                CompoundTag tag = matchNbt ? comparableTag(stack, matchDurability) : null;
+                return new ItemFilterKey(stack.getItem(), damage, tag);
+            }
+        }
+
+        private static Set<ItemFilterKey> compileItemKeys(Entry[] entries, boolean matchNbt, boolean matchDurability) {
+            if (entries.length < HASH_LOOKUP_THRESHOLD) {
+                return null;
+            }
+            Set<ItemFilterKey> keys = new HashSet<>(entries.length * 2);
+            for (Entry entry : entries) {
+                keys.add(ItemFilterKey.of(entry.stack(), matchNbt, matchDurability));
+            }
+            return keys;
+        }
+
+        private static Set<FluidStackKey> compileFluidKeys(FluidEntry[] fluidEntries) {
+            if (fluidEntries.length < HASH_LOOKUP_THRESHOLD) {
+                return null;
+            }
+            Set<FluidStackKey> keys = new HashSet<>(fluidEntries.length * 2);
+            for (FluidEntry entry : fluidEntries) {
+                keys.add(FluidStackKey.of(entry.stack()));
+            }
+            return keys;
         }
     }
 }

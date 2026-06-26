@@ -10,7 +10,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_node",
-      "text": "一次合成会得到 4 个节点。节点本身不存东西，只负责把同一条线路上的抽取端和存入端连起来。"
+      "text": "一次合成会得到 2 个节点。节点本身不存东西，只负责把同一条线路上的抽取端和存入端连起来。"
     },
     {
       "type": "patchouli:text",

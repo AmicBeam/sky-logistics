@@ -10,7 +10,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_node",
-      "text": "One craft gives 4 nodes. Nodes have no internal buffer; they only pair same-line endpoints for transfer."
+      "text": "One craft gives 2 nodes. Nodes have no internal buffer; they only pair same-line endpoints for transfer."
     },
     {
       "type": "patchouli:text",
