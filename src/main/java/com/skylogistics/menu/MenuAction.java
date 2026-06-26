@@ -17,12 +17,13 @@ public final class MenuAction {
     public static final int LINE_NEXT_OR_CREATE = 16;
     public static final int LINE_LAST = 17;
     public static final int LINE_REMOVE_CURRENT = 18;
-    public static final int FILTER_TOGGLE_WHITELIST = 20;
-    public static final int FILTER_TOGGLE_TAGS = 21;
+    public static final int FILTER_SET_WHITELIST = 20;
+    public static final int FILTER_SET_BLACKLIST = 21;
     public static final int FILTER_CLEAR = 22;
-    public static final int FILTER_TOGGLE_MODE = 23;
-    public static final int FILTER_TOGGLE_MODS = 24;
-    public static final int FILTER_ATTRIBUTE_BASE = 30;
+    public static final int FILTER_SET_NBT_ON = 23;
+    public static final int FILTER_SET_NBT_OFF = 24;
+    public static final int FILTER_SET_DURABILITY_ON = 25;
+    public static final int FILTER_SET_DURABILITY_OFF = 26;
     public static final int FACE_NONE_BASE = 100;
     public static final int FACE_EXTRACT_BASE = 110;
     public static final int FACE_INSERT_BASE = 120;
@@ -62,7 +63,4 @@ public final class MenuAction {
         return FACE_SELECT_BASE + direction.ordinal();
     }
 
-    public static int filterAttribute(int attribute) {
-        return FILTER_ATTRIBUTE_BASE + attribute;
-    }
 }
