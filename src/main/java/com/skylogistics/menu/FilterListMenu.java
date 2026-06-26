@@ -1,8 +1,6 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.FilterListItem.Attribute;
-import com.skylogistics.item.FilterListItem.FilterMode;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import net.minecraft.world.InteractionHand;
@@ -16,6 +14,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
 public class FilterListMenu extends AbstractContainerMenu {
+    private static final int FILTER_GRID_X = 31;
+    private static final int FILTER_GRID_Y = 25;
+    private static final int FILTER_COLUMNS = 9;
+    private static final int FILTER_SLOT_STEP = 18;
     private final InteractionHand hand;
     private final FilterGhostContainer filters;
 
@@ -24,9 +26,10 @@ public class FilterListMenu extends AbstractContainerMenu {
         this.hand = hand;
         this.filters = new FilterGhostContainer(inventory.player, hand);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-            int column = slot % 3;
-            int row = slot / 3;
-            addSlot(new Slot(filters, slot, 24 + column * 22, 48 + row * 22) {
+            int column = slot % FILTER_COLUMNS;
+            int row = slot / FILTER_COLUMNS;
+            addSlot(new Slot(filters, slot, FILTER_GRID_X + column * FILTER_SLOT_STEP,
+                    FILTER_GRID_Y + row * FILTER_SLOT_STEP) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;
@@ -38,7 +41,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, 31, 128);
+        addPlayerInventory(inventory, 31, 121);
     }
 
     public InteractionHand getHand() {
@@ -49,24 +52,12 @@ public class FilterListMenu extends AbstractContainerMenu {
         return FilterListItem.isWhitelist(filterStack());
     }
 
-    public boolean matchTags() {
-        return FilterListItem.matchTags(filterStack());
+    public boolean matchNbt() {
+        return FilterListItem.matchNbt(filterStack());
     }
 
-    public boolean matchMods() {
-        return FilterListItem.matchMods(filterStack());
-    }
-
-    public boolean isListMode() {
-        return FilterListItem.getMode(filterStack()) == FilterMode.LIST;
-    }
-
-    public boolean matchAllAttributes() {
-        return FilterListItem.matchAllAttributes(filterStack());
-    }
-
-    public boolean hasAttribute(Attribute attribute) {
-        return FilterListItem.hasAttribute(filterStack(), attribute);
+    public boolean matchDurability() {
+        return FilterListItem.matchDurability(filterStack());
     }
 
     public FluidStack getFluidFilter(int slot) {
@@ -78,14 +69,14 @@ public class FilterListMenu extends AbstractContainerMenu {
     }
 
     public void setGhostItem(int slot, ItemStack stack) {
-        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS && isListMode()) {
+        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
             filters.setGhost(slot, stack);
             broadcastChanges();
         }
     }
 
     public void setGhostFluid(int slot, FluidStack stack) {
-        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS && isListMode()) {
+        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
             filters.setFluidGhost(slot, stack);
             broadcastChanges();
         }
@@ -98,7 +89,7 @@ public class FilterListMenu extends AbstractContainerMenu {
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
-        if (slotId >= 0 && slotId < FilterListItem.FILTER_SLOTS && isListMode()) {
+        if (slotId >= 0 && slotId < FilterListItem.FILTER_SLOTS) {
             ItemStack carried = getCarried();
             setGhostItem(slotId, carried);
             return;
@@ -108,7 +99,7 @@ public class FilterListMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        if (isListMode() && index >= FilterListItem.FILTER_SLOTS && index < slots.size()) {
+        if (index >= FilterListItem.FILTER_SLOTS && index < slots.size()) {
             ItemStack stack = slots.get(index).getItem();
             if (!stack.isEmpty()) {
                 filters.addFirstEmpty(stack);
@@ -124,46 +115,19 @@ public class FilterListMenu extends AbstractContainerMenu {
             return;
         }
         switch (action) {
-            case MenuAction.FILTER_TOGGLE_WHITELIST -> FilterListItem.setWhitelist(stack, !FilterListItem.isWhitelist(stack));
-            case MenuAction.FILTER_TOGGLE_TAGS -> {
-                if (FilterListItem.getMode(stack) == FilterMode.ATTRIBUTE) {
-                    FilterListItem.setMatchAllAttributes(stack, !FilterListItem.matchAllAttributes(stack));
-                } else {
-                    FilterListItem.setMatchTags(stack, !FilterListItem.matchTags(stack));
-                }
-            }
-            case MenuAction.FILTER_TOGGLE_MODS -> {
-                if (FilterListItem.getMode(stack) == FilterMode.LIST) {
-                    FilterListItem.setMatchMods(stack, !FilterListItem.matchMods(stack));
-                }
-            }
-            case MenuAction.FILTER_CLEAR -> {
-                if (FilterListItem.getMode(stack) == FilterMode.ATTRIBUTE) {
-                    FilterListItem.clearAttributes(stack);
-                } else {
-                    FilterListItem.clearFilters(stack);
-                }
-            }
-            case MenuAction.FILTER_TOGGLE_MODE -> FilterListItem.cycleMode(stack);
+            case MenuAction.FILTER_SET_WHITELIST -> FilterListItem.setWhitelist(stack, true);
+            case MenuAction.FILTER_SET_BLACKLIST -> FilterListItem.setWhitelist(stack, false);
+            case MenuAction.FILTER_SET_NBT_ON -> FilterListItem.setMatchNbt(stack, true);
+            case MenuAction.FILTER_SET_NBT_OFF -> FilterListItem.setMatchNbt(stack, false);
+            case MenuAction.FILTER_SET_DURABILITY_ON -> FilterListItem.setMatchDurability(stack, true);
+            case MenuAction.FILTER_SET_DURABILITY_OFF -> FilterListItem.setMatchDurability(stack, false);
+            case MenuAction.FILTER_CLEAR -> FilterListItem.clearFilters(stack);
             default -> {
-                Attribute attribute = attributeForAction(action);
-                if (attribute == null) {
-                    return;
-                }
-                FilterListItem.toggleAttribute(stack, attribute);
+                return;
             }
         }
         filters.setChanged();
         broadcastChanges();
-    }
-
-    private static Attribute attributeForAction(int action) {
-        int ordinal = action - MenuAction.FILTER_ATTRIBUTE_BASE;
-        Attribute[] attributes = Attribute.values();
-        if (ordinal < 0 || ordinal >= attributes.length) {
-            return null;
-        }
-        return attributes[ordinal];
     }
 
     private ItemStack filterStack() {
@@ -197,9 +161,6 @@ public class FilterListMenu extends AbstractContainerMenu {
 
         @Override
         public ItemStack getItem(int slot) {
-            if (FilterListItem.getMode(stack()) != FilterMode.LIST) {
-                return ItemStack.EMPTY;
-            }
             return FilterListItem.getDisplayFilter(stack(), slot);
         }
 
@@ -227,6 +188,9 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setCount(1);
             }
             FilterListItem.setFilter(stack(), slot, ghost);
+            if (ghost.isEmpty()) {
+                FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
+            }
             setChanged();
         }
 
@@ -236,6 +200,9 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setAmount(1);
             }
             FilterListItem.setFluidFilter(stack(), slot, ghost);
+            if (ghost.isEmpty()) {
+                FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
+            }
             setChanged();
         }
 
