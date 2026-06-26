@@ -1,5 +1,6 @@
 package com.skylogistics.client;
 
+import com.mojang.authlib.properties.PropertyMap;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
@@ -10,6 +11,7 @@ import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,16 +19,20 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.core.registries.BuiltInRegistries;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
+    private static final String SKY_NECKLACE_ID = "skylogistics:sky_necklace";
     private static final int DETAIL_X = 14;
     private static final int DETAIL_Y = 76;
     private static final int DETAIL_WIDTH = 226;
@@ -237,7 +243,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private String detailMainLine(ConfiguratorLineDetailsPacket.Entry entry) {
-        String displayName = entry.displayName().isEmpty() ? "" : entry.displayName() + " ";
+        String displayName = entry.displayName().isEmpty() || isSkyNecklaceEntry(entry)
+                ? ""
+                : entry.displayName() + " ";
         return Component.translatable(entry.mode().translationKey()).getString() + " "
                 + displayName + resourceFlags(entry) + " P" + entry.priority() + " "
                 + Component.translatable(entry.redstoneControl().translationKey()).getString();
@@ -286,6 +294,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (isSkyNecklaceEntry(entry)) {
+            return playerHeadIcon(entry.displayName());
+        }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
             return ItemStack.EMPTY;
@@ -299,6 +310,19 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         Item item = BuiltInRegistries.ITEM.get(id);
         return item == null ? ItemStack.EMPTY : item.getDefaultInstance();
+    }
+
+    private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
+        return SKY_NECKLACE_ID.equals(entry.targetBlockId());
+    }
+
+    private ItemStack playerHeadIcon(String playerName) {
+        ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        if (!playerName.isBlank()) {
+            icon.set(DataComponents.PROFILE,
+                    new ResolvableProfile(Optional.of(playerName), Optional.empty(), new PropertyMap()));
+        }
+        return icon;
     }
 
     private int modeColor(NodeFaceMode mode) {

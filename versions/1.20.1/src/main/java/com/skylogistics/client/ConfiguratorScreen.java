@@ -23,10 +23,12 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
+    private static final String SKY_NECKLACE_ID = "skylogistics:sky_necklace";
     private static final int DETAIL_X = 14;
     private static final int DETAIL_Y = 76;
     private static final int DETAIL_WIDTH = 226;
@@ -237,7 +239,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private String detailMainLine(ConfiguratorLineDetailsPacket.Entry entry) {
-        String displayName = entry.displayName().isEmpty() ? "" : entry.displayName() + " ";
+        String displayName = entry.displayName().isEmpty() || isSkyNecklaceEntry(entry)
+                ? ""
+                : entry.displayName() + " ";
         return Component.translatable(entry.mode().translationKey()).getString() + " "
                 + displayName + resourceFlags(entry) + " P" + entry.priority() + " "
                 + Component.translatable(entry.redstoneControl().translationKey()).getString();
@@ -286,6 +290,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (isSkyNecklaceEntry(entry)) {
+            return playerHeadIcon(entry.displayName());
+        }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
             return ItemStack.EMPTY;
@@ -299,6 +306,18 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         Item item = ForgeRegistries.ITEMS.getValue(id);
         return item == null ? ItemStack.EMPTY : item.getDefaultInstance();
+    }
+
+    private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
+        return SKY_NECKLACE_ID.equals(entry.targetBlockId());
+    }
+
+    private ItemStack playerHeadIcon(String playerName) {
+        ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        if (!playerName.isBlank()) {
+            icon.getOrCreateTag().putString("SkullOwner", playerName);
+        }
+        return icon;
     }
 
     private int modeColor(NodeFaceMode mode) {
