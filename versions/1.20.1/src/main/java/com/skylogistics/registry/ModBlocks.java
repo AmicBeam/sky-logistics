@@ -25,19 +25,19 @@ public final class ModBlocks {
     public static final RegistryObject<Block> ITEM_VAULT = BLOCKS.register("item_vault",
             () -> new ItemVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 9.0F)
+                    .strength(3.0F, 10.0F)
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> FLUID_VAULT = BLOCKS.register("fluid_vault",
             () -> new FluidVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 9.0F)
+                    .strength(3.0F, 10.0F)
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SKY_NODE = BLOCKS.register("sky_node",
             () -> new SkyNodeBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLUE)
-                    .strength(1.5F, 6.0F)
+                    .strength(1.5F, 7.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
@@ -64,14 +64,14 @@ public final class ModBlocks {
     public static final RegistryObject<Block> OFFERING_ALTAR = BLOCKS.register("offering_altar",
             () -> new OfferingAltarBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 9.0F)
+                    .strength(3.0F, 10.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> OFFERING_TABLE = BLOCKS.register("offering_table",
             () -> new OfferingTableBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(2.5F, 6.0F)
+                    .strength(2.5F, 7.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
@@ -85,7 +85,7 @@ public final class ModBlocks {
     private static BlockBehaviour.Properties celestialStoneProperties() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                .strength(2.0F, 6.0F)
+                .strength(2.0F, 7.0F)
                 .sound(SoundType.AMETHYST);
     }
 }
