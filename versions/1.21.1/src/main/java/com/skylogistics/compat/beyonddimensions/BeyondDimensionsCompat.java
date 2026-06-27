@@ -52,7 +52,7 @@ public final class BeyondDimensionsCompat {
                 host.setDimensionNetworkId(netId);
                 player.sendSystemMessage(Component.translatable("msg.beyonddimensions.block_net_bound", netId));
             }
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
         }
     }
@@ -75,7 +75,7 @@ public final class BeyondDimensionsCompat {
             } else {
                 unbindFromPlayerNetwork(level, player, host, currentNetId);
             }
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
         }
         return true;
@@ -133,7 +133,7 @@ public final class BeyondDimensionsCompat {
         try {
             Object net = netFromId(netId);
             return net == null || deleted(net) ? null : Reflect.invoke(net, "getUnifiedStorage");
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
         }
@@ -168,7 +168,7 @@ public final class BeyondDimensionsCompat {
                     "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
             Object handler = constructor.newInstance(storage);
             return handler instanceof IItemHandler itemHandler ? itemHandler : EmptyExternalHandlers.Items.INSTANCE;
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Items.INSTANCE;
         }
@@ -186,7 +186,7 @@ public final class BeyondDimensionsCompat {
                     "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
             Object handler = constructor.newInstance(storage);
             return handler instanceof IFluidHandler fluidHandler ? fluidHandler : EmptyExternalHandlers.Fluids.INSTANCE;
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
         }

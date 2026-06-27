@@ -71,7 +71,7 @@ public final class AppliedEnergisticsCompat {
             Object capability = capabilities.getField("IN_WORLD_GRID_NODE_HOST").get(null);
             event.registerBlockEntity((BlockCapability) capability, type,
                     (host, side) -> host.ae2GridNodeHost((Direction) side));
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
         }
     }
@@ -84,7 +84,7 @@ public final class AppliedEnergisticsCompat {
         try {
             Object storageService = Reflect.invoke(grid, "getStorageService");
             return storageService == null ? null : Reflect.invoke(storageService, "getInventory");
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
         }
@@ -118,7 +118,7 @@ public final class AppliedEnergisticsCompat {
                     return Reflect.invoke(node, "getGrid");
                 }
             }
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
         }
         return null;
@@ -135,7 +135,7 @@ public final class AppliedEnergisticsCompat {
     private static Object actionSource() {
         try {
             return Reflect.invokeStatic(Class.forName("appeng.api.networking.security.IActionSource"), "empty");
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
         }
@@ -162,7 +162,7 @@ public final class AppliedEnergisticsCompat {
             }
             entries.sort(Comparator.comparing(entry -> entry.key().toString()));
             return entries;
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return List.of();
         }
@@ -182,7 +182,7 @@ public final class AppliedEnergisticsCompat {
             int amount = (int) Math.min(entry.amount(), maxStackSize instanceof Number number ? number.intValue() : 64);
             Object stack = Reflect.invoke(entry.key(), "toStack", amount);
             return stack instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return ItemStack.EMPTY;
         }
@@ -193,7 +193,7 @@ public final class AppliedEnergisticsCompat {
             int amount = (int) Math.min(entry.amount(), Integer.MAX_VALUE);
             Object stack = Reflect.invoke(entry.key(), "toStack", amount);
             return stack instanceof FluidStack fluidStack ? fluidStack : FluidStack.EMPTY;
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return FluidStack.EMPTY;
         }
@@ -208,7 +208,7 @@ public final class AppliedEnergisticsCompat {
     private static Object itemKey(ItemStack stack) {
         try {
             return Reflect.invokeStatic(Class.forName("appeng.api.stacks.AEItemKey"), "of", stack);
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
         }
@@ -217,7 +217,7 @@ public final class AppliedEnergisticsCompat {
     private static Object fluidKey(FluidStack stack) {
         try {
             return Reflect.invokeStatic(Class.forName("appeng.api.stacks.AEFluidKey"), "of", stack);
-        } catch (ReflectiveOperationException | LinkageError error) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
         }
@@ -307,7 +307,7 @@ public final class AppliedEnergisticsCompat {
                 if (!Reflect.tryInvoke(node, "loadFromNBT", tag, registries)) {
                     Reflect.tryInvoke(node, "loadFromNBT", tag);
                 }
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
             }
         }
@@ -318,7 +318,7 @@ public final class AppliedEnergisticsCompat {
                 if (!Reflect.tryInvoke(node, "saveToNBT", tag, registries)) {
                     Reflect.tryInvoke(node, "saveToNBT", tag);
                 }
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
             }
         }
@@ -336,11 +336,11 @@ public final class AppliedEnergisticsCompat {
                                 && !Boolean.TRUE.equals(Reflect.invoke(node, "isReady"))) {
                             Reflect.invoke(node, "create", loadedHost.getLevel(), loadedHost.getBlockPos());
                         }
-                    } catch (ReflectiveOperationException | LinkageError error) {
+                    } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                         warn(error);
                     }
                 });
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
             }
         }
@@ -353,7 +353,7 @@ public final class AppliedEnergisticsCompat {
             removed = true;
             try {
                 Reflect.invoke(node, "destroy");
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
             }
         }
@@ -370,7 +370,7 @@ public final class AppliedEnergisticsCompat {
                 return gridNode != null && Boolean.TRUE.equals(Reflect.invoke(gridNode, "isOnline"))
                         ? Reflect.invoke(gridNode, "getGrid")
                         : null;
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return null;
             }
@@ -450,7 +450,7 @@ public final class AppliedEnergisticsCompat {
                 }
                 int remaining = requested - (int) Math.min(insertedCount, requested);
                 return remaining <= 0 ? ItemStack.EMPTY : copyStackWithSize(stack, remaining);
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return stack;
             }
@@ -477,7 +477,7 @@ public final class AppliedEnergisticsCompat {
                 return extractedCount <= 0L ? ItemStack.EMPTY
                         : (ItemStack) Reflect.invoke(entry.key(), "toStack",
                                 (int) Math.min(extractedCount, requested));
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return ItemStack.EMPTY;
             }
@@ -532,7 +532,7 @@ public final class AppliedEnergisticsCompat {
                 return inserted instanceof Number number
                         ? (int) Math.min(number.longValue(), resource.getAmount())
                         : 0;
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return 0;
             }
@@ -555,7 +555,7 @@ public final class AppliedEnergisticsCompat {
                 return extractedCount <= 0L ? FluidStack.EMPTY
                         : (FluidStack) Reflect.invoke(key, "toStack",
                                 (int) Math.min(extractedCount, resource.getAmount()));
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return FluidStack.EMPTY;
             }
@@ -580,7 +580,7 @@ public final class AppliedEnergisticsCompat {
                 return extractedCount <= 0L ? FluidStack.EMPTY
                         : (FluidStack) Reflect.invoke(entry.key(), "toStack",
                                 (int) Math.min(extractedCount, requested));
-            } catch (ReflectiveOperationException | LinkageError error) {
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
                 warn(error);
                 return FluidStack.EMPTY;
             }
