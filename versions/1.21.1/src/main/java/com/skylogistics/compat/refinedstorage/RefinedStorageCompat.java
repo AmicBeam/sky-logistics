@@ -301,7 +301,7 @@ public final class RefinedStorageCompat {
         }
 
         static Object invoke(Object target, String name, Object... args) throws ReflectiveOperationException {
-            Method method = method(target.getClass(), name, args.length);
+            Method method = method(target.getClass(), name, args);
             return method.invoke(target, args);
         }
 
@@ -322,11 +322,19 @@ public final class RefinedStorageCompat {
             return null;
         }
 
-        private static Method method(Class<?> type, String name, int argCount) throws NoSuchMethodException {
+        private static Method method(Class<?> type, String name, Object[] args) throws NoSuchMethodException {
+            Method method = findMethod(type, name, args);
+            if (method == null) {
+                throw new NoSuchMethodException(type.getName() + "#" + name + "/" + args.length);
+            }
+            return method;
+        }
+
+        private static Method findMethod(Class<?> type, String name, Object[] args) {
             Class<?> current = type;
             while (current != null) {
                 for (Method method : current.getDeclaredMethods()) {
-                    if (method.getName().equals(name) && method.getParameterCount() == argCount) {
+                    if (matches(method, name, args)) {
                         method.setAccessible(true);
                         return method;
                     }
@@ -334,12 +342,61 @@ public final class RefinedStorageCompat {
                 current = current.getSuperclass();
             }
             for (Class<?> iface : type.getInterfaces()) {
-                try {
-                    return method(iface, name, argCount);
-                } catch (NoSuchMethodException ignored) {
+                Method method = findMethod(iface, name, args);
+                if (method != null) {
+                    return method;
                 }
             }
-            throw new NoSuchMethodException(type.getName() + "#" + name + "/" + argCount);
+            return null;
+        }
+
+        private static boolean matches(Method method, String name, Object[] args) {
+            if (!method.getName().equals(name) || method.getParameterCount() != args.length) {
+                return false;
+            }
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            for (int i = 0; i < parameterTypes.length; i++) {
+                if (!isAssignable(parameterTypes[i], args[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static boolean isAssignable(Class<?> parameterType, Object arg) {
+            if (arg == null) {
+                return !parameterType.isPrimitive();
+            }
+            Class<?> boxed = parameterType.isPrimitive() ? boxed(parameterType) : parameterType;
+            return boxed.isInstance(arg);
+        }
+
+        private static Class<?> boxed(Class<?> primitive) {
+            if (primitive == boolean.class) {
+                return Boolean.class;
+            }
+            if (primitive == byte.class) {
+                return Byte.class;
+            }
+            if (primitive == short.class) {
+                return Short.class;
+            }
+            if (primitive == int.class) {
+                return Integer.class;
+            }
+            if (primitive == long.class) {
+                return Long.class;
+            }
+            if (primitive == float.class) {
+                return Float.class;
+            }
+            if (primitive == double.class) {
+                return Double.class;
+            }
+            if (primitive == char.class) {
+                return Character.class;
+            }
+            return primitive;
         }
     }
 }
