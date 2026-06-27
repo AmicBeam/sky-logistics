@@ -46,7 +46,7 @@ public class ItemVaultBlock extends BaseEntityBlock {
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
         if (stack.is(ModItems.CHORA_NECTAR.get())) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
         }
         openVault(level, pos, player);
         return ItemInteractionResult.sidedSuccess(level.isClientSide);

@@ -47,7 +47,7 @@ public class FluidVaultBlock extends BaseEntityBlock {
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
         if (stack.is(ModItems.CHORA_NECTAR.get())) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
         }
         if (FluidUtil.interactWithFluidHandler(player, hand, level, pos, hit.getDirection())) {
             return ItemInteractionResult.sidedSuccess(level.isClientSide);
