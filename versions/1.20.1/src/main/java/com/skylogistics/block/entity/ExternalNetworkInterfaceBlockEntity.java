@@ -23,9 +23,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     protected ExternalNetworkInterfaceBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
-        setFaceMode(ENDPOINT_DIRECTION, NodeFaceMode.OUTPUT);
-        setEnergyEnabled(ENDPOINT_DIRECTION, false);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+        normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     protected abstract IItemHandler getItemHandler();
@@ -90,42 +88,42 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     @Override
     public void setItemsEnabled(boolean itemsEnabled) {
         super.setItemsEnabled(ENDPOINT_DIRECTION, itemsEnabled);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+        normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setItemsEnabled(Direction direction, boolean itemsEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setItemsEnabled(direction, itemsEnabled);
-            normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+            normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
     @Override
     public void setFluidsEnabled(boolean fluidsEnabled) {
         super.setFluidsEnabled(ENDPOINT_DIRECTION, fluidsEnabled);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+        normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setFluidsEnabled(Direction direction, boolean fluidsEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setFluidsEnabled(direction, fluidsEnabled);
-            normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+            normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
     @Override
     public void setEnergyEnabled(boolean energyEnabled) {
         super.setEnergyEnabled(ENDPOINT_DIRECTION, false);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+        normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setEnergyEnabled(Direction direction, boolean energyEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setEnergyEnabled(direction, false);
-            normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+            normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
@@ -153,20 +151,20 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     public void applyPlacementToolConfig(ConfiguratorItem.ToolConfig config, boolean includeMode) {
         super.applyPlacementToolConfig(config, includeMode);
         applyEndpointFaceConfig(config.placement(), includeMode);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, true);
+        normalizeEndpoint(includeMode ? config.placement().mode() : NodeFaceMode.NONE, true);
     }
 
     @Override
     public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config, Player player) {
         super.applyCopiedToolConfig(config, player);
         applyEndpointFaceConfig(config.placement(), true);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, true);
+        normalizeEndpoint(config.placement().mode(), true);
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        normalizeEndpoint(NodeFaceMode.OUTPUT, false);
+        normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     private void applyEndpointFaceConfig(ConfiguratorItem.FaceConfig face, boolean includeMode) {

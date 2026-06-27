@@ -38,12 +38,11 @@ public abstract class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
         ItemStack offhand = placer.getOffhandItem();
         if (offhand.getItem() instanceof ConfiguratorItem) {
             node.applyPlacementToolConfig(ConfiguratorItem.readOrCreate(offhand,
-                    placer instanceof Player player ? player : null), false);
+                    placer instanceof Player player ? player : null), true);
         } else {
             if (placer instanceof Player player) {
                 node.claimDefaultLineName(player);
             }
-            node.configureTargetResourcesFromCapabilities();
         }
     }
 
