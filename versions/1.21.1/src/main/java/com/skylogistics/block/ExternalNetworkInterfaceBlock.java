@@ -1,6 +1,7 @@
 package com.skylogistics.block;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.SkyNodeMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -9,6 +10,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -25,6 +27,24 @@ public abstract class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node)) {
+            return;
+        }
+        ItemStack offhand = placer.getOffhandItem();
+        if (offhand.getItem() instanceof ConfiguratorItem) {
+            node.applyPlacementToolConfig(ConfiguratorItem.readOrCreate(offhand,
+                    placer instanceof Player player ? player : null), false);
+        } else {
+            if (placer instanceof Player player) {
+                node.claimDefaultLineName(player);
+            }
+            node.configureTargetResourcesFromCapabilities();
+        }
     }
 
     @Override
