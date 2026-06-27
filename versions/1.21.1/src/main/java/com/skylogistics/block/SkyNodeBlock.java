@@ -186,6 +186,14 @@ public class SkyNodeBlock extends BaseEntityBlock {
         node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
     }
 
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.dropUpgrades();
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
+    }
+
     private static VoxelShape shapeForState(BlockState state) {
         return SHAPES[shapeIndex(state)];
     }

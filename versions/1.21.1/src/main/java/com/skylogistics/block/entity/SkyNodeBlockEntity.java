@@ -29,6 +29,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -316,6 +317,21 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         upgrades.set(slot, copy);
         markRuntimeChanged();
+    }
+
+    public void dropUpgrades() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            ItemStack upgrade = upgrades.get(slot);
+            if (upgrade.isEmpty()) {
+                continue;
+            }
+            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
+                    worldPosition.getZ() + 0.5D, upgrade.copy());
+            upgrades.set(slot, ItemStack.EMPTY);
+        }
     }
 
     public void setFaceFilter(Direction direction, int slot, ItemStack stack) {
