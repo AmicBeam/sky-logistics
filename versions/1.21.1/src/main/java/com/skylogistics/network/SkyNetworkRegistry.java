@@ -846,6 +846,10 @@ public final class SkyNetworkRegistry {
             if (!canTryItems(gameTime)) {
                 return null;
             }
+            IItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
+            }
             if (itemHandler != null) {
                 return itemHandler;
             }
@@ -870,6 +874,10 @@ public final class SkyNetworkRegistry {
         public IFluidHandler fluidHandler(long gameTime) {
             if (!canTryFluids(gameTime)) {
                 return null;
+            }
+            IFluidHandler direct = node.getEndpointFluidHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
             }
             if (fluidHandler != null) {
                 return fluidHandler;
@@ -896,6 +904,10 @@ public final class SkyNetworkRegistry {
             if (!canTryChemicals(gameTime)) {
                 return null;
             }
+            ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
+            }
             if (chemicalHandler != null) {
                 return chemicalHandler;
             }
@@ -920,6 +932,10 @@ public final class SkyNetworkRegistry {
         public IEnergyStorage energyHandler(long gameTime) {
             if (!canTryEnergy(gameTime)) {
                 return null;
+            }
+            IEnergyStorage direct = node.getEndpointEnergyHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
             }
             if (energyHandler != null) {
                 return energyHandler;

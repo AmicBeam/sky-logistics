@@ -2,6 +2,7 @@ package com.skylogistics;
 
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.event.ManualGiftHandler;
+import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
@@ -126,5 +127,18 @@ public class SkyLogistics {
                 (altar, side) -> altar.itemHandler());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.OFFERING_TABLE.get(),
                 (table, side) -> table.itemHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedFluidHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedFluidHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
+                (blockEntity, side) -> blockEntity.exposedFluidHandler());
+        AppliedEnergisticsCompat.registerCapabilities(event, ModBlockEntities.SKY_ME_INTERFACE.get());
     }
 }

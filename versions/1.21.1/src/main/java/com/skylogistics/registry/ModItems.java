@@ -25,6 +25,12 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties()));
     public static final DeferredHolder<Item, SkyNodeBlockItem> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, BlockItem> SKY_ME_INTERFACE = ITEMS.register("sky_me_interface",
+            () -> new BlockItem(ModBlocks.SKY_ME_INTERFACE.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, BlockItem> SKY_RS_INTERFACE = ITEMS.register("sky_rs_interface",
+            () -> new BlockItem(ModBlocks.SKY_RS_INTERFACE.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, BlockItem> SKY_DIMENSION_INTERFACE = ITEMS.register("sky_dimension_interface",
+            () -> new BlockItem(ModBlocks.SKY_DIMENSION_INTERFACE.get(), new Item.Properties()));
     public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), new Item.Properties()));
     public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",

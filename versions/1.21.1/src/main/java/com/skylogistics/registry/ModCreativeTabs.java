@@ -37,6 +37,9 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ITEM_VAULT.get());
                         output.accept(ModItems.FLUID_VAULT.get());
                         output.accept(ModItems.SKY_NODE.get());
+                        output.accept(ModItems.SKY_ME_INTERFACE.get());
+                        output.accept(ModItems.SKY_RS_INTERFACE.get());
+                        output.accept(ModItems.SKY_DIMENSION_INTERFACE.get());
                     })
                     .build());
 

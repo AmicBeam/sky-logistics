@@ -25,6 +25,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -35,6 +36,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
@@ -81,7 +83,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private boolean redstonePoweredCache;
 
     public SkyNodeBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.SKY_NODE.get(), pos, state);
+        this(ModBlockEntities.SKY_NODE.get(), pos, state);
+    }
+
+    protected SkyNodeBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
         lines.add(lineId);
         lineNames.add(lineName);
         lineAssignedNames.add(lineName);
@@ -389,6 +395,18 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return Direction.NORTH;
     }
 
+    public boolean usesSingleEndpoint() {
+        return false;
+    }
+
+    public Direction getSingleEndpointDirection() {
+        return getTargetDirection();
+    }
+
+    public boolean canConfigureFace(Direction direction) {
+        return true;
+    }
+
     public BlockPos getTargetPos() {
         return worldPosition.relative(getTargetDirection());
     }
@@ -403,6 +421,77 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public Direction getAccessSide(Direction direction) {
         return direction.getOpposite();
+    }
+
+    public boolean hasConfigurableTarget(Direction direction) {
+        if (level == null) {
+            return false;
+        }
+        BlockPos targetPos = getTargetPos(direction);
+        return level.isLoaded(targetPos) && !level.getBlockState(targetPos).isAir();
+    }
+
+    public ItemStack getTargetIcon(Direction direction) {
+        if (level == null || !level.isLoaded(getTargetPos(direction))) {
+            return ItemStack.EMPTY;
+        }
+        return level.getBlockState(getTargetPos(direction)).getBlock().asItem().getDefaultInstance();
+    }
+
+    public Component getTargetName(Direction direction) {
+        if (level == null || !level.isLoaded(getTargetPos(direction))) {
+            return Component.translatable("screen.skylogistics.no_target");
+        }
+        BlockState state = level.getBlockState(getTargetPos(direction));
+        if (state.isAir()) {
+            return Component.translatable("screen.skylogistics.no_target");
+        }
+        return state.getBlock().getName();
+    }
+
+    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
+    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
+    public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
+    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
+    protected boolean forceSingleEndpointState(Direction endpoint, NodeFaceMode fallbackMode, boolean energyAllowed) {
+        boolean changed = false;
+        NodeFaceMode endpointMode = getFaceMode(endpoint);
+        if (endpointMode == NodeFaceMode.NONE && fallbackMode != NodeFaceMode.NONE) {
+            endpointMode = fallbackMode;
+        }
+        boolean endpointItems = isItemsEnabled(endpoint);
+        boolean endpointFluids = isFluidsEnabled(endpoint);
+        boolean endpointEnergy = energyAllowed && isEnergyEnabled(endpoint);
+        for (Direction direction : Direction.values()) {
+            NodeFaceMode newMode = direction == endpoint ? endpointMode : NodeFaceMode.NONE;
+            boolean newItems = direction == endpoint && endpointItems;
+            boolean newFluids = direction == endpoint && endpointFluids;
+            boolean newEnergy = direction == endpoint && endpointEnergy;
+            changed |= getFaceMode(direction) != newMode;
+            changed |= isItemsEnabled(direction) != newItems;
+            changed |= isFluidsEnabled(direction) != newFluids;
+            changed |= isEnergyEnabled(direction) != newEnergy;
+            faceModes.put(direction, newMode);
+            faceItemsEnabled.put(direction, newItems);
+            faceFluidsEnabled.put(direction, newFluids);
+            faceEnergyEnabled.put(direction, newEnergy);
+        }
+        itemsEnabled = endpointItems;
+        fluidsEnabled = endpointFluids;
+        energyEnabled = endpointEnergy;
+        return changed;
     }
 
     private void initializeModeFromState(BlockState state) {
@@ -1252,11 +1341,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    private void markTopologyChanged() {
+    protected void markTopologyChanged() {
         markChanged(ChangeKind.TOPOLOGY);
     }
 
-    private void markRuntimeChanged() {
+    protected void markRuntimeChanged() {
         markChanged(ChangeKind.RUNTIME);
     }
 

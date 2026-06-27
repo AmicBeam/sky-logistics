@@ -5,7 +5,10 @@ import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.OfferingAltarBlockEntity;
 import com.skylogistics.block.entity.OfferingTableBlockEntity;
+import com.skylogistics.block.entity.SkyDimensionInterfaceBlockEntity;
+import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -24,6 +27,21 @@ public final class ModBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyNodeBlockEntity>> SKY_NODE = BLOCK_ENTITIES.register("sky_node",
             () -> BlockEntityType.Builder.of(SkyNodeBlockEntity::new, ModBlocks.SKY_NODE.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyMEInterfaceBlockEntity>> SKY_ME_INTERFACE =
+            BLOCK_ENTITIES.register("sky_me_interface",
+                    () -> BlockEntityType.Builder.of(SkyMEInterfaceBlockEntity::new,
+                            ModBlocks.SKY_ME_INTERFACE.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyRSInterfaceBlockEntity>> SKY_RS_INTERFACE =
+            BLOCK_ENTITIES.register("sky_rs_interface",
+                    () -> BlockEntityType.Builder.of(SkyRSInterfaceBlockEntity::new,
+                            ModBlocks.SKY_RS_INTERFACE.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyDimensionInterfaceBlockEntity>>
+            SKY_DIMENSION_INTERFACE = BLOCK_ENTITIES.register("sky_dimension_interface",
+                    () -> BlockEntityType.Builder.of(SkyDimensionInterfaceBlockEntity::new,
+                            ModBlocks.SKY_DIMENSION_INTERFACE.get()).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OfferingAltarBlockEntity>> OFFERING_ALTAR =
             BLOCK_ENTITIES.register("offering_altar",

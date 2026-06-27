@@ -6,7 +6,10 @@ import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.OfferingAltarBlock;
 import com.skylogistics.block.OfferingTableBlock;
+import com.skylogistics.block.SkyDimensionInterfaceBlock;
+import com.skylogistics.block.SkyMEInterfaceBlock;
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.block.SkyRSInterfaceBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -40,6 +43,16 @@ public final class ModBlocks {
                     .strength(1.5F, 7.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
+
+    public static final DeferredHolder<Block, SkyMEInterfaceBlock> SKY_ME_INTERFACE = BLOCKS.register("sky_me_interface",
+            () -> new SkyMEInterfaceBlock(interfaceProperties(MapColor.COLOR_BLUE)));
+
+    public static final DeferredHolder<Block, SkyRSInterfaceBlock> SKY_RS_INTERFACE = BLOCKS.register("sky_rs_interface",
+            () -> new SkyRSInterfaceBlock(interfaceProperties(MapColor.COLOR_LIGHT_BLUE)));
+
+    public static final DeferredHolder<Block, SkyDimensionInterfaceBlock> SKY_DIMENSION_INTERFACE =
+            BLOCKS.register("sky_dimension_interface",
+                    () -> new SkyDimensionInterfaceBlock(interfaceProperties(MapColor.COLOR_CYAN)));
 
     public static final DeferredHolder<Block, Block> CELESTIAL_STONE = BLOCKS.register("celestial_stone",
             () -> new Block(celestialStoneProperties()));
@@ -86,6 +99,14 @@ public final class ModBlocks {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_LIGHT_BLUE)
                 .strength(2.0F, 7.0F)
+                .sound(SoundType.AMETHYST);
+    }
+
+    private static BlockBehaviour.Properties interfaceProperties(MapColor mapColor) {
+        return BlockBehaviour.Properties.of()
+                .mapColor(mapColor)
+                .strength(2.5F, 7.0F)
+                .noOcclusion()
                 .sound(SoundType.AMETHYST);
     }
 }
