@@ -26,8 +26,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
-    private static final int LINE_NAME_LABEL_X = 92;
     private static final int LINE_NAME_LABEL_Y = 12;
+    private static final int LINE_NAME_LABEL_GAP = 4;
     private static final int LINE_NAME_EDIT_X = 146;
     private static final int LINE_NAME_EDIT_Y = 7;
     private static final int LINE_NAME_EDIT_WIDTH = 92;
@@ -232,8 +232,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         int lineIndex = node.getLineIndex() + 1;
         int lineCount = Math.max(1, node.getLineCount());
-        graphics.drawString(font, Component.translatable("screen.skylogistics.line_name"),
-                LINE_NAME_LABEL_X, LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
+        Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
+        graphics.drawString(font, lineNameLabel,
+                LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
+                LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                 14, 34, ConfigPanel.TEXT, false);
 

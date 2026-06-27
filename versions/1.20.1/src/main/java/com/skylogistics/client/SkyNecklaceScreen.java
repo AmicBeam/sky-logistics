@@ -20,8 +20,8 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
-    private static final int LINE_NAME_LABEL_X = 92;
     private static final int LINE_NAME_LABEL_Y = 12;
+    private static final int LINE_NAME_LABEL_GAP = 4;
     private static final int LINE_NAME_EDIT_X = 146;
     private static final int LINE_NAME_EDIT_Y = 7;
     private static final int LINE_NAME_EDIT_WIDTH = 92;
@@ -159,8 +159,10 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         } else {
             int lineIndex = ConfiguratorItem.lineIndex(stack) + 1;
             int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack));
-            graphics.drawString(font, Component.translatable("screen.skylogistics.line_name"),
-                    LINE_NAME_LABEL_X, LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
+            Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
+            graphics.drawString(font, lineNameLabel,
+                    LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
+                    LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
                     14, LINE_ROW_Y, ConfigPanel.TEXT, false);
         }
