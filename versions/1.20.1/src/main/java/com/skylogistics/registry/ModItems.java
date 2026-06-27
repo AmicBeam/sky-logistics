@@ -27,6 +27,8 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.SKY_ME_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_RS_INTERFACE = ITEMS.register("sky_rs_interface",
             () -> new BlockItem(ModBlocks.SKY_RS_INTERFACE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SKY_DIMENSION_INTERFACE = ITEMS.register("sky_dimension_interface",
+            () -> new BlockItem(ModBlocks.SKY_DIMENSION_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",

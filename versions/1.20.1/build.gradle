@@ -194,6 +194,17 @@ def cachedRefinedStorageCompatJars = fileTree(
 ).files.toList().sort { it.absolutePath }
 def refinedStorageCompatJar = refinedStorageCompatPath ? file(refinedStorageCompatPath)
         : (!cachedRefinedStorageCompatJars.isEmpty() ? cachedRefinedStorageCompatJars.last() : null)
+def beyondDimensionsCompatPath = System.getProperty('skylogistics.beyondDimensionsJar') ?: System.getenv('SKYLOGISTICS_BEYOND_DIMENSIONS_JAR')
+def cachedBeyondDimensionsCompatJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/curse.maven/beyonddimensions-1222890",
+        include: '**/beyonddimensions-1222890-*.jar'
+).files.toList().sort { it.absolutePath }
+def baselineBeyondDimensionsCompatJar = cachedBeyondDimensionsCompatJars.find {
+    it.name == 'beyonddimensions-1222890-7737205.jar'
+}
+def beyondDimensionsCompatJar = beyondDimensionsCompatPath ? file(beyondDimensionsCompatPath)
+        : (baselineBeyondDimensionsCompatJar != null ? baselineBeyondDimensionsCompatJar
+        : (!cachedBeyondDimensionsCompatJars.isEmpty() ? cachedBeyondDimensionsCompatJars.last() : null))
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -207,6 +218,11 @@ dependencies {
         compileOnly files(refinedStorageCompatJar)
     } else {
         compileOnly "curse.maven:refinedstorage-243076:4844585"
+    }
+    if (beyondDimensionsCompatJar != null && beyondDimensionsCompatJar.exists()) {
+        compileOnly files(beyondDimensionsCompatJar)
+    } else {
+        compileOnly "curse.maven:beyonddimensions-1222890:7737205"
     }
     if (includeJadeCompat) {
         compileOnly files(jadeApiJar)

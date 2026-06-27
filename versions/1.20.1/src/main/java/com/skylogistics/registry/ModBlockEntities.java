@@ -5,6 +5,7 @@ import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.OfferingAltarBlockEntity;
 import com.skylogistics.block.entity.OfferingTableBlockEntity;
+import com.skylogistics.block.entity.SkyDimensionInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
@@ -33,6 +34,11 @@ public final class ModBlockEntities {
             BLOCK_ENTITIES.register("sky_rs_interface",
                     () -> BlockEntityType.Builder.of(SkyRSInterfaceBlockEntity::new,
                             ModBlocks.SKY_RS_INTERFACE.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<SkyDimensionInterfaceBlockEntity>> SKY_DIMENSION_INTERFACE =
+            BLOCK_ENTITIES.register("sky_dimension_interface",
+                    () -> BlockEntityType.Builder.of(SkyDimensionInterfaceBlockEntity::new,
+                            ModBlocks.SKY_DIMENSION_INTERFACE.get()).build(null));
 
     public static final RegistryObject<BlockEntityType<SkyNodeBlockEntity>> SKY_NODE = BLOCK_ENTITIES.register("sky_node",
             () -> BlockEntityType.Builder.of(SkyNodeBlockEntity::new, ModBlocks.SKY_NODE.get()).build(null));

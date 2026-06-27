@@ -1,0 +1,33 @@
+{
+  "type": "skylogistics:sky_offering",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "beyonddimensions"
+    }
+  ],
+  "duration": 160,
+  "altar_tier": 1,
+  "main": {
+    "item": "skylogistics:eulogia_crystal",
+    "charged": true
+  },
+  "offerings": [
+    {
+      "item": "beyonddimensions:net_pathway"
+    },
+    {
+      "item": "beyonddimensions:dimensional_connect_block"
+    },
+    {
+      "item": "skylogistics:celestial_stone",
+      "count": 4
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    }
+  ],
+  "result": {
+    "item": "skylogistics:sky_dimension_interface"
+  }
+}

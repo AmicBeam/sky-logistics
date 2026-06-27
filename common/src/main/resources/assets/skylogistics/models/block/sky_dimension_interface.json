@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "skylogistics:block/sky_dimension_interface_front",
+    "down": "skylogistics:block/sky_dimension_interface_side",
+    "up": "skylogistics:block/sky_dimension_interface_top",
+    "north": "skylogistics:block/sky_dimension_interface_front",
+    "south": "skylogistics:block/sky_dimension_interface_front",
+    "west": "skylogistics:block/sky_dimension_interface_side",
+    "east": "skylogistics:block/sky_dimension_interface_side"
+  }
+}

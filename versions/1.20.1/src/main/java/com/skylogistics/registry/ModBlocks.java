@@ -7,6 +7,7 @@ import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.OfferingAltarBlock;
 import com.skylogistics.block.OfferingTableBlock;
+import com.skylogistics.block.SkyDimensionInterfaceBlock;
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
@@ -48,6 +49,12 @@ public final class ModBlocks {
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
                     .strength(3.0F, 10.0F)
                     .sound(SoundType.AMETHYST), SkyRSInterfaceBlockEntity::new));
+
+    public static final RegistryObject<Block> SKY_DIMENSION_INTERFACE = BLOCKS.register("sky_dimension_interface",
+            () -> new SkyDimensionInterfaceBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_LIGHT_BLUE)
+                    .strength(3.0F, 10.0F)
+                    .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SKY_NODE = BLOCKS.register("sky_node",
             () -> new SkyNodeBlock(BlockBehaviour.Properties.of()
