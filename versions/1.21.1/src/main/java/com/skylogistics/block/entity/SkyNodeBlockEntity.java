@@ -2,6 +2,8 @@ package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyLineNames;
@@ -34,7 +36,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
 public class SkyNodeBlockEntity extends BlockEntity {
@@ -494,6 +498,54 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         refreshGlobalToggles();
         markCompositeChanged(topologyChanged, priorityChanged, runtimeChanged);
+    }
+
+    public void configureTargetResourcesFromCapabilities(Direction direction) {
+        if (level == null || level.isClientSide || !level.isLoaded(getTargetPos(direction))) {
+            return;
+        }
+        BlockPos targetPos = getTargetPos(direction);
+        Direction accessSide = getAccessSide(direction);
+        boolean supportsItems = hasItemHandler(targetPos, accessSide);
+        boolean supportsFluids = hasFluidHandler(targetPos, accessSide) || hasChemicalHandler(targetPos, accessSide);
+        boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide);
+        if (isItemsEnabled(direction) == supportsItems
+                && isFluidsEnabled(direction) == supportsFluids
+                && isEnergyEnabled(direction) == supportsEnergy) {
+            return;
+        }
+        faceItemsEnabled.put(direction, supportsItems);
+        faceFluidsEnabled.put(direction, supportsFluids);
+        faceEnergyEnabled.put(direction, supportsEnergy);
+        refreshGlobalToggles();
+        markTopologyChanged();
+    }
+
+    private boolean hasItemHandler(BlockPos targetPos, Direction accessSide) {
+        IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide);
+        return handler != null && handler.getSlots() > 0;
+    }
+
+    private boolean hasFluidHandler(BlockPos targetPos, Direction accessSide) {
+        IFluidHandler handler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide);
+        return handler != null && handler.getTanks() > 0;
+    }
+
+    private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
+        if (!MekanismCompat.isLoaded()) {
+            return false;
+        }
+        ChemicalHandlerBridge handler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
+        return handler != null && handler.getTanks() > 0;
+    }
+
+    private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
+        IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
+        return storage != null && isUsableEnergyStorage(storage);
+    }
+
+    private static boolean isUsableEnergyStorage(IEnergyStorage storage) {
+        return storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive();
     }
 
     public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config) {

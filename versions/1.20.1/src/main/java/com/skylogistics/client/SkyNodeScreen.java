@@ -378,11 +378,23 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private Direction firstSelectableFace(SkyNodeBlockEntity node) {
         for (Direction direction : FACE_ORDER) {
+            if (isPreferredFace(node, direction)) {
+                return direction;
+            }
+        }
+        for (Direction direction : FACE_ORDER) {
             if (hasTargetBlock(node, direction)) {
                 return direction;
             }
         }
         return node.getTargetDirection();
+    }
+
+    private boolean isPreferredFace(SkyNodeBlockEntity node, Direction direction) {
+        return hasTargetBlock(node, direction)
+                && node.getFaceMode(direction) != NodeFaceMode.NONE
+                && (node.isItemsEnabled(direction) || node.isFluidsEnabled(direction)
+                        || node.isEnergyEnabled(direction));
     }
 
     private boolean hasTargetBlock(SkyNodeBlockEntity node, Direction direction) {

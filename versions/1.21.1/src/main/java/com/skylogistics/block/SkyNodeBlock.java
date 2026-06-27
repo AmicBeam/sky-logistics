@@ -171,15 +171,19 @@ public class SkyNodeBlock extends BaseEntityBlock {
             return;
         }
         NodeMode placementMode = state.getValue(MODE);
+        Direction targetDirection = state.getValue(TARGET);
         node.setMode(placementMode);
         ItemStack offhand = placer.getOffhandItem();
         if (offhand.getItem() instanceof ConfiguratorItem) {
             node.applyPlacementToolConfig(ConfiguratorItem.readOrCreate(offhand,
                     placer instanceof Player player ? player : null), false);
-        } else if (placer instanceof Player player) {
-            node.claimDefaultLineName(player);
+        } else {
+            if (placer instanceof Player player) {
+                node.claimDefaultLineName(player);
+            }
+            node.configureTargetResourcesFromCapabilities(targetDirection);
         }
-        node.setFaceMode(state.getValue(TARGET), placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
+        node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
     }
 
     private static VoxelShape shapeForState(BlockState state) {

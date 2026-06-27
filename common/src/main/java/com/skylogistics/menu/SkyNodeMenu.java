@@ -26,6 +26,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     private static final int UPGRADE_SLOT_X = 78;
     private static final int PLAYER_INVENTORY_X = 46;
     private static final int PLAYER_INVENTORY_Y = 179;
+    private static final Direction[] FACE_ORDER = {
+            Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
+    };
 
     private final BlockPos pos;
     private final Player player;
@@ -47,6 +50,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         this.openedWithConfigurator = openedWithConfigurator;
         this.upgradeContainer = new NodeUpgradeContainer(inventory.player, pos);
         this.faceFilterContainer = new FaceFilterContainer(inventory.player, pos, this);
+        this.selectedFace = initialSelectedFace(inventory.player, pos);
         int upgradeX = upgradeSlotX(openedWithConfigurator);
         for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
             int slotIndex = slot;
@@ -291,6 +295,35 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             return null;
         }
         return values[ordinal];
+    }
+
+    private static Direction initialSelectedFace(Player player, BlockPos pos) {
+        BlockEntity blockEntity = player.level().getBlockEntity(pos);
+        if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+            return Direction.NORTH;
+        }
+        for (Direction direction : FACE_ORDER) {
+            if (isPreferredFace(player, node, direction)) {
+                return direction;
+            }
+        }
+        for (Direction direction : FACE_ORDER) {
+            if (hasTargetBlock(player, node, direction)) {
+                return direction;
+            }
+        }
+        return node.getTargetDirection();
+    }
+
+    private static boolean isPreferredFace(Player player, SkyNodeBlockEntity node, Direction direction) {
+        return hasTargetBlock(player, node, direction)
+                && node.getFaceMode(direction) != NodeFaceMode.NONE
+                && (node.isItemsEnabled(direction) || node.isFluidsEnabled(direction)
+                        || node.isEnergyEnabled(direction));
+    }
+
+    private static boolean hasTargetBlock(Player player, SkyNodeBlockEntity node, Direction direction) {
+        return !player.level().getBlockState(node.getTargetPos(direction)).isAir();
     }
 
     private void addPlayerInventory(Inventory inventory, int x, int y) {
