@@ -67,8 +67,7 @@ public final class AppliedEnergisticsCompat {
             return;
         }
         try {
-            Class<?> capabilities = Class.forName("appeng.capabilities.Capabilities");
-            Object capability = capabilities.getField("IN_WORLD_GRID_NODE_HOST").get(null);
+            Object capability = ae2Capability("IN_WORLD_GRID_NODE_HOST");
             event.registerBlockEntity((BlockCapability) capability, type,
                     (host, side) -> host.ae2GridNodeHost((Direction) side));
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
@@ -139,6 +138,17 @@ public final class AppliedEnergisticsCompat {
             warn(error);
             return null;
         }
+    }
+
+    private static Object actionSource(BlockEntity host) {
+        if (host instanceof GridNodeOwner owner
+                && owner.ae2GridNodeHandle() instanceof ManagedGridNodeHandle managedHandle) {
+            Object actionSource = managedHandle.actionSource();
+            if (actionSource != null) {
+                return actionSource;
+            }
+        }
+        return actionSource();
     }
 
     private static List<Entry> entries(Object storage, String keyClassName) {
@@ -223,6 +233,18 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
+    private static Object ae2Capability(String fieldName) throws ReflectiveOperationException {
+        ReflectiveOperationException lastError = null;
+        for (String className : List.of("appeng.api.AECapabilities", "appeng.capabilities.Capabilities")) {
+            try {
+                return Class.forName(className).getField(fieldName).get(null);
+            } catch (ClassNotFoundException | NoSuchFieldException error) {
+                lastError = error;
+            }
+        }
+        throw lastError == null ? new ClassNotFoundException(fieldName) : lastError;
+    }
+
     private static void warn(Throwable error) {
         if (!warned) {
             warned = true;
@@ -281,6 +303,7 @@ public final class AppliedEnergisticsCompat {
     private static final class ManagedGridNodeHandle implements GridNodeHandle {
         private final Object node;
         private final Object exposedHost;
+        private final Object actionSource;
         private boolean removed;
 
         private ManagedGridNodeHandle(BlockEntity host) throws ReflectiveOperationException {
@@ -299,6 +322,7 @@ public final class AppliedEnergisticsCompat {
             Reflect.invoke(managedNode, "setTagName", "ae2_node");
             this.node = managedNode;
             this.exposedHost = createHostProxy(host);
+            this.actionSource = createActionSource(exposedHost);
         }
 
         @Override
@@ -383,6 +407,20 @@ public final class AppliedEnergisticsCompat {
             return Proxy.newProxyInstance(classLoader, new Class<?>[]{inWorldHost, actionHost},
                     new HostProxy(host, this));
         }
+
+        private Object createActionSource(Object host) {
+            try {
+                return Reflect.invokeStatic(Class.forName("appeng.api.networking.security.IActionSource"),
+                        "ofMachine", host);
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+                warn(error);
+                return AppliedEnergisticsCompat.actionSource();
+            }
+        }
+
+        private Object actionSource() {
+            return actionSource;
+        }
     }
 
     private record HostProxy(BlockEntity host, ManagedGridNodeHandle handle) implements InvocationHandler {
@@ -443,7 +481,8 @@ public final class AppliedEnergisticsCompat {
             }
             try {
                 int requested = stack.getCount();
-                Object inserted = Reflect.invoke(storage, "insert", key, (long) requested, action(simulate), actionSource());
+                Object inserted = Reflect.invoke(storage, "insert", key, (long) requested, action(simulate),
+                        actionSource(host));
                 long insertedCount = inserted instanceof Number number ? number.longValue() : 0L;
                 if (insertedCount <= 0L) {
                     return stack;
@@ -472,7 +511,7 @@ public final class AppliedEnergisticsCompat {
                 int requested = (int) Math.min(Math.min(entry.amount(), amount),
                         maxStackSize instanceof Number number ? number.intValue() : 64);
                 Object extracted = Reflect.invoke(storage, "extract", entry.key(), (long) requested,
-                        action(simulate), actionSource());
+                        action(simulate), actionSource(host));
                 long extractedCount = extracted instanceof Number number ? number.longValue() : 0L;
                 return extractedCount <= 0L ? ItemStack.EMPTY
                         : (ItemStack) Reflect.invoke(entry.key(), "toStack",
@@ -528,7 +567,7 @@ public final class AppliedEnergisticsCompat {
             }
             try {
                 Object inserted = Reflect.invoke(storage, "insert", key, (long) resource.getAmount(),
-                        action(action), actionSource());
+                        action(action), actionSource(host));
                 return inserted instanceof Number number
                         ? (int) Math.min(number.longValue(), resource.getAmount())
                         : 0;
@@ -550,7 +589,7 @@ public final class AppliedEnergisticsCompat {
             }
             try {
                 Object extracted = Reflect.invoke(storage, "extract", key, (long) resource.getAmount(),
-                        action(action), actionSource());
+                        action(action), actionSource(host));
                 long extractedCount = extracted instanceof Number number ? number.longValue() : 0L;
                 return extractedCount <= 0L ? FluidStack.EMPTY
                         : (FluidStack) Reflect.invoke(key, "toStack",
@@ -575,7 +614,7 @@ public final class AppliedEnergisticsCompat {
             try {
                 int requested = (int) Math.min(entry.amount(), maxDrain);
                 Object extracted = Reflect.invoke(storage, "extract", entry.key(), (long) requested,
-                        action(action), actionSource());
+                        action(action), actionSource(host));
                 long extractedCount = extracted instanceof Number number ? number.longValue() : 0L;
                 return extractedCount <= 0L ? FluidStack.EMPTY
                         : (FluidStack) Reflect.invoke(entry.key(), "toStack",
