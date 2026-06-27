@@ -500,9 +500,27 @@ public class SkyNodeBlockEntity extends BlockEntity {
         markCompositeChanged(topologyChanged, priorityChanged, runtimeChanged);
     }
 
+    public void configureTargetResourcesFromCapabilities() {
+        boolean changed = false;
+        for (Direction direction : Direction.values()) {
+            changed |= updateTargetResourcesFromCapabilities(direction);
+        }
+        if (changed) {
+            refreshGlobalToggles();
+            markTopologyChanged();
+        }
+    }
+
     public void configureTargetResourcesFromCapabilities(Direction direction) {
+        if (updateTargetResourcesFromCapabilities(direction)) {
+            refreshGlobalToggles();
+            markTopologyChanged();
+        }
+    }
+
+    private boolean updateTargetResourcesFromCapabilities(Direction direction) {
         if (level == null || level.isClientSide || !level.isLoaded(getTargetPos(direction))) {
-            return;
+            return false;
         }
         BlockPos targetPos = getTargetPos(direction);
         Direction accessSide = getAccessSide(direction);
@@ -512,13 +530,12 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
                 && isEnergyEnabled(direction) == supportsEnergy) {
-            return;
+            return false;
         }
         faceItemsEnabled.put(direction, supportsItems);
         faceFluidsEnabled.put(direction, supportsFluids);
         faceEnergyEnabled.put(direction, supportsEnergy);
-        refreshGlobalToggles();
-        markTopologyChanged();
+        return true;
     }
 
     private boolean hasItemHandler(BlockPos targetPos, Direction accessSide) {

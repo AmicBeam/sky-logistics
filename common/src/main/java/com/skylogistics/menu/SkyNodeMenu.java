@@ -197,12 +197,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         face = faceForAction(action, MenuAction.FACE_EXTRACT_BASE);
         if (face != null) {
             node.setFaceMode(face, NodeFaceMode.INPUT);
+            node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_INSERT_BASE);
         if (face != null) {
             node.setFaceMode(face, NodeFaceMode.OUTPUT);
+            node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
             return;
         }

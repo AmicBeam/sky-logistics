@@ -163,7 +163,7 @@ public class SkyNodeBlock extends BaseEntityBlock {
             if (placer instanceof Player player) {
                 node.claimDefaultLineName(player);
             }
-            node.configureTargetResourcesFromCapabilities(targetDirection);
+            node.configureTargetResourcesFromCapabilities();
         }
         node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
     }

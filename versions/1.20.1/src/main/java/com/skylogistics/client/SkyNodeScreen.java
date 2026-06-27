@@ -178,9 +178,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             }
         }
         boolean selectedFaceActive = hasTargetBlock(node, selectedFace);
+        boolean resourceControlsActive = selectedFaceActive && modeFor(node, selectedFace) != NodeFaceMode.NONE;
         for (TypeToggleButton button : typeButtons) {
             button.visible = !advancedPanel;
-            button.active = !advancedPanel && selectedFaceActive;
+            button.active = !advancedPanel && resourceControlsActive;
         }
         menu.setFaceFilterSlotsActive(advancedPanel && selectedFaceActive);
         for (ModeButton button : modeButtons) {
@@ -696,6 +697,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         public void onPress() {
+            if (!active) {
+                return;
+            }
             SkyNodeBlockEntity node = node();
             if (node == null) {
                 return;
@@ -719,7 +723,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
-            boolean enabled = node != null && isEnabled(node);
+            boolean enabled = node != null && active && isEnabled(node);
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
             graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
