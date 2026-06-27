@@ -47,8 +47,8 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
     }
 
     private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
-        tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
-        tooltip.add(Component.translatable("jade.skylogistics.upgrades",
+        tooltip.append(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
+        tooltip.append(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"))));
     }
 

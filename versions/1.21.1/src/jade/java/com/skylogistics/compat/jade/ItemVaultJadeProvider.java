@@ -28,7 +28,7 @@ public final class ItemVaultJadeProvider extends BaseSkyLogisticsJadeProvider
                 return;
             }
         }
-        tooltip.add(Component.translatable("jade.skylogistics.item_vault", data.getInt("UsedTypes"),
+        tooltip.append(Component.translatable("jade.skylogistics.item_vault", data.getInt("UsedTypes"),
                 data.getInt("TypeLimit"), data.getString("Total")));
     }
 

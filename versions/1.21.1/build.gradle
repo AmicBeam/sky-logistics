@@ -61,6 +61,29 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
+def defaultJadeApiJar = file('/private/tmp/jade-api.jar')
+def tmpJadeApiJars = fileTree(
+        dir: '/private/tmp',
+        include: [
+                "Jade-${minecraft_version}-NeoForge-*.jar",
+                "Jade-${minecraft_version}-neoforge-*.jar",
+                "jade-${minecraft_version}-neoforge-*.jar"
+        ]
+).files.toList().sort { it.absolutePath }
+def cachedJadeApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1",
+        include: [
+                "**/Jade-${minecraft_version}-NeoForge-*.jar",
+                "**/Jade-${minecraft_version}-neoforge-*.jar",
+                "**/jade-${minecraft_version}-neoforge-*.jar"
+        ]
+).files.toList().sort { it.absolutePath }
+def jadeApiJar = jadeApiPath ? file(jadeApiPath)
+        : (!tmpJadeApiJars.isEmpty() ? tmpJadeApiJars.last()
+        : (defaultJadeApiJar.exists() ? defaultJadeApiJar
+        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null)))
+def includeJadeCompat = false
 def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
 def cachedJeiApiJars = fileTree(
         dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/mezz.jei/jei-${minecraft_version}-neoforge",
@@ -77,6 +100,15 @@ sourceSets {
     }
 }
 
+if (jadeApiPath && !jadeApiJar.exists()) {
+    throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
+}
+
+if (jadeApiJar != null && jadeApiJar.exists()) {
+    sourceSets.main.java.srcDir 'src/jade/java'
+    includeJadeCompat = true
+}
+
 if (jeiApiPath && !jeiApiJar.exists()) {
     throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
 }
@@ -88,6 +120,9 @@ if (jeiApiJar != null && jeiApiJar.exists()) {
 
 dependencies {
     compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (includeJadeCompat) {
+        compileOnly files(jadeApiJar)
+    }
     if (includeJeiCompat) {
         compileOnly files(jeiApiJar)
     }
