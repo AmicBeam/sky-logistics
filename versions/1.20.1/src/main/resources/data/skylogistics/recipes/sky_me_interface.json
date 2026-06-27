@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "ae2"
+    }
+  ],
+  "pattern": [
+    "CSC",
+    "INI",
+    "CGC"
+  ],
+  "key": {
+    "C": {
+      "item": "skylogistics:celestial_stone"
+    },
+    "S": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "I": {
+      "item": "ae2:interface"
+    },
+    "N": {
+      "item": "skylogistics:chora_nectar"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    }
+  },
+  "result": {
+    "item": "skylogistics:sky_me_interface"
+  }
+}

@@ -2,6 +2,8 @@
   "itemGroup.skylogistics": "Sky Logistics",
   "block.skylogistics.item_vault": "Celestial Item Vault",
   "block.skylogistics.fluid_vault": "Celestial Fluid Vault",
+  "block.skylogistics.sky_me_interface": "Sky ME Interface",
+  "block.skylogistics.sky_rs_interface": "Sky RS Interface",
   "block.skylogistics.sky_node": "Sky Logistics Node",
   "block.skylogistics.celestial_stone": "Celestial Stone",
   "block.skylogistics.celestial_stone_slab": "Celestial Stone Slab",

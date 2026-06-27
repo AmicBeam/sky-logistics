@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "skylogistics:block/sky_rs_interface" }
+  }
+}

@@ -2,11 +2,14 @@ package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.CelestialGlassBlock;
+import com.skylogistics.block.ExternalNetworkInterfaceBlock;
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.OfferingAltarBlock;
 import com.skylogistics.block.OfferingTableBlock;
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
+import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -33,6 +36,18 @@ public final class ModBlocks {
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
                     .strength(3.0F, 10.0F)
                     .sound(SoundType.AMETHYST)));
+
+    public static final RegistryObject<Block> SKY_ME_INTERFACE = BLOCKS.register("sky_me_interface",
+            () -> new ExternalNetworkInterfaceBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_CYAN)
+                    .strength(3.0F, 10.0F)
+                    .sound(SoundType.AMETHYST), SkyMEInterfaceBlockEntity::new));
+
+    public static final RegistryObject<Block> SKY_RS_INTERFACE = BLOCKS.register("sky_rs_interface",
+            () -> new ExternalNetworkInterfaceBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_LIGHT_BLUE)
+                    .strength(3.0F, 10.0F)
+                    .sound(SoundType.AMETHYST), SkyRSInterfaceBlockEntity::new));
 
     public static final RegistryObject<Block> SKY_NODE = BLOCKS.register("sky_node",
             () -> new SkyNodeBlock(BlockBehaviour.Properties.of()

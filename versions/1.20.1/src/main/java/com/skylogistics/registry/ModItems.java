@@ -23,6 +23,10 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), new Item.Properties()));
     public static final RegistryObject<Item> FLUID_VAULT = ITEMS.register("fluid_vault",
             () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SKY_ME_INTERFACE = ITEMS.register("sky_me_interface",
+            () -> new BlockItem(ModBlocks.SKY_ME_INTERFACE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SKY_RS_INTERFACE = ITEMS.register("sky_rs_interface",
+            () -> new BlockItem(ModBlocks.SKY_RS_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",

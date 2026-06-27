@@ -5,7 +5,9 @@ import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.OfferingAltarBlockEntity;
 import com.skylogistics.block.entity.OfferingTableBlockEntity;
+import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -21,6 +23,16 @@ public final class ModBlockEntities {
 
     public static final RegistryObject<BlockEntityType<FluidVaultBlockEntity>> FLUID_VAULT = BLOCK_ENTITIES.register("fluid_vault",
             () -> BlockEntityType.Builder.of(FluidVaultBlockEntity::new, ModBlocks.FLUID_VAULT.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<SkyMEInterfaceBlockEntity>> SKY_ME_INTERFACE =
+            BLOCK_ENTITIES.register("sky_me_interface",
+                    () -> BlockEntityType.Builder.of(SkyMEInterfaceBlockEntity::new,
+                            ModBlocks.SKY_ME_INTERFACE.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<SkyRSInterfaceBlockEntity>> SKY_RS_INTERFACE =
+            BLOCK_ENTITIES.register("sky_rs_interface",
+                    () -> BlockEntityType.Builder.of(SkyRSInterfaceBlockEntity::new,
+                            ModBlocks.SKY_RS_INTERFACE.get()).build(null));
 
     public static final RegistryObject<BlockEntityType<SkyNodeBlockEntity>> SKY_NODE = BLOCK_ENTITIES.register("sky_node",
             () -> BlockEntityType.Builder.of(SkyNodeBlockEntity::new, ModBlocks.SKY_NODE.get()).build(null));

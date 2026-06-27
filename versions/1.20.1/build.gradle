@@ -167,11 +167,47 @@ repositories {
         name = 'ModMaven'
         url = 'https://modmaven.dev'
     }
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
+
+def ae2CompatPath = System.getProperty('skylogistics.ae2Jar') ?: System.getenv('SKYLOGISTICS_AE2_JAR')
+def cachedAe2CompatJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/curse.maven/applied-energistics-2-223794",
+        include: '**/applied-energistics-2-223794-*.jar'
+).files.toList().sort { it.absolutePath }
+def baselineAe2CompatJar = cachedAe2CompatJars.find {
+    it.name == 'applied-energistics-2-223794-5641282.jar'
+}
+def ae2CompatJar = ae2CompatPath ? file(ae2CompatPath)
+        : (baselineAe2CompatJar != null ? baselineAe2CompatJar
+        : (!cachedAe2CompatJars.isEmpty() ? cachedAe2CompatJars.last() : null))
+def refinedStorageCompatPath = System.getProperty('skylogistics.refinedStorageJar') ?: System.getenv('SKYLOGISTICS_REFINED_STORAGE_JAR')
+def cachedRefinedStorageCompatJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/curse.maven/refinedstorage-243076",
+        include: '**/refinedstorage-243076-*.jar'
+).files.toList().sort { it.absolutePath }
+def refinedStorageCompatJar = refinedStorageCompatPath ? file(refinedStorageCompatPath)
+        : (!cachedRefinedStorageCompatJars.isEmpty() ? cachedRefinedStorageCompatJars.last() : null)
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (ae2CompatJar != null && ae2CompatJar.exists()) {
+        compileOnly files(ae2CompatJar)
+    } else {
+        compileOnly "curse.maven:applied-energistics-2-223794:5641282"
+    }
+    if (refinedStorageCompatJar != null && refinedStorageCompatJar.exists()) {
+        compileOnly files(refinedStorageCompatJar)
+    } else {
+        compileOnly "curse.maven:refinedstorage-243076:4844585"
+    }
     if (includeJadeCompat) {
         compileOnly files(jadeApiJar)
     }

@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "refinedstorage"
+    }
+  ],
+  "pattern": [
+    "CSC",
+    "INI",
+    "CFC"
+  ],
+  "key": {
+    "C": {
+      "item": "skylogistics:celestial_stone"
+    },
+    "S": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "I": {
+      "item": "refinedstorage:interface"
+    },
+    "N": {
+      "item": "skylogistics:chora_nectar"
+    },
+    "F": {
+      "item": "refinedstorage:fluid_interface"
+    }
+  },
+  "result": {
+    "item": "skylogistics:sky_rs_interface"
+  }
+}

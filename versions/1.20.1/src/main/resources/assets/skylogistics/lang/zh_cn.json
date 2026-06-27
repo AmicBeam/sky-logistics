@@ -2,6 +2,8 @@
   "itemGroup.skylogistics": "天穹物流",
   "block.skylogistics.item_vault": "天穹物品库",
   "block.skylogistics.fluid_vault": "天穹流体库",
+  "block.skylogistics.sky_me_interface": "天穹 ME 接口",
+  "block.skylogistics.sky_rs_interface": "天穹 RS 接口",
   "block.skylogistics.sky_node": "天穹物流节点",
   "block.skylogistics.celestial_stone": "天穹石",
   "block.skylogistics.celestial_stone_slab": "天穹石台阶",
