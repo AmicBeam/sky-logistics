@@ -21,11 +21,16 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
             StreamCodec.ofMember(ConfiguratorLineDetailsPacket::encode, ConfiguratorLineDetailsPacket::decode);
 
     private static final int MAX_ENTRIES = 64;
+    private static final int MAX_TEXTURE_PROPERTY_LENGTH = 4096;
 
     public record Entry(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
-                        String targetBlockId, String displayName, NodeFaceMode mode, boolean itemsEnabled,
-                        boolean fluidsEnabled, boolean energyEnabled, RedstoneControl redstoneControl,
-                        int priority) {
+                        String targetBlockId, String displayName, UUID profileId, String profileTexture,
+                        String profileTextureSignature, NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled,
+                        boolean energyEnabled, RedstoneControl redstoneControl, int priority) {
+        public Entry {
+            profileTexture = profileTexture == null ? "" : profileTexture;
+            profileTextureSignature = profileTextureSignature == null ? "" : profileTextureSignature;
+        }
     }
 
     public static void encode(ConfiguratorLineDetailsPacket packet, FriendlyByteBuf buffer) {
@@ -40,6 +45,12 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
             buffer.writeBlockPos(entry.targetPos);
             buffer.writeUtf(entry.targetBlockId, 128);
             buffer.writeUtf(entry.displayName, 128);
+            buffer.writeBoolean(entry.profileId != null);
+            if (entry.profileId != null) {
+                buffer.writeUUID(entry.profileId);
+            }
+            buffer.writeUtf(entry.profileTexture, MAX_TEXTURE_PROPERTY_LENGTH);
+            buffer.writeUtf(entry.profileTextureSignature, MAX_TEXTURE_PROPERTY_LENGTH);
             buffer.writeEnum(entry.mode);
             buffer.writeBoolean(entry.itemsEnabled);
             buffer.writeBoolean(entry.fluidsEnabled);
@@ -54,8 +65,17 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
         int size = Math.min(buffer.readVarInt(), MAX_ENTRIES);
         List<Entry> entries = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            entries.add(new Entry(buffer.readUtf(128), buffer.readBlockPos(), buffer.readEnum(Direction.class),
-                    buffer.readBlockPos(), buffer.readUtf(128), buffer.readUtf(128), buffer.readEnum(NodeFaceMode.class),
+            String dimension = buffer.readUtf(128);
+            BlockPos nodePos = buffer.readBlockPos();
+            Direction face = buffer.readEnum(Direction.class);
+            BlockPos targetPos = buffer.readBlockPos();
+            String targetBlockId = buffer.readUtf(128);
+            String displayName = buffer.readUtf(128);
+            UUID profileId = buffer.readBoolean() ? buffer.readUUID() : null;
+            String profileTexture = buffer.readUtf(MAX_TEXTURE_PROPERTY_LENGTH);
+            String profileTextureSignature = buffer.readUtf(MAX_TEXTURE_PROPERTY_LENGTH);
+            entries.add(new Entry(dimension, nodePos, face, targetPos, targetBlockId, displayName,
+                    profileId, profileTexture, profileTextureSignature, buffer.readEnum(NodeFaceMode.class),
                     buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(),
                     buffer.readEnum(RedstoneControl.class), buffer.readVarInt()));
         }

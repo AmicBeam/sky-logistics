@@ -18,6 +18,8 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -391,7 +393,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return playerHeadIcon(entry.displayName());
+            return playerHeadIcon(entry);
         }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
@@ -412,10 +414,28 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return SKY_NECKLACE_ID.equals(entry.targetBlockId());
     }
 
-    private ItemStack playerHeadIcon(String playerName) {
+    private ItemStack playerHeadIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        String playerName = entry.displayName();
         if (!playerName.isBlank()) {
-            icon.getOrCreateTag().putString("SkullOwner", playerName);
+            CompoundTag owner = new CompoundTag();
+            if (entry.profileId() != null) {
+                owner.putUUID("Id", entry.profileId());
+            }
+            owner.putString("Name", playerName);
+            if (!entry.profileTexture().isBlank()) {
+                CompoundTag properties = new CompoundTag();
+                ListTag textures = new ListTag();
+                CompoundTag texture = new CompoundTag();
+                texture.putString("Value", entry.profileTexture());
+                if (!entry.profileTextureSignature().isBlank()) {
+                    texture.putString("Signature", entry.profileTextureSignature());
+                }
+                textures.add(texture);
+                properties.put("textures", textures);
+                owner.put("Properties", properties);
+            }
+            icon.getOrCreateTag().put("SkullOwner", owner);
         }
         return icon;
     }

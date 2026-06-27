@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.authlib.properties.Property;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
@@ -395,7 +396,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return playerHeadIcon(entry.displayName());
+            return playerHeadIcon(entry);
         }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
@@ -416,11 +417,19 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return SKY_NECKLACE_ID.equals(entry.targetBlockId());
     }
 
-    private ItemStack playerHeadIcon(String playerName) {
+    private ItemStack playerHeadIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        String playerName = entry.displayName();
         if (!playerName.isBlank()) {
+            PropertyMap properties = new PropertyMap();
+            if (!entry.profileTexture().isBlank()) {
+                Property texture = entry.profileTextureSignature().isBlank()
+                        ? new Property("textures", entry.profileTexture())
+                        : new Property("textures", entry.profileTexture(), entry.profileTextureSignature());
+                properties.put("textures", texture);
+            }
             icon.set(DataComponents.PROFILE,
-                    new ResolvableProfile(Optional.of(playerName), Optional.empty(), new PropertyMap()));
+                    new ResolvableProfile(Optional.of(playerName), Optional.ofNullable(entry.profileId()), properties));
         }
         return icon;
     }
