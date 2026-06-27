@@ -718,13 +718,13 @@ public final class AppliedEnergisticsCompat {
                         return method;
                     }
                 }
-                current = current.getSuperclass();
-            }
-            for (Class<?> iface : type.getInterfaces()) {
-                Method method = findMethod(iface, name, args);
-                if (method != null) {
-                    return method;
+                for (Class<?> iface : current.getInterfaces()) {
+                    Method method = findMethod(iface, name, args);
+                    if (method != null) {
+                        return method;
+                    }
                 }
+                current = current.getSuperclass();
             }
             return null;
         }
@@ -738,13 +738,13 @@ public final class AppliedEnergisticsCompat {
                         return method;
                     }
                 }
-                current = current.getSuperclass();
-            }
-            for (Class<?> iface : type.getInterfaces()) {
-                Method method = findMethod(iface, name, argCount);
-                if (method != null) {
-                    return method;
+                for (Class<?> iface : current.getInterfaces()) {
+                    Method method = findMethod(iface, name, argCount);
+                    if (method != null) {
+                        return method;
+                    }
                 }
+                current = current.getSuperclass();
             }
             return null;
         }
