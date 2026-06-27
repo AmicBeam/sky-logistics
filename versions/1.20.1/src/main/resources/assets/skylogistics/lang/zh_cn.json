@@ -123,6 +123,8 @@
   "screen.skylogistics.line_name": "线路名",
   "screen.skylogistics.line_index": "线路序号 %s/%s",
   "screen.skylogistics.line_monitor": "节点 %s / 抽取 %s / 存入 %s",
+  "screen.skylogistics.ae2_network": "Applied Energistics 2 网络",
+  "screen.skylogistics.rs_network": "Refined Storage 网络",
   "screen.skylogistics.line_faces": "线路连接面",
   "screen.skylogistics.line_faces_empty": "无已加载连接面",
   "screen.skylogistics.resource_short.items": "物",

@@ -78,6 +78,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         modeButtons.clear();
         advancedButtons.clear();
         SkyNodeBlockEntity node = node();
+        boolean singleEndpoint = node != null && node.usesSingleEndpoint();
         selectedFace = node == null ? Direction.NORTH : firstSelectableFace(node);
         menu.selectFace(selectedFace);
         ModNetworking.sendMenuAction(MenuAction.faceSelect(selectedFace));
@@ -95,13 +96,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
-        int x = leftPos + 14;
-        int y = topPos + 48;
-        for (int i = 0; i < FACE_ORDER.length; i++) {
-            Direction direction = FACE_ORDER[i];
-            FaceButton button = new FaceButton(x + i * 37, y, direction);
-            faceButtons.put(direction, button);
-            addRenderableWidget(button);
+        if (!singleEndpoint) {
+            int x = leftPos + 14;
+            int y = topPos + 48;
+            for (int i = 0; i < FACE_ORDER.length; i++) {
+                Direction direction = FACE_ORDER[i];
+                FaceButton button = new FaceButton(x + i * 37, y, direction);
+                faceButtons.put(direction, button);
+                addRenderableWidget(button);
+            }
         }
 
         addTypeButton(leftPos + 54, topPos + 100, ResourceType.ITEMS);
@@ -241,12 +244,18 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 14, 34, ConfigPanel.TEXT, false);
 
         Direction face = selectedFace;
-        graphics.drawString(font, Component.translatable("screen.skylogistics.current_face",
-                faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
+        if (node.usesSingleEndpoint()) {
+            graphics.drawString(font, targetName(node, face), 14, 88, ConfigPanel.TEXT, false);
+        } else {
+            graphics.drawString(font, Component.translatable("screen.skylogistics.current_face",
+                    faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
+        }
         if (advancedPanel) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                     14, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
-            graphics.drawString(font, Component.translatable("screen.skylogistics.face_filters"),
+            graphics.drawString(font, Component.translatable(node.usesSingleEndpoint()
+                            ? "screen.skylogistics.filter_slot"
+                            : "screen.skylogistics.face_filters"),
                     SkyNodeMenu.FACE_FILTER_SLOT_X, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
@@ -378,6 +387,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private Direction firstSelectableFace(SkyNodeBlockEntity node) {
+        if (node.usesSingleEndpoint()) {
+            return node.getSingleEndpointDirection();
+        }
         for (Direction direction : FACE_ORDER) {
             if (isPreferredFace(node, direction)) {
                 return direction;
@@ -399,10 +411,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private boolean hasTargetBlock(SkyNodeBlockEntity node, Direction direction) {
-        if (Minecraft.getInstance().level == null) {
-            return false;
-        }
-        return !Minecraft.getInstance().level.getBlockState(node.getTargetPos(direction)).isAir();
+        return node.hasConfigurableTarget(direction);
     }
 
     private NodeFaceMode modeFor(SkyNodeBlockEntity node, Direction direction) {
@@ -410,22 +419,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private ItemStack iconFor(SkyNodeBlockEntity node, Direction direction) {
-        if (Minecraft.getInstance().level == null) {
-            return ItemStack.EMPTY;
-        }
-        BlockState state = Minecraft.getInstance().level.getBlockState(node.getTargetPos(direction));
-        return state.getBlock().asItem().getDefaultInstance();
+        return node.getTargetIcon(direction);
     }
 
     private Component targetName(SkyNodeBlockEntity node, Direction direction) {
-        if (Minecraft.getInstance().level == null) {
-            return Component.translatable("screen.skylogistics.no_target");
-        }
-        BlockState state = Minecraft.getInstance().level.getBlockState(node.getTargetPos(direction));
-        if (state.isAir()) {
-            return Component.translatable("screen.skylogistics.no_target");
-        }
-        return state.getBlock().getName();
+        return node.getTargetName(direction);
     }
 
     private Component faceName(Direction direction) {

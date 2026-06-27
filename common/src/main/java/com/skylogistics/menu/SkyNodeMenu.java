@@ -2,7 +2,6 @@ package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.network.SkyNetworkRegistry;
-import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
@@ -119,7 +118,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return player.level().getBlockState(pos).is(ModBlocks.SKY_NODE.get())
+        return player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity
                 && player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
     }
 
@@ -190,12 +189,18 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         Direction face = faceForAction(action, MenuAction.FACE_NONE_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.setFaceMode(face, NodeFaceMode.NONE);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_EXTRACT_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.setFaceMode(face, NodeFaceMode.INPUT);
             node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
@@ -203,6 +208,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         face = faceForAction(action, MenuAction.FACE_INSERT_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.setFaceMode(face, NodeFaceMode.OUTPUT);
             node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
@@ -210,36 +218,54 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         face = faceForAction(action, MenuAction.FACE_PRIORITY_DOWN_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.adjustPriority(face, -1);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_PRIORITY_UP_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.adjustPriority(face, 1);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_PRIORITY_DOWN_FAST_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.adjustPriority(face, -10);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_PRIORITY_UP_FAST_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.adjustPriority(face, 10);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_REDSTONE_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             node.cycleRedstoneControl(face);
             broadcastChanges();
             return;
         }
         face = faceForAction(action, MenuAction.FACE_SELECT_BASE);
         if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
             selectedFace = face;
             broadcastChanges();
             return;
@@ -304,6 +330,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
             return Direction.NORTH;
         }
+        if (node.usesSingleEndpoint()) {
+            return node.getSingleEndpointDirection();
+        }
         for (Direction direction : FACE_ORDER) {
             if (isPreferredFace(player, node, direction)) {
                 return direction;
@@ -325,7 +354,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     private static boolean hasTargetBlock(Player player, SkyNodeBlockEntity node, Direction direction) {
-        return !player.level().getBlockState(node.getTargetPos(direction)).isAir();
+        return node.hasConfigurableTarget(direction);
     }
 
     private void addPlayerInventory(Inventory inventory, int x, int y) {

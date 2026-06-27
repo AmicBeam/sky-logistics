@@ -123,6 +123,8 @@
   "screen.skylogistics.line_name": "Line Name",
   "screen.skylogistics.line_index": "Line Index %s/%s",
   "screen.skylogistics.line_monitor": "Nodes %s / Extract %s / Insert %s",
+  "screen.skylogistics.ae2_network": "Applied Energistics 2 Network",
+  "screen.skylogistics.rs_network": "Refined Storage Network",
   "screen.skylogistics.line_faces": "Line Faces",
   "screen.skylogistics.line_faces_empty": "No loaded linked faces",
   "screen.skylogistics.resource_short.items": "I",

@@ -3,6 +3,7 @@ package com.skylogistics.block.entity;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -23,5 +24,10 @@ public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEnti
     @Override
     protected IFluidHandler getFluidHandler() {
         return fluidHandler;
+    }
+
+    @Override
+    protected Component externalNetworkName() {
+        return Component.translatable("screen.skylogistics.ae2_network");
     }
 }

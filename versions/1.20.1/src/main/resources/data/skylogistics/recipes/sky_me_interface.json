@@ -1,33 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
+  "type": "skylogistics:sky_offering",
   "conditions": [
     {
       "type": "forge:mod_loaded",
       "modid": "ae2"
     }
   ],
-  "pattern": [
-    "CSC",
-    "INI",
-    "CGC"
-  ],
-  "key": {
-    "C": {
-      "item": "skylogistics:celestial_stone"
-    },
-    "S": {
-      "item": "minecraft:amethyst_shard"
-    },
-    "I": {
+  "duration": 160,
+  "altar_tier": 1,
+  "main": {
+    "item": "skylogistics:eulogia_crystal",
+    "charged": true
+  },
+  "offerings": [
+    {
       "item": "ae2:interface"
     },
-    "N": {
-      "item": "skylogistics:chora_nectar"
+    {
+      "item": "skylogistics:celestial_stone",
+      "count": 4
     },
-    "G": {
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
       "item": "minecraft:glass"
     }
-  },
+  ],
   "result": {
     "item": "skylogistics:sky_me_interface"
   }
