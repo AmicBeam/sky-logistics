@@ -6,11 +6,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public final class CuriosCompat {
     private static final String MOD_ID = "curios";
@@ -19,41 +19,42 @@ public final class CuriosCompat {
     private static boolean warned;
     private static Method getCuriosInventory;
     private static Method getEquippedCurios;
+    private static Method getSlots;
+    private static Method getStackInSlot;
 
     private CuriosCompat() {
     }
 
     public static List<ItemStack> equippedStacks(Player player) {
-        IItemHandler handler = equippedHandler(player);
-        if (handler == null) {
-            return List.of();
-        }
-        List<ItemStack> stacks = new ArrayList<>();
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack stack = handler.getStackInSlot(slot);
-            if (!stack.isEmpty()) {
-                stacks.add(stack);
-            }
-        }
-        return stacks;
+        return equippedStacksMatching(player, stack -> true);
     }
 
     public static List<ItemStack> equippedSkyNecklaces(Player player) {
-        IItemHandler handler = equippedHandler(player);
+        return equippedStacksMatching(player, stack -> stack.is(ModItems.SKY_NECKLACE.get()));
+    }
+
+    private static List<ItemStack> equippedStacksMatching(Player player, Predicate<ItemStack> predicate) {
+        Object handler = equippedHandler(player);
         if (handler == null) {
             return List.of();
         }
-        List<ItemStack> necklaces = new ArrayList<>();
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack stack = handler.getStackInSlot(slot);
-            if (stack.is(ModItems.SKY_NECKLACE.get())) {
-                necklaces.add(stack);
+        try {
+            int slots = ((Number) getSlots.invoke(handler)).intValue();
+            List<ItemStack> stacks = new ArrayList<>();
+            for (int slot = 0; slot < slots; slot++) {
+                Object value = getStackInSlot.invoke(handler, slot);
+                if (value instanceof ItemStack stack && !stack.isEmpty() && predicate.test(stack)) {
+                    stacks.add(stack);
+                }
             }
+            return stacks;
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            warnOnce(error);
+            return List.of();
         }
-        return necklaces;
     }
 
-    private static IItemHandler equippedHandler(Player player) {
+    private static Object equippedHandler(Player player) {
         if (!init()) {
             return null;
         }
@@ -62,8 +63,7 @@ public final class CuriosCompat {
             if (handler == null) {
                 return null;
             }
-            Object equipped = getEquippedCurios.invoke(handler);
-            return equipped instanceof IItemHandler itemHandler ? itemHandler : null;
+            return getEquippedCurios.invoke(handler);
         } catch (ReflectiveOperationException | RuntimeException error) {
             warnOnce(error);
             return null;
@@ -100,6 +100,9 @@ public final class CuriosCompat {
             Class<?> handler = Class.forName("top.theillusivec4.curios.api.type.capability.ICuriosItemHandler");
             getCuriosInventory = api.getMethod("getCuriosInventory", LivingEntity.class);
             getEquippedCurios = handler.getMethod("getEquippedCurios");
+            Class<?> equippedHandler = getEquippedCurios.getReturnType();
+            getSlots = equippedHandler.getMethod("getSlots");
+            getStackInSlot = equippedHandler.getMethod("getStackInSlot", int.class);
             available = true;
         } catch (ReflectiveOperationException error) {
             warnOnce(error);
