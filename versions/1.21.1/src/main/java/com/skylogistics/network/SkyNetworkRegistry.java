@@ -971,6 +971,10 @@ public final class SkyNetworkRegistry {
             itemRetryAfter = gameTime + delay(itemFailures);
         }
 
+        public void deferItemsUntil(long gameTime) {
+            itemRetryAfter = Math.max(itemRetryAfter, gameTime);
+        }
+
         public boolean isItemFilterRejected(ItemStack stack, long gameTime) {
             for (int i = 0; i < rejectedItems.length; i++) {
                 if (gameTime < rejectedItemUntil[i] && !rejectedItems[i].isEmpty()

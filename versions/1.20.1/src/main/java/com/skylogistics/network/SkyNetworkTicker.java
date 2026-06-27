@@ -80,6 +80,8 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         if (SkyNecklaceTicker.activeItemInserterCount(line.lineId()) == 0) {
                             input.recordItemFailure(gameTime);
+                        } else {
+                            input.deferItemsUntil(nextNecklaceWake(gameTime));
                         }
                     } else {
                         operations += transferItems(input, targets,
@@ -166,6 +168,12 @@ public final class SkyNetworkTicker {
                 line.sleepUntil(gameTime + 20L);
             }
         }
+    }
+
+    private static long nextNecklaceWake(long gameTime) {
+        int interval = Math.max(1, SkyLogisticsConfig.skyNecklaceTickInterval());
+        long remainder = Math.floorMod(gameTime, interval);
+        return gameTime + (remainder == 0L ? interval : interval - remainder);
     }
 
     private static List<CachedEndpoint> targetsFor(boolean globalEnabled, List<CachedEndpoint> localOutputs,
