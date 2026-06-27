@@ -16,17 +16,7 @@ public final class VaultTerminalViewState {
     }
 
     public static final class State {
-        private String query = "";
         private int sortModeOrdinal;
-        private int scrollRow;
-
-        public String query() {
-            return query;
-        }
-
-        public void setQuery(String query) {
-            this.query = query == null ? "" : query;
-        }
 
         public int sortModeOrdinal() {
             return sortModeOrdinal;
@@ -34,14 +24,6 @@ public final class VaultTerminalViewState {
 
         public void setSortModeOrdinal(int sortModeOrdinal) {
             this.sortModeOrdinal = Math.max(0, sortModeOrdinal);
-        }
-
-        public int scrollRow() {
-            return scrollRow;
-        }
-
-        public void setScrollRow(int scrollRow) {
-            this.scrollRow = Math.max(0, scrollRow);
         }
     }
 }

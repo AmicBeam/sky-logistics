@@ -33,7 +33,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     private EditBox searchBox;
     private Button sortButton;
-    private int scrollRow = VIEW_STATE.scrollRow();
+    private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private ItemVaultBlockEntity cachedVault;
     private List<ItemVaultBlockEntity.StoredItem> filteredCache = List.of();
@@ -54,12 +54,10 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         searchBox = new EditBox(font, leftPos + 8, topPos + 22, 114, 18,
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
-        searchBox.setValue(VIEW_STATE.query());
-        searchBox.setResponder(VIEW_STATE::setQuery);
         addRenderableWidget(searchBox);
         sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
                     setSortMode(sortMode.next());
-                    setScrollRow(0);
+                    scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
                 })
@@ -114,7 +112,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             return;
         }
         List<ItemVaultBlockEntity.StoredItem> entries = filtered(vault);
-        setScrollRow(Math.min(scrollRow, maxScrollRow(entries.size())));
+        scrollRow = Math.min(scrollRow, maxScrollRow(entries.size()));
         int start = scrollRow * GRID_COLUMNS;
         for (int visible = 0; visible < VISIBLE_CELLS && start + visible < entries.size(); visible++) {
             ItemVaultBlockEntity.StoredItem item = entries.get(start + visible);
@@ -137,7 +135,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             ItemVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
             if (vault != null && shouldShowScrollbar(vault)) {
-                setScrollRow(Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY))));
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY)));
             }
             return true;
         }
@@ -214,11 +212,6 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     private void invalidateFilteredCache() {
         filteredCacheVersion = Long.MIN_VALUE;
-    }
-
-    private void setScrollRow(int scrollRow) {
-        this.scrollRow = Math.max(0, scrollRow);
-        VIEW_STATE.setScrollRow(this.scrollRow);
     }
 
     private void setSortMode(SortMode sortMode) {

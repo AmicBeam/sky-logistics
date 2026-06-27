@@ -38,7 +38,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
 
     private EditBox searchBox;
     private Button sortButton;
-    private int scrollRow = VIEW_STATE.scrollRow();
+    private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private FluidVaultBlockEntity cachedVault;
     private List<FluidVaultBlockEntity.StoredFluid> filteredCache = List.of();
@@ -59,12 +59,10 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         searchBox = new EditBox(font, leftPos + 8, topPos + 22, 114, 18,
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
-        searchBox.setValue(VIEW_STATE.query());
-        searchBox.setResponder(VIEW_STATE::setQuery);
         addRenderableWidget(searchBox);
         sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
                     setSortMode(sortMode.next());
-                    setScrollRow(0);
+                    scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
                 })
@@ -119,7 +117,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             return;
         }
         List<FluidVaultBlockEntity.StoredFluid> entries = filtered(vault);
-        setScrollRow(Math.min(scrollRow, maxScrollRow(entries.size())));
+        scrollRow = Math.min(scrollRow, maxScrollRow(entries.size()));
         int start = scrollRow * GRID_COLUMNS;
         for (int visible = 0; visible < VISIBLE_CELLS && start + visible < entries.size(); visible++) {
             FluidVaultBlockEntity.StoredFluid fluid = entries.get(start + visible);
@@ -142,7 +140,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             FluidVaultBlockEntity vault = vault();
             int size = vault == null ? 0 : filtered(vault).size();
             if (vault != null && shouldShowScrollbar(vault)) {
-                setScrollRow(Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY))));
+                scrollRow = Math.max(0, Math.min(maxScrollRow(size), scrollRow - (int) Math.signum(scrollY)));
             }
             return true;
         }
@@ -221,11 +219,6 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
 
     private void invalidateFilteredCache() {
         filteredCacheVersion = Long.MIN_VALUE;
-    }
-
-    private void setScrollRow(int scrollRow) {
-        this.scrollRow = Math.max(0, scrollRow);
-        VIEW_STATE.setScrollRow(this.scrollRow);
     }
 
     private void setSortMode(SortMode sortMode) {
