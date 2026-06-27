@@ -12,6 +12,16 @@ import com.skylogistics.registry.ModCreativeTabs;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -23,10 +33,15 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod(SkyLogistics.MOD_ID)
 public class SkyLogistics {
     public static final String MOD_ID = "skylogistics";
+    private static final TagKey<Item> FORGE_TOOLS_WRENCH = TagKey.create(Registries.ITEM,
+            new ResourceLocation("forge", "tools/wrench"));
+    private static final TagKey<Item> COMMON_TOOLS_WRENCH = TagKey.create(Registries.ITEM,
+            new ResourceLocation("c", "tools/wrench"));
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public SkyLogistics() {
@@ -48,11 +63,48 @@ public class SkyLogistics {
     }
 
     private void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+        if (tryDismantleWithWrench(event)) {
+            return;
+        }
+        if (event.getHand() == InteractionHand.MAIN_HAND
                 && event.getItemStack().is(ModItems.SKY_NODE.get())) {
             event.setUseBlock(Event.Result.DENY);
             event.setUseItem(Event.Result.ALLOW);
         }
+    }
+
+    private boolean tryDismantleWithWrench(PlayerInteractEvent.RightClickBlock event) {
+        Player player = event.getEntity();
+        Level level = event.getLevel();
+        BlockState state = level.getBlockState(event.getPos());
+        if (event.getHand() != InteractionHand.MAIN_HAND
+                || !player.isShiftKeyDown()
+                || player.isSpectator()
+                || !player.mayBuild()
+                || !isWrench(event.getItemStack())
+                || !isSkyLogisticsBlock(state)) {
+            return false;
+        }
+
+        event.setUseBlock(Event.Result.DENY);
+        event.setUseItem(Event.Result.DENY);
+        event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide));
+        event.setCanceled(true);
+        if (!level.isClientSide) {
+            level.destroyBlock(event.getPos(), true, player, 512);
+        }
+        return true;
+    }
+
+    private static boolean isWrench(ItemStack stack) {
+        return !stack.isEmpty()
+                && !stack.is(ModItems.CONFIGURATOR.get())
+                && (stack.is(FORGE_TOOLS_WRENCH) || stack.is(COMMON_TOOLS_WRENCH));
+    }
+
+    private static boolean isSkyLogisticsBlock(BlockState state) {
+        ResourceLocation id = ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        return id != null && MOD_ID.equals(id.getNamespace());
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
