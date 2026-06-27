@@ -22,6 +22,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     public static final int UPGRADE_ROW_Y = 153;
     public static final int FACE_FILTER_SLOT_X = 176;
     public static final int FACE_FILTER_ROW_Y = 126;
+    public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 44;
     private static final int UPGRADE_SLOT_X = 78;
     private static final int PLAYER_INVENTORY_X = 46;
     private static final int PLAYER_INVENTORY_Y = 179;
@@ -32,6 +33,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     private final BlockPos pos;
     private final Player player;
     private final boolean openedWithConfigurator;
+    private final boolean singleEndpoint;
+    private final int verticalShift;
     private final NodeUpgradeContainer upgradeContainer;
     private final FaceFilterContainer faceFilterContainer;
     private Direction selectedFace = Direction.NORTH;
@@ -49,11 +52,13 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         this.openedWithConfigurator = openedWithConfigurator;
         this.upgradeContainer = new NodeUpgradeContainer(inventory.player, pos);
         this.faceFilterContainer = new FaceFilterContainer(inventory.player, pos, this);
+        this.singleEndpoint = usesSingleEndpoint(inventory.player, pos);
+        this.verticalShift = singleEndpoint ? SINGLE_ENDPOINT_VERTICAL_SHIFT : 0;
         this.selectedFace = initialSelectedFace(inventory.player, pos);
         int upgradeX = upgradeSlotX(openedWithConfigurator);
         for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
             int slotIndex = slot;
-            addSlot(new Slot(upgradeContainer, slotIndex, upgradeX + slot * 20, UPGRADE_ROW_Y) {
+            addSlot(new Slot(upgradeContainer, slotIndex, upgradeX + slot * 20, screenY(UPGRADE_ROW_Y)) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return upgradeContainer.canPlace(slotIndex, stack);
@@ -67,7 +72,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
         for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
             int slotIndex = slot;
-            addSlot(new Slot(faceFilterContainer, slotIndex, FACE_FILTER_SLOT_X + slot * 20, FACE_FILTER_ROW_Y) {
+            addSlot(new Slot(faceFilterContainer, slotIndex, FACE_FILTER_SLOT_X + slot * 20, screenY(FACE_FILTER_ROW_Y)) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return false;
@@ -89,7 +94,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
+        addPlayerInventory(inventory, PLAYER_INVENTORY_X, screenY(PLAYER_INVENTORY_Y));
     }
 
     public static int upgradeSlotX(boolean openedWithConfigurator) {
@@ -102,6 +107,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     public boolean isOpenedWithConfigurator() {
         return openedWithConfigurator;
+    }
+
+    public boolean isSingleEndpoint() {
+        return singleEndpoint;
+    }
+
+    public int screenY(int normalY) {
+        return normalY - verticalShift;
     }
 
     public Direction selectedFace() {
@@ -344,6 +357,11 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             }
         }
         return node.getTargetDirection();
+    }
+
+    private static boolean usesSingleEndpoint(Player player, BlockPos pos) {
+        BlockEntity blockEntity = player.level().getBlockEntity(pos);
+        return blockEntity instanceof SkyNodeBlockEntity node && node.usesSingleEndpoint();
     }
 
     private static boolean isPreferredFace(Player player, SkyNodeBlockEntity node, Direction direction) {

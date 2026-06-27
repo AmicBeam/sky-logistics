@@ -65,8 +65,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = 265;
-        inventoryLabelY = 169;
+        imageHeight = menu.isSingleEndpoint() ? 265 - SkyNodeMenu.SINGLE_ENDPOINT_VERTICAL_SHIFT : 265;
+        inventoryLabelY = menu.screenY(169);
     }
 
     @Override
@@ -107,22 +107,23 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             }
         }
 
-        addTypeButton(leftPos + 54, topPos + 100, ResourceType.ITEMS);
-        addTypeButton(leftPos + 108, topPos + 100, ResourceType.FLUIDS);
-        addTypeButton(leftPos + 162, topPos + 100, ResourceType.ENERGY);
-        addModeButton(leftPos + 54, topPos + 126, 48, NodeFaceMode.NONE,
+        addTypeButton(leftPos + 54, topPos + menu.screenY(100), ResourceType.ITEMS);
+        addTypeButton(leftPos + 108, topPos + menu.screenY(100), ResourceType.FLUIDS);
+        addTypeButton(leftPos + 162, topPos + menu.screenY(100), ResourceType.ENERGY);
+        addModeButton(leftPos + 54, topPos + menu.screenY(126), 48, NodeFaceMode.NONE,
                 Component.translatable("button.skylogistics.none"));
-        addModeButton(leftPos + 108, topPos + 126, 48, NodeFaceMode.INPUT,
+        addModeButton(leftPos + 108, topPos + menu.screenY(126), 48, NodeFaceMode.INPUT,
                 Component.translatable("button.skylogistics.extract"));
-        addModeButton(leftPos + 162, topPos + 126, 48, NodeFaceMode.OUTPUT,
+        addModeButton(leftPos + 162, topPos + menu.screenY(126), 48, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
         int moreWidth = 48;
-        moreButton = new MoreButton(leftPos + MORE_BUTTON_X, topPos + SkyNodeMenu.UPGRADE_ROW_Y, moreWidth);
+        moreButton = new MoreButton(leftPos + MORE_BUTTON_X, topPos + menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y),
+                moreWidth);
         addRenderableWidget(moreButton);
-        addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + FIRST_DETAIL_ROW_Y));
-        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + SECOND_DETAIL_ROW_Y,
+        addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y)));
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
                 -1, Component.literal("-")));
-        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + SECOND_DETAIL_ROW_Y,
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
                 1, Component.literal("+")));
 
     }
@@ -244,33 +245,31 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 14, 34, ConfigPanel.TEXT, false);
 
         Direction face = selectedFace;
-        if (node.usesSingleEndpoint()) {
-            graphics.drawString(font, targetName(node, face), 14, 88, ConfigPanel.TEXT, false);
-        } else {
+        if (!node.usesSingleEndpoint()) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.current_face",
                     faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
         }
         if (advancedPanel) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
-                    14, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
+                    14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable(node.usesSingleEndpoint()
                             ? "screen.skylogistics.filter_slot"
                             : "screen.skylogistics.face_filters"),
-                    SkyNodeMenu.FACE_FILTER_SLOT_X, FIRST_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y,
+                    SkyNodeMenu.FACE_FILTER_SLOT_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                    14, SECOND_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
+                    14, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawCenteredString(font, Component.literal(String.valueOf(node.getPriority(face))),
-                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, SECOND_DETAIL_ROW_Y + DETAIL_LABEL_OFFSET_Y,
+                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.TEXT);
         } else {
             graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
-                    14, 106, ConfigPanel.MUTED, false);
+                    14, menu.screenY(106), ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.mode_label"),
-                    14, 132, ConfigPanel.MUTED, false);
+                    14, menu.screenY(132), ConfigPanel.MUTED, false);
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.upgrade_slots"),
-                14, SkyNodeMenu.UPGRADE_ROW_Y + 5, ConfigPanel.MUTED, false);
+                14, menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y) + 5, ConfigPanel.MUTED, false);
     }
 
     @Override
