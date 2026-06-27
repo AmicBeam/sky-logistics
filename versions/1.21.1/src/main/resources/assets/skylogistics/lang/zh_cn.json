@@ -71,7 +71,7 @@
   "tooltip.skylogistics.dimension_upgrade": "插入输入源节点后，允许向其他维度的同线路目标传输。",
   "tooltip.skylogistics.offering_altar": "仅在高空高度 %s 或更高处，且法阵结构有效时工作。",
   "tooltip.skylogistics.eulogia_crystal.uncharged": "未充能。放在高空高度 %s 或更高处的玩家背包，或天穹供桌上等待充能。",
-  "tooltip.skylogistics.eulogia_crystal.charged": "已注入高空星辉。",
+  "tooltip.skylogistics.eulogia_crystal.charged": "已完成注入。",
   "tooltip.skylogistics.chora_nectar": "蕴含容纳与储存之力的核心材料。右击天穹物品库或天穹流体库，使类型上限 +1；潜行右击会尽量使用整组。",
   "message.skylogistics.sky_node.placed": "已按%s模式连接",
   "message.skylogistics.item_vault.inserted": "已存储物品类型 %s/%s",
