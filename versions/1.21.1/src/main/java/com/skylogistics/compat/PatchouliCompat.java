@@ -1,8 +1,8 @@
 package com.skylogistics.compat;
 
 import com.skylogistics.SkyLogistics;
-import com.skylogistics.util.StackData;
 import java.util.Optional;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -11,8 +11,9 @@ import net.neoforged.fml.ModList;
 
 public final class PatchouliCompat {
     private static final ResourceLocation GUIDE_BOOK = ResourceLocation.fromNamespaceAndPath("patchouli", "guide_book");
-    private static final String BOOK_TAG = "patchouli:book";
-    private static final String SKY_LOGISTICS_BOOK = SkyLogistics.MOD_ID + ":sky_logistics";
+    private static final ResourceLocation BOOK_COMPONENT = ResourceLocation.fromNamespaceAndPath("patchouli", "book");
+    private static final ResourceLocation SKY_LOGISTICS_BOOK =
+            ResourceLocation.fromNamespaceAndPath(SkyLogistics.MOD_ID, "sky_logistics");
 
     private PatchouliCompat() {
     }
@@ -30,7 +31,17 @@ public final class PatchouliCompat {
             return Optional.empty();
         }
         ItemStack stack = new ItemStack(guideBook);
-        StackData.update(stack, tag -> tag.putString(BOOK_TAG, SKY_LOGISTICS_BOOK));
+        Optional<DataComponentType<ResourceLocation>> bookComponent = bookComponent();
+        if (bookComponent.isEmpty()) {
+            return Optional.empty();
+        }
+        stack.set(bookComponent.get(), SKY_LOGISTICS_BOOK);
         return Optional.of(stack);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Optional<DataComponentType<ResourceLocation>> bookComponent() {
+        return BuiltInRegistries.DATA_COMPONENT_TYPE.getOptional(BOOK_COMPONENT)
+                .map(component -> (DataComponentType<ResourceLocation>) component);
     }
 }
