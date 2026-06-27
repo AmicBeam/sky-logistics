@@ -75,7 +75,9 @@ public final class SkyNetworkTicker {
                     List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityItemOutputs(),
                             globalItemOutputs);
                     if (targets.isEmpty()) {
-                        input.recordItemFailure(gameTime);
+                        if (SkyNecklaceTicker.activeItemInserterCount(line.lineId()) == 0) {
+                            input.recordItemFailure(gameTime);
+                        }
                     } else {
                         operations += transferItems(input, targets,
                                 Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);

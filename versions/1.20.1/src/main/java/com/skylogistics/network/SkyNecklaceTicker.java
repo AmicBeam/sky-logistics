@@ -28,6 +28,7 @@ import net.minecraftforge.items.ItemHandlerHelper;
 public final class SkyNecklaceTicker {
     private static final Map<UUID, Integer> ACTIVE_EXTRACTORS = new HashMap<>();
     private static final Map<UUID, Integer> ACTIVE_INSERTERS = new HashMap<>();
+    private static final Map<UUID, Integer> ACTIVE_ITEM_INSERTERS = new HashMap<>();
     private static final Map<UUID, List<ActiveNecklaceDetail>> ACTIVE_DETAILS = new HashMap<>();
 
     private SkyNecklaceTicker() {
@@ -52,6 +53,10 @@ public final class SkyNecklaceTicker {
         return ACTIVE_INSERTERS.getOrDefault(lineId, 0);
     }
 
+    public static int activeItemInserterCount(UUID lineId) {
+        return ACTIVE_ITEM_INSERTERS.getOrDefault(lineId, 0);
+    }
+
     public static List<ActiveNecklaceDetail> activeDetails(UUID lineId) {
         return ACTIVE_DETAILS.getOrDefault(lineId, List.of());
     }
@@ -59,6 +64,7 @@ public final class SkyNecklaceTicker {
     public static void clear() {
         ACTIVE_EXTRACTORS.clear();
         ACTIVE_INSERTERS.clear();
+        ACTIVE_ITEM_INSERTERS.clear();
         ACTIVE_DETAILS.clear();
     }
 
@@ -66,6 +72,7 @@ public final class SkyNecklaceTicker {
         long gameTime = server.overworld().getGameTime();
         Map<UUID, Integer> activeExtractors = new HashMap<>();
         Map<UUID, Integer> activeInserters = new HashMap<>();
+        Map<UUID, Integer> activeItemInserters = new HashMap<>();
         Map<UUID, List<ActiveNecklaceDetail>> activeDetails = new HashMap<>();
         List<ActiveNecklace> activeNecklaces = new ArrayList<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -89,6 +96,9 @@ public final class SkyNecklaceTicker {
             FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(necklace);
             if (itemWhitelist != null) {
                 activeNecklaces.add(new ActiveNecklace(player, necklace, lineId, mode, priority, itemWhitelist));
+                if (mode == SkyNecklaceItem.NecklaceMode.INSERT) {
+                    activeItemInserters.merge(lineId, 1, Integer::sum);
+                }
             }
         }
         activeNecklaces.sort(Comparator.comparingInt(ActiveNecklace::priority).reversed());
@@ -106,6 +116,8 @@ public final class SkyNecklaceTicker {
         ACTIVE_EXTRACTORS.putAll(activeExtractors);
         ACTIVE_INSERTERS.clear();
         ACTIVE_INSERTERS.putAll(activeInserters);
+        ACTIVE_ITEM_INSERTERS.clear();
+        ACTIVE_ITEM_INSERTERS.putAll(activeItemInserters);
         ACTIVE_DETAILS.clear();
         ACTIVE_DETAILS.putAll(activeDetails);
     }

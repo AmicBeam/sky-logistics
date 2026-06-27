@@ -42,8 +42,8 @@ public class SkyLogistics {
         modBus.addListener(this::registerCapabilities);
         container.registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
 
-        NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
+        NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
