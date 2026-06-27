@@ -31,6 +31,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -729,9 +730,13 @@ public final class SkyNetworkRegistry {
         private final Direction direction;
         private final BlockPos targetPos;
         private final Direction accessSide;
+        private BlockCapabilityCache<IItemHandler, Direction> itemCache;
+        private BlockCapabilityCache<IFluidHandler, Direction> fluidCache;
+        private BlockCapabilityCache<IEnergyStorage, Direction> energyCache;
         private IItemHandler itemHandler;
         private IFluidHandler fluidHandler;
         private ChemicalHandlerBridge chemicalHandler;
+        private BlockEntity chemicalTarget;
         private IEnergyStorage energyHandler;
         private long itemRetryAfter;
         private long fluidRetryAfter;
@@ -853,18 +858,13 @@ public final class SkyNetworkRegistry {
             if (itemHandler != null) {
                 return itemHandler;
             }
-            clearItemCache();
             Level level = node.getLevel();
-            if (level == null || !level.isLoaded(targetPos)) {
+            BlockCapabilityCache<IItemHandler, Direction> cache = itemCapabilityCache(level);
+            if (cache == null) {
                 recordItemFailure(gameTime);
                 return null;
             }
-            BlockEntity target = level.getBlockEntity(targetPos);
-            if (target == null) {
-                recordItemFailure(gameTime);
-                return null;
-            }
-            itemHandler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide);
+            itemHandler = cache.getCapability();
             if (itemHandler == null) {
                 recordItemFailure(gameTime);
             }
@@ -882,18 +882,13 @@ public final class SkyNetworkRegistry {
             if (fluidHandler != null) {
                 return fluidHandler;
             }
-            clearFluidCache();
             Level level = node.getLevel();
-            if (level == null || !level.isLoaded(targetPos)) {
+            BlockCapabilityCache<IFluidHandler, Direction> cache = fluidCapabilityCache(level);
+            if (cache == null) {
                 recordFluidFailure(gameTime);
                 return null;
             }
-            BlockEntity target = level.getBlockEntity(targetPos);
-            if (target == null) {
-                recordFluidFailure(gameTime);
-                return null;
-            }
-            fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide);
+            fluidHandler = cache.getCapability();
             if (fluidHandler == null) {
                 recordFluidFailure(gameTime);
             }
@@ -908,10 +903,6 @@ public final class SkyNetworkRegistry {
             if (direct != null) {
                 return direct;
             }
-            if (chemicalHandler != null) {
-                return chemicalHandler;
-            }
-            clearChemicalCache();
             Level level = node.getLevel();
             if (level == null || !level.isLoaded(targetPos)) {
                 recordChemicalFailure(gameTime);
@@ -922,6 +913,11 @@ public final class SkyNetworkRegistry {
                 recordChemicalFailure(gameTime);
                 return null;
             }
+            if (chemicalHandler != null && chemicalTarget == target) {
+                return chemicalHandler;
+            }
+            clearChemicalCache();
+            chemicalTarget = target;
             chemicalHandler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
             if (chemicalHandler == null) {
                 recordChemicalFailure(gameTime);
@@ -940,18 +936,13 @@ public final class SkyNetworkRegistry {
             if (energyHandler != null) {
                 return energyHandler;
             }
-            clearEnergyCache();
             Level level = node.getLevel();
-            if (level == null || !level.isLoaded(targetPos)) {
+            BlockCapabilityCache<IEnergyStorage, Direction> cache = energyCapabilityCache(level);
+            if (cache == null) {
                 recordEnergyFailure(gameTime);
                 return null;
             }
-            BlockEntity target = level.getBlockEntity(targetPos);
-            if (target == null) {
-                recordEnergyFailure(gameTime);
-                return null;
-            }
-            energyHandler = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
+            energyHandler = cache.getCapability();
             if (energyHandler == null) {
                 recordEnergyFailure(gameTime);
             }
@@ -1371,6 +1362,63 @@ public final class SkyNetworkRegistry {
             energyRetryAfter = gameTime + delay(energyFailures);
         }
 
+        private BlockCapabilityCache<IItemHandler, Direction> itemCapabilityCache(Level level) {
+            if (!(level instanceof ServerLevel serverLevel)) {
+                return null;
+            }
+            if (itemCache == null || itemCache.level() != serverLevel) {
+                itemCache = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, serverLevel, targetPos,
+                        accessSide, () -> node.getLevel() == serverLevel && !node.isRemoved(),
+                        this::invalidateItemCache);
+            }
+            return itemCache;
+        }
+
+        private BlockCapabilityCache<IFluidHandler, Direction> fluidCapabilityCache(Level level) {
+            if (!(level instanceof ServerLevel serverLevel)) {
+                return null;
+            }
+            if (fluidCache == null || fluidCache.level() != serverLevel) {
+                fluidCache = BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, serverLevel, targetPos,
+                        accessSide, () -> node.getLevel() == serverLevel && !node.isRemoved(),
+                        this::invalidateFluidCache);
+            }
+            return fluidCache;
+        }
+
+        private BlockCapabilityCache<IEnergyStorage, Direction> energyCapabilityCache(Level level) {
+            if (!(level instanceof ServerLevel serverLevel)) {
+                return null;
+            }
+            if (energyCache == null || energyCache.level() != serverLevel) {
+                energyCache = BlockCapabilityCache.create(Capabilities.EnergyStorage.BLOCK, serverLevel, targetPos,
+                        accessSide, () -> node.getLevel() == serverLevel && !node.isRemoved(),
+                        this::invalidateEnergyCache);
+            }
+            return energyCache;
+        }
+
+        private void invalidateItemCache() {
+            clearItemCache();
+            itemFailures = 0;
+            itemRetryAfter = 0L;
+            itemSourceMisses = 0;
+            clearRejectedItems();
+        }
+
+        private void invalidateFluidCache() {
+            clearFluidCache();
+            fluidFailures = 0;
+            fluidRetryAfter = 0L;
+            fluidSourceMisses = 0;
+        }
+
+        private void invalidateEnergyCache() {
+            clearEnergyCache();
+            energyFailures = 0;
+            energyRetryAfter = 0L;
+        }
+
         private void clearItemCache() {
             itemHandler = null;
             clearItemSlotCaches();
@@ -1385,6 +1433,7 @@ public final class SkyNetworkRegistry {
 
         private void clearChemicalCache() {
             chemicalHandler = null;
+            chemicalTarget = null;
             clearChemicalTankCaches();
             clearRejectedChemicalAccepts();
         }
