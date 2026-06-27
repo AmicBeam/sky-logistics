@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="Sky Logistics"
 displayURL="https://github.com/AmicBeam/sky-logistics"
 logoFile="logo.png"
-authors="Sky Logistics Contributors"
+authors="AmicBeam"
 description='''
 Celestial wireless logistics with aggregate item and fluid storage.
 '''
