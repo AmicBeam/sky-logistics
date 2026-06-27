@@ -6,9 +6,9 @@ import com.skylogistics.network.ModNetworking;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import mezz.jei.api.forge.ForgeTypes;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -23,7 +23,7 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
         if (item.isPresent() && !item.get().isEmpty()) {
             return itemTargets(gui);
         }
-        Optional<FluidStack> fluid = ingredient.getIngredient(ForgeTypes.FLUID_STACK);
+        Optional<FluidStack> fluid = ingredient.getIngredient(NeoForgeTypes.FLUID_STACK);
         if (fluid.isPresent() && !fluid.get().isEmpty()) {
             return fluidTargets(gui);
         }

@@ -61,14 +61,35 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
-dependencies {
-    compileOnly "mekanism:Mekanism:${mekanism_version}"
-}
+def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
+def cachedJeiApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/mezz.jei/jei-${minecraft_version}-neoforge",
+        include: "**/jei-${minecraft_version}-neoforge-*.jar"
+).files.toList().sort { it.absolutePath }
+def jeiApiJar = jeiApiPath ? file(jeiApiPath)
+        : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : null)
+def includeJeiCompat = false
 
 sourceSets {
     main {
         java.srcDir '../../common/src/main/java'
         resources.srcDir '../../common/src/main/resources'
+    }
+}
+
+if (jeiApiPath && !jeiApiJar.exists()) {
+    throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
+}
+
+if (jeiApiJar != null && jeiApiJar.exists()) {
+    sourceSets.main.java.srcDir 'src/jei/java'
+    includeJeiCompat = true
+}
+
+dependencies {
+    compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (includeJeiCompat) {
+        compileOnly files(jeiApiJar)
     }
 }
 

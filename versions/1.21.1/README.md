@@ -85,7 +85,7 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.
 
-Patchouli support is data-only and adds one guide book plus one multiblock preview when Patchouli is installed. Jade and JEI optional source folders are retained under `src/jade/java` and `src/jei/java`, but the verified 1.21.1 ModDev build currently compiles only the core `src/main` source set.
+Patchouli support is data-only and adds one guide book plus one multiblock preview when Patchouli is installed. JEI compatibility sources under `src/jei/java` are compiled when a 1.21.1 NeoForge JEI jar is available through `SKYLOGISTICS_JEI_API_JAR`, `-Dskylogistics.jeiApiJar`, or the local Gradle cache.
 
 ## Build Note
 
@@ -103,7 +103,7 @@ This branch uses NeoForge ModDev, Java 21 toolchains, Parchment `1.21-2024.11.10
 
 Data resources use 1.21 singular paths such as `data/skylogistics/recipe`, `loot_table`, `advancement`, `tags/block`, and `tags/item`. Crafting outputs use `result.id`, common tags use the `c:` namespace, and optional recipe conditions use `neoforge:conditions`.
 
-The optional Jade and JEI compatibility sources still need 1.21.1 API jars and source-set wiring before they can be included in this ModDev build.
+The optional Jade compatibility sources still need 1.21.1 API jars and source-set wiring before they can be included in this ModDev build.
 
 ## Simulated Project Compatibility
 
