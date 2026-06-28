@@ -300,10 +300,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
-        ItemVaultBlockEntity sourceVault = sourceEndpoint.targetBlockEntity() instanceof ItemVaultBlockEntity vault
-                ? vault
-                : null;
-        BlockEntity sourceBlock = sourceEndpoint.targetBlockEntity();
+        LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
@@ -345,53 +342,10 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemFilterReject(simulated, gameTime);
                     continue;
                 }
-                BlockEntity targetBlock = targetEndpoint.targetBlockEntity();
-                if (sourceVault != null && targetBlock instanceof ItemVaultBlockEntity targetVault) {
-                    long moved = sourceVault.transferTo(targetVault, slot, skyContainerTransferLimit);
-                    if (moved > 0) {
-                        targetEndpoint.recordItemSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceVault != null && targetBlock instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-                    long moved = moveItemVaultToDimension(sourceEndpoint, sourceVault, slot, targetEndpoint,
-                            targetBlock, skyContainerTransferLimit);
-                    if (moved > 0L) {
-                        targetEndpoint.recordItemSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    if (moved < 0L) {
-                        sourceEndpoint.recordItemFailure(gameTime);
-                        return new MoveResult(false, operations);
-                    }
-                    targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceBlock instanceof BeyondDimensionsCompat.NetworkBoundHost
-                        && targetBlock instanceof ItemVaultBlockEntity targetVault) {
-                    long moved = moveDimensionToItemVault(sourceEndpoint, sourceBlock, slot, targetEndpoint,
-                            targetVault, skyContainerTransferLimit);
-                    if (moved > 0L) {
-                        targetEndpoint.recordItemSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    if (moved < 0L) {
-                        sourceEndpoint.recordItemFailure(gameTime);
-                        return new MoveResult(false, operations);
-                    }
-                    targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceBlock instanceof BeyondDimensionsCompat.NetworkBoundHost
-                        && targetBlock instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-                    if (sameDimensionNetwork(sourceBlock, targetBlock)) {
-                        targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-                        continue;
-                    }
-                    long moved = moveDimensionItemToDimension(sourceEndpoint, sourceBlock, slot, targetEndpoint,
-                            targetBlock, skyContainerTransferLimit);
+                LongItemEndpoint targetLongEndpoint = longItemEndpoint(targetEndpoint);
+                if (sourceLongEndpoint != null && targetLongEndpoint != null) {
+                    long moved = moveLongItem(sourceEndpoint, sourceLongEndpoint, slot, targetEndpoint,
+                            targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
                         targetEndpoint.recordItemSuccess();
                         return new MoveResult(true, operations);
@@ -440,28 +394,42 @@ public final class SkyNetworkTicker {
         return new MoveResult(false, operations);
     }
 
-    private static long moveItemVaultToDimension(CachedEndpoint sourceEndpoint, ItemVaultBlockEntity sourceVault,
-            int sourceSlot, CachedEndpoint targetEndpoint, BlockEntity targetBlock, long maxAmount) {
-        ItemVaultBlockEntity.StoredItem stored = sourceVault.storedItemInSlot(sourceSlot);
-        if (stored.stack().isEmpty() || stored.amount() <= 0L) {
+    private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        if (blockEntity instanceof ItemVaultBlockEntity vault) {
+            return new ItemVaultLongEndpoint(vault);
+        }
+        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            return new DimensionItemLongEndpoint(blockEntity);
+        }
+        return null;
+    }
+
+    private static long moveLongItem(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceEndpointLong,
+            int sourceSlot, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong, long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
             return 0L;
         }
-        long requested = Math.min(maxAmount, stored.amount());
-        long accepted = BeyondDimensionsCompat.insertItem(targetBlock, stored.stack(), requested, true);
+        LongItemResource resource = sourceEndpointLong.resourceInSlot(sourceSlot);
+        if (resource.isEmpty()) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, resource.amount());
+        long accepted = targetEndpointLong.insert(resource.stack(), requested, true);
         if (accepted <= 0L) {
             return 0L;
         }
-        long extracted = sourceVault.extractStoredItem(sourceSlot, accepted, false);
+        long extracted = sourceEndpointLong.extract(sourceSlot, resource.stack(), accepted, false);
         if (extracted <= 0L) {
             return -1L;
         }
-        long inserted = BeyondDimensionsCompat.insertItem(targetBlock, stored.stack(), extracted, false);
+        long inserted = targetEndpointLong.insert(resource.stack(), extracted, false);
         if (inserted < extracted) {
             long rollback = extracted - inserted;
-            long rolledBack = sourceVault.insertStoredItem(stored.stack(), rollback, false);
+            long rolledBack = sourceEndpointLong.insert(resource.stack(), rollback, false);
             if (rolledBack < rollback) {
                 SkyLogistics.LOGGER.warn(
-                        "Item rollback failed after simulated Beyond Dimensions insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
+                        "Item rollback failed after simulated long item insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
                         sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                         targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
                         inserted, rollback - rolledBack);
@@ -470,66 +438,73 @@ public final class SkyNetworkTicker {
         return inserted;
     }
 
-    private static long moveDimensionToItemVault(CachedEndpoint sourceEndpoint, BlockEntity sourceBlock,
-            int sourceSlot, CachedEndpoint targetEndpoint, ItemVaultBlockEntity targetVault, long maxAmount) {
-        BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceInSlot(sourceBlock,
-                sourceSlot);
-        if (resource.isEmpty()) {
-            return 0L;
-        }
-        long requested = Math.min(maxAmount, resource.amount());
-        long accepted = targetVault.insertStoredItem(resource.stack(), requested, true);
-        if (accepted <= 0L) {
-            return 0L;
-        }
-        long extracted = BeyondDimensionsCompat.extractItem(sourceBlock, resource.stack(), accepted, false);
-        if (extracted <= 0L) {
-            return -1L;
-        }
-        long inserted = targetVault.insertStoredItem(resource.stack(), extracted, false);
-        if (inserted < extracted) {
-            long rollback = extracted - inserted;
-            long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlock, resource.stack(), rollback, false);
-            if (rolledBack < rollback) {
-                SkyLogistics.LOGGER.warn(
-                        "Item rollback failed after simulated vault insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
-                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
-                        inserted, rollback - rolledBack);
-            }
-        }
-        return inserted;
+    private interface LongItemEndpoint {
+        LongItemResource resourceInSlot(int slot);
+
+        long insert(ItemStack stack, long amount, boolean simulate);
+
+        long extract(int slot, ItemStack stack, long amount, boolean simulate);
+
+        boolean sameStorage(LongItemEndpoint other);
     }
 
-    private static long moveDimensionItemToDimension(CachedEndpoint sourceEndpoint, BlockEntity sourceBlock,
-            int sourceSlot, CachedEndpoint targetEndpoint, BlockEntity targetBlock, long maxAmount) {
-        BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceInSlot(sourceBlock,
-                sourceSlot);
-        if (resource.isEmpty()) {
-            return 0L;
+    private record LongItemResource(ItemStack stack, long amount) {
+        private static final LongItemResource EMPTY = new LongItemResource(ItemStack.EMPTY, 0L);
+
+        private boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
         }
-        long requested = Math.min(maxAmount, resource.amount());
-        long accepted = BeyondDimensionsCompat.insertItem(targetBlock, resource.stack(), requested, true);
-        if (accepted <= 0L) {
-            return 0L;
+    }
+
+    private record ItemVaultLongEndpoint(ItemVaultBlockEntity vault) implements LongItemEndpoint {
+        @Override
+        public LongItemResource resourceInSlot(int slot) {
+            ItemVaultBlockEntity.StoredItem stored = vault.storedItemInSlot(slot);
+            return stored.stack().isEmpty() || stored.amount() <= 0L
+                    ? LongItemResource.EMPTY
+                    : new LongItemResource(stored.stack(), stored.amount());
         }
-        long extracted = BeyondDimensionsCompat.extractItem(sourceBlock, resource.stack(), accepted, false);
-        if (extracted <= 0L) {
-            return -1L;
+
+        @Override
+        public long insert(ItemStack stack, long amount, boolean simulate) {
+            return vault.insertStoredItem(stack, amount, simulate);
         }
-        long inserted = BeyondDimensionsCompat.insertItem(targetBlock, resource.stack(), extracted, false);
-        if (inserted < extracted) {
-            long rollback = extracted - inserted;
-            long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlock, resource.stack(), rollback, false);
-            if (rolledBack < rollback) {
-                SkyLogistics.LOGGER.warn(
-                        "Item rollback failed after simulated dimension insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
-                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
-                        inserted, rollback - rolledBack);
-            }
+
+        @Override
+        public long extract(int slot, ItemStack stack, long amount, boolean simulate) {
+            return vault.extractStoredItem(slot, amount, simulate);
         }
-        return inserted;
+
+        @Override
+        public boolean sameStorage(LongItemEndpoint other) {
+            return other instanceof ItemVaultLongEndpoint endpoint && vault == endpoint.vault;
+        }
+    }
+
+    private record DimensionItemLongEndpoint(BlockEntity blockEntity) implements LongItemEndpoint {
+        @Override
+        public LongItemResource resourceInSlot(int slot) {
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceInSlot(blockEntity,
+                    slot);
+            return resource.isEmpty() ? LongItemResource.EMPTY : new LongItemResource(resource.stack(),
+                    resource.amount());
+        }
+
+        @Override
+        public long insert(ItemStack stack, long amount, boolean simulate) {
+            return BeyondDimensionsCompat.insertItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int slot, ItemStack stack, long amount, boolean simulate) {
+            return BeyondDimensionsCompat.extractItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongItemEndpoint other) {
+            return other instanceof DimensionItemLongEndpoint endpoint
+                    && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
     }
 
     private static int transferFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
@@ -630,10 +605,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
-        FluidVaultBlockEntity sourceVault = sourceEndpoint.targetBlockEntity() instanceof FluidVaultBlockEntity vault
-                ? vault
-                : null;
-        BlockEntity sourceBlock = sourceEndpoint.targetBlockEntity();
+        LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
@@ -672,53 +644,10 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
-                BlockEntity targetBlock = targetEndpoint.targetBlockEntity();
-                if (sourceVault != null && targetBlock instanceof FluidVaultBlockEntity targetVault) {
-                    long moved = sourceVault.transferTo(targetVault, sourceTank, skyContainerTransferLimit);
-                    if (moved > 0) {
-                        targetEndpoint.recordFluidSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceVault != null && targetBlock instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-                    long moved = moveFluidVaultToDimension(sourceEndpoint, sourceVault, sourceTank, targetEndpoint,
-                            targetBlock, skyContainerTransferLimit);
-                    if (moved > 0L) {
-                        targetEndpoint.recordFluidSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    if (moved < 0L) {
-                        sourceEndpoint.recordFluidFailure(gameTime);
-                        return new MoveResult(false, operations);
-                    }
-                    targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceBlock instanceof BeyondDimensionsCompat.NetworkBoundHost
-                        && targetBlock instanceof FluidVaultBlockEntity targetVault) {
-                    long moved = moveDimensionToFluidVault(sourceEndpoint, sourceBlock, sourceTank, targetEndpoint,
-                            targetVault, skyContainerTransferLimit);
-                    if (moved > 0L) {
-                        targetEndpoint.recordFluidSuccess();
-                        return new MoveResult(true, operations);
-                    }
-                    if (moved < 0L) {
-                        sourceEndpoint.recordFluidFailure(gameTime);
-                        return new MoveResult(false, operations);
-                    }
-                    targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
-                    continue;
-                }
-                if (sourceBlock instanceof BeyondDimensionsCompat.NetworkBoundHost
-                        && targetBlock instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-                    if (sameDimensionNetwork(sourceBlock, targetBlock)) {
-                        targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
-                        continue;
-                    }
-                    long moved = moveDimensionFluidToDimension(sourceEndpoint, sourceBlock, sourceTank, targetEndpoint,
-                            targetBlock, skyContainerTransferLimit);
+                LongFluidEndpoint targetLongEndpoint = longFluidEndpoint(targetEndpoint);
+                if (sourceLongEndpoint != null && targetLongEndpoint != null) {
+                    long moved = moveLongFluid(sourceEndpoint, sourceLongEndpoint, sourceTank, targetEndpoint,
+                            targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
                         targetEndpoint.recordFluidSuccess();
                         return new MoveResult(true, operations);
@@ -767,28 +696,42 @@ public final class SkyNetworkTicker {
         return new MoveResult(false, operations);
     }
 
-    private static long moveFluidVaultToDimension(CachedEndpoint sourceEndpoint, FluidVaultBlockEntity sourceVault,
-            int sourceTank, CachedEndpoint targetEndpoint, BlockEntity targetBlock, long maxAmount) {
-        FluidVaultBlockEntity.StoredFluid stored = sourceVault.storedFluidInTank(sourceTank);
-        if (stored.stack().isEmpty() || stored.amount() <= 0L) {
+    private static LongFluidEndpoint longFluidEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        if (blockEntity instanceof FluidVaultBlockEntity vault) {
+            return new FluidVaultLongEndpoint(vault);
+        }
+        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            return new DimensionFluidLongEndpoint(blockEntity);
+        }
+        return null;
+    }
+
+    private static long moveLongFluid(CachedEndpoint sourceEndpoint, LongFluidEndpoint sourceEndpointLong,
+            int sourceTank, CachedEndpoint targetEndpoint, LongFluidEndpoint targetEndpointLong, long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
             return 0L;
         }
-        long requested = Math.min(maxAmount, stored.amount());
-        long accepted = BeyondDimensionsCompat.insertFluid(targetBlock, stored.stack(), requested, true);
+        LongFluidResource resource = sourceEndpointLong.resourceInTank(sourceTank);
+        if (resource.isEmpty()) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, resource.amount());
+        long accepted = targetEndpointLong.insert(resource.stack(), requested, true);
         if (accepted <= 0L) {
             return 0L;
         }
-        long extracted = sourceVault.extractStoredFluid(sourceTank, accepted, false);
+        long extracted = sourceEndpointLong.extract(sourceTank, resource.stack(), accepted, false);
         if (extracted <= 0L) {
             return -1L;
         }
-        long inserted = BeyondDimensionsCompat.insertFluid(targetBlock, stored.stack(), extracted, false);
+        long inserted = targetEndpointLong.insert(resource.stack(), extracted, false);
         if (inserted < extracted) {
             long rollback = extracted - inserted;
-            long rolledBack = sourceVault.insertStoredFluid(stored.stack(), rollback, false);
+            long rolledBack = sourceEndpointLong.insert(resource.stack(), rollback, false);
             if (rolledBack < rollback) {
                 SkyLogistics.LOGGER.warn(
-                        "Fluid rollback failed after simulated Beyond Dimensions fill changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, extracted {}, inserted {}, rollback remainder {} mB",
+                        "Fluid rollback failed after simulated long fluid insertion changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, extracted {}, inserted {}, rollback remainder {} mB",
                         sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                         targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceTank, extracted,
                         inserted, rollback - rolledBack);
@@ -797,66 +740,73 @@ public final class SkyNetworkTicker {
         return inserted;
     }
 
-    private static long moveDimensionToFluidVault(CachedEndpoint sourceEndpoint, BlockEntity sourceBlock,
-            int sourceTank, CachedEndpoint targetEndpoint, FluidVaultBlockEntity targetVault, long maxAmount) {
-        BeyondDimensionsCompat.FluidResource resource = BeyondDimensionsCompat.fluidResourceInTank(sourceBlock,
-                sourceTank);
-        if (resource.isEmpty()) {
-            return 0L;
-        }
-        long requested = Math.min(maxAmount, resource.amount());
-        long accepted = targetVault.insertStoredFluid(resource.stack(), requested, true);
-        if (accepted <= 0L) {
-            return 0L;
-        }
-        long extracted = BeyondDimensionsCompat.extractFluid(sourceBlock, resource.stack(), accepted, false);
-        if (extracted <= 0L) {
-            return -1L;
-        }
-        long inserted = targetVault.insertStoredFluid(resource.stack(), extracted, false);
-        if (inserted < extracted) {
-            long rollback = extracted - inserted;
-            long rolledBack = BeyondDimensionsCompat.insertFluid(sourceBlock, resource.stack(), rollback, false);
-            if (rolledBack < rollback) {
-                SkyLogistics.LOGGER.warn(
-                        "Fluid rollback failed after simulated vault fill changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, extracted {}, inserted {}, rollback remainder {} mB",
-                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceTank, extracted,
-                        inserted, rollback - rolledBack);
-            }
-        }
-        return inserted;
+    private interface LongFluidEndpoint {
+        LongFluidResource resourceInTank(int tank);
+
+        long insert(FluidStack stack, long amount, boolean simulate);
+
+        long extract(int tank, FluidStack stack, long amount, boolean simulate);
+
+        boolean sameStorage(LongFluidEndpoint other);
     }
 
-    private static long moveDimensionFluidToDimension(CachedEndpoint sourceEndpoint, BlockEntity sourceBlock,
-            int sourceTank, CachedEndpoint targetEndpoint, BlockEntity targetBlock, long maxAmount) {
-        BeyondDimensionsCompat.FluidResource resource = BeyondDimensionsCompat.fluidResourceInTank(sourceBlock,
-                sourceTank);
-        if (resource.isEmpty()) {
-            return 0L;
+    private record LongFluidResource(FluidStack stack, long amount) {
+        private static final LongFluidResource EMPTY = new LongFluidResource(FluidStack.EMPTY, 0L);
+
+        private boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
         }
-        long requested = Math.min(maxAmount, resource.amount());
-        long accepted = BeyondDimensionsCompat.insertFluid(targetBlock, resource.stack(), requested, true);
-        if (accepted <= 0L) {
-            return 0L;
+    }
+
+    private record FluidVaultLongEndpoint(FluidVaultBlockEntity vault) implements LongFluidEndpoint {
+        @Override
+        public LongFluidResource resourceInTank(int tank) {
+            FluidVaultBlockEntity.StoredFluid stored = vault.storedFluidInTank(tank);
+            return stored.stack().isEmpty() || stored.amount() <= 0L
+                    ? LongFluidResource.EMPTY
+                    : new LongFluidResource(stored.stack(), stored.amount());
         }
-        long extracted = BeyondDimensionsCompat.extractFluid(sourceBlock, resource.stack(), accepted, false);
-        if (extracted <= 0L) {
-            return -1L;
+
+        @Override
+        public long insert(FluidStack stack, long amount, boolean simulate) {
+            return vault.insertStoredFluid(stack, amount, simulate);
         }
-        long inserted = BeyondDimensionsCompat.insertFluid(targetBlock, resource.stack(), extracted, false);
-        if (inserted < extracted) {
-            long rollback = extracted - inserted;
-            long rolledBack = BeyondDimensionsCompat.insertFluid(sourceBlock, resource.stack(), rollback, false);
-            if (rolledBack < rollback) {
-                SkyLogistics.LOGGER.warn(
-                        "Fluid rollback failed after simulated dimension fill changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, extracted {}, inserted {}, rollback remainder {} mB",
-                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceTank, extracted,
-                        inserted, rollback - rolledBack);
-            }
+
+        @Override
+        public long extract(int tank, FluidStack stack, long amount, boolean simulate) {
+            return vault.extractStoredFluid(tank, amount, simulate);
         }
-        return inserted;
+
+        @Override
+        public boolean sameStorage(LongFluidEndpoint other) {
+            return other instanceof FluidVaultLongEndpoint endpoint && vault == endpoint.vault;
+        }
+    }
+
+    private record DimensionFluidLongEndpoint(BlockEntity blockEntity) implements LongFluidEndpoint {
+        @Override
+        public LongFluidResource resourceInTank(int tank) {
+            BeyondDimensionsCompat.FluidResource resource = BeyondDimensionsCompat.fluidResourceInTank(blockEntity,
+                    tank);
+            return resource.isEmpty() ? LongFluidResource.EMPTY : new LongFluidResource(resource.stack(),
+                    resource.amount());
+        }
+
+        @Override
+        public long insert(FluidStack stack, long amount, boolean simulate) {
+            return BeyondDimensionsCompat.insertFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int tank, FluidStack stack, long amount, boolean simulate) {
+            return BeyondDimensionsCompat.extractFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongFluidEndpoint other) {
+            return other instanceof DimensionFluidLongEndpoint endpoint
+                    && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
     }
 
     private static boolean sameDimensionNetwork(BlockEntity first, BlockEntity second) {
