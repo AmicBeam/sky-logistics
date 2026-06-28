@@ -181,6 +181,41 @@ public class ItemVaultBlockEntity extends BlockEntity {
         return moved;
     }
 
+    public StoredItem storedItemInSlot(int slot) {
+        if (slot < 0 || slot >= getTypeLimit()) {
+            return new StoredItem(ItemStack.EMPTY, 0L);
+        }
+        ItemStack stack = templateInSlot(slot);
+        long amount = amountInSlot(slot);
+        if (stack.isEmpty() || amount <= 0L) {
+            return new StoredItem(ItemStack.EMPTY, 0L);
+        }
+        ItemStack copy = stack.copy();
+        copy.setCount((int) Math.min(Integer.MAX_VALUE, amount));
+        return new StoredItem(copy, amount);
+    }
+
+    public long insertStoredItem(ItemStack template, long amount, boolean simulate) {
+        return insertStored(template, amount, simulate);
+    }
+
+    public long extractStoredItem(int slot, long amount, boolean simulate) {
+        if (slot < 0 || slot >= getTypeLimit() || amount <= 0L) {
+            return 0L;
+        }
+        ItemStack existing = templateInSlot(slot);
+        long storedAmount = amountInSlot(slot);
+        if (existing.isEmpty() || storedAmount <= 0L) {
+            return 0L;
+        }
+        long extracted = Math.min(amount, storedAmount);
+        if (extracted > 0L && !simulate) {
+            decreaseStored(slot, extracted);
+            markContentsChanged();
+        }
+        return extracted;
+    }
+
     public void syncTo(ServerPlayer player) {
         List<ItemVaultSnapshotPacket.Entry> entries = new ArrayList<>();
         for (StoredItem item : getStoredItems(SNAPSHOT_ENTRY_LIMIT)) {
@@ -424,17 +459,24 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (!existing.isEmpty() && !ItemHandlerHelper.canItemStacksStack(existing, template)) {
             return 0L;
         }
+        long inserted = amount;
+        if (!existing.isEmpty() && current > 0L && Long.MAX_VALUE - current < amount) {
+            inserted = Long.MAX_VALUE - current;
+        }
+        if (inserted <= 0L) {
+            return 0L;
+        }
         if (!simulate) {
             if (existing.isEmpty() || current <= 0) {
                 ItemStack stored = template.copy();
                 stored.setCount(1);
                 items.set(slot, stored);
-                amounts.set(slot, amount);
+                amounts.set(slot, inserted);
             } else {
-                amounts.set(slot, saturatingAdd(current, amount));
+                amounts.set(slot, current + inserted);
             }
         }
-        return amount;
+        return inserted;
     }
 
     private ItemStack stackInSlot(int slot) {

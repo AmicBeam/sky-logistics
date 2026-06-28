@@ -5,6 +5,13 @@ import com.wintercogs.beyonddimensions.api.capability.helper.unordered.FluidUnif
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.ItemUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.dimensionnet.DimensionsNet;
 import com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage;
+import com.wintercogs.beyonddimensions.api.storage.handler.impl.AbstractUnorderedStackHandler.TypeBucket;
+import com.wintercogs.beyonddimensions.api.storage.key.IStackKey;
+import com.wintercogs.beyonddimensions.api.storage.key.KeyAmount;
+import com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey;
+import com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey;
+import java.util.Optional;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -28,6 +35,94 @@ final class BeyondDimensionsApiBridge {
 
     static IFluidHandler createFluidHandler(BlockEntity host) {
         return new FluidHandler(host);
+    }
+
+    static BeyondDimensionsCompat.ItemResource itemResourceInSlot(BlockEntity host, int slot) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        IStackKey<?> key = keyInBucket(storage, ItemStackKey.ID, slot);
+        if (key == null) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        Object outStack = storage.getOutStackByKey(key);
+        if (!(outStack instanceof ItemStack stack) || stack.isEmpty()) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        long amount = Math.max(0L, storage.getStackByKey(key).amount());
+        if (amount <= 0L) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        ItemStack copy = stack.copy();
+        copy.setCount((int) Math.min(Integer.MAX_VALUE, amount));
+        return new BeyondDimensionsCompat.ItemResource(copy, amount);
+    }
+
+    static BeyondDimensionsCompat.FluidResource fluidResourceInTank(BlockEntity host, int tank) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null) {
+            return BeyondDimensionsCompat.FluidResource.EMPTY;
+        }
+        IStackKey<?> key = keyInBucket(storage, FluidStackKey.ID, tank);
+        if (key == null) {
+            return BeyondDimensionsCompat.FluidResource.EMPTY;
+        }
+        Object outStack = storage.getOutStackByKey(key);
+        if (!(outStack instanceof FluidStack stack) || stack.isEmpty()) {
+            return BeyondDimensionsCompat.FluidResource.EMPTY;
+        }
+        long amount = Math.max(0L, storage.getStackByKey(key).amount());
+        if (amount <= 0L) {
+            return BeyondDimensionsCompat.FluidResource.EMPTY;
+        }
+        FluidStack copy = stack.copy();
+        copy.setAmount((int) Math.min(Integer.MAX_VALUE, amount));
+        return new BeyondDimensionsCompat.FluidResource(copy, amount);
+    }
+
+    static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
+        KeyAmount remainder = storage.insert(new ItemStackKey(normalized), amount, simulate);
+        return insertedAmount(amount, remainder);
+    }
+
+    static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
+        KeyAmount extracted = storage.extract(new ItemStackKey(normalized), amount, simulate, false);
+        return Math.max(0L, extracted.amount());
+    }
+
+    static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        FluidStack normalized = stack.copy();
+        normalized.setAmount(1);
+        KeyAmount remainder = storage.insert(new FluidStackKey(normalized), amount, simulate);
+        return insertedAmount(amount, remainder);
+    }
+
+    static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        FluidStack normalized = stack.copy();
+        normalized.setAmount(1);
+        KeyAmount extracted = storage.extract(new FluidStackKey(normalized), amount, simulate, false);
+        return Math.max(0L, extracted.amount());
     }
 
     static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
@@ -118,6 +213,19 @@ final class BeyondDimensionsApiBridge {
     private static IFluidHandler fluidHandler(BlockEntity host) {
         UnifiedStorage storage = storage(host);
         return storage == null ? EmptyExternalHandlers.Fluids.INSTANCE : new FluidUnifiedStorageHandler(storage);
+    }
+
+    private static IStackKey<?> keyInBucket(UnifiedStorage storage, ResourceLocation typeId, int slot) {
+        Optional<TypeBucket> bucket = storage.getBucket(typeId);
+        if (bucket.isEmpty() || slot < 0 || slot >= bucket.get().size()) {
+            return null;
+        }
+        return bucket.get().get(slot);
+    }
+
+    private static long insertedAmount(long requested, KeyAmount remainder) {
+        long leftover = Math.max(0L, remainder.amount());
+        return leftover >= requested ? 0L : requested - leftover;
     }
 
     private record ItemHandler(BlockEntity host) implements IItemHandler {

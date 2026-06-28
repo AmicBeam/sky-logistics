@@ -116,12 +116,48 @@ public class FluidVaultBlockEntity extends BlockEntity {
             return 0L;
         }
         long requested = Math.min(entry.getValue(), maxAmount);
-        long moved = target.insertDirect(entry.getKey(), requested);
+        long moved = target.insertDirect(entry.getKey(), requested, false);
         if (moved <= 0) {
             return 0L;
         }
         removeStored(entry.getKey(), moved);
         return moved;
+    }
+
+    public StoredFluid storedFluidInTank(int tank) {
+        Map.Entry<FluidStackKey, Long> entry = entryAt(tank);
+        if (entry == null) {
+            return new StoredFluid(FluidStack.EMPTY, 0L);
+        }
+        long amount = entry.getValue();
+        if (amount <= 0L) {
+            return new StoredFluid(FluidStack.EMPTY, 0L);
+        }
+        return new StoredFluid(entry.getKey().toStack((int) Math.min(Integer.MAX_VALUE, amount)), amount);
+    }
+
+    public long insertStoredFluid(FluidStack template, long amount, boolean simulate) {
+        if (template.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        FluidStack normalized = template.copy();
+        normalized.setAmount(1);
+        return insertDirect(FluidStackKey.of(normalized), amount, simulate);
+    }
+
+    public long extractStoredFluid(int tank, long amount, boolean simulate) {
+        if (amount <= 0L) {
+            return 0L;
+        }
+        Map.Entry<FluidStackKey, Long> entry = entryAt(tank);
+        if (entry == null) {
+            return 0L;
+        }
+        long extracted = Math.min(amount, entry.getValue());
+        if (extracted > 0L && !simulate) {
+            removeStored(entry.getKey(), extracted);
+        }
+        return extracted;
     }
 
     public FluidStack drainForPlayer(FluidStack template, int amount, IFluidHandler.FluidAction action) {
@@ -343,7 +379,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
         contentIndex.clear();
     }
 
-    private long insertDirect(FluidStackKey key, long amount) {
+    private long insertDirect(FluidStackKey key, long amount, boolean simulate) {
         if (amount <= 0) {
             return 0L;
         }
@@ -352,12 +388,17 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (current <= 0 && contents.size() >= getTypeLimit()) {
             return 0L;
         }
-        long updated = Math.min(capacityPerType, saturatingAdd(current, amount));
-        if (updated != current) {
+        long space = Math.max(0L, capacityPerType - current);
+        long inserted = Math.min(space, amount);
+        if (inserted <= 0L) {
+            return 0L;
+        }
+        if (!simulate) {
+            long updated = current + inserted;
             contents.put(key, updated);
             markContentsChanged();
         }
-        return amount;
+        return inserted;
     }
 
     private void removeStored(FluidStackKey key, long amount) {

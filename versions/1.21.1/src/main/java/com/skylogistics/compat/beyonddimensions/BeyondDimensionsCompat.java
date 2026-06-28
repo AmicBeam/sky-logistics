@@ -5,12 +5,14 @@ import com.skylogistics.compat.EmptyExternalHandlers;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
@@ -35,6 +37,142 @@ public final class BeyondDimensionsCompat {
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
+        if (!isLoaded()) {
+            return ItemResource.EMPTY;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null) {
+                return ItemResource.EMPTY;
+            }
+            Object key = keyInBucket(storage, itemStackKeyClass(), slot);
+            if (key == null) {
+                return ItemResource.EMPTY;
+            }
+            Object outStack = Reflect.invoke(storage, "getOutStackByKey", key);
+            if (!(outStack instanceof ItemStack stack) || stack.isEmpty()) {
+                return ItemResource.EMPTY;
+            }
+            long amount = amount(Reflect.invoke(storage, "getStackByKey", key));
+            if (amount <= 0L) {
+                return ItemResource.EMPTY;
+            }
+            ItemStack copy = stack.copy();
+            copy.setCount((int) Math.min(Integer.MAX_VALUE, amount));
+            return new ItemResource(copy, amount);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return ItemResource.EMPTY;
+        }
+    }
+
+    public static FluidResource fluidResourceInTank(BlockEntity host, int tank) {
+        if (!isLoaded()) {
+            return FluidResource.EMPTY;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null) {
+                return FluidResource.EMPTY;
+            }
+            Object key = keyInBucket(storage, fluidStackKeyClass(), tank);
+            if (key == null) {
+                return FluidResource.EMPTY;
+            }
+            Object outStack = Reflect.invoke(storage, "getOutStackByKey", key);
+            if (!(outStack instanceof FluidStack stack) || stack.isEmpty()) {
+                return FluidResource.EMPTY;
+            }
+            long amount = amount(Reflect.invoke(storage, "getStackByKey", key));
+            if (amount <= 0L) {
+                return FluidResource.EMPTY;
+            }
+            FluidStack copy = stack.copy();
+            copy.setAmount((int) Math.min(Integer.MAX_VALUE, amount));
+            return new FluidResource(copy, amount);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return FluidResource.EMPTY;
+        }
+    }
+
+    public static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || stack.isEmpty() || amount <= 0L) {
+                return 0L;
+            }
+            ItemStack normalized = stack.copy();
+            normalized.setCount(1);
+            Object remainder = Reflect.invoke(storage, "insert", newItemKey(normalized), amount, simulate);
+            return insertedAmount(amount, remainder);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || stack.isEmpty() || amount <= 0L) {
+                return 0L;
+            }
+            ItemStack normalized = stack.copy();
+            normalized.setCount(1);
+            Object extracted = Reflect.invoke(storage, "extract", newItemKey(normalized), amount, simulate, false);
+            return amount(extracted);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || stack.isEmpty() || amount <= 0L) {
+                return 0L;
+            }
+            FluidStack normalized = stack.copy();
+            normalized.setAmount(1);
+            Object remainder = Reflect.invoke(storage, "insert", newFluidKey(normalized), amount, simulate);
+            return insertedAmount(amount, remainder);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || stack.isEmpty() || amount <= 0L) {
+                return 0L;
+            }
+            FluidStack normalized = stack.copy();
+            normalized.setAmount(1);
+            Object extracted = Reflect.invoke(storage, "extract", newFluidKey(normalized), amount, simulate, false);
+            return amount(extracted);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
     }
 
     public static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
@@ -156,6 +294,45 @@ public final class BeyondDimensionsCompat {
         return Class.forName("com.wintercogs.beyonddimensions.api.dimensionnet.DimensionsNet");
     }
 
+    private static Class<?> itemStackKeyClass() throws ClassNotFoundException {
+        return Class.forName("com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey");
+    }
+
+    private static Class<?> fluidStackKeyClass() throws ClassNotFoundException {
+        return Class.forName("com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey");
+    }
+
+    private static Object keyInBucket(Object storage, Class<?> keyType, int slot) throws ReflectiveOperationException {
+        Field id = keyType.getField("ID");
+        Object bucketId = id.get(null);
+        Object maybeBucket = Reflect.invoke(storage, "getBucket", bucketId);
+        if (!(maybeBucket instanceof Optional<?> optional) || optional.isEmpty()) {
+            return null;
+        }
+        Object bucket = optional.get();
+        int size = ((Number) Reflect.invoke(bucket, "size")).intValue();
+        return slot < 0 || slot >= size ? null : Reflect.invoke(bucket, "get", slot);
+    }
+
+    private static Object newItemKey(ItemStack stack) throws ReflectiveOperationException {
+        Constructor<?> constructor = itemStackKeyClass().getConstructor(ItemStack.class);
+        return constructor.newInstance(stack);
+    }
+
+    private static Object newFluidKey(FluidStack stack) throws ReflectiveOperationException {
+        Constructor<?> constructor = fluidStackKeyClass().getConstructor(FluidStack.class);
+        return constructor.newInstance(stack);
+    }
+
+    private static long insertedAmount(long requested, Object remainder) throws ReflectiveOperationException {
+        long leftover = amount(remainder);
+        return leftover >= requested ? 0L : requested - leftover;
+    }
+
+    private static long amount(Object keyAmount) throws ReflectiveOperationException {
+        return Math.max(0L, ((Number) Reflect.invoke(keyAmount, "amount")).longValue());
+    }
+
     private static IItemHandler itemHandler(BlockEntity host) {
         Object storage = storage(host);
         if (storage == null) {
@@ -207,6 +384,22 @@ public final class BeyondDimensionsCompat {
         void setDimensionNetworkId(int netId);
 
         void clearDimensionNetworkId();
+    }
+
+    public record ItemResource(ItemStack stack, long amount) {
+        public static final ItemResource EMPTY = new ItemResource(ItemStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
+    }
+
+    public record FluidResource(FluidStack stack, long amount) {
+        public static final FluidResource EMPTY = new FluidResource(FluidStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
     }
 
     private record ItemHandler(BlockEntity host) implements IItemHandler {
