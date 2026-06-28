@@ -806,9 +806,6 @@ public final class SkyNetworkRegistry {
         }
 
         public BlockEntity targetBlockEntity() {
-            if (node.usesSingleEndpoint()) {
-                return null;
-            }
             Level level = node.getLevel();
             if (level == null || !level.isLoaded(targetPos)) {
                 return null;
