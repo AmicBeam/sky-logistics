@@ -5,6 +5,10 @@ import java.util.List;
 import mekanism.api.Action;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.chemical.gas.GasStack;
+import mekanism.api.chemical.infuse.InfusionStack;
+import mekanism.api.chemical.pigment.PigmentStack;
+import mekanism.api.chemical.slurry.SlurryStack;
 import mekanism.common.capabilities.Capabilities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -75,19 +79,30 @@ final class MekanismChemicalCompat {
 
         @Override
         public long insertChemical(ChemicalStackView stack, boolean simulate) {
-            if (!(stack instanceof StackView view) || view.stack.isEmpty()) {
+            ChemicalStack<?> rawStack;
+            Kind rawKind;
+            if (stack instanceof StackView view) {
+                rawStack = view.stack;
+                rawKind = view.kind;
+            } else if (stack.rawStack() instanceof ChemicalStack<?> chemicalStack) {
+                rawStack = chemicalStack;
+                rawKind = kind(rawStack);
+            } else {
                 return 0L;
             }
-            long remaining = view.stack.getAmount();
+            if (rawKind == null || rawStack.isEmpty()) {
+                return 0L;
+            }
+            long remaining = rawStack.getAmount();
             for (Delegate delegate : delegates) {
-                if (delegate.kind != view.kind || remaining <= 0L) {
+                if (delegate.kind != rawKind || remaining <= 0L) {
                     continue;
                 }
-                ChemicalStack<?> inserted = view.copyStack(remaining);
+                ChemicalStack<?> inserted = copyStack(rawStack, remaining);
                 ChemicalStack<?> remainder = insertRaw(delegate.handler, inserted, action(simulate));
                 remaining = remainder.getAmount();
             }
-            return view.stack.getAmount() - remaining;
+            return rawStack.getAmount() - remaining;
         }
 
         private IndexedTank tank(int tank) {
@@ -106,6 +121,28 @@ final class MekanismChemicalCompat {
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static ChemicalStack<?> insertRaw(IChemicalHandler handler, ChemicalStack<?> stack, Action action) {
         return handler.insertChemical(stack, action);
+    }
+
+    private static Kind kind(ChemicalStack<?> stack) {
+        if (stack instanceof GasStack) {
+            return Kind.GAS;
+        }
+        if (stack instanceof InfusionStack) {
+            return Kind.INFUSION;
+        }
+        if (stack instanceof PigmentStack) {
+            return Kind.PIGMENT;
+        }
+        if (stack instanceof SlurryStack) {
+            return Kind.SLURRY;
+        }
+        return null;
+    }
+
+    private static ChemicalStack<?> copyStack(ChemicalStack<?> stack, long amount) {
+        ChemicalStack<?> copy = stack.copy();
+        copy.setAmount(amount);
+        return copy;
     }
 
     private record StackView(Kind kind, ChemicalStack<?> stack) implements ChemicalStackView {
@@ -129,7 +166,7 @@ final class MekanismChemicalCompat {
 
         @Override
         public ChemicalStackView copyWithAmount(long amount) {
-            return wrap(kind, copyStack(amount));
+            return wrap(kind, MekanismChemicalCompat.copyStack(stack, amount));
         }
 
         @Override
@@ -139,10 +176,9 @@ final class MekanismChemicalCompat {
                     && stack.getTypeRegistryName().equals(view.stack.getTypeRegistryName());
         }
 
-        private ChemicalStack<?> copyStack(long amount) {
-            ChemicalStack<?> copy = stack.copy();
-            copy.setAmount(amount);
-            return copy;
+        @Override
+        public Object rawStack() {
+            return stack.copy();
         }
 
         @Override

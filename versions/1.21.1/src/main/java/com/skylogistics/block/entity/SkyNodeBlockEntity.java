@@ -4,6 +4,8 @@ import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -468,6 +470,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return null;
     }
 
+    public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
         return null;
     }
@@ -640,6 +646,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean supportsFluids = hasFluidHandler(targetPos, accessSide)
                 || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
         boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide)
+                || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide))
                 || (SkyLogisticsConfig.allowEnergySourceTransfer() && hasSourceHandler(targetPos, accessSide));
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
@@ -673,6 +680,15 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
         IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
         return storage != null && isUsableEnergyStorage(storage);
+    }
+
+    private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
+        if (!SkyLogisticsConfig.allowEnergyManaTransfer() || !BotaniaCompat.isLoaded()) {
+            return false;
+        }
+        ManaHandlerBridge handler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
+        return handler != null
+                && (handler.canExtract() || handler.canReceive() || handler.getMaxMana() > 0);
     }
 
     private boolean hasSourceHandler(BlockPos targetPos, Direction accessSide) {

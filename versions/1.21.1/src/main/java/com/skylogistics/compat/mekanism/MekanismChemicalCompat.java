@@ -39,10 +39,18 @@ final class MekanismChemicalCompat {
 
         @Override
         public long insertChemical(ChemicalStackView stack, boolean simulate) {
-            if (!(stack instanceof StackView view) || view.stack.isEmpty()) {
+            ChemicalStack rawStack;
+            if (stack instanceof StackView view) {
+                rawStack = view.stack;
+            } else if (stack.rawStack() instanceof ChemicalStack chemicalStack) {
+                rawStack = chemicalStack;
+            } else {
                 return 0L;
             }
-            ChemicalStack inserted = view.stack.copy();
+            if (rawStack.isEmpty()) {
+                return 0L;
+            }
+            ChemicalStack inserted = rawStack.copy();
             ChemicalStack remainder = handler.insertChemical(inserted, action(simulate));
             return inserted.getAmount() - remainder.getAmount();
         }
@@ -71,6 +79,11 @@ final class MekanismChemicalCompat {
         @Override
         public boolean isSameChemical(ChemicalStackView other) {
             return other instanceof StackView view && ChemicalStack.isSameChemical(stack, view.stack);
+        }
+
+        @Override
+        public Object rawStack() {
+            return stack.copy();
         }
 
         @Override

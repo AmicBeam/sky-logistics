@@ -8,4 +8,8 @@ public interface ChemicalStackView {
     ChemicalStackView copyWithAmount(long amount);
 
     boolean isSameChemical(ChemicalStackView other);
+
+    default Object rawStack() {
+        return null;
+    }
 }

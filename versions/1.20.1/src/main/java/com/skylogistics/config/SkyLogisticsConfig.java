@@ -56,6 +56,22 @@ public final class SkyLogisticsConfig {
         return SERVER.allowEnergySourceTransfer.get();
     }
 
+    public static boolean allowAe2AppFluxEnergyTransfer() {
+        return SERVER.allowAe2AppFluxEnergyTransfer.get();
+    }
+
+    public static boolean allowAe2AppliedMekanisticsChemicalTransfer() {
+        return SERVER.allowAe2AppliedMekanisticsChemicalTransfer.get();
+    }
+
+    public static boolean allowAe2AppliedBotanicsManaTransfer() {
+        return SERVER.allowAe2AppliedBotanicsManaTransfer.get();
+    }
+
+    public static boolean allowAe2ArsEnergistiqueSourceTransfer() {
+        return SERVER.allowAe2ArsEnergistiqueSourceTransfer.get();
+    }
+
     public static int preferredItemSlotCacheSize() {
         return SERVER.preferredItemSlotCacheSize.get();
     }
@@ -88,6 +104,10 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue allowFluidChemicalTransfer;
         public final ForgeConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ForgeConfigSpec.BooleanValue allowEnergySourceTransfer;
+        public final ForgeConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
+        public final ForgeConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
+        public final ForgeConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
+        public final ForgeConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -127,6 +147,18 @@ public final class SkyLogisticsConfig {
             allowEnergySourceTransfer = builder
                     .comment("Whether energy-enabled logistics faces may also transfer Ars Nouveau source.")
                     .define("allowEnergySourceTransfer", true);
+            allowAe2AppFluxEnergyTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer AppFlux FE stored in AE2 networks.")
+                    .define("allowAe2AppFluxEnergyTransfer", true);
+            allowAe2AppliedMekanisticsChemicalTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Applied Mekanistics chemicals stored in AE2 networks.")
+                    .define("allowAe2AppliedMekanisticsChemicalTransfer", true);
+            allowAe2AppliedBotanicsManaTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Applied Botanics mana stored in AE2 networks.")
+                    .define("allowAe2AppliedBotanicsManaTransfer", true);
+            allowAe2ArsEnergistiqueSourceTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Ars Energistique source stored in AE2 networks.")
+                    .define("allowAe2ArsEnergistiqueSourceTransfer", true);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);

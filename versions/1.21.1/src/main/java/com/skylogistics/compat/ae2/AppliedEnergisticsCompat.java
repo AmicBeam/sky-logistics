@@ -3,6 +3,11 @@ package com.skylogistics.compat.ae2;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlocks;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Array;
@@ -24,6 +29,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -31,6 +37,16 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public final class AppliedEnergisticsCompat {
     private static final String AE2 = "ae2";
+    private static final String APPFLUX = "appflux";
+    private static final String APPMEK = "appmek";
+    private static final String APPBOT = "appbot";
+    private static final String ARSENG = "arseng";
+    private static final String FLUX_KEY_CLASS = "com.glodblock.github.appflux.common.me.key.FluxKey";
+    private static final String FLUX_ENERGY_TYPE_CLASS =
+            "com.glodblock.github.appflux.common.me.key.type.EnergyType";
+    private static final String MEKANISM_KEY_CLASS = "me.ramidzkh.mekae2.ae2.MekanismKey";
+    private static final String MANA_KEY_CLASS = "appbot.ae2.ManaKey";
+    private static final String SOURCE_KEY_CLASS = "gripe._90.arseng.me.key.SourceKey";
     private static boolean warned;
 
     private AppliedEnergisticsCompat() {
@@ -46,6 +62,70 @@ public final class AppliedEnergisticsCompat {
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
+        if (!canUseAppFlux()) {
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+        try {
+            return new EnergyHandler(host, appFluxEnergyKey());
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+    }
+
+    public static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
+        if (!canUseAppliedMekanistics()) {
+            return null;
+        }
+        try {
+            return new ChemicalHandler(host, Class.forName(MEKANISM_KEY_CLASS));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
+    public static ManaHandlerBridge createManaHandler(BlockEntity host) {
+        if (!canUseAppliedBotanics()) {
+            return null;
+        }
+        try {
+            return new ManaHandler(host, singletonKey(MANA_KEY_CLASS));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
+    public static SourceHandlerBridge createSourceHandler(BlockEntity host) {
+        if (!canUseArsEnergistique()) {
+            return null;
+        }
+        try {
+            return new SourceHandler(host, singletonKey(SOURCE_KEY_CLASS));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
+    public static boolean supportsEnergyEndpoint() {
+        return canUseAppFlux() || canUseAppliedBotanics() || canUseArsEnergistique();
+    }
+
+    public static boolean supportsChemicalEndpoint() {
+        return canUseAppliedMekanistics();
+    }
+
+    public static boolean supportsManaEndpoint() {
+        return canUseAppliedBotanics();
+    }
+
+    public static boolean supportsSourceEndpoint() {
+        return canUseArsEnergistique();
     }
 
     public static GridNodeHandle createGridNodeHandle(BlockEntity host) {
@@ -151,12 +231,123 @@ public final class AppliedEnergisticsCompat {
         return actionSource();
     }
 
+    private static boolean canUseAppFlux() {
+        return isLoaded() && SkyLogisticsConfig.allowAe2AppFluxEnergyTransfer()
+                && ModList.get().isLoaded(APPFLUX);
+    }
+
+    private static boolean canUseAppliedMekanistics() {
+        return isLoaded() && SkyLogisticsConfig.allowAe2AppliedMekanisticsChemicalTransfer()
+                && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                && ModList.get().isLoaded(APPMEK);
+    }
+
+    private static boolean canUseAppliedBotanics() {
+        return isLoaded() && SkyLogisticsConfig.allowAe2AppliedBotanicsManaTransfer()
+                && SkyLogisticsConfig.allowEnergyManaTransfer()
+                && ModList.get().isLoaded(APPBOT);
+    }
+
+    private static boolean canUseArsEnergistique() {
+        return isLoaded() && SkyLogisticsConfig.allowAe2ArsEnergistiqueSourceTransfer()
+                && SkyLogisticsConfig.allowEnergySourceTransfer()
+                && ModList.get().isLoaded(ARSENG);
+    }
+
+    private static Object appFluxEnergyKey() throws ReflectiveOperationException {
+        Object energyType = Reflect.staticField(FLUX_ENERGY_TYPE_CLASS, "FE");
+        return Reflect.invokeStatic(Class.forName(FLUX_KEY_CLASS), "of", energyType);
+    }
+
+    private static Object singletonKey(String className) throws ReflectiveOperationException {
+        return Reflect.staticField(className, "KEY");
+    }
+
+    private static long amountStored(Object storage, Object key) {
+        if (storage == null || key == null) {
+            return 0L;
+        }
+        try {
+            Object stacks = Reflect.invoke(storage, "getAvailableStacks");
+            if (!(stacks instanceof Iterable<?> iterable)) {
+                return 0L;
+            }
+            for (Object entry : iterable) {
+                Object entryKey = Reflect.invoke(entry, "getKey");
+                if (!key.equals(entryKey)) {
+                    continue;
+                }
+                Object amount = Reflect.invoke(entry, "getLongValue");
+                return amount instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
+            }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+        }
+        return 0L;
+    }
+
+    private static long insertKey(BlockEntity host, Object storage, Object key, long amount, boolean simulate) {
+        if (storage == null || key == null || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            Object inserted = Reflect.invoke(storage, "insert", key, amount, action(simulate), actionSource(host));
+            return inserted instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    private static long extractKey(BlockEntity host, Object storage, Object key, long amount, boolean simulate) {
+        if (storage == null || key == null || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            Object extracted = Reflect.invoke(storage, "extract", key, amount, action(simulate), actionSource(host));
+            return extracted instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    private static int clampInt(long amount) {
+        return amount <= 0L ? 0 : (int) Math.min(amount, Integer.MAX_VALUE);
+    }
+
     private static List<Entry> entries(Object storage, String keyClassName) {
         if (storage == null) {
             return List.of();
         }
         try {
             Class<?> keyClass = Class.forName(keyClassName);
+            Object stacks = Reflect.invoke(storage, "getAvailableStacks");
+            if (!(stacks instanceof Iterable<?> iterable)) {
+                return List.of();
+            }
+            List<Entry> entries = new ArrayList<>();
+            for (Object entry : iterable) {
+                Object key = Reflect.invoke(entry, "getKey");
+                Object amount = Reflect.invoke(entry, "getLongValue");
+                long count = amount instanceof Number number ? number.longValue() : 0L;
+                if (keyClass.isInstance(key) && count > 0L) {
+                    entries.add(new Entry(key, count));
+                }
+            }
+            entries.sort(Comparator.comparing(entry -> entry.key().toString()));
+            return entries;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return List.of();
+        }
+    }
+
+    private static List<Entry> entries(Object storage, Class<?> keyClass) {
+        if (storage == null) {
+            return List.of();
+        }
+        try {
             Object stacks = Reflect.invoke(storage, "getAvailableStacks");
             if (!(stacks instanceof Iterable<?> iterable)) {
                 return List.of();
@@ -206,6 +397,48 @@ public final class AppliedEnergisticsCompat {
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return FluidStack.EMPTY;
+        }
+    }
+
+    private static ChemicalStackView chemicalStack(Entry entry) {
+        return entry.amount() <= 0L ? EmptyChemicalStackView.INSTANCE
+                : new AeChemicalStackView(entry.key(), entry.amount());
+    }
+
+    private static Object chemicalKey(ChemicalStackView stack, Class<?> keyClass) {
+        if (stack instanceof AeChemicalStackView view && keyClass.isInstance(view.key)) {
+            return view.key;
+        }
+        return chemicalKey(stack.rawStack(), keyClass);
+    }
+
+    private static Object chemicalKey(Object rawStack, Class<?> keyClass) {
+        if (rawStack == null) {
+            return null;
+        }
+        try {
+            return Reflect.invokeStatic(keyClass, "of", rawStack);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
+    private static Object chemicalStackWithAmount(Object key, long amount) {
+        try {
+            return Reflect.invoke(key, "withAmount", amount);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            try {
+                Object stack = Reflect.invoke(key, "getStack");
+                Object copy = Reflect.invoke(stack, "copy");
+                if (!Reflect.tryInvoke(copy, "setAmount", amount)) {
+                    return null;
+                }
+                return copy;
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+                warn(error);
+                return null;
+            }
         }
     }
 
@@ -626,8 +859,218 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
+    private record EnergyHandler(BlockEntity host, Object key) implements IEnergyStorage {
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            return clampInt(insertKey(host, storage(host), key, maxReceive, simulate));
+        }
+
+        @Override
+        public int extractEnergy(int maxExtract, boolean simulate) {
+            return clampInt(extractKey(host, storage(host), key, maxExtract, simulate));
+        }
+
+        @Override
+        public int getEnergyStored() {
+            return clampInt(amountStored(storage(host), key));
+        }
+
+        @Override
+        public int getMaxEnergyStored() {
+            return canReceive() || getEnergyStored() > 0 ? Integer.MAX_VALUE : 0;
+        }
+
+        @Override
+        public boolean canExtract() {
+            Object storage = storage(host);
+            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+        }
+
+        @Override
+        public boolean canReceive() {
+            return insertKey(host, storage(host), key, 1L, true) > 0L;
+        }
+    }
+
+    private record ChemicalHandler(BlockEntity host, Class<?> keyClass) implements ChemicalHandlerBridge {
+        @Override
+        public int getTanks() {
+            return entries(storage(host), keyClass).size() + 1;
+        }
+
+        @Override
+        public ChemicalStackView getChemicalInTank(int tank) {
+            List<Entry> entries = entries(storage(host), keyClass);
+            return tank >= 0 && tank < entries.size()
+                    ? chemicalStack(entries.get(tank))
+                    : EmptyChemicalStackView.INSTANCE;
+        }
+
+        @Override
+        public ChemicalStackView extractChemical(int tank, long amount, boolean simulate) {
+            if (amount <= 0L) {
+                return EmptyChemicalStackView.INSTANCE;
+            }
+            Object storage = storage(host);
+            List<Entry> entries = entries(storage, keyClass);
+            if (tank < 0 || tank >= entries.size()) {
+                return EmptyChemicalStackView.INSTANCE;
+            }
+            Entry entry = entries.get(tank);
+            long requested = Math.min(entry.amount(), amount);
+            long extracted = extractKey(host, storage, entry.key(), requested, simulate);
+            return extracted <= 0L ? EmptyChemicalStackView.INSTANCE
+                    : new AeChemicalStackView(entry.key(), extracted);
+        }
+
+        @Override
+        public long insertChemical(ChemicalStackView stack, boolean simulate) {
+            if (stack == null || stack.isEmpty()) {
+                return 0L;
+            }
+            Object storage = storage(host);
+            Object key = chemicalKey(stack, keyClass);
+            long requested = stack.getAmount();
+            long inserted = insertKey(host, storage, key, requested, simulate);
+            return Math.min(inserted, requested);
+        }
+    }
+
+    private record ManaHandler(BlockEntity host, Object key) implements ManaHandlerBridge {
+        @Override
+        public int getCurrentMana() {
+            return clampInt(amountStored(storage(host), key));
+        }
+
+        @Override
+        public int getMaxMana() {
+            return canReceive() || getCurrentMana() > 0 ? Integer.MAX_VALUE : 0;
+        }
+
+        @Override
+        public boolean canExtract() {
+            Object storage = storage(host);
+            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+        }
+
+        @Override
+        public boolean canReceive() {
+            return insertKey(host, storage(host), key, 1L, true) > 0L;
+        }
+
+        @Override
+        public int extractMana(int amount, boolean simulate) {
+            return clampInt(extractKey(host, storage(host), key, amount, simulate));
+        }
+
+        @Override
+        public int insertMana(int amount, boolean simulate) {
+            return clampInt(insertKey(host, storage(host), key, amount, simulate));
+        }
+    }
+
+    private record SourceHandler(BlockEntity host, Object key) implements SourceHandlerBridge {
+        @Override
+        public int getCurrentSource() {
+            return clampInt(amountStored(storage(host), key));
+        }
+
+        @Override
+        public int getMaxSource() {
+            return canReceive() || getCurrentSource() > 0 ? Integer.MAX_VALUE : 0;
+        }
+
+        @Override
+        public boolean canExtract() {
+            Object storage = storage(host);
+            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+        }
+
+        @Override
+        public boolean canReceive() {
+            return insertKey(host, storage(host), key, 1L, true) > 0L;
+        }
+
+        @Override
+        public int extractSource(int amount, boolean simulate) {
+            return clampInt(extractKey(host, storage(host), key, amount, simulate));
+        }
+
+        @Override
+        public int insertSource(int amount, boolean simulate) {
+            return clampInt(insertKey(host, storage(host), key, amount, simulate));
+        }
+    }
+
+    private record AeChemicalStackView(Object key, long amount) implements ChemicalStackView {
+        @Override
+        public boolean isEmpty() {
+            return key == null || amount <= 0L;
+        }
+
+        @Override
+        public long getAmount() {
+            return Math.max(0L, amount);
+        }
+
+        @Override
+        public ChemicalStackView copyWithAmount(long amount) {
+            return amount <= 0L ? EmptyChemicalStackView.INSTANCE : new AeChemicalStackView(key, amount);
+        }
+
+        @Override
+        public boolean isSameChemical(ChemicalStackView other) {
+            if (other == null) {
+                return false;
+            }
+            if (other instanceof AeChemicalStackView view) {
+                return key.equals(view.key);
+            }
+            Object otherKey = chemicalKey(other.rawStack(), key.getClass());
+            return otherKey != null && key.equals(otherKey);
+        }
+
+        @Override
+        public Object rawStack() {
+            return chemicalStackWithAmount(key, amount);
+        }
+
+        @Override
+        public String toString() {
+            return key + " x " + amount;
+        }
+    }
+
+    private enum EmptyChemicalStackView implements ChemicalStackView {
+        INSTANCE;
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public long getAmount() {
+            return 0L;
+        }
+
+        @Override
+        public ChemicalStackView copyWithAmount(long amount) {
+            return this;
+        }
+
+        @Override
+        public boolean isSameChemical(ChemicalStackView other) {
+            return other != null && other.isEmpty();
+        }
+    }
+
     private static final class Reflect {
         private Reflect() {
+        }
+
+        static Object staticField(String className, String name) throws ReflectiveOperationException {
+            return Class.forName(className).getField(name).get(null);
         }
 
         static Object invoke(Object target, String name, Object... args) throws ReflectiveOperationException {

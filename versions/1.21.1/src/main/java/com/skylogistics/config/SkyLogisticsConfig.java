@@ -48,8 +48,28 @@ public final class SkyLogisticsConfig {
         return SERVER.allowFluidChemicalTransfer.get();
     }
 
+    public static boolean allowEnergyManaTransfer() {
+        return SERVER.allowEnergyManaTransfer.get();
+    }
+
     public static boolean allowEnergySourceTransfer() {
         return SERVER.allowEnergySourceTransfer.get();
+    }
+
+    public static boolean allowAe2AppFluxEnergyTransfer() {
+        return SERVER.allowAe2AppFluxEnergyTransfer.get();
+    }
+
+    public static boolean allowAe2AppliedMekanisticsChemicalTransfer() {
+        return SERVER.allowAe2AppliedMekanisticsChemicalTransfer.get();
+    }
+
+    public static boolean allowAe2AppliedBotanicsManaTransfer() {
+        return SERVER.allowAe2AppliedBotanicsManaTransfer.get();
+    }
+
+    public static boolean allowAe2ArsEnergistiqueSourceTransfer() {
+        return SERVER.allowAe2ArsEnergistiqueSourceTransfer.get();
     }
 
     public static int preferredItemSlotCacheSize() {
@@ -82,7 +102,12 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -116,9 +141,24 @@ public final class SkyLogisticsConfig {
             allowFluidChemicalTransfer = builder
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.")
                     .define("allowFluidChemicalTransfer", true);
+            allowEnergyManaTransfer = builder
+                    .comment("Whether energy-enabled logistics faces may also transfer Botania mana.")
+                    .define("allowEnergyManaTransfer", true);
             allowEnergySourceTransfer = builder
                     .comment("Whether energy-enabled logistics faces may also transfer Ars Nouveau source.")
                     .define("allowEnergySourceTransfer", true);
+            allowAe2AppFluxEnergyTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer AppFlux FE stored in AE2 networks.")
+                    .define("allowAe2AppFluxEnergyTransfer", true);
+            allowAe2AppliedMekanisticsChemicalTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Applied Mekanistics chemicals stored in AE2 networks.")
+                    .define("allowAe2AppliedMekanisticsChemicalTransfer", true);
+            allowAe2AppliedBotanicsManaTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Applied Botanics mana stored in AE2 networks.")
+                    .define("allowAe2AppliedBotanicsManaTransfer", true);
+            allowAe2ArsEnergistiqueSourceTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Ars Energistique source stored in AE2 networks.")
+                    .define("allowAe2ArsEnergistiqueSourceTransfer", true);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
