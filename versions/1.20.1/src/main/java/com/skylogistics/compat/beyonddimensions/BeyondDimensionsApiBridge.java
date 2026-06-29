@@ -12,6 +12,7 @@ import com.wintercogs.beyonddimensions.api.storage.handler.impl.AbstractUnordere
 import com.wintercogs.beyonddimensions.api.storage.key.IStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.KeyAmount;
 import com.wintercogs.beyonddimensions.api.util.CapCtx;
+import com.wintercogs.beyonddimensions.api.storage.key.impl.EnergyStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey;
 import java.lang.reflect.Constructor;
@@ -136,6 +137,29 @@ final class BeyondDimensionsApiBridge {
         FluidStack normalized = stack.copy();
         normalized.setAmount(1);
         KeyAmount extracted = storage.extract(new FluidStackKey(normalized), amount, simulate, false);
+        return Math.max(0L, extracted.amount());
+    }
+
+    static long energyStored(BlockEntity host) {
+        UnifiedStorage storage = storage(host);
+        return storage == null ? 0L : Math.max(0L, storage.getStackByKey(EnergyStackKey.INSTANCE).amount());
+    }
+
+    static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || amount <= 0L) {
+            return 0L;
+        }
+        KeyAmount remainder = storage.insert(EnergyStackKey.INSTANCE, amount, simulate);
+        return insertedAmount(amount, remainder);
+    }
+
+    static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || amount <= 0L) {
+            return 0L;
+        }
+        KeyAmount extracted = storage.extract(EnergyStackKey.INSTANCE, amount, simulate, false);
         return Math.max(0L, extracted.amount());
     }
 

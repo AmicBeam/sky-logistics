@@ -1026,6 +1026,8 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
+        LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
+        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1052,6 +1054,22 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 operations++;
+                LongEnergyEndpoint targetLongEndpoint = sourceLongEndpoint == null ? null
+                        : longEnergyEndpoint(targetEndpoint);
+                if (targetLongEndpoint != null) {
+                    long moved = moveLongEnergy(sourceEndpoint, sourceLongEndpoint, targetEndpoint,
+                            targetLongEndpoint, skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordEnergySuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordEnergyFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordEnergyFailure(gameTime);
+                    continue;
+                }
                 IEnergyStorage target = targetEndpoint.energyHandler(gameTime);
                 if (target == null) {
                     continue;
@@ -1087,6 +1105,80 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordEnergyFailure(gameTime);
         }
         return new MoveResult(false, operations);
+    }
+
+    private static LongEnergyEndpoint longEnergyEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            return new DimensionEnergyLongEndpoint(blockEntity);
+        }
+        return null;
+    }
+
+    private static long moveLongEnergy(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceEndpointLong,
+            CachedEndpoint targetEndpoint, LongEnergyEndpoint targetEndpointLong, long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
+            return 0L;
+        }
+        long stored = sourceEndpointLong.energyStored();
+        if (stored <= 0L) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, stored);
+        long accepted = targetEndpointLong.insertEnergy(requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        long extracted = sourceEndpointLong.extractEnergy(accepted, false);
+        if (extracted <= 0L) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insertEnergy(extracted, false);
+        if (inserted < extracted) {
+            long rollback = extracted - inserted;
+            long rolledBack = sourceEndpointLong.insertEnergy(rollback, false);
+            if (rolledBack < rollback) {
+                SkyLogistics.LOGGER.warn(
+                        "Energy rollback failed after simulated long energy insertion changed during transfer. Source node {} face {}, target node {} face {}, extracted {} energy, inserted {} energy, rollback remainder {} energy",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private interface LongEnergyEndpoint {
+        long energyStored();
+
+        long insertEnergy(long amount, boolean simulate);
+
+        long extractEnergy(long amount, boolean simulate);
+
+        boolean sameStorage(LongEnergyEndpoint other);
+    }
+
+    private record DimensionEnergyLongEndpoint(BlockEntity blockEntity) implements LongEnergyEndpoint {
+        @Override
+        public long energyStored() {
+            return BeyondDimensionsCompat.energyStored(blockEntity);
+        }
+
+        @Override
+        public long insertEnergy(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.insertEnergy(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public long extractEnergy(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.extractEnergy(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongEnergyEndpoint other) {
+            return other instanceof DimensionEnergyLongEndpoint endpoint
+                    && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
     }
 
     private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,

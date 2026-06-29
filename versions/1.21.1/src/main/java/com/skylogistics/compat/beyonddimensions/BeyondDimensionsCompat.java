@@ -180,6 +180,53 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    public static long energyStored(BlockEntity host) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            return storage == null ? 0L : amount(Reflect.invoke(storage, "getStackByKey", energyStackKey()));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || amount <= 0L) {
+                return 0L;
+            }
+            Object remainder = Reflect.invoke(storage, "insert", energyStackKey(), amount, simulate);
+            return insertedAmount(amount, remainder);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || amount <= 0L) {
+                return 0L;
+            }
+            Object extracted = Reflect.invoke(storage, "extract", energyStackKey(), amount, simulate, false);
+            return amount(extracted);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
     public static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
         if (!isLoaded() || level.isClientSide || !(placer instanceof Player player)) {
             return;
@@ -305,6 +352,14 @@ public final class BeyondDimensionsCompat {
 
     private static Class<?> fluidStackKeyClass() throws ClassNotFoundException {
         return Class.forName("com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey");
+    }
+
+    private static Class<?> energyStackKeyClass() throws ClassNotFoundException {
+        return Class.forName("com.wintercogs.beyonddimensions.api.storage.key.impl.EnergyStackKey");
+    }
+
+    private static Object energyStackKey() throws ReflectiveOperationException {
+        return energyStackKeyClass().getField("INSTANCE").get(null);
     }
 
     private static Object keyInBucket(Object storage, Class<?> keyType, int slot) throws ReflectiveOperationException {

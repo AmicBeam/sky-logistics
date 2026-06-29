@@ -173,6 +173,42 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    public static long energyStored(BlockEntity host) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.energyStored(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.insertEnergy(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.extractEnergy(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
     private static void warn(Throwable error) {
         if (!warned) {
             warned = true;
