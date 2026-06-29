@@ -2,8 +2,6 @@ package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
-import com.skylogistics.compat.botania.BotaniaCompat;
-import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.item.ConfiguratorItem;
@@ -467,10 +465,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return null;
     }
 
-    public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
     protected boolean forceSingleEndpointState(Direction endpoint, NodeFaceMode fallbackMode, boolean energyAllowed) {
         boolean changed = false;
         NodeFaceMode endpointMode = getFaceMode(endpoint);
@@ -637,7 +631,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         Direction accessSide = getAccessSide(direction);
         boolean supportsItems = hasItemHandler(targetPos, accessSide);
         boolean supportsFluids = hasFluidHandler(targetPos, accessSide) || hasChemicalHandler(targetPos, accessSide);
-        boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide) || hasManaHandler(targetPos, accessSide);
+        boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide);
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
                 && isEnergyEnabled(direction) == supportsEnergy) {
@@ -670,14 +664,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
         IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
         return storage != null && isUsableEnergyStorage(storage);
-    }
-
-    private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
-        if (!BotaniaCompat.isLoaded()) {
-            return false;
-        }
-        ManaHandlerBridge handler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
-        return handler != null && (handler.canExtract() || handler.canReceive() || handler.getMaxMana() > 0);
     }
 
     private static boolean isUsableEnergyStorage(IEnergyStorage storage) {

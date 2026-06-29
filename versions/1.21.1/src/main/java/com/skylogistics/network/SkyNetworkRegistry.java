@@ -1,8 +1,6 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
-import com.skylogistics.compat.botania.BotaniaCompat;
-import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -740,18 +738,14 @@ public final class SkyNetworkRegistry {
         private ChemicalHandlerBridge chemicalHandler;
         private BlockEntity chemicalTarget;
         private IEnergyStorage energyHandler;
-        private ManaHandlerBridge manaHandler;
-        private BlockEntity manaTarget;
         private long itemRetryAfter;
         private long fluidRetryAfter;
         private long chemicalRetryAfter;
         private long energyRetryAfter;
-        private long manaRetryAfter;
         private int itemFailures;
         private int fluidFailures;
         private int chemicalFailures;
         private int energyFailures;
-        private int manaFailures;
         private int itemSourceMisses;
         private int fluidSourceMisses;
         private int chemicalSourceMisses;
@@ -837,10 +831,6 @@ public final class SkyNetworkRegistry {
             return gameTime >= energyRetryAfter;
         }
 
-        public boolean canTryMana(long gameTime) {
-            return gameTime >= manaRetryAfter;
-        }
-
         public long nextItemWake(long gameTime) {
             return itemRetryAfter > gameTime ? itemRetryAfter : gameTime;
         }
@@ -855,10 +845,6 @@ public final class SkyNetworkRegistry {
 
         public long nextEnergyWake(long gameTime) {
             return energyRetryAfter > gameTime ? energyRetryAfter : gameTime;
-        }
-
-        public long nextManaWake(long gameTime) {
-            return manaRetryAfter > gameTime ? manaRetryAfter : gameTime;
         }
 
         public IItemHandler itemHandler(long gameTime) {
@@ -961,36 +947,6 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
             }
             return energyHandler;
-        }
-
-        public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!canTryMana(gameTime) || !BotaniaCompat.isLoaded()) {
-                return null;
-            }
-            ManaHandlerBridge direct = node.getEndpointManaHandler(direction, gameTime);
-            if (direct != null) {
-                return direct;
-            }
-            Level level = node.getLevel();
-            if (level == null || !level.isLoaded(targetPos)) {
-                recordManaFailure(gameTime);
-                return null;
-            }
-            BlockEntity target = level.getBlockEntity(targetPos);
-            if (target == null) {
-                recordManaFailure(gameTime);
-                return null;
-            }
-            if (manaHandler != null && manaTarget == target) {
-                return manaHandler;
-            }
-            clearManaCache();
-            manaTarget = target;
-            manaHandler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
-            if (manaHandler == null) {
-                recordManaFailure(gameTime);
-            }
-            return manaHandler;
         }
 
         public void recordItemSuccess() {
@@ -1406,16 +1362,6 @@ public final class SkyNetworkRegistry {
             energyRetryAfter = gameTime + delay(energyFailures);
         }
 
-        public void recordManaSuccess() {
-            manaFailures = 0;
-            manaRetryAfter = 0L;
-        }
-
-        public void recordManaFailure(long gameTime) {
-            manaFailures = Math.min(manaFailures + 1, 8);
-            manaRetryAfter = gameTime + delay(manaFailures);
-        }
-
         private BlockCapabilityCache<IItemHandler, Direction> itemCapabilityCache(Level level) {
             if (!(level instanceof ServerLevel serverLevel)) {
                 return null;
@@ -1494,11 +1440,6 @@ public final class SkyNetworkRegistry {
 
         private void clearEnergyCache() {
             energyHandler = null;
-        }
-
-        private void clearManaCache() {
-            manaHandler = null;
-            manaTarget = null;
         }
 
         private void clearRejectedItems() {
