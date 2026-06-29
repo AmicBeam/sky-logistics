@@ -17,6 +17,10 @@ final class MekanismChemicalCompat {
         return handler == null ? null : new Handler(handler);
     }
 
+    static ChemicalHandlerBridge wrapChemicalHandler(Object handler) {
+        return handler instanceof IChemicalHandler chemicalHandler ? new Handler(chemicalHandler) : null;
+    }
+
     private static Action action(boolean simulate) {
         return simulate ? Action.SIMULATE : Action.EXECUTE;
     }

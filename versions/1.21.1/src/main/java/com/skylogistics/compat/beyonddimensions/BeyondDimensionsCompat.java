@@ -4,6 +4,10 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -40,6 +44,10 @@ public final class BeyondDimensionsCompat {
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    public static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
+        return isLoaded() && MekanismCompat.isLoaded() ? new ChemicalHandler(host) : null;
     }
 
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {
@@ -530,12 +538,83 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    private static ChemicalHandlerBridge chemicalHandler(BlockEntity host) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer()
+                || !SkyLogisticsConfig.allowBeyondDimensionsMekanismChemicalTransfer()
+                || !MekanismCompat.isLoaded()) {
+            return null;
+        }
+        Object storage = storage(host);
+        if (storage == null) {
+            return null;
+        }
+        try {
+            Class<?> type = Class.forName(
+                    "com.wintercogs.beyonddimensions.integration.module.mekanism.storage.ChemicalUnifiedStorageHandler");
+            Constructor<?> constructor = type.getConstructor(unifiedStorageClass());
+            return MekanismCompat.wrapChemicalHandler(constructor.newInstance(storage));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
     private static void warn(Throwable error) {
         if (!warned) {
             warned = true;
             SkyLogistics.LOGGER.warn(
                     "Beyond Dimensions compat is disabled because the loaded Beyond Dimensions API is not compatible.",
                     error);
+        }
+    }
+
+    private record ChemicalHandler(BlockEntity host) implements ChemicalHandlerBridge {
+        @Override
+        public int getTanks() {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? 0 : handler.getTanks();
+        }
+
+        @Override
+        public ChemicalStackView getChemicalInTank(int tank) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? EmptyChemicalStackView.INSTANCE : handler.getChemicalInTank(tank);
+        }
+
+        @Override
+        public ChemicalStackView extractChemical(int tank, long amount, boolean simulate) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? EmptyChemicalStackView.INSTANCE : handler.extractChemical(tank, amount, simulate);
+        }
+
+        @Override
+        public long insertChemical(ChemicalStackView stack, boolean simulate) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? 0L : handler.insertChemical(stack, simulate);
+        }
+    }
+
+    private enum EmptyChemicalStackView implements ChemicalStackView {
+        INSTANCE;
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public long getAmount() {
+            return 0L;
+        }
+
+        @Override
+        public ChemicalStackView copyWithAmount(long amount) {
+            return this;
+        }
+
+        @Override
+        public boolean isSameChemical(ChemicalStackView other) {
+            return other != null && other.isEmpty();
         }
     }
 

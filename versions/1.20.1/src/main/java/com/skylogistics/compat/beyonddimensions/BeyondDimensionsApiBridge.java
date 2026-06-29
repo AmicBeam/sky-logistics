@@ -5,6 +5,10 @@ import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.FluidUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.ItemUnifiedStorageHandler;
@@ -20,6 +24,10 @@ import com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey;
 import com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceStackKey;
 import com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.integration.module.botania.storage.ManaStackKey;
+import com.wintercogs.beyonddimensions.integration.module.mekanism.storage.GasUnifiedStorageHandler;
+import com.wintercogs.beyonddimensions.integration.module.mekanism.storage.InfusionUnifiedStorageHandler;
+import com.wintercogs.beyonddimensions.integration.module.mekanism.storage.PigmentUnifiedStorageHandler;
+import com.wintercogs.beyonddimensions.integration.module.mekanism.storage.SlurryUnifiedStorageHandler;
 import java.lang.reflect.Constructor;
 import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
@@ -47,6 +55,10 @@ final class BeyondDimensionsApiBridge {
 
     static IFluidHandler createFluidHandler(BlockEntity host) {
         return new FluidHandler(host);
+    }
+
+    static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
+        return new ChemicalHandler(host);
     }
 
     static IEnergyStorage createEnergyHandler(BlockEntity host) {
@@ -286,6 +298,20 @@ final class BeyondDimensionsApiBridge {
         return storage == null ? EmptyExternalHandlers.Fluids.INSTANCE : new FluidUnifiedStorageHandler(storage);
     }
 
+    private static ChemicalHandlerBridge chemicalHandler(BlockEntity host) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer()
+                || !SkyLogisticsConfig.allowBeyondDimensionsMekanismChemicalTransfer()
+                || !MekanismCompat.isLoaded()) {
+            return null;
+        }
+        UnifiedStorage storage = storage(host);
+        return storage == null ? null : MekanismCompat.wrapChemicalHandlers(
+                new GasUnifiedStorageHandler(storage),
+                new InfusionUnifiedStorageHandler(storage),
+                new PigmentUnifiedStorageHandler(storage),
+                new SlurryUnifiedStorageHandler(storage));
+    }
+
     private static IEnergyStorage energyHandler(BlockEntity host) {
         UnifiedStorage storage = storage(host);
         return storage == null ? EmptyExternalHandlers.Energy.INSTANCE : new EnergyUnifiedStorageHandler(storage);
@@ -427,6 +453,56 @@ final class BeyondDimensionsApiBridge {
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
             return fluidHandler(host).drain(maxDrain, action);
+        }
+    }
+
+    private record ChemicalHandler(BlockEntity host) implements ChemicalHandlerBridge {
+        @Override
+        public int getTanks() {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? 0 : handler.getTanks();
+        }
+
+        @Override
+        public ChemicalStackView getChemicalInTank(int tank) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? EmptyChemicalStackView.INSTANCE : handler.getChemicalInTank(tank);
+        }
+
+        @Override
+        public ChemicalStackView extractChemical(int tank, long amount, boolean simulate) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? EmptyChemicalStackView.INSTANCE : handler.extractChemical(tank, amount, simulate);
+        }
+
+        @Override
+        public long insertChemical(ChemicalStackView stack, boolean simulate) {
+            ChemicalHandlerBridge handler = chemicalHandler(host);
+            return handler == null ? 0L : handler.insertChemical(stack, simulate);
+        }
+    }
+
+    private enum EmptyChemicalStackView implements ChemicalStackView {
+        INSTANCE;
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public long getAmount() {
+            return 0L;
+        }
+
+        @Override
+        public ChemicalStackView copyWithAmount(long amount) {
+            return this;
+        }
+
+        @Override
+        public boolean isSameChemical(ChemicalStackView other) {
+            return other != null && other.isEmpty();
         }
     }
 

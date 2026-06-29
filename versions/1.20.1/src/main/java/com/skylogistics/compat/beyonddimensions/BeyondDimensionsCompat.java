@@ -6,6 +6,8 @@ import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -50,6 +52,18 @@ public final class BeyondDimensionsCompat {
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
+        }
+    }
+
+    public static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
+        if (!isLoaded() || !MekanismCompat.isLoaded()) {
+            return null;
+        }
+        try {
+            return BeyondDimensionsApiBridge.createChemicalHandler(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
         }
     }
 

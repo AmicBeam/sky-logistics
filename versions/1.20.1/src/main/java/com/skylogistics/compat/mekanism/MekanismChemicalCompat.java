@@ -6,8 +6,12 @@ import mekanism.api.Action;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalHandler;
 import mekanism.api.chemical.gas.GasStack;
+import mekanism.api.chemical.gas.IGasHandler;
 import mekanism.api.chemical.infuse.InfusionStack;
+import mekanism.api.chemical.infuse.IInfusionHandler;
 import mekanism.api.chemical.pigment.PigmentStack;
+import mekanism.api.chemical.pigment.IPigmentHandler;
+import mekanism.api.chemical.slurry.ISlurryHandler;
 import mekanism.api.chemical.slurry.SlurryStack;
 import mekanism.common.capabilities.Capabilities;
 import net.minecraft.core.BlockPos;
@@ -36,6 +40,20 @@ final class MekanismChemicalCompat {
         return delegates.isEmpty() ? null : new Handler(delegates);
     }
 
+    static ChemicalHandlerBridge wrapChemicalHandlers(Object... handlers) {
+        List<Delegate> delegates = new ArrayList<>(handlers.length);
+        for (Object handler : handlers) {
+            if (!(handler instanceof IChemicalHandler chemicalHandler)) {
+                continue;
+            }
+            Kind kind = kindForHandler(handler);
+            if (kind != null) {
+                delegates.add(new Delegate(kind, chemicalHandler));
+            }
+        }
+        return delegates.isEmpty() ? null : new Handler(delegates);
+    }
+
     private static Action action(boolean simulate) {
         return simulate ? Action.SIMULATE : Action.EXECUTE;
     }
@@ -45,6 +63,22 @@ final class MekanismChemicalCompat {
         INFUSION,
         PIGMENT,
         SLURRY
+    }
+
+    private static Kind kindForHandler(Object handler) {
+        if (handler instanceof IGasHandler) {
+            return Kind.GAS;
+        }
+        if (handler instanceof IInfusionHandler) {
+            return Kind.INFUSION;
+        }
+        if (handler instanceof IPigmentHandler) {
+            return Kind.PIGMENT;
+        }
+        if (handler instanceof ISlurryHandler) {
+            return Kind.SLURRY;
+        }
+        return null;
     }
 
     private record Delegate(Kind kind, IChemicalHandler handler) {

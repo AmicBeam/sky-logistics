@@ -21,4 +21,11 @@ public final class MekanismCompat {
         }
         return MekanismChemicalCompat.chemicalHandler(level, pos, side);
     }
+
+    public static ChemicalHandlerBridge wrapChemicalHandlers(Object... handlers) {
+        if (!isLoaded()) {
+            return null;
+        }
+        return MekanismChemicalCompat.wrapChemicalHandlers(handlers);
+    }
 }

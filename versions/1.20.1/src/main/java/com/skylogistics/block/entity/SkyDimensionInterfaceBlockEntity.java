@@ -3,6 +3,7 @@ package com.skylogistics.block.entity;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,6 +20,7 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
 
     private final IItemHandler itemHandler = BeyondDimensionsCompat.createItemHandler(this);
     private final IFluidHandler fluidHandler = BeyondDimensionsCompat.createFluidHandler(this);
+    private final ChemicalHandlerBridge chemicalHandler = BeyondDimensionsCompat.createChemicalHandler(this);
     private final IEnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
     private final ManaHandlerBridge manaHandler = BeyondDimensionsCompat.createManaHandler(this);
     private final SourceHandlerBridge sourceHandler = BeyondDimensionsCompat.createSourceHandler(this);
@@ -41,6 +43,11 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     @Override
     protected IEnergyStorage getEnergyHandler() {
         return energyHandler;
+    }
+
+    @Override
+    public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION ? chemicalHandler : null;
     }
 
     @Override
