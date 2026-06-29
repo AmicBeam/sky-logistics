@@ -2,6 +2,8 @@ package com.skylogistics.compat.beyonddimensions;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import net.minecraft.core.BlockPos;
@@ -69,6 +71,18 @@ public final class BeyondDimensionsCompat {
         }
         try {
             return BeyondDimensionsApiBridge.createManaHandler(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
+    public static SourceHandlerBridge createSourceHandler(BlockEntity host) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return null;
+        }
+        try {
+            return BeyondDimensionsApiBridge.createSourceHandler(host);
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return null;
@@ -203,6 +217,78 @@ public final class BeyondDimensionsCompat {
         }
         try {
             return BeyondDimensionsApiBridge.extractEnergy(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long manaStored(BlockEntity host) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.manaStored(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertMana(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.insertMana(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractMana(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.extractMana(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long sourceStored(BlockEntity host) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.sourceStored(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertSource(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.insertSource(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractSource(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.extractSource(host, amount, simulate);
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return 0L;

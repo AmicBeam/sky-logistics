@@ -1235,6 +1235,8 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
+        LongManaEndpoint sourceLongEndpoint = longManaEndpoint(sourceEndpoint);
+        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1261,6 +1263,22 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 operations++;
+                LongManaEndpoint targetLongEndpoint = sourceLongEndpoint == null ? null
+                        : longManaEndpoint(targetEndpoint);
+                if (targetLongEndpoint != null) {
+                    long moved = moveLongMana(sourceEndpoint, sourceLongEndpoint, targetEndpoint, targetLongEndpoint,
+                            skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordManaSuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordManaFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordManaFailure(gameTime);
+                    continue;
+                }
                 ManaHandlerBridge target = targetEndpoint.manaHandler(gameTime);
                 if (target == null) {
                     continue;
@@ -1298,6 +1316,80 @@ public final class SkyNetworkTicker {
         return new MoveResult(false, operations);
     }
 
+    private static LongManaEndpoint longManaEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            return new DimensionManaLongEndpoint(blockEntity);
+        }
+        return null;
+    }
+
+    private static long moveLongMana(CachedEndpoint sourceEndpoint, LongManaEndpoint sourceEndpointLong,
+            CachedEndpoint targetEndpoint, LongManaEndpoint targetEndpointLong, long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
+            return 0L;
+        }
+        long stored = sourceEndpointLong.manaStored();
+        if (stored <= 0L) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, stored);
+        long accepted = targetEndpointLong.insertMana(requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        long extracted = sourceEndpointLong.extractMana(accepted, false);
+        if (extracted <= 0L) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insertMana(extracted, false);
+        if (inserted < extracted) {
+            long rollback = extracted - inserted;
+            long rolledBack = sourceEndpointLong.insertMana(rollback, false);
+            if (rolledBack < rollback) {
+                SkyLogistics.LOGGER.warn(
+                        "Mana rollback failed after simulated long mana insertion changed during transfer. Source node {} face {}, target node {} face {}, extracted {} mana, inserted {} mana, rollback remainder {} mana",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private interface LongManaEndpoint {
+        long manaStored();
+
+        long insertMana(long amount, boolean simulate);
+
+        long extractMana(long amount, boolean simulate);
+
+        boolean sameStorage(LongManaEndpoint other);
+    }
+
+    private record DimensionManaLongEndpoint(BlockEntity blockEntity) implements LongManaEndpoint {
+        @Override
+        public long manaStored() {
+            return BeyondDimensionsCompat.manaStored(blockEntity);
+        }
+
+        @Override
+        public long insertMana(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.insertMana(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public long extractMana(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.extractMana(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongManaEndpoint other) {
+            return other instanceof DimensionManaLongEndpoint endpoint
+                    && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
+    }
+
     private static int transferSource(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
         if (!canTransferSource() || budget <= 0) {
@@ -1326,6 +1418,8 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
+        LongSourceEndpoint sourceLongEndpoint = longSourceEndpoint(sourceEndpoint);
+        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1352,6 +1446,22 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 operations++;
+                LongSourceEndpoint targetLongEndpoint = sourceLongEndpoint == null ? null
+                        : longSourceEndpoint(targetEndpoint);
+                if (targetLongEndpoint != null) {
+                    long moved = moveLongSource(sourceEndpoint, sourceLongEndpoint, targetEndpoint,
+                            targetLongEndpoint, skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordSourceSuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordSourceFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordSourceFailure(gameTime);
+                    continue;
+                }
                 SourceHandlerBridge target = targetEndpoint.sourceHandler(gameTime);
                 if (target == null) {
                     continue;
@@ -1387,6 +1497,80 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordSourceFailure(gameTime);
         }
         return new MoveResult(false, operations);
+    }
+
+    private static LongSourceEndpoint longSourceEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            return new DimensionSourceLongEndpoint(blockEntity);
+        }
+        return null;
+    }
+
+    private static long moveLongSource(CachedEndpoint sourceEndpoint, LongSourceEndpoint sourceEndpointLong,
+            CachedEndpoint targetEndpoint, LongSourceEndpoint targetEndpointLong, long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
+            return 0L;
+        }
+        long stored = sourceEndpointLong.sourceStored();
+        if (stored <= 0L) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, stored);
+        long accepted = targetEndpointLong.insertSource(requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        long extracted = sourceEndpointLong.extractSource(accepted, false);
+        if (extracted <= 0L) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insertSource(extracted, false);
+        if (inserted < extracted) {
+            long rollback = extracted - inserted;
+            long rolledBack = sourceEndpointLong.insertSource(rollback, false);
+            if (rolledBack < rollback) {
+                SkyLogistics.LOGGER.warn(
+                        "Source rollback failed after simulated long source insertion changed during transfer. Source node {} face {}, target node {} face {}, extracted {} source, inserted {} source, rollback remainder {} source",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private interface LongSourceEndpoint {
+        long sourceStored();
+
+        long insertSource(long amount, boolean simulate);
+
+        long extractSource(long amount, boolean simulate);
+
+        boolean sameStorage(LongSourceEndpoint other);
+    }
+
+    private record DimensionSourceLongEndpoint(BlockEntity blockEntity) implements LongSourceEndpoint {
+        @Override
+        public long sourceStored() {
+            return BeyondDimensionsCompat.sourceStored(blockEntity);
+        }
+
+        @Override
+        public long insertSource(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.insertSource(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public long extractSource(long amount, boolean simulate) {
+            return BeyondDimensionsCompat.extractSource(blockEntity, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongSourceEndpoint other) {
+            return other instanceof DimensionSourceLongEndpoint endpoint
+                    && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
     }
 
     private static int priorityGroupEnd(List<CachedEndpoint> targets, int groupStart) {

@@ -2,6 +2,8 @@ package com.skylogistics.compat.beyonddimensions;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -42,6 +44,10 @@ public final class BeyondDimensionsCompat {
 
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {
         return isLoaded() ? new EnergyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
+    }
+
+    public static SourceHandlerBridge createSourceHandler(BlockEntity host) {
+        return isLoaded() && ArsNouveauCompat.isLoaded() ? new SourceHandler(host) : null;
     }
 
     public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -227,6 +233,53 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    public static long sourceStored(BlockEntity host) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            return storage == null ? 0L : amount(Reflect.invoke(storage, "getStackByKey", sourceStackKey()));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertSource(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || amount <= 0L) {
+                return 0L;
+            }
+            Object remainder = Reflect.invoke(storage, "insert", sourceStackKey(), amount, simulate);
+            return insertedAmount(amount, remainder);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractSource(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+            return 0L;
+        }
+        try {
+            Object storage = storage(host);
+            if (storage == null || amount <= 0L) {
+                return 0L;
+            }
+            Object extracted = Reflect.invoke(storage, "extract", sourceStackKey(), amount, simulate, false);
+            return amount(extracted);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
     public static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
         if (!isLoaded() || level.isClientSide || !(placer instanceof Player player)) {
             return;
@@ -358,8 +411,20 @@ public final class BeyondDimensionsCompat {
         return Class.forName("com.wintercogs.beyonddimensions.api.storage.key.impl.EnergyStackKey");
     }
 
+    private static Class<?> sourceStackKeyClass() throws ClassNotFoundException {
+        return Class.forName("com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceStackKey");
+    }
+
+    private static Class<?> unifiedStorageClass() throws ClassNotFoundException {
+        return Class.forName("com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage");
+    }
+
     private static Object energyStackKey() throws ReflectiveOperationException {
         return energyStackKeyClass().getField("INSTANCE").get(null);
+    }
+
+    private static Object sourceStackKey() throws ReflectiveOperationException {
+        return sourceStackKeyClass().getField("INSTANCE").get(null);
     }
 
     private static Object keyInBucket(Object storage, Class<?> keyType, int slot) throws ReflectiveOperationException {
@@ -437,13 +502,31 @@ public final class BeyondDimensionsCompat {
         try {
             Class<?> type = Class.forName(
                     "com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler");
-            Constructor<?> constructor = type.getConstructor(Class.forName(
-                    "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
+            Constructor<?> constructor = type.getConstructor(unifiedStorageClass());
             Object handler = constructor.newInstance(storage);
             return handler instanceof IEnergyStorage energyHandler ? energyHandler : EmptyExternalHandlers.Energy.INSTANCE;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+    }
+
+    private static SourceHandlerBridge sourceHandler(BlockEntity host) {
+        if (!ArsNouveauCompat.isLoaded()) {
+            return null;
+        }
+        Object storage = storage(host);
+        if (storage == null) {
+            return null;
+        }
+        try {
+            Class<?> type = Class.forName(
+                    "com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceUnifiedStorageHandler");
+            Constructor<?> constructor = type.getConstructor(unifiedStorageClass());
+            return ArsNouveauCompat.wrapSourceHandler(constructor.newInstance(storage));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
         }
     }
 
@@ -579,6 +662,44 @@ public final class BeyondDimensionsCompat {
         @Override
         public boolean canReceive() {
             return energyHandler(host).canReceive();
+        }
+    }
+
+    private record SourceHandler(BlockEntity host) implements SourceHandlerBridge {
+        @Override
+        public int getCurrentSource() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.getCurrentSource();
+        }
+
+        @Override
+        public int getMaxSource() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.getMaxSource();
+        }
+
+        @Override
+        public boolean canExtract() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler != null && handler.canExtract();
+        }
+
+        @Override
+        public boolean canReceive() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler != null && handler.canReceive();
+        }
+
+        @Override
+        public int extractSource(int amount, boolean simulate) {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.extractSource(amount, simulate);
+        }
+
+        @Override
+        public int insertSource(int amount, boolean simulate) {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.insertSource(amount, simulate);
         }
     }
 

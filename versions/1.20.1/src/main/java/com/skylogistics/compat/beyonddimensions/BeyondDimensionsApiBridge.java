@@ -1,6 +1,8 @@
 package com.skylogistics.compat.beyonddimensions;
 
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler;
@@ -15,6 +17,9 @@ import com.wintercogs.beyonddimensions.api.util.CapCtx;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.EnergyStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey;
+import com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceStackKey;
+import com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceUnifiedStorageHandler;
+import com.wintercogs.beyonddimensions.integration.module.botania.storage.ManaStackKey;
 import java.lang.reflect.Constructor;
 import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
@@ -50,6 +55,10 @@ final class BeyondDimensionsApiBridge {
 
     static ManaHandlerBridge createManaHandler(BlockEntity host) {
         return new ManaHandler(host);
+    }
+
+    static SourceHandlerBridge createSourceHandler(BlockEntity host) {
+        return new SourceHandler(host);
     }
 
     static BeyondDimensionsCompat.ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -161,6 +170,30 @@ final class BeyondDimensionsApiBridge {
         }
         KeyAmount extracted = storage.extract(EnergyStackKey.INSTANCE, amount, simulate, false);
         return Math.max(0L, extracted.amount());
+    }
+
+    static long manaStored(BlockEntity host) {
+        return storedAmount(host, ManaStackKey.INSTANCE);
+    }
+
+    static long insertMana(BlockEntity host, long amount, boolean simulate) {
+        return insertLong(host, ManaStackKey.INSTANCE, amount, simulate);
+    }
+
+    static long extractMana(BlockEntity host, long amount, boolean simulate) {
+        return extractLong(host, ManaStackKey.INSTANCE, amount, simulate);
+    }
+
+    static long sourceStored(BlockEntity host) {
+        return storedAmount(host, SourceStackKey.INSTANCE);
+    }
+
+    static long insertSource(BlockEntity host, long amount, boolean simulate) {
+        return insertLong(host, SourceStackKey.INSTANCE, amount, simulate);
+    }
+
+    static long extractSource(BlockEntity host, long amount, boolean simulate) {
+        return extractLong(host, SourceStackKey.INSTANCE, amount, simulate);
     }
 
     static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
@@ -277,12 +310,50 @@ final class BeyondDimensionsApiBridge {
         }
     }
 
+    private static SourceHandlerBridge sourceHandler(BlockEntity host) {
+        if (!ArsNouveauCompat.isLoaded()) {
+            return null;
+        }
+        UnifiedStorage storage = storage(host);
+        if (storage == null) {
+            return null;
+        }
+        try {
+            return ArsNouveauCompat.wrapSourceHandler(new SourceUnifiedStorageHandler(storage));
+        } catch (RuntimeException | LinkageError ignored) {
+            return null;
+        }
+    }
+
     private static IStackKey<?> keyInBucket(UnifiedStorage storage, ResourceLocation typeId, int slot) {
         Optional<TypeBucket> bucket = storage.getBucket(typeId);
         if (bucket.isEmpty() || slot < 0 || slot >= bucket.get().size()) {
             return null;
         }
         return bucket.get().get(slot);
+    }
+
+    private static long storedAmount(BlockEntity host, IStackKey<?> key) {
+        UnifiedStorage storage = storage(host);
+        return storage == null ? 0L : Math.max(0L, storage.getStackByKey(key).amount());
+    }
+
+    private static long insertLong(BlockEntity host, IStackKey<?> key, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || amount <= 0L) {
+            return 0L;
+        }
+        KeyAmount remainder = storage.insert(key, amount, simulate);
+        return insertedAmount(amount, remainder);
+    }
+
+    private static long extractLong(BlockEntity host, IStackKey<?> key, long amount, boolean simulate) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || amount <= 0L) {
+            return 0L;
+        }
+        KeyAmount extracted = storage.extract(key, amount, simulate, false);
+        return Math.max(0L, extracted.amount());
     }
 
     private static long insertedAmount(long requested, KeyAmount remainder) {
@@ -426,6 +497,44 @@ final class BeyondDimensionsApiBridge {
         public int insertMana(int amount, boolean simulate) {
             ManaHandlerBridge handler = manaHandler(host);
             return handler == null ? 0 : handler.insertMana(amount, simulate);
+        }
+    }
+
+    private record SourceHandler(BlockEntity host) implements SourceHandlerBridge {
+        @Override
+        public int getCurrentSource() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.getCurrentSource();
+        }
+
+        @Override
+        public int getMaxSource() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.getMaxSource();
+        }
+
+        @Override
+        public boolean canExtract() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler != null && handler.canExtract();
+        }
+
+        @Override
+        public boolean canReceive() {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler != null && handler.canReceive();
+        }
+
+        @Override
+        public int extractSource(int amount, boolean simulate) {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.extractSource(amount, simulate);
+        }
+
+        @Override
+        public int insertSource(int amount, boolean simulate) {
+            SourceHandlerBridge handler = sourceHandler(host);
+            return handler == null ? 0 : handler.insertSource(amount, simulate);
         }
     }
 }

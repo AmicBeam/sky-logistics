@@ -30,7 +30,7 @@ public final class ArsNouveauCompat {
     }
 
     public static SourceHandlerBridge wrapSourceHandler(Object handler) {
-        if (!isLoaded() || !isSourceTile(handler)) {
+        if (!isLoaded()) {
             return null;
         }
         return ReflectiveSourceHandlerBridge.create(handler);
