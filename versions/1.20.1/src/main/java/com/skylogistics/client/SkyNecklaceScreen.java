@@ -118,8 +118,8 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     protected void containerTick() {
         super.containerTick();
         ItemStack stack = stack();
-        int index = ConfiguratorItem.lineIndex(stack);
-        int count = ConfiguratorItem.lineCount(stack);
+        int index = menu.getLineIndex();
+        int count = menu.getLineCount();
         for (LineButton button : lineButtons) {
             button.refresh(index, count);
         }
@@ -157,8 +157,8 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.unbound"),
                     14, LINE_ROW_Y, ConfigPanel.MUTED, false);
         } else {
-            int lineIndex = ConfiguratorItem.lineIndex(stack) + 1;
-            int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack));
+            int lineIndex = menu.getLineIndex() + 1;
+            int lineCount = Math.max(1, menu.getLineCount());
             Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
             graphics.drawString(font, lineNameLabel,
                     LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),

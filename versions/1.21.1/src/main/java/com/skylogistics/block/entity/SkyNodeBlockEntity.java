@@ -861,6 +861,35 @@ public class SkyNodeBlockEntity extends BlockEntity {
         markTopologyChanged();
     }
 
+    public void selectPlayerLine(UUID newLineId, String assignedName, String displayName) {
+        if (newLineId == null) {
+            return;
+        }
+        String selectedAssignedName = validLineName(assignedName, fallbackLineName(0));
+        String selectedDisplayName = validLineName(displayName, selectedAssignedName);
+        boolean changed = !lineId.equals(newLineId)
+                || !lineName.equals(selectedDisplayName)
+                || lineIndex != 0
+                || lines.size() != 1
+                || lineNames.size() != 1
+                || lineAssignedNames.size() != 1
+                || !lines.get(0).equals(newLineId)
+                || !lineNames.get(0).equals(selectedDisplayName)
+                || !lineAssignedNames.get(0).equals(selectedAssignedName);
+        lines.clear();
+        lineNames.clear();
+        lineAssignedNames.clear();
+        lines.add(newLineId);
+        lineNames.add(selectedDisplayName);
+        lineAssignedNames.add(selectedAssignedName);
+        lineId = newLineId;
+        lineName = selectedDisplayName;
+        lineIndex = 0;
+        if (changed) {
+            markTopologyChanged();
+        }
+    }
+
     private void setLine(UUID lineId, String lineName) {
         if (!assignLine(lineId, lineName)) {
             return;

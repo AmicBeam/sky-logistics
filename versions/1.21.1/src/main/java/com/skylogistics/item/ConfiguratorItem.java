@@ -91,7 +91,7 @@ public class ConfiguratorItem extends Item {
         node.claimDefaultLineName(player);
 
         if (player != null && player.isShiftKeyDown()) {
-            writeConfig(stack, ToolConfig.fromNode(node));
+            writeConfig(stack, ToolConfig.fromNode(node), node.getAssignedLineName());
             setPasteMode(stack, true);
             player.displayClientMessage(Component.translatable("message.skylogistics.configurator.copied_paste",
                     node.getLineName()), true);
@@ -110,10 +110,10 @@ public class ConfiguratorItem extends Item {
         if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.openMenu(
                     new SimpleMenuProvider((id, inventory, ignored) -> new com.skylogistics.menu.SkyNodeMenu(id, inventory,
-                            pos, true, hand), Component.translatable("menu.skylogistics.sky_node")),
+                            pos, false, hand), Component.translatable("menu.skylogistics.sky_node")),
                     buffer -> {
                         buffer.writeBlockPos(pos);
-                        buffer.writeBoolean(true);
+                        buffer.writeBoolean(false);
                         buffer.writeEnum(hand);
                     });
         }
@@ -227,6 +227,10 @@ public class ConfiguratorItem extends Item {
     }
 
     public static void writeConfig(ItemStack stack, ToolConfig config) {
+        writeConfig(stack, config, null);
+    }
+
+    public static void writeConfig(ItemStack stack, ToolConfig config, String assignedLineName) {
         CompoundTag tag = StackData.getOrEmpty(stack);
         tag.putUUID(LINE_ID, config.lineId());
         tag.putString(LINE_NAME, config.lineName());
@@ -242,7 +246,7 @@ public class ConfiguratorItem extends Item {
         }
         tag.putBoolean(SPEED_UPGRADE, config.speedUpgrade());
         tag.putBoolean(DIMENSION_UPGRADE, config.dimensionUpgrade());
-        ensureLineList(tag, config.lineId(), config.lineName());
+        ensureLineList(tag, config.lineId(), config.lineName(), assignedLineName);
         StackData.set(stack, tag);
     }
 
@@ -416,18 +420,15 @@ public class ConfiguratorItem extends Item {
         return config;
     }
 
-    private static void ensureLineList(CompoundTag tag, UUID lineId, String lineName) {
+    private static void ensureLineList(CompoundTag tag, UUID lineId, String lineName, String assignedLineName) {
         List<LineEntry> lines = readLineEntries(tag);
         int index = indexOfLine(lines, lineId);
-        if (index < 0) {
-            String assignedName = validLineName(lineName, fallbackLineName(lines.size()));
-            lines.add(new LineEntry(lineId, assignedName, assignedName));
-            index = lines.size() - 1;
-        } else if (lines.get(index).name().isBlank() || lines.get(index).name().startsWith(FALLBACK_LINE_PREFIX + "-")) {
-            String assignedName = lines.get(index).assignedName();
-            lines.set(index, new LineEntry(lineId, validLineName(lineName, assignedName), assignedName));
-        }
-        writeLineList(tag, lines, index);
+        String existingAssignedName = index >= 0 ? lines.get(index).assignedName() : "";
+        String assignedName = validLineName(assignedLineName, existingAssignedName);
+        assignedName = validLineName(assignedName, validLineName(lineName, fallbackLineName(lines.size())));
+        String displayName = validLineName(lineName, assignedName);
+        rememberLineBindings(tag, lines);
+        writeLineList(tag, List.of(new LineEntry(lineId, displayName, assignedName)), 0);
     }
 
     private static List<LineEntry> readLineEntries(CompoundTag tag) {

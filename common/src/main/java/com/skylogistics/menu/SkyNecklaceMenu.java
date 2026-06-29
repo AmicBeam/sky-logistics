@@ -4,6 +4,7 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModItems;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
@@ -27,6 +29,8 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     private final InteractionHand hand;
     private final Player player;
+    private int lineIndex;
+    private int lineCount = 1;
     private final Container filterContainer = new SimpleContainer(1) {
         @Override
         public ItemStack getItem(int slot) {
@@ -48,6 +52,28 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         super(com.skylogistics.registry.ModMenus.SKY_NECKLACE.get(), containerId);
         this.hand = hand;
         this.player = inventory.player;
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return lineIndex;
+            }
+
+            @Override
+            public void set(int value) {
+                lineIndex = value;
+            }
+        });
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return lineCount;
+            }
+
+            @Override
+            public void set(int value) {
+                lineCount = value;
+            }
+        });
         addSlot(new Slot(filterContainer, 0, FILTER_SLOT_X, FILTER_SLOT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -69,6 +95,14 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     public InteractionHand getHand() {
         return hand;
+    }
+
+    public int getLineIndex() {
+        return lineIndex;
+    }
+
+    public int getLineCount() {
+        return lineCount;
     }
 
     @Override
@@ -113,11 +147,28 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
         switch (action) {
-            case MenuAction.LINE_FIRST -> config = ConfiguratorItem.selectFirstLine(stack);
-            case MenuAction.LINE_PREVIOUS -> config = ConfiguratorItem.selectPreviousLine(stack);
-            case MenuAction.LINE_NEXT_OR_CREATE -> config = ConfiguratorItem.selectNextOrCreateLine(stack, player);
-            case MenuAction.LINE_LAST -> config = ConfiguratorItem.selectLastLine(stack);
-            case MenuAction.LINE_REMOVE_CURRENT -> config = ConfiguratorItem.removeCurrentLine(stack, player);
+            case MenuAction.LINE_FIRST -> config = selectConfigLine(config,
+                    SkyPlayerLines.selectFirst(player.level().getServer(), player, config.lineId(),
+                            ConfiguratorItem.assignedLineName(stack), config.lineName()));
+            case MenuAction.LINE_PREVIOUS -> config = selectConfigLine(config,
+                    SkyPlayerLines.selectPrevious(player.level().getServer(), player, config.lineId(),
+                            ConfiguratorItem.assignedLineName(stack), config.lineName()));
+            case MenuAction.LINE_NEXT_OR_CREATE -> config = selectConfigLine(config,
+                    SkyPlayerLines.selectNextOrCreate(player.level().getServer(), player, config.lineId(),
+                            ConfiguratorItem.assignedLineName(stack), config.lineName()));
+            case MenuAction.LINE_LAST -> config = selectConfigLine(config,
+                    SkyPlayerLines.selectLast(player.level().getServer(), player, config.lineId(),
+                            ConfiguratorItem.assignedLineName(stack), config.lineName()));
+            case MenuAction.LINE_REMOVE_CURRENT -> {
+                if (currentLineInUse(config)) {
+                    player.displayClientMessage(Component.translatable(
+                            "message.skylogistics.configurator.line_in_use"), true);
+                } else {
+                    config = selectConfigLine(config,
+                            SkyPlayerLines.removeCurrent(player.level().getServer(), player, config.lineId(),
+                                    ConfiguratorItem.assignedLineName(stack), config.lineName()));
+                }
+            }
             case MenuAction.MODE_EXTRACT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.EXTRACT);
             case MenuAction.MODE_INSERT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.INSERT);
             case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> {
@@ -148,7 +199,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                 return;
             }
         }
-        ConfiguratorItem.writeConfig(stack, config);
+        ConfiguratorItem.writeConfig(stack, config, playerLineSelection(config).assignedName());
         syncHeldStack(stack);
         broadcastChanges();
     }
@@ -161,14 +212,14 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
         if (!player.level().isClientSide && player.level().getServer() != null) {
             SkyNetworkRegistry.renameLine(player.level().getServer(), config.lineId(), lineName,
-                    ConfiguratorItem.assignedLineName(stack));
+                    playerLineSelection(config).assignedName());
         }
         broadcastChanges();
     }
 
     @Override
     public void broadcastChanges() {
-        syncCurrentLineName();
+        syncPlayerLineSelection();
         super.broadcastChanges();
     }
 
@@ -192,16 +243,40 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         return player.getItemInHand(hand);
     }
 
-    private void syncCurrentLineName() {
-        if (!(player instanceof ServerPlayer serverPlayer)) {
+    private ConfiguratorItem.ToolConfig selectConfigLine(ConfiguratorItem.ToolConfig config,
+            SkyPlayerLines.LineSelection selection) {
+        lineIndex = selection.index();
+        lineCount = selection.count();
+        return config.withLine(selection.lineId(), selection.displayName());
+    }
+
+    private void syncPlayerLineSelection() {
+        if (!(player instanceof ServerPlayer serverPlayer) || player.level().getServer() == null) {
             return;
         }
         ItemStack stack = necklace();
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
         if (config != null) {
-            SkyNetworkRegistry.syncLineName(serverPlayer, config.lineId(),
-                    ConfiguratorItem.assignedLineName(stack), config.lineName());
+            SkyPlayerLines.LineSelection selection = playerLineSelection(config);
+            lineIndex = selection.index();
+            lineCount = selection.count();
+            SkyNetworkRegistry.syncLineName(serverPlayer, selection.lineId(), selection.assignedName(),
+                    selection.displayName());
         }
+    }
+
+    private SkyPlayerLines.LineSelection playerLineSelection(ConfiguratorItem.ToolConfig config) {
+        ItemStack stack = necklace();
+        return SkyPlayerLines.selection(player.level().getServer(), player, config.lineId(),
+                ConfiguratorItem.assignedLineName(stack), config.lineName());
+    }
+
+    private boolean currentLineInUse(ConfiguratorItem.ToolConfig config) {
+        if (player.level().isClientSide || player.level().getServer() == null) {
+            return false;
+        }
+        SkyNetworkRegistry.LineStats stats = SkyNetworkRegistry.lineStats(player.level().getServer(), config.lineId());
+        return stats.inputs() > 0 || stats.outputs() > 0;
     }
 
     private void syncHeldStack(ItemStack stack) {

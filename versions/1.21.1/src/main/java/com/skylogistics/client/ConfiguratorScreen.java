@@ -130,8 +130,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             detailScroll = 0;
         }
         detailScroll = Mth.clamp(detailScroll, 0, maxDetailScroll(currentLine));
-        int index = ConfiguratorItem.lineIndex(stack);
-        int count = ConfiguratorItem.lineCount(stack);
+        int index = menu.getLineIndex();
+        int count = menu.getLineCount();
         for (LineButton button : lineButtons) {
             button.refresh(index, count);
         }
@@ -178,8 +178,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                     14, 42, ConfigPanel.MUTED, false);
             return;
         }
-        int lineIndex = ConfiguratorItem.lineIndex(stack()) + 1;
-        int lineCount = Math.max(1, ConfiguratorItem.lineCount(stack()));
+        int lineIndex = menu.getLineIndex() + 1;
+        int lineCount = Math.max(1, menu.getLineCount());
         Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
         graphics.drawString(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
@@ -468,13 +468,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (config == null) {
             return;
         }
+        if (actionWritesLineSelection(action)) {
+            return;
+        }
         UUID beforeLine = config.lineId();
         ConfiguratorItem.ToolConfig updated = switch (action) {
-            case MenuAction.LINE_FIRST -> ConfiguratorItem.selectFirstLine(stack);
-            case MenuAction.LINE_PREVIOUS -> ConfiguratorItem.selectPreviousLine(stack);
-            case MenuAction.LINE_NEXT_OR_CREATE -> previewNextLine(stack);
-            case MenuAction.LINE_LAST -> ConfiguratorItem.selectLastLine(stack);
-            case MenuAction.LINE_REMOVE_CURRENT -> previewRemoveLine(stack);
             case MenuAction.TOGGLE_ITEMS -> config.withItemsEnabled(!config.itemsEnabled());
             case MenuAction.TOGGLE_FLUIDS -> config.withFluidsEnabled(!config.fluidsEnabled());
             case MenuAction.TOGGLE_ENERGY -> config.withEnergyEnabled(!config.energyEnabled());
@@ -486,9 +484,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (updated == null) {
             return;
         }
-        if (!actionWritesLineSelection(action)) {
-            ConfiguratorItem.writeConfig(stack, updated);
-        }
+        ConfiguratorItem.writeConfig(stack, updated);
         if (!beforeLine.equals(updated.lineId())) {
             detailLine = updated.lineId();
             detailScroll = 0;
@@ -499,18 +495,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return action == MenuAction.LINE_FIRST || action == MenuAction.LINE_PREVIOUS
                 || action == MenuAction.LINE_NEXT_OR_CREATE || action == MenuAction.LINE_LAST
                 || action == MenuAction.LINE_REMOVE_CURRENT;
-    }
-
-    private ConfiguratorItem.ToolConfig previewNextLine(ItemStack stack) {
-        int index = ConfiguratorItem.lineIndex(stack);
-        int count = ConfiguratorItem.lineCount(stack);
-        return index < count - 1 ? ConfiguratorItem.selectNextOrCreateLine(stack, Minecraft.getInstance().player) : null;
-    }
-
-    private ConfiguratorItem.ToolConfig previewRemoveLine(ItemStack stack) {
-        return canRemoveCurrentLine() && ConfiguratorItem.lineCount(stack) > 0
-                ? ConfiguratorItem.removeCurrentLine(stack, Minecraft.getInstance().player)
-                : null;
     }
 
     private boolean canRemoveCurrentLine() {

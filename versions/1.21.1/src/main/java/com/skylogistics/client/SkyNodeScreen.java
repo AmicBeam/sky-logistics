@@ -158,8 +158,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (node == null) {
             return;
         }
-        int lineIndex = node.getLineIndex();
-        int lineCount = node.getLineCount();
+        int lineIndex = menu.getLineIndex();
+        int lineCount = menu.getLineCount();
         for (LineButton button : lineButtons) {
             button.refresh(lineIndex, lineCount);
         }
@@ -234,8 +234,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     14, 34, ConfigPanel.MUTED, false);
             return;
         }
-        int lineIndex = node.getLineIndex() + 1;
-        int lineCount = Math.max(1, node.getLineCount());
+        int lineIndex = menu.getLineIndex() + 1;
+        int lineCount = Math.max(1, menu.getLineCount());
         Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
         graphics.drawString(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),

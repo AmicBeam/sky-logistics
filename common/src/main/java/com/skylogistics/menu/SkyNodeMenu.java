@@ -2,11 +2,13 @@ package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,6 +16,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -39,6 +42,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     private final FaceFilterContainer faceFilterContainer;
     private Direction selectedFace = Direction.NORTH;
     private boolean faceFilterSlotsActive;
+    private int lineIndex;
+    private int lineCount = 1;
 
     public SkyNodeMenu(int containerId, Inventory inventory, BlockPos pos) {
         this(containerId, inventory, pos, false, InteractionHand.MAIN_HAND);
@@ -55,6 +60,28 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         this.singleEndpoint = usesSingleEndpoint(inventory.player, pos);
         this.verticalShift = singleEndpoint ? SINGLE_ENDPOINT_VERTICAL_SHIFT : 0;
         this.selectedFace = initialSelectedFace(inventory.player, pos);
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return lineIndex;
+            }
+
+            @Override
+            public void set(int value) {
+                lineIndex = value;
+            }
+        });
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return lineCount;
+            }
+
+            @Override
+            public void set(int value) {
+                lineCount = value;
+            }
+        });
         int upgradeX = upgradeSlotX(openedWithConfigurator);
         for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
             int slotIndex = slot;
@@ -111,6 +138,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     public boolean isSingleEndpoint() {
         return singleEndpoint;
+    }
+
+    public int getLineIndex() {
+        return lineIndex;
+    }
+
+    public int getLineCount() {
+        return lineCount;
     }
 
     public int screenY(int normalY) {
@@ -284,11 +319,28 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             return;
         }
         switch (action) {
-            case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> node.selectNextOrCreateLine(player);
-            case MenuAction.LINE_FIRST -> node.selectFirstLine();
-            case MenuAction.LINE_PREVIOUS -> node.selectPreviousLine();
-            case MenuAction.LINE_LAST -> node.selectLastLine();
-            case MenuAction.LINE_REMOVE_CURRENT -> node.removeCurrentLine(player);
+            case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> selectPlayerLine(node,
+                    SkyPlayerLines.selectNextOrCreate(player.level().getServer(), player, node.getLineId(),
+                            node.getAssignedLineName(), node.getLineName()));
+            case MenuAction.LINE_FIRST -> selectPlayerLine(node,
+                    SkyPlayerLines.selectFirst(player.level().getServer(), player, node.getLineId(),
+                            node.getAssignedLineName(), node.getLineName()));
+            case MenuAction.LINE_PREVIOUS -> selectPlayerLine(node,
+                    SkyPlayerLines.selectPrevious(player.level().getServer(), player, node.getLineId(),
+                            node.getAssignedLineName(), node.getLineName()));
+            case MenuAction.LINE_LAST -> selectPlayerLine(node,
+                    SkyPlayerLines.selectLast(player.level().getServer(), player, node.getLineId(),
+                            node.getAssignedLineName(), node.getLineName()));
+            case MenuAction.LINE_REMOVE_CURRENT -> {
+                if (currentLineInUse(node)) {
+                    player.displayClientMessage(Component.translatable(
+                            "message.skylogistics.configurator.line_in_use"), true);
+                } else {
+                    selectPlayerLine(node,
+                            SkyPlayerLines.removeCurrent(player.level().getServer(), player, node.getLineId(),
+                                    node.getAssignedLineName(), node.getLineName()));
+                }
+            }
             case MenuAction.TOGGLE_ITEMS -> node.setItemsEnabled(selectedFace, !node.isItemsEnabled(selectedFace));
             case MenuAction.TOGGLE_FLUIDS -> node.setFluidsEnabled(selectedFace, !node.isFluidsEnabled(selectedFace));
             case MenuAction.TOGGLE_ENERGY -> node.setEnergyEnabled(selectedFace, !node.isEnergyEnabled(selectedFace));
@@ -314,19 +366,38 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     @Override
     public void broadcastChanges() {
-        syncCurrentLineName();
+        syncPlayerLineSelection();
         super.broadcastChanges();
     }
 
-    private void syncCurrentLineName() {
+    private void syncPlayerLineSelection() {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
         BlockEntity blockEntity = player.level().getBlockEntity(pos);
         if (blockEntity instanceof SkyNodeBlockEntity node) {
-            SkyNetworkRegistry.syncLineName(serverPlayer, node.getLineId(), node.getAssignedLineName(),
-                    node.getLineName());
+            SkyPlayerLines.LineSelection selection = SkyPlayerLines.selection(player.level().getServer(), player,
+                    node.getLineId(), node.getAssignedLineName(), node.getLineName());
+            lineIndex = selection.index();
+            lineCount = selection.count();
+            node.selectPlayerLine(selection.lineId(), selection.assignedName(), selection.displayName());
+            SkyNetworkRegistry.syncLineName(serverPlayer, selection.lineId(), selection.assignedName(),
+                    selection.displayName());
         }
+    }
+
+    private void selectPlayerLine(SkyNodeBlockEntity node, SkyPlayerLines.LineSelection selection) {
+        lineIndex = selection.index();
+        lineCount = selection.count();
+        node.selectPlayerLine(selection.lineId(), selection.assignedName(), selection.displayName());
+    }
+
+    private boolean currentLineInUse(SkyNodeBlockEntity node) {
+        if (player.level().isClientSide || player.level().getServer() == null) {
+            return false;
+        }
+        SkyNetworkRegistry.LineStats stats = SkyNetworkRegistry.lineStats(player.level().getServer(), node.getLineId());
+        return stats.inputs() > 0 || stats.outputs() > 0;
     }
 
     private static Direction faceForAction(int action, int base) {
