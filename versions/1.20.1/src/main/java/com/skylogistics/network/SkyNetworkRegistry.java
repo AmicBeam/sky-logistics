@@ -178,6 +178,30 @@ public final class SkyNetworkRegistry {
         return new LineStats(nodes, inputs, outputs);
     }
 
+    public static synchronized boolean lineHasExternalConnections(MinecraftServer server, UUID lineId,
+            ResourceKey<Level> ignoredDimension, BlockPos ignoredNodePos) {
+        if (server == null || lineId == null) {
+            return false;
+        }
+        rebuildDirty(server);
+        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
+            if (server.getLevel(entry.getKey()) == null) {
+                continue;
+            }
+            LineIndex line = entry.getValue().lines.get(lineId);
+            if (line == null) {
+                continue;
+            }
+            boolean ignoredDimensionMatches = entry.getKey().equals(ignoredDimension);
+            if (hasEndpointOutsideNode(line.inputs(), ignoredDimensionMatches, ignoredNodePos)
+                    || hasEndpointOutsideNode(line.outputs(), ignoredDimensionMatches, ignoredNodePos)) {
+                return true;
+            }
+        }
+        return SkyNecklaceTicker.activeExtractorCount(lineId) > 0
+                || SkyNecklaceTicker.activeInserterCount(lineId) > 0;
+    }
+
     public static synchronized void renameLine(MinecraftServer server, UUID lineId, String lineName) {
         renameLine(server, lineId, lineName, lineName);
     }
@@ -298,6 +322,17 @@ public final class SkyNetworkRegistry {
                     node.isItemsEnabled(direction), node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
                     node.getRedstoneControl(direction), node.getPriority(direction)));
         }
+    }
+
+    private static boolean hasEndpointOutsideNode(List<CachedEndpoint> endpoints, boolean ignoredDimensionMatches,
+            BlockPos ignoredNodePos) {
+        for (CachedEndpoint endpoint : endpoints) {
+            if (!ignoredDimensionMatches || ignoredNodePos == null
+                    || !endpoint.node().getBlockPos().equals(ignoredNodePos)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean rebuildDirty(MinecraftServer server) {

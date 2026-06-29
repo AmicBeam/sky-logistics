@@ -396,8 +396,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         if (player.level().isClientSide || player.level().getServer() == null) {
             return false;
         }
-        SkyNetworkRegistry.LineStats stats = SkyNetworkRegistry.lineStats(player.level().getServer(), node.getLineId());
-        return stats.inputs() > 0 || stats.outputs() > 0;
+        return SkyNetworkRegistry.lineHasExternalConnections(player.level().getServer(), node.getLineId(),
+                player.level().dimension(), node.getBlockPos());
     }
 
     private static Direction faceForAction(int action, int base) {
