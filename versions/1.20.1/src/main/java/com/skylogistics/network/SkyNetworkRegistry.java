@@ -1,6 +1,8 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -740,16 +742,20 @@ public final class SkyNetworkRegistry {
         private IEnergyStorage energyHandler;
         private ManaHandlerBridge manaHandler;
         private BlockEntity manaTarget;
+        private SourceHandlerBridge sourceHandler;
+        private BlockEntity sourceTarget;
         private long itemRetryAfter;
         private long fluidRetryAfter;
         private long chemicalRetryAfter;
         private long energyRetryAfter;
         private long manaRetryAfter;
+        private long sourceRetryAfter;
         private int itemFailures;
         private int fluidFailures;
         private int chemicalFailures;
         private int energyFailures;
         private int manaFailures;
+        private int sourceFailures;
         private int itemSourceMisses;
         private int fluidSourceMisses;
         private int chemicalSourceMisses;
@@ -839,6 +845,10 @@ public final class SkyNetworkRegistry {
             return gameTime >= manaRetryAfter;
         }
 
+        public boolean canTrySource(long gameTime) {
+            return gameTime >= sourceRetryAfter;
+        }
+
         public long nextItemWake(long gameTime) {
             return itemRetryAfter > gameTime ? itemRetryAfter : gameTime;
         }
@@ -857,6 +867,10 @@ public final class SkyNetworkRegistry {
 
         public long nextManaWake(long gameTime) {
             return manaRetryAfter > gameTime ? manaRetryAfter : gameTime;
+        }
+
+        public long nextSourceWake(long gameTime) {
+            return sourceRetryAfter > gameTime ? sourceRetryAfter : gameTime;
         }
 
         public IItemHandler itemHandler(long gameTime) {
@@ -1013,6 +1027,37 @@ public final class SkyNetworkRegistry {
                 recordManaFailure(gameTime);
             }
             return manaHandler;
+        }
+
+        public SourceHandlerBridge sourceHandler(long gameTime) {
+            if (!canTrySource(gameTime) || !SkyLogisticsConfig.allowEnergySourceTransfer()
+                    || !ArsNouveauCompat.isLoaded()) {
+                return null;
+            }
+            SourceHandlerBridge direct = node.getEndpointSourceHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
+            }
+            Level level = node.getLevel();
+            if (level == null || !level.isLoaded(targetPos)) {
+                recordSourceFailure(gameTime);
+                return null;
+            }
+            BlockEntity target = level.getBlockEntity(targetPos);
+            if (target == null) {
+                recordSourceFailure(gameTime);
+                return null;
+            }
+            if (sourceHandler != null && sourceTarget == target) {
+                return sourceHandler;
+            }
+            clearSourceCache();
+            sourceTarget = target;
+            sourceHandler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
+            if (sourceHandler == null) {
+                recordSourceFailure(gameTime);
+            }
+            return sourceHandler;
         }
 
         public void recordItemSuccess() {
@@ -1438,6 +1483,16 @@ public final class SkyNetworkRegistry {
             manaRetryAfter = gameTime + delay(manaFailures);
         }
 
+        public void recordSourceSuccess() {
+            sourceFailures = 0;
+            sourceRetryAfter = 0L;
+        }
+
+        public void recordSourceFailure(long gameTime) {
+            sourceFailures = Math.min(sourceFailures + 1, 8);
+            sourceRetryAfter = gameTime + delay(sourceFailures);
+        }
+
         private void clearItemCache() {
             itemHandler = null;
             itemOptional = LazyOptional.empty();
@@ -1466,6 +1521,11 @@ public final class SkyNetworkRegistry {
         private void clearManaCache() {
             manaHandler = null;
             manaTarget = null;
+        }
+
+        private void clearSourceCache() {
+            sourceHandler = null;
+            sourceTarget = null;
         }
 
         private void clearRejectedItems() {

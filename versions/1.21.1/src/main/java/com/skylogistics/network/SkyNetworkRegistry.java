@@ -1,6 +1,8 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -738,14 +740,18 @@ public final class SkyNetworkRegistry {
         private ChemicalHandlerBridge chemicalHandler;
         private BlockEntity chemicalTarget;
         private IEnergyStorage energyHandler;
+        private SourceHandlerBridge sourceHandler;
+        private BlockEntity sourceTarget;
         private long itemRetryAfter;
         private long fluidRetryAfter;
         private long chemicalRetryAfter;
         private long energyRetryAfter;
+        private long sourceRetryAfter;
         private int itemFailures;
         private int fluidFailures;
         private int chemicalFailures;
         private int energyFailures;
+        private int sourceFailures;
         private int itemSourceMisses;
         private int fluidSourceMisses;
         private int chemicalSourceMisses;
@@ -831,6 +837,10 @@ public final class SkyNetworkRegistry {
             return gameTime >= energyRetryAfter;
         }
 
+        public boolean canTrySource(long gameTime) {
+            return gameTime >= sourceRetryAfter;
+        }
+
         public long nextItemWake(long gameTime) {
             return itemRetryAfter > gameTime ? itemRetryAfter : gameTime;
         }
@@ -845,6 +855,10 @@ public final class SkyNetworkRegistry {
 
         public long nextEnergyWake(long gameTime) {
             return energyRetryAfter > gameTime ? energyRetryAfter : gameTime;
+        }
+
+        public long nextSourceWake(long gameTime) {
+            return sourceRetryAfter > gameTime ? sourceRetryAfter : gameTime;
         }
 
         public IItemHandler itemHandler(long gameTime) {
@@ -947,6 +961,37 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
             }
             return energyHandler;
+        }
+
+        public SourceHandlerBridge sourceHandler(long gameTime) {
+            if (!canTrySource(gameTime) || !SkyLogisticsConfig.allowEnergySourceTransfer()
+                    || !ArsNouveauCompat.isLoaded()) {
+                return null;
+            }
+            SourceHandlerBridge direct = node.getEndpointSourceHandler(direction, gameTime);
+            if (direct != null) {
+                return direct;
+            }
+            Level level = node.getLevel();
+            if (level == null || !level.isLoaded(targetPos)) {
+                recordSourceFailure(gameTime);
+                return null;
+            }
+            BlockEntity target = level.getBlockEntity(targetPos);
+            if (target == null) {
+                recordSourceFailure(gameTime);
+                return null;
+            }
+            if (sourceHandler != null && sourceTarget == target) {
+                return sourceHandler;
+            }
+            clearSourceCache();
+            sourceTarget = target;
+            sourceHandler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
+            if (sourceHandler == null) {
+                recordSourceFailure(gameTime);
+            }
+            return sourceHandler;
         }
 
         public void recordItemSuccess() {
@@ -1362,6 +1407,16 @@ public final class SkyNetworkRegistry {
             energyRetryAfter = gameTime + delay(energyFailures);
         }
 
+        public void recordSourceSuccess() {
+            sourceFailures = 0;
+            sourceRetryAfter = 0L;
+        }
+
+        public void recordSourceFailure(long gameTime) {
+            sourceFailures = Math.min(sourceFailures + 1, 8);
+            sourceRetryAfter = gameTime + delay(sourceFailures);
+        }
+
         private BlockCapabilityCache<IItemHandler, Direction> itemCapabilityCache(Level level) {
             if (!(level instanceof ServerLevel serverLevel)) {
                 return null;
@@ -1440,6 +1495,11 @@ public final class SkyNetworkRegistry {
 
         private void clearEnergyCache() {
             energyHandler = null;
+        }
+
+        private void clearSourceCache() {
+            sourceHandler = null;
+            sourceTarget = null;
         }
 
         private void clearRejectedItems() {

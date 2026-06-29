@@ -29,6 +29,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - The node GUI owns transfer rate, a filter-list slot and the player inventory below it.
   - The model is smaller than a full block and shows a larger connector ring in extract mode.
   - Server tick dispatcher transfers items, fluids and energy wirelessly between matching extract/insert faces on the same line.
+  - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Botania mana and Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
   - A dimension upgrade on an extract node lets it send to matching insert faces on the same line in other dimensions.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.

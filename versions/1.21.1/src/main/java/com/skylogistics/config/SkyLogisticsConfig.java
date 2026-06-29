@@ -48,6 +48,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowFluidChemicalTransfer.get();
     }
 
+    public static boolean allowEnergySourceTransfer() {
+        return SERVER.allowEnergySourceTransfer.get();
+    }
+
     public static int preferredItemSlotCacheSize() {
         return SERVER.preferredItemSlotCacheSize.get();
     }
@@ -78,6 +82,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -111,6 +116,9 @@ public final class SkyLogisticsConfig {
             allowFluidChemicalTransfer = builder
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.")
                     .define("allowFluidChemicalTransfer", true);
+            allowEnergySourceTransfer = builder
+                    .comment("Whether energy-enabled logistics faces may also transfer Ars Nouveau source.")
+                    .define("allowEnergySourceTransfer", true);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);

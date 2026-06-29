@@ -4,6 +4,8 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
@@ -142,17 +144,31 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
+                if (node.isEnergyEnabled(input.direction())
+                        && (input.canTryEnergy(gameTime)
+                        || (canTransferSource() && input.canTrySource(gameTime)))) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
                     }
                     List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityEnergyOutputs(),
                             globalEnergyOutputs);
                     if (targets.isEmpty()) {
-                        input.recordEnergyFailure(gameTime);
+                        if (input.canTryEnergy(gameTime)) {
+                            input.recordEnergyFailure(gameTime);
+                        }
+                        if (canTransferSource() && input.canTrySource(gameTime)) {
+                            input.recordSourceFailure(gameTime);
+                        }
                     } else {
-                        operations += transferEnergy(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int resourceBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        if (input.canTryEnergy(gameTime)) {
+                            int used = transferEnergy(input, targets, resourceBudget, gameTime);
+                            operations += used;
+                            resourceBudget -= used;
+                        }
+                        if (canTransferSource() && resourceBudget > 0 && input.canTrySource(gameTime)) {
+                            operations += transferSource(input, targets, resourceBudget, gameTime);
+                        }
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake);
@@ -197,8 +213,15 @@ public final class SkyNetworkTicker {
         }
         if (node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
+            if (canTransferSource()) {
+                nextWake = Math.min(nextWake, input.nextSourceWake(gameTime));
+            }
         }
         return nextWake;
+    }
+
+    private static boolean canTransferSource() {
+        return SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded();
     }
 
     private static int transferItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
@@ -1161,6 +1184,97 @@ public final class SkyNetworkTicker {
             return other instanceof DimensionEnergyLongEndpoint endpoint
                     && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
         }
+    }
+
+    private static int transferSource(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        if (!canTransferSource() || budget <= 0) {
+            return 0;
+        }
+        SourceHandlerBridge source = sourceEndpoint.sourceHandler(gameTime);
+        if (source == null) {
+            return 0;
+        }
+        int simulated = source.extractSource(SkyLogisticsConfig.nodeEnergyTransferLimit(), true);
+        int operations = 1;
+        if (simulated <= 0) {
+            sourceEndpoint.recordSourceFailure(gameTime);
+            return operations;
+        }
+        MoveResult result = tryMoveSource(sourceEndpoint, source, simulated, targets, budget - operations, gameTime);
+        operations += result.operations();
+        if (result.moved()) {
+            sourceEndpoint.recordSourceSuccess();
+        }
+        return operations;
+    }
+
+    private static MoveResult tryMoveSource(CachedEndpoint sourceEndpoint, SourceHandlerBridge source, int simulated,
+            List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0) {
+            return new MoveResult(false, 0);
+        }
+        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        targetLoop:
+        for (int groupStart = 0; groupStart < targets.size();) {
+            int groupEnd = priorityGroupEnd(targets, groupStart);
+            int groupSize = groupEnd - groupStart;
+            int groupCursor = Math.floorMod(targetCursor, groupSize);
+            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
+                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
+                        groupOffset);
+                if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    redstoneBlocked = true;
+                    continue;
+                }
+                if (!targetEndpoint.canTrySource(gameTime)
+                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                    continue;
+                }
+                if (operations >= targetAttemptBudget) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                operations++;
+                SourceHandlerBridge target = targetEndpoint.sourceHandler(gameTime);
+                if (target == null) {
+                    continue;
+                }
+                int accepted = target.insertSource(simulated, true);
+                if (accepted <= 0) {
+                    targetEndpoint.recordSourceFailure(gameTime);
+                    continue;
+                }
+                int extracted = source.extractSource(accepted, false);
+                if (extracted <= 0) {
+                    sourceEndpoint.recordSourceFailure(gameTime);
+                    return new MoveResult(false, operations);
+                }
+                int inserted = target.insertSource(extracted, false);
+                if (inserted < extracted) {
+                    int rollback = extracted - inserted;
+                    int rolledBack = source.insertSource(rollback, false);
+                    if (rolledBack < rollback) {
+                        SkyLogistics.LOGGER.warn(
+                                "Source rollback failed after simulated target receive changed during transfer. Source node {} face {}, target node {} face {}, extracted {} source, inserted {} source, rollback remainder {} source",
+                                sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                                targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                                rollback - rolledBack);
+                    }
+                }
+                targetEndpoint.recordSourceSuccess();
+                return new MoveResult(true, operations);
+            }
+            groupStart = groupEnd;
+        }
+        if (!redstoneBlocked && !budgetExhausted) {
+            sourceEndpoint.recordSourceFailure(gameTime);
+        }
+        return new MoveResult(false, operations);
     }
 
     private static int priorityGroupEnd(List<CachedEndpoint> targets, int groupStart) {

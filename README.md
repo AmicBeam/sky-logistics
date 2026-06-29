@@ -12,7 +12,7 @@ Celestial wireless logistics for Minecraft. Sky Logistics moves items, fluids, a
 - **Fast placement and setup**: node placement switches mode based on sneaking, and the Sky Configurator handles line management, copy/paste configuration, and offhand placement presets.
 - **Built-in high-stack storage**: Celestial Item Vaults and Celestial Fluid Vaults stack 9e18-class amounts per type in searchable terminal-style views, while type limits stay expandable and configurable.
 - **Inventory and backpack interaction**: the Sky Necklace adds portable transfer between logistics lines, the player inventory, and supported backpack inventories.
-- **Mod integrations**: optional compatibility is available for Jade, JEI, Patchouli, Curios, Sophisticated Backpacks, and Mekanism, plus high-throughput links for AE2, Refined Storage, and Beyond Dimensions depending on the Minecraft version.
+- **Mod integrations**: optional compatibility is available for Jade, JEI, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania on 1.20.1, and Ars Nouveau, plus high-throughput links for AE2, Refined Storage, and Beyond Dimensions depending on the Minecraft version.
 
 ## Requirements
 
@@ -21,6 +21,9 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - **Forge (Minecraft 1.20.1)**: use `versions/1.20.1`
   - Minecraft 1.20.1
   - Forge 47.x
+  - Mekanism 10.4+ (optional)
+  - Botania 1.20.1 (optional)
+  - Ars Nouveau 4.x (optional)
   - AE2 15.2+ (optional)
   - Refined Storage 1.12+ (optional)
   - Beyond Dimensions 0.7.5+ (optional)
@@ -32,6 +35,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
   - JEI 19+ (optional, client side)
   - Patchouli 1+ (optional)
   - Mekanism 10.7+ (optional)
+  - Ars Nouveau 5.x (optional)
   - Curios 9+ (optional)
   - Sophisticated Backpacks 3.25+ (optional)
   - AE2 19+ (optional)
@@ -58,6 +62,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 
 - Sky Logistics is not a block-by-block pipe network. It directly pairs loaded extract faces with loaded insert faces on the same line.
 - Lines have no hidden item/fluid/energy buffer. If a target cannot accept a resource, the source is not extracted first.
+- Mekanism chemicals use fluid-enabled faces. Botania mana and Ars Nouveau Source use energy-enabled faces, but they are moved only to matching resource handlers and are not converted to FE.
 - Line ids are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks.

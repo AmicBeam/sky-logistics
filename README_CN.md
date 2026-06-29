@@ -12,7 +12,7 @@
 - **快速铺设与配置**：物流节点可根据是否潜行快速切换放置模式；天穹配置器支持线路管理、节点配置复制粘贴和副手放置预设。
 - **自带高堆叠仓储**：天穹物品库和天穹流体库按类型聚合存储，单类型可堆叠至 9E 级别，并提供可搜索的终端式界面。
 - **物品栏与背包交互**：天穹项链可在物流线路、玩家物品栏和支持的背包库存之间转运物品，方便随身补货或卸货。
-- **模组联动**：与 Jade、JEI、Patchouli、Curios、Sophisticated Backpacks、Mekanism 等可选兼容，并可为 AE2、Refined Storage、Beyond Dimensions 网络提供 G/t 级吞吐连接。
+- **模组联动**：与 Jade、JEI、Patchouli、Curios、Sophisticated Backpacks、Mekanism、1.20.1 植物魔法和新生魔艺等可选兼容，并可为 AE2、Refined Storage、Beyond Dimensions 网络提供 G/t 级吞吐连接。
 
 ## 依赖
 
@@ -21,6 +21,9 @@
 - **Forge（Minecraft 1.20.1）**：使用 `versions/1.20.1`
   - Minecraft 1.20.1
   - Forge 47.x
+  - Mekanism 10.4+（可选）
+  - Botania / 植物魔法 1.20.1（可选）
+  - Ars Nouveau / 新生魔艺 4.x（可选）
   - AE2 15.2+（可选）
   - Refined Storage 1.12+（可选）
   - Beyond Dimensions 0.7.5+（可选）
@@ -32,6 +35,7 @@
   - JEI 19+（可选，客户端）
   - Patchouli 1+（可选）
   - Mekanism 10.7+（可选）
+  - Ars Nouveau / 新生魔艺 5.x（可选）
   - Curios 9+（可选）
   - Sophisticated Backpacks 3.25+（可选）
   - AE2 19+（可选）
@@ -58,6 +62,7 @@
 
 - 天穹物流不是逐格连接的实体管道网络，而是直接配对同一线路中已加载的抽取面和存入面。
 - 线路没有隐藏的物品/流体/能量缓存。目标无法接收时，源端不会先被抽空。
+- Mekanism 化学品走流体开关；植物魔法 mana 和新生魔艺 Source 魔源走能量开关，但只会搬到同类资源处理器，不会转换为 FE。
 - 显示名对应的线路 id 是稳定的；不改名或复用同名线路时，会继续指向同一条线路。
 - 节点传输使用预算、缓存、就绪线路队列、热槽追踪、能力缓存和端点退避来控制性能开销。
 - 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick。

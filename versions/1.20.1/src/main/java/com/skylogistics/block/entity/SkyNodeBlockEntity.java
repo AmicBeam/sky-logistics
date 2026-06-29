@@ -2,6 +2,8 @@ package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -470,6 +472,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return null;
     }
 
+    public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
+        return null;
+    }
+
     protected boolean forceSingleEndpointState(Direction endpoint, NodeFaceMode fallbackMode, boolean energyAllowed) {
         boolean changed = false;
         NodeFaceMode endpointMode = getFaceMode(endpoint);
@@ -639,7 +645,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean supportsFluids = hasFluidHandler(target, accessSide)
                 || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
         boolean supportsEnergy = hasEnergyHandler(target, accessSide)
-                || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide));
+                || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide))
+                || (SkyLogisticsConfig.allowEnergySourceTransfer() && hasSourceHandler(targetPos, accessSide));
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
                 && isEnergyEnabled(direction) == supportsEnergy) {
@@ -683,6 +690,15 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         ManaHandlerBridge handler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
         return handler != null && (handler.canExtract() || handler.canReceive() || handler.getMaxMana() > 0);
+    }
+
+    private boolean hasSourceHandler(BlockPos targetPos, Direction accessSide) {
+        if (!SkyLogisticsConfig.allowEnergySourceTransfer() || !ArsNouveauCompat.isLoaded()) {
+            return false;
+        }
+        SourceHandlerBridge handler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
+        return handler != null
+                && (handler.canExtract() || handler.canReceive() || handler.getMaxSource() > 0);
     }
 
     private static boolean isUsableEnergyStorage(IEnergyStorage storage) {
