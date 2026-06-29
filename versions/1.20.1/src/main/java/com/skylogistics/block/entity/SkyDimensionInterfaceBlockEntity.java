@@ -1,11 +1,14 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
@@ -15,6 +18,8 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
 
     private final IItemHandler itemHandler = BeyondDimensionsCompat.createItemHandler(this);
     private final IFluidHandler fluidHandler = BeyondDimensionsCompat.createFluidHandler(this);
+    private final IEnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
+    private final ManaHandlerBridge manaHandler = BeyondDimensionsCompat.createManaHandler(this);
     private int dimensionNetworkId = -1;
 
     public SkyDimensionInterfaceBlockEntity(BlockPos pos, BlockState state) {
@@ -29,6 +34,21 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     @Override
     protected IFluidHandler getFluidHandler() {
         return fluidHandler;
+    }
+
+    @Override
+    protected IEnergyStorage getEnergyHandler() {
+        return energyHandler;
+    }
+
+    @Override
+    protected boolean supportsEnergyEndpoint() {
+        return true;
+    }
+
+    @Override
+    public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION ? manaHandler : null;
     }
 
     @Override

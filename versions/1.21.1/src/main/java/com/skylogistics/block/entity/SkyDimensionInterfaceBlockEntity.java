@@ -7,6 +7,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -16,6 +17,7 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
 
     private final IItemHandler itemHandler = BeyondDimensionsCompat.createItemHandler(this);
     private final IFluidHandler fluidHandler = BeyondDimensionsCompat.createFluidHandler(this);
+    private final IEnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
     private int dimensionNetworkId = -1;
 
     public SkyDimensionInterfaceBlockEntity(BlockPos pos, BlockState state) {
@@ -30,6 +32,16 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     @Override
     protected IFluidHandler getFluidHandler() {
         return fluidHandler;
+    }
+
+    @Override
+    protected IEnergyStorage getEnergyHandler() {
+        return energyHandler;
+    }
+
+    @Override
+    protected boolean supportsEnergyEndpoint() {
+        return true;
     }
 
     @Override

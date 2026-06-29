@@ -1,6 +1,7 @@
 package com.skylogistics.compat;
 
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -79,6 +80,40 @@ public final class EmptyExternalHandlers {
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
             return FluidStack.EMPTY;
+        }
+    }
+
+    public enum Energy implements IEnergyStorage {
+        INSTANCE;
+
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            return 0;
+        }
+
+        @Override
+        public int extractEnergy(int maxExtract, boolean simulate) {
+            return 0;
+        }
+
+        @Override
+        public int getEnergyStored() {
+            return 0;
+        }
+
+        @Override
+        public int getMaxEnergyStored() {
+            return 0;
+        }
+
+        @Override
+        public boolean canExtract() {
+            return false;
+        }
+
+        @Override
+        public boolean canReceive() {
+            return false;
         }
     }
 }

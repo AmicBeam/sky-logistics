@@ -1,6 +1,9 @@
 package com.skylogistics.compat.beyonddimensions;
 
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.FluidUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.ItemUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.dimensionnet.DimensionsNet;
@@ -8,8 +11,10 @@ import com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage;
 import com.wintercogs.beyonddimensions.api.storage.handler.impl.AbstractUnorderedStackHandler.TypeBucket;
 import com.wintercogs.beyonddimensions.api.storage.key.IStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.KeyAmount;
+import com.wintercogs.beyonddimensions.api.util.CapCtx;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.FluidStackKey;
 import com.wintercogs.beyonddimensions.api.storage.key.impl.ItemStackKey;
+import java.lang.reflect.Constructor;
 import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
@@ -21,6 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -35,6 +41,14 @@ final class BeyondDimensionsApiBridge {
 
     static IFluidHandler createFluidHandler(BlockEntity host) {
         return new FluidHandler(host);
+    }
+
+    static IEnergyStorage createEnergyHandler(BlockEntity host) {
+        return new EnergyHandler(host);
+    }
+
+    static ManaHandlerBridge createManaHandler(BlockEntity host) {
+        return new ManaHandler(host);
     }
 
     static BeyondDimensionsCompat.ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -215,6 +229,30 @@ final class BeyondDimensionsApiBridge {
         return storage == null ? EmptyExternalHandlers.Fluids.INSTANCE : new FluidUnifiedStorageHandler(storage);
     }
 
+    private static IEnergyStorage energyHandler(BlockEntity host) {
+        UnifiedStorage storage = storage(host);
+        return storage == null ? EmptyExternalHandlers.Energy.INSTANCE : new EnergyUnifiedStorageHandler(storage);
+    }
+
+    private static ManaHandlerBridge manaHandler(BlockEntity host) {
+        if (!BotaniaCompat.isLoaded() || host.getLevel() == null) {
+            return null;
+        }
+        UnifiedStorage storage = storage(host);
+        if (storage == null) {
+            return null;
+        }
+        try {
+            Class<?> type = Class.forName(
+                    "com.wintercogs.beyonddimensions.integration.module.botania.storage.ManaUnifiedStorageHandler");
+            Constructor<?> constructor = type.getConstructor(UnifiedStorage.class, CapCtx.class);
+            Object handler = constructor.newInstance(storage, new CapCtx(host.getLevel(), host.getBlockPos(), host));
+            return BotaniaCompat.wrapManaHandler(handler, handler);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            return null;
+        }
+    }
+
     private static IStackKey<?> keyInBucket(UnifiedStorage storage, ResourceLocation typeId, int slot) {
         Optional<TypeBucket> bucket = storage.getBucket(typeId);
         if (bucket.isEmpty() || slot < 0 || slot >= bucket.get().size()) {
@@ -294,6 +332,76 @@ final class BeyondDimensionsApiBridge {
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
             return fluidHandler(host).drain(maxDrain, action);
+        }
+    }
+
+    private record EnergyHandler(BlockEntity host) implements IEnergyStorage {
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            return energyHandler(host).receiveEnergy(maxReceive, simulate);
+        }
+
+        @Override
+        public int extractEnergy(int maxExtract, boolean simulate) {
+            return energyHandler(host).extractEnergy(maxExtract, simulate);
+        }
+
+        @Override
+        public int getEnergyStored() {
+            return energyHandler(host).getEnergyStored();
+        }
+
+        @Override
+        public int getMaxEnergyStored() {
+            return energyHandler(host).getMaxEnergyStored();
+        }
+
+        @Override
+        public boolean canExtract() {
+            return energyHandler(host).canExtract();
+        }
+
+        @Override
+        public boolean canReceive() {
+            return energyHandler(host).canReceive();
+        }
+    }
+
+    private record ManaHandler(BlockEntity host) implements ManaHandlerBridge {
+        @Override
+        public int getCurrentMana() {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler == null ? 0 : handler.getCurrentMana();
+        }
+
+        @Override
+        public int getMaxMana() {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler == null ? 0 : handler.getMaxMana();
+        }
+
+        @Override
+        public boolean canExtract() {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler != null && handler.canExtract();
+        }
+
+        @Override
+        public boolean canReceive() {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler != null && handler.canReceive();
+        }
+
+        @Override
+        public int extractMana(int amount, boolean simulate) {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler == null ? 0 : handler.extractMana(amount, simulate);
+        }
+
+        @Override
+        public int insertMana(int amount, boolean simulate) {
+            ManaHandlerBridge handler = manaHandler(host);
+            return handler == null ? 0 : handler.insertMana(amount, simulate);
         }
     }
 }

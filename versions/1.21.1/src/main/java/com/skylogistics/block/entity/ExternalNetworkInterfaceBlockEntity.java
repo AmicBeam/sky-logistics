@@ -1,5 +1,6 @@
 package com.skylogistics.block.entity;
 
+import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.core.BlockPos;
@@ -10,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -25,6 +27,14 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     protected abstract IFluidHandler getFluidHandler();
 
+    protected IEnergyStorage getEnergyHandler() {
+        return EmptyExternalHandlers.Energy.INSTANCE;
+    }
+
+    protected boolean supportsEnergyEndpoint() {
+        return false;
+    }
+
     protected abstract Component externalNetworkName();
 
     public IItemHandler exposedItemHandler() {
@@ -33,6 +43,10 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     public IFluidHandler exposedFluidHandler() {
         return getFluidHandler();
+    }
+
+    public IEnergyStorage exposedEnergyHandler() {
+        return getEnergyHandler();
     }
 
     @Override
@@ -81,6 +95,11 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     @Override
+    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() ? getEnergyHandler() : null;
+    }
+
+    @Override
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setFaceMode(direction, faceMode);
@@ -118,21 +137,21 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public void setEnergyEnabled(boolean energyEnabled) {
-        super.setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        super.setEnergyEnabled(ENDPOINT_DIRECTION, supportsEnergyEndpoint() && energyEnabled);
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setEnergyEnabled(Direction direction, boolean energyEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
-            super.setEnergyEnabled(direction, false);
+            super.setEnergyEnabled(direction, supportsEnergyEndpoint() && energyEnabled);
             normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
     @Override
     public boolean isEnergyEnabled(Direction direction) {
-        return false;
+        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() && super.isEnergyEnabled(direction);
     }
 
     @Override
@@ -147,7 +166,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         }
         setItemsEnabled(ENDPOINT_DIRECTION, true);
         setFluidsEnabled(ENDPOINT_DIRECTION, true);
-        setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        setEnergyEnabled(ENDPOINT_DIRECTION, supportsEnergyEndpoint());
     }
 
     @Override
@@ -176,7 +195,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         }
         setItemsEnabled(ENDPOINT_DIRECTION, face.itemsEnabled());
         setFluidsEnabled(ENDPOINT_DIRECTION, face.fluidsEnabled());
-        setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        setEnergyEnabled(ENDPOINT_DIRECTION, face.energyEnabled());
         while (getRedstoneControl(ENDPOINT_DIRECTION) != face.redstoneControl()) {
             cycleRedstoneControl(ENDPOINT_DIRECTION);
         }
@@ -187,7 +206,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     private void normalizeEndpoint(NodeFaceMode fallbackMode, boolean notify) {
-        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, false) && notify) {
+        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, supportsEnergyEndpoint()) && notify) {
             markTopologyChanged();
         }
     }

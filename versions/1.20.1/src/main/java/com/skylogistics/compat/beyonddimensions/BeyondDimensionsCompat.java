@@ -2,12 +2,15 @@ package com.skylogistics.compat.beyonddimensions;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.ModList;
@@ -45,6 +48,30 @@ public final class BeyondDimensionsCompat {
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
+        }
+    }
+
+    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
+        if (!isLoaded()) {
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+        try {
+            return BeyondDimensionsApiBridge.createEnergyHandler(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+    }
+
+    public static ManaHandlerBridge createManaHandler(BlockEntity host) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+            return null;
+        }
+        try {
+            return BeyondDimensionsApiBridge.createManaHandler(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
         }
     }
 

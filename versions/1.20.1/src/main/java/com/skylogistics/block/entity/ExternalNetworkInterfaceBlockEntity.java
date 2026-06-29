@@ -1,5 +1,6 @@
 package com.skylogistics.block.entity;
 
+import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.core.BlockPos;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
@@ -20,6 +22,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(this::getItemHandler);
     private final LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(this::getFluidHandler);
+    private final LazyOptional<IEnergyStorage> energyCapability = LazyOptional.of(this::getEnergyHandler);
 
     protected ExternalNetworkInterfaceBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -29,6 +32,14 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     protected abstract IItemHandler getItemHandler();
 
     protected abstract IFluidHandler getFluidHandler();
+
+    protected IEnergyStorage getEnergyHandler() {
+        return EmptyExternalHandlers.Energy.INSTANCE;
+    }
+
+    protected boolean supportsEnergyEndpoint() {
+        return false;
+    }
 
     protected abstract Component externalNetworkName();
 
@@ -78,6 +89,11 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     @Override
+    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() ? getEnergyHandler() : null;
+    }
+
+    @Override
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setFaceMode(direction, faceMode);
@@ -115,21 +131,21 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public void setEnergyEnabled(boolean energyEnabled) {
-        super.setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        super.setEnergyEnabled(ENDPOINT_DIRECTION, supportsEnergyEndpoint() && energyEnabled);
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setEnergyEnabled(Direction direction, boolean energyEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
-            super.setEnergyEnabled(direction, false);
+            super.setEnergyEnabled(direction, supportsEnergyEndpoint() && energyEnabled);
             normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
     @Override
     public boolean isEnergyEnabled(Direction direction) {
-        return false;
+        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() && super.isEnergyEnabled(direction);
     }
 
     @Override
@@ -144,7 +160,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         }
         setItemsEnabled(ENDPOINT_DIRECTION, true);
         setFluidsEnabled(ENDPOINT_DIRECTION, true);
-        setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        setEnergyEnabled(ENDPOINT_DIRECTION, supportsEnergyEndpoint());
     }
 
     @Override
@@ -173,7 +189,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         }
         setItemsEnabled(ENDPOINT_DIRECTION, face.itemsEnabled());
         setFluidsEnabled(ENDPOINT_DIRECTION, face.fluidsEnabled());
-        setEnergyEnabled(ENDPOINT_DIRECTION, false);
+        setEnergyEnabled(ENDPOINT_DIRECTION, face.energyEnabled());
         while (getRedstoneControl(ENDPOINT_DIRECTION) != face.redstoneControl()) {
             cycleRedstoneControl(ENDPOINT_DIRECTION);
         }
@@ -184,7 +200,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     private void normalizeEndpoint(NodeFaceMode fallbackMode, boolean notify) {
-        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, false) && notify) {
+        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, supportsEnergyEndpoint()) && notify) {
             markTopologyChanged();
         }
     }
@@ -197,6 +213,9 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         if (capability == ForgeCapabilities.FLUID_HANDLER) {
             return fluidCapability.cast();
         }
+        if (capability == ForgeCapabilities.ENERGY && supportsEnergyEndpoint()) {
+            return energyCapability.cast();
+        }
         return super.getCapability(capability, side);
     }
 
@@ -205,5 +224,6 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         super.invalidateCaps();
         itemCapability.invalidate();
         fluidCapability.invalidate();
+        energyCapability.invalidate();
     }
 }

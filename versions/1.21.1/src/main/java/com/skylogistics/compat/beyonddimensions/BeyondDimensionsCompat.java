@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -37,6 +38,10 @@ public final class BeyondDimensionsCompat {
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
+        return isLoaded() ? new EnergyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
     }
 
     public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -369,6 +374,24 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    private static IEnergyStorage energyHandler(BlockEntity host) {
+        Object storage = storage(host);
+        if (storage == null) {
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+        try {
+            Class<?> type = Class.forName(
+                    "com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler");
+            Constructor<?> constructor = type.getConstructor(Class.forName(
+                    "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
+            Object handler = constructor.newInstance(storage);
+            return handler instanceof IEnergyStorage energyHandler ? energyHandler : EmptyExternalHandlers.Energy.INSTANCE;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return EmptyExternalHandlers.Energy.INSTANCE;
+        }
+    }
+
     private static void warn(Throwable error) {
         if (!warned) {
             warned = true;
@@ -469,6 +492,38 @@ public final class BeyondDimensionsCompat {
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
             return fluidHandler(host).drain(maxDrain, action);
+        }
+    }
+
+    private record EnergyHandler(BlockEntity host) implements IEnergyStorage {
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            return energyHandler(host).receiveEnergy(maxReceive, simulate);
+        }
+
+        @Override
+        public int extractEnergy(int maxExtract, boolean simulate) {
+            return energyHandler(host).extractEnergy(maxExtract, simulate);
+        }
+
+        @Override
+        public int getEnergyStored() {
+            return energyHandler(host).getEnergyStored();
+        }
+
+        @Override
+        public int getMaxEnergyStored() {
+            return energyHandler(host).getMaxEnergyStored();
+        }
+
+        @Override
+        public boolean canExtract() {
+            return energyHandler(host).canExtract();
+        }
+
+        @Override
+        public boolean canReceive() {
+            return energyHandler(host).canReceive();
         }
     }
 

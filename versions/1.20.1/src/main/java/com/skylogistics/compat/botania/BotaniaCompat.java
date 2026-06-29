@@ -36,6 +36,13 @@ public final class BotaniaCompat {
         return ReflectiveManaHandlerBridge.create(receiver, getCapability(target, sparkAttachableCapability(), side));
     }
 
+    public static ManaHandlerBridge wrapManaHandler(Object receiver, Object sparkAttachable) {
+        if (!isLoaded()) {
+            return null;
+        }
+        return ReflectiveManaHandlerBridge.create(receiver, sparkAttachable);
+    }
+
     private static Capability<?> manaReceiverCapability() {
         resolveCapabilities();
         return manaReceiverCapability;
