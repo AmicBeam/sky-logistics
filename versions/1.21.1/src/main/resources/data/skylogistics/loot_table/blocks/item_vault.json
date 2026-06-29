@@ -9,19 +9,10 @@
           "name": "skylogistics:item_vault",
           "functions": [
             {
-              "function": "minecraft:copy_nbt",
+              "function": "minecraft:copy_components",
               "source": "block_entity",
-              "ops": [
-                {
-                  "source": "VaultId",
-                  "target": "BlockEntityTag.VaultId",
-                  "op": "replace"
-                },
-                {
-                  "source": "TypeLimit",
-                  "target": "BlockEntityTag.TypeLimit",
-                  "op": "replace"
-                }
+              "include": [
+                "minecraft:block_entity_data"
               ]
             }
           ]

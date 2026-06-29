@@ -17,6 +17,8 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -27,6 +29,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -324,6 +327,15 @@ public class ItemVaultBlockEntity extends BlockEntity {
         CompoundTag tag = new CompoundTag();
         saveMetadata(tag);
         return tag;
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder components) {
+        super.collectImplicitComponents(components);
+        CompoundTag tag = new CompoundTag();
+        tag.putInt("TypeLimit", typeLimit);
+        BlockEntity.addEntityType(tag, getType());
+        components.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(tag));
     }
 
     @Override

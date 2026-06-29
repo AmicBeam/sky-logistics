@@ -9,19 +9,10 @@
           "name": "skylogistics:fluid_vault",
           "functions": [
             {
-              "function": "minecraft:copy_nbt",
+              "function": "minecraft:copy_components",
               "source": "block_entity",
-              "ops": [
-                {
-                  "source": "TypeLimit",
-                  "target": "BlockEntityTag.TypeLimit",
-                  "op": "replace"
-                },
-                {
-                  "source": "CapacityPerType",
-                  "target": "BlockEntityTag.CapacityPerType",
-                  "op": "replace"
-                }
+              "include": [
+                "minecraft:block_entity_data"
               ]
             }
           ]
