@@ -16,6 +16,14 @@ public final class SkyLogisticsConfig {
         return SERVER.maxVaultTypes.get();
     }
 
+    public static int maxVaultItemEntryNbtBytes() {
+        return SERVER.maxVaultItemEntryNbtBytes.get();
+    }
+
+    public static int maxVaultFluidEntryNbtBytes() {
+        return SERVER.maxVaultFluidEntryNbtBytes.get();
+    }
+
     public static int nodeItemTransferLimit() {
         return SERVER.nodeItemTransferLimit.get();
     }
@@ -94,6 +102,8 @@ public final class SkyLogisticsConfig {
 
     public static final class Server {
         public final ModConfigSpec.IntValue maxVaultTypes;
+        public final ModConfigSpec.IntValue maxVaultItemEntryNbtBytes;
+        public final ModConfigSpec.IntValue maxVaultFluidEntryNbtBytes;
         public final ModConfigSpec.IntValue nodeItemTransferLimit;
         public final ModConfigSpec.IntValue nodeEnergyTransferLimit;
         public final ModConfigSpec.IntValue serverOpsPerTick;
@@ -119,6 +129,12 @@ public final class SkyLogisticsConfig {
             maxVaultTypes = builder
                     .comment("Maximum item/fluid type slots a Celestial Vault can be expanded to with capacity nectar.")
                     .defineInRange("maxVaultTypes", 36, 1, 63);
+            maxVaultItemEntryNbtBytes = builder
+                    .comment("Maximum serialized NBT bytes allowed for one distinct item stored in an item vault.")
+                    .defineInRange("maxVaultItemEntryNbtBytes", 8192, 128, 1_048_576);
+            maxVaultFluidEntryNbtBytes = builder
+                    .comment("Maximum serialized NBT bytes allowed for one distinct fluid stored in a fluid vault.")
+                    .defineInRange("maxVaultFluidEntryNbtBytes", 4096, 128, 1_048_576);
             builder.pop();
 
             builder.push("transfers");

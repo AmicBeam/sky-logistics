@@ -6,6 +6,7 @@ import com.skylogistics.network.FluidVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.FluidStackKey;
+import com.skylogistics.util.NbtSize;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -242,8 +243,12 @@ public class FluidVaultBlockEntity extends BlockEntity {
             if (amount <= 0) {
                 continue;
             }
+            CompoundTag keyTag = fluid.getKey().save();
+            if (!isSavedFluidWithinNbtLimit(keyTag)) {
+                continue;
+            }
             CompoundTag entry = new CompoundTag();
-            entry.put("Key", fluid.getKey().save());
+            entry.put("Key", keyTag);
             entry.putLong("Amount", amount);
             fluidTags.add(entry);
         }
@@ -268,7 +273,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
                 long amount = entry.getLong("Amount");
                 FluidStackKey key = FluidStackKey.load(entry.getCompound("Key"));
                 FluidStack stack = key.toStack(1);
-                if (amount > 0 && !stack.isEmpty()) {
+                if (amount > 0 && !stack.isEmpty() && isFluidKeyWithinNbtLimit(key)) {
                     stored.put(key, amount);
                 }
             }
@@ -396,6 +401,9 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (amount <= 0) {
             return 0L;
         }
+        if (!isFluidKeyWithinNbtLimit(key)) {
+            return 0L;
+        }
         LinkedHashMap<FluidStackKey, Long> contents = contents();
         long current = contents.getOrDefault(key, 0L);
         if (current <= 0 && contents.size() >= getTypeLimit()) {
@@ -455,6 +463,14 @@ public class FluidVaultBlockEntity extends BlockEntity {
         return left + right;
     }
 
+    private static boolean isFluidKeyWithinNbtLimit(FluidStackKey key) {
+        return isSavedFluidWithinNbtLimit(key.save());
+    }
+
+    private static boolean isSavedFluidWithinNbtLimit(CompoundTag tag) {
+        return NbtSize.serializedBytes(tag) <= SkyLogisticsConfig.maxVaultFluidEntryNbtBytes();
+    }
+
     public record StoredFluid(FluidStack stack, long amount) {
     }
 
@@ -489,6 +505,9 @@ public class FluidVaultBlockEntity extends BlockEntity {
             FluidStack normalized = stack.copy();
             normalized.setAmount(1);
             FluidStackKey key = FluidStackKey.of(normalized);
+            if (!isFluidKeyWithinNbtLimit(key)) {
+                return false;
+            }
             LinkedHashMap<FluidStackKey, Long> contents = contents();
             return contents.containsKey(key) || contents.size() < getTypeLimit();
         }
@@ -501,6 +520,9 @@ public class FluidVaultBlockEntity extends BlockEntity {
             FluidStack normalized = resource.copy();
             normalized.setAmount(1);
             FluidStackKey key = FluidStackKey.of(normalized);
+            if (!isFluidKeyWithinNbtLimit(key)) {
+                return 0;
+            }
             LinkedHashMap<FluidStackKey, Long> contents = contents();
             long current = contents.getOrDefault(key, 0L);
             if (current <= 0 && contents.size() >= getTypeLimit()) {

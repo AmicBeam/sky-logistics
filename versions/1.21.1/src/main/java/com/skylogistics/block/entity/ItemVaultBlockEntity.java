@@ -6,6 +6,7 @@ import com.skylogistics.network.ItemVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.NbtSize;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -283,10 +284,14 @@ public class ItemVaultBlockEntity extends BlockEntity {
             }
             ItemStack savedStack = stack.copy();
             savedStack.setCount(1);
+            CompoundTag stackTag = StackData.saveItem(savedStack, registries);
+            if (!isSavedItemWithinNbtLimit(stackTag)) {
+                continue;
+            }
             CompoundTag entry = new CompoundTag();
             entry.putInt("Slot", slot);
             entry.putLong("Amount", amount);
-            entry.put("Stack", StackData.saveItem(savedStack, registries));
+            entry.put("Stack", stackTag);
             itemTags.add(entry);
         }
         if (!itemTags.isEmpty()) {
@@ -458,6 +463,12 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if (!existing.isEmpty() && !StackData.sameItemAndComponents(existing, template)) {
             return 0L;
         }
+        if ((existing.isEmpty() || current <= 0L) && !isItemStackWithinNbtLimit(template)) {
+            return 0L;
+        }
+        if (!existing.isEmpty() && !isItemStackWithinNbtLimit(existing)) {
+            return 0L;
+        }
         long inserted = amount;
         if (!existing.isEmpty() && current > 0L && Long.MAX_VALUE - current < amount) {
             inserted = Long.MAX_VALUE - current;
@@ -589,7 +600,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     private void setStored(int slot, ItemStack stack, long amount) {
-        if (slot < 0 || slot >= items.size() || stack.isEmpty() || amount <= 0) {
+        if (slot < 0 || slot >= items.size() || stack.isEmpty() || amount <= 0
+                || !isItemStackWithinNbtLimit(stack)) {
             if (slot >= 0 && slot < items.size()) {
                 items.set(slot, ItemStack.EMPTY);
                 amounts.set(slot, 0L);
@@ -620,6 +632,19 @@ public class ItemVaultBlockEntity extends BlockEntity {
             return Long.MAX_VALUE;
         }
         return left + right;
+    }
+
+    private static boolean isItemStackWithinNbtLimit(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return true;
+        }
+        ItemStack savedStack = stack.copy();
+        savedStack.setCount(1);
+        return isSavedItemWithinNbtLimit(StackData.saveItem(savedStack));
+    }
+
+    private static boolean isSavedItemWithinNbtLimit(CompoundTag tag) {
+        return NbtSize.serializedBytes(tag) <= SkyLogisticsConfig.maxVaultItemEntryNbtBytes();
     }
 
     public record StoredItem(ItemStack stack, long amount) {
@@ -672,6 +697,9 @@ public class ItemVaultBlockEntity extends BlockEntity {
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
             if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
+                return false;
+            }
+            if (!isItemStackWithinNbtLimit(stack)) {
                 return false;
             }
             ItemStack existing = templateInSlot(slot);
