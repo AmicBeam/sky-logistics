@@ -6,6 +6,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyLineNames;
@@ -635,8 +636,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
         Direction accessSide = getAccessSide(direction);
         BlockEntity target = level.getBlockEntity(targetPos);
         boolean supportsItems = hasItemHandler(target, accessSide);
-        boolean supportsFluids = hasFluidHandler(target, accessSide) || hasChemicalHandler(targetPos, accessSide);
-        boolean supportsEnergy = hasEnergyHandler(target, accessSide) || hasManaHandler(targetPos, accessSide);
+        boolean supportsFluids = hasFluidHandler(target, accessSide)
+                || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
+        boolean supportsEnergy = hasEnergyHandler(target, accessSide)
+                || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide));
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
                 && isEnergyEnabled(direction) == supportsEnergy) {
@@ -661,7 +664,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
-        if (!MekanismCompat.isLoaded()) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer() || !MekanismCompat.isLoaded()) {
             return false;
         }
         ChemicalHandlerBridge handler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
@@ -675,7 +678,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
-        if (!BotaniaCompat.isLoaded()) {
+        if (!SkyLogisticsConfig.allowEnergyManaTransfer() || !BotaniaCompat.isLoaded()) {
             return false;
         }
         ManaHandlerBridge handler = BotaniaCompat.manaHandler(level, targetPos, accessSide);

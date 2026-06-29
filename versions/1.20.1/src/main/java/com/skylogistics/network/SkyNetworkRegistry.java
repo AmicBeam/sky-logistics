@@ -715,7 +715,7 @@ public final class SkyNetworkRegistry {
             }
             if (node.isFluidsEnabled(direction)) {
                 fluidEndpoints.add(endpoint);
-                if (MekanismCompat.isLoaded()) {
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                     chemicalEndpoints.add(endpoint);
                 }
             }
@@ -924,7 +924,7 @@ public final class SkyNetworkRegistry {
         }
 
         public ChemicalHandlerBridge chemicalHandler(long gameTime) {
-            if (!canTryChemicals(gameTime)) {
+            if (!canTryChemicals(gameTime) || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
                 return null;
             }
             ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
@@ -985,7 +985,8 @@ public final class SkyNetworkRegistry {
         }
 
         public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!canTryMana(gameTime) || !BotaniaCompat.isLoaded()) {
+            if (!canTryMana(gameTime) || !SkyLogisticsConfig.allowEnergyManaTransfer()
+                    || !BotaniaCompat.isLoaded()) {
                 return null;
             }
             ManaHandlerBridge direct = node.getEndpointManaHandler(direction, gameTime);

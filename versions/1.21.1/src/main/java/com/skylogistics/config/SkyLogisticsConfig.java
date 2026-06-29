@@ -44,6 +44,10 @@ public final class SkyLogisticsConfig {
         return SERVER.externalTankScansPerEndpoint.get();
     }
 
+    public static boolean allowFluidChemicalTransfer() {
+        return SERVER.allowFluidChemicalTransfer.get();
+    }
+
     public static int preferredItemSlotCacheSize() {
         return SERVER.preferredItemSlotCacheSize.get();
     }
@@ -73,6 +77,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
+        public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -103,6 +108,9 @@ public final class SkyLogisticsConfig {
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
+            allowFluidChemicalTransfer = builder
+                    .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.")
+                    .define("allowFluidChemicalTransfer", true);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);

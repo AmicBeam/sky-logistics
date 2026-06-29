@@ -123,7 +123,8 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (MekanismCompat.isLoaded() && node.isFluidsEnabled(input.direction())
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+                        && node.isFluidsEnabled(input.direction())
                         && input.canTryChemicals(gameTime)) {
                     if (dimensionUpgrade && globalChemicalOutputs == null) {
                         globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
@@ -148,7 +149,7 @@ public final class SkyNetworkTicker {
                 }
                 if (node.isEnergyEnabled(input.direction())
                         && (input.canTryEnergy(gameTime)
-                        || (BotaniaCompat.isLoaded() && input.canTryMana(gameTime)))) {
+                        || (canTransferMana() && input.canTryMana(gameTime)))) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
                     }
@@ -158,7 +159,7 @@ public final class SkyNetworkTicker {
                         if (input.canTryEnergy(gameTime)) {
                             input.recordEnergyFailure(gameTime);
                         }
-                        if (BotaniaCompat.isLoaded() && input.canTryMana(gameTime)) {
+                        if (canTransferMana() && input.canTryMana(gameTime)) {
                             input.recordManaFailure(gameTime);
                         }
                     } else {
@@ -168,7 +169,7 @@ public final class SkyNetworkTicker {
                             operations += used;
                             resourceBudget -= used;
                         }
-                        if (BotaniaCompat.isLoaded() && resourceBudget > 0 && input.canTryMana(gameTime)) {
+                        if (canTransferMana() && resourceBudget > 0 && input.canTryMana(gameTime)) {
                             operations += transferMana(input, targets, resourceBudget, gameTime);
                         }
                     }
@@ -209,17 +210,21 @@ public final class SkyNetworkTicker {
         }
         if (node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (MekanismCompat.isLoaded()) {
+            if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
         if (node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
-            if (BotaniaCompat.isLoaded()) {
+            if (canTransferMana()) {
                 nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
             }
         }
         return nextWake;
+    }
+
+    private static boolean canTransferMana() {
+        return SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded();
     }
 
     private static int transferItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
@@ -842,6 +847,9 @@ public final class SkyNetworkTicker {
 
     private static int transferChemicals(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer()) {
+            return 0;
+        }
         SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
         ChemicalHandlerBridge source = sourceEndpoint.chemicalHandler(gameTime);
         if (source == null || budget <= 0) {
@@ -1183,7 +1191,7 @@ public final class SkyNetworkTicker {
 
     private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
-        if (budget <= 0) {
+        if (!canTransferMana() || budget <= 0) {
             return 0;
         }
         ManaHandlerBridge source = sourceEndpoint.manaHandler(gameTime);

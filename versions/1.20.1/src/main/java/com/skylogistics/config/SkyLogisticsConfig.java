@@ -44,6 +44,14 @@ public final class SkyLogisticsConfig {
         return SERVER.externalTankScansPerEndpoint.get();
     }
 
+    public static boolean allowFluidChemicalTransfer() {
+        return SERVER.allowFluidChemicalTransfer.get();
+    }
+
+    public static boolean allowEnergyManaTransfer() {
+        return SERVER.allowEnergyManaTransfer.get();
+    }
+
     public static int preferredItemSlotCacheSize() {
         return SERVER.preferredItemSlotCacheSize.get();
     }
@@ -73,6 +81,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue skyRitualMinY;
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
+        public final ForgeConfigSpec.BooleanValue allowFluidChemicalTransfer;
+        public final ForgeConfigSpec.BooleanValue allowEnergyManaTransfer;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -103,6 +113,12 @@ public final class SkyLogisticsConfig {
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
+            allowFluidChemicalTransfer = builder
+                    .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.")
+                    .define("allowFluidChemicalTransfer", true);
+            allowEnergyManaTransfer = builder
+                    .comment("Whether energy-enabled logistics faces may also transfer Botania mana.")
+                    .define("allowEnergyManaTransfer", true);
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);

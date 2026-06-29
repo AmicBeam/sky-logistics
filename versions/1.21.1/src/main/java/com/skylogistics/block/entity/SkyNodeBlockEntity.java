@@ -4,6 +4,7 @@ import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyLineNames;
@@ -630,7 +631,8 @@ public class SkyNodeBlockEntity extends BlockEntity {
         BlockPos targetPos = getTargetPos(direction);
         Direction accessSide = getAccessSide(direction);
         boolean supportsItems = hasItemHandler(targetPos, accessSide);
-        boolean supportsFluids = hasFluidHandler(targetPos, accessSide) || hasChemicalHandler(targetPos, accessSide);
+        boolean supportsFluids = hasFluidHandler(targetPos, accessSide)
+                || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
         boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide);
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
@@ -654,7 +656,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
-        if (!MekanismCompat.isLoaded()) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer() || !MekanismCompat.isLoaded()) {
             return false;
         }
         ChemicalHandlerBridge handler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);

@@ -118,7 +118,8 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (MekanismCompat.isLoaded() && node.isFluidsEnabled(input.direction())
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+                        && node.isFluidsEnabled(input.direction())
                         && input.canTryChemicals(gameTime)) {
                     if (dimensionUpgrade && globalChemicalOutputs == null) {
                         globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
@@ -190,7 +191,7 @@ public final class SkyNetworkTicker {
         }
         if (node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (MekanismCompat.isLoaded()) {
+            if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
@@ -820,6 +821,9 @@ public final class SkyNetworkTicker {
 
     private static int transferChemicals(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        if (!SkyLogisticsConfig.allowFluidChemicalTransfer()) {
+            return 0;
+        }
         SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
         ChemicalHandlerBridge source = sourceEndpoint.chemicalHandler(gameTime);
         if (source == null || budget <= 0) {
