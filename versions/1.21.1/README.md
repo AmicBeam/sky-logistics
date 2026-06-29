@@ -21,14 +21,14 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
   - Placed against a machine/container side.
   - Main-hand node placement blocks the target machine GUI.
   - Normal right-click links in insert mode; sneak right-click links in extract mode.
-  - Stores a line id, line name, per-face connection modes, item/fluid/FE toggles, priority, redstone control and operation rate.
+  - Stores a line id, line name, per-face connection modes, item/fluid/energy toggles, priority, redstone control and operation rate.
   - New line ids are stably derived from their line names; placing without an offhand configurator uses the player's `name-0` line.
   - The node GUI configures all six faces independently as disconnected, extract or insert and shows adjacent block icons.
   - The node GUI has a More page for the selected face: every face can set priority and redstone control.
   - Transfer targets are grouped by priority and round-robined within the same priority.
   - The node GUI owns transfer rate, a filter-list slot and the player inventory below it.
   - The model is smaller than a full block and shows a larger connector ring in extract mode.
-  - Server tick dispatcher transfers items, fluids and FE wirelessly between matching extract/insert faces on the same line.
+  - Server tick dispatcher transfers items, fluids and energy wirelessly between matching extract/insert faces on the same line.
   - A dimension upgrade on an extract node lets it send to matching insert faces on the same line in other dimensions.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.

@@ -9,7 +9,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "A line can carry items, fluids, and FE. Nodes are configured per face: extract faces pull from adjacent machines or containers, and insert faces push into adjacent machines or containers. The node screen lets you edit all six directions independently."
+      "text": "A line can carry items, fluids, and energy. Nodes are configured per face: extract faces pull from adjacent machines or containers, and insert faces push into adjacent machines or containers. The node screen lets you edit all six directions independently."
     },
     {
       "type": "patchouli:text",

@@ -2,11 +2,11 @@
 
 **Read this in other languages: [简体中文](README_CN.md)**
 
-Celestial wireless logistics for Minecraft. Sky Logistics moves items, fluids, and FE through named wireless lines, adds large aggregate vaults, and provides sky-themed tools for configuring networks, filters, portable transfer, and high-altitude offering recipes.
+Celestial wireless logistics for Minecraft. Sky Logistics moves items, fluids, and energy through named wireless lines, adds large aggregate vaults, and provides sky-themed tools for configuring networks, filters, portable transfer, and high-altitude offering recipes.
 
 ## Features
 
-- **Wireless by design**: connect machines, vaults, and interfaces through named logistics lines instead of pipe runs. Items, fluids, and FE use the same line model, with optional cross-dimensional transfer.
+- **Wireless by design**: connect machines, vaults, and interfaces through named logistics lines instead of pipe runs. Items, fluids, and energy use the same line model, with optional cross-dimensional transfer.
 - **High throughput**: normal nodes process 1 stack/t and speed upgrades raise that to 2 stacks/t. Item and energy transfers use a 2.1B-class default per-operation cap, while direct Sky Logistics vault-to-vault transfers use a 9e18-class default cap.
 - **Server-friendly performance**: transfer work is scheduled with operation budgets, ready-line queues, hot slot tracking, capability caches, and endpoint backoff so large networks stay responsive without constantly scanning the world.
 - **Fast placement and setup**: node placement switches mode based on sneaking, and the Sky Configurator handles line management, copy/paste configuration, and offhand placement presets.

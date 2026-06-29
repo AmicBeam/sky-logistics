@@ -5,6 +5,8 @@ import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -141,17 +143,31 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
+                if (node.isEnergyEnabled(input.direction())
+                        && (input.canTryEnergy(gameTime)
+                        || (BotaniaCompat.isLoaded() && input.canTryMana(gameTime)))) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
                     }
                     List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityEnergyOutputs(),
                             globalEnergyOutputs);
                     if (targets.isEmpty()) {
-                        input.recordEnergyFailure(gameTime);
+                        if (input.canTryEnergy(gameTime)) {
+                            input.recordEnergyFailure(gameTime);
+                        }
+                        if (BotaniaCompat.isLoaded() && input.canTryMana(gameTime)) {
+                            input.recordManaFailure(gameTime);
+                        }
                     } else {
-                        operations += transferEnergy(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int resourceBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        if (input.canTryEnergy(gameTime)) {
+                            int used = transferEnergy(input, targets, resourceBudget, gameTime);
+                            operations += used;
+                            resourceBudget -= used;
+                        }
+                        if (BotaniaCompat.isLoaded() && resourceBudget > 0 && input.canTryMana(gameTime)) {
+                            operations += transferMana(input, targets, resourceBudget, gameTime);
+                        }
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake);
@@ -196,6 +212,9 @@ public final class SkyNetworkTicker {
         }
         if (node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
+            if (BotaniaCompat.isLoaded()) {
+                nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
+            }
         }
         return nextWake;
     }
@@ -1050,7 +1069,7 @@ public final class SkyNetworkTicker {
                     int rolledBack = source.receiveEnergy(rollback, false);
                     if (rolledBack < rollback) {
                         SkyLogistics.LOGGER.warn(
-                                "Energy rollback failed after simulated target receive changed during transfer. Source node {} face {}, target node {} face {}, extracted {} FE, inserted {} FE, rollback remainder {} FE",
+                                "Energy rollback failed after simulated target receive changed during transfer. Source node {} face {}, target node {} face {}, extracted {} energy, inserted {} energy, rollback remainder {} energy",
                                 sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                                 targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
                                 rollback - rolledBack);
@@ -1063,6 +1082,97 @@ public final class SkyNetworkTicker {
         }
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordEnergyFailure(gameTime);
+        }
+        return new MoveResult(false, operations);
+    }
+
+    private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        if (budget <= 0) {
+            return 0;
+        }
+        ManaHandlerBridge source = sourceEndpoint.manaHandler(gameTime);
+        if (source == null) {
+            return 0;
+        }
+        int simulated = source.extractMana(SkyLogisticsConfig.nodeEnergyTransferLimit(), true);
+        int operations = 1;
+        if (simulated <= 0) {
+            sourceEndpoint.recordManaFailure(gameTime);
+            return operations;
+        }
+        MoveResult result = tryMoveMana(sourceEndpoint, source, simulated, targets, budget - operations, gameTime);
+        operations += result.operations();
+        if (result.moved()) {
+            sourceEndpoint.recordManaSuccess();
+        }
+        return operations;
+    }
+
+    private static MoveResult tryMoveMana(CachedEndpoint sourceEndpoint, ManaHandlerBridge source, int simulated,
+            List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0) {
+            return new MoveResult(false, 0);
+        }
+        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        targetLoop:
+        for (int groupStart = 0; groupStart < targets.size();) {
+            int groupEnd = priorityGroupEnd(targets, groupStart);
+            int groupSize = groupEnd - groupStart;
+            int groupCursor = Math.floorMod(targetCursor, groupSize);
+            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
+                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
+                        groupOffset);
+                if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    redstoneBlocked = true;
+                    continue;
+                }
+                if (!targetEndpoint.canTryMana(gameTime)
+                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                    continue;
+                }
+                if (operations >= targetAttemptBudget) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                operations++;
+                ManaHandlerBridge target = targetEndpoint.manaHandler(gameTime);
+                if (target == null) {
+                    continue;
+                }
+                int accepted = target.insertMana(simulated, true);
+                if (accepted <= 0) {
+                    targetEndpoint.recordManaFailure(gameTime);
+                    continue;
+                }
+                int extracted = source.extractMana(accepted, false);
+                if (extracted <= 0) {
+                    sourceEndpoint.recordManaFailure(gameTime);
+                    return new MoveResult(false, operations);
+                }
+                int inserted = target.insertMana(extracted, false);
+                if (inserted < extracted) {
+                    int rollback = extracted - inserted;
+                    int rolledBack = source.insertMana(rollback, false);
+                    if (rolledBack < rollback) {
+                        SkyLogistics.LOGGER.warn(
+                                "Mana rollback failed after simulated target receive changed during transfer. Source node {} face {}, target node {} face {}, extracted {} mana, inserted {} mana, rollback remainder {} mana",
+                                sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                                targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                                rollback - rolledBack);
+                    }
+                }
+                targetEndpoint.recordManaSuccess();
+                return new MoveResult(true, operations);
+            }
+            groupStart = groupEnd;
+        }
+        if (!redstoneBlocked && !budgetExhausted) {
+            sourceEndpoint.recordManaFailure(gameTime);
         }
         return new MoveResult(false, operations);
     }

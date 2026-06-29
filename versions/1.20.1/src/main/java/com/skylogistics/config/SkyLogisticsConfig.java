@@ -86,7 +86,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum item count moved by a logistics node per normal item transfer operation.")
                     .defineInRange("nodeItemTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
             nodeEnergyTransferLimit = builder
-                    .comment("Maximum FE moved by a logistics node per energy transfer operation.")
+                    .comment("Maximum energy moved by a logistics node per energy transfer operation.")
                     .defineInRange("nodeEnergyTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")

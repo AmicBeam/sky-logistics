@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Sky Configurator manages lines and quickly syncs logistics node settings. Right-click air to open the configurator screen; opening this screen exits paste mode. The screen lets you switch lines and choose whether the stored configuration enables items, fluids, and FE."
+      "text": "The Sky Configurator manages lines and quickly syncs logistics node settings. Right-click air to open the configurator screen; opening this screen exits paste mode. The screen lets you switch lines and choose whether the stored configuration enables items, fluids, and energy."
     },
     {
       "type": "patchouli:text",

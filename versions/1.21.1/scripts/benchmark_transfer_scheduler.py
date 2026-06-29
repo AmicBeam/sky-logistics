@@ -158,7 +158,7 @@ def built_in_scenarios() -> list[Scenario]:
             target_accept_after=None,
         ),
         Scenario(
-            name="40 FE inputs -> 40 FE outputs, first target accepts",
+            name="40 energy inputs -> 40 energy outputs, first target accepts",
             inputs=40,
             resources_per_input=("energy",),
             outputs_by_resource={"energy": 40},
