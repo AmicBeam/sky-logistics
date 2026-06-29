@@ -137,21 +137,21 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public void setEnergyEnabled(boolean energyEnabled) {
-        super.setEnergyEnabled(ENDPOINT_DIRECTION, supportsEnergyEndpoint() && energyEnabled);
+        super.setEnergyEnabled(ENDPOINT_DIRECTION, energyEnabled);
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
     @Override
     public void setEnergyEnabled(Direction direction, boolean energyEnabled) {
         if (direction == ENDPOINT_DIRECTION) {
-            super.setEnergyEnabled(direction, supportsEnergyEndpoint() && energyEnabled);
+            super.setEnergyEnabled(direction, energyEnabled);
             normalizeEndpoint(NodeFaceMode.NONE, false);
         }
     }
 
     @Override
     public boolean isEnergyEnabled(Direction direction) {
-        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() && super.isEnergyEnabled(direction);
+        return direction == ENDPOINT_DIRECTION && super.isEnergyEnabled(direction);
     }
 
     @Override
@@ -206,7 +206,7 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     private void normalizeEndpoint(NodeFaceMode fallbackMode, boolean notify) {
-        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, supportsEnergyEndpoint()) && notify) {
+        if (forceSingleEndpointState(ENDPOINT_DIRECTION, fallbackMode, true) && notify) {
             markTopologyChanged();
         }
     }
