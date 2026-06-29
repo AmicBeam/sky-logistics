@@ -401,11 +401,11 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (amount <= 0) {
             return 0L;
         }
-        if (!isFluidKeyWithinNbtLimit(key)) {
-            return 0L;
-        }
         LinkedHashMap<FluidStackKey, Long> contents = contents();
         long current = contents.getOrDefault(key, 0L);
+        if (current <= 0 && !isFluidKeyWithinNbtLimit(key)) {
+            return 0L;
+        }
         if (current <= 0 && contents.size() >= getTypeLimit()) {
             return 0L;
         }
@@ -505,11 +505,11 @@ public class FluidVaultBlockEntity extends BlockEntity {
             FluidStack normalized = stack.copy();
             normalized.setAmount(1);
             FluidStackKey key = FluidStackKey.of(normalized);
-            if (!isFluidKeyWithinNbtLimit(key)) {
-                return false;
-            }
             LinkedHashMap<FluidStackKey, Long> contents = contents();
-            return contents.containsKey(key) || contents.size() < getTypeLimit();
+            if (contents.containsKey(key)) {
+                return true;
+            }
+            return contents.size() < getTypeLimit() && isFluidKeyWithinNbtLimit(key);
         }
 
         @Override
@@ -520,11 +520,11 @@ public class FluidVaultBlockEntity extends BlockEntity {
             FluidStack normalized = resource.copy();
             normalized.setAmount(1);
             FluidStackKey key = FluidStackKey.of(normalized);
-            if (!isFluidKeyWithinNbtLimit(key)) {
-                return 0;
-            }
             LinkedHashMap<FluidStackKey, Long> contents = contents();
             long current = contents.getOrDefault(key, 0L);
+            if (current <= 0 && !isFluidKeyWithinNbtLimit(key)) {
+                return 0;
+            }
             if (current <= 0 && contents.size() >= getTypeLimit()) {
                 return 0;
             }

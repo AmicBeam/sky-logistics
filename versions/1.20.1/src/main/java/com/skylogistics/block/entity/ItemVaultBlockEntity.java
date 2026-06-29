@@ -467,9 +467,6 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if ((existing.isEmpty() || current <= 0L) && !isItemStackWithinNbtLimit(template)) {
             return 0L;
         }
-        if (!existing.isEmpty() && !isItemStackWithinNbtLimit(existing)) {
-            return 0L;
-        }
         long inserted = amount;
         if (!existing.isEmpty() && current > 0L && Long.MAX_VALUE - current < amount) {
             inserted = Long.MAX_VALUE - current;
@@ -700,11 +697,11 @@ public class ItemVaultBlockEntity extends BlockEntity {
             if (slot < 0 || slot >= getTypeLimit() || stack.isEmpty()) {
                 return false;
             }
-            if (!isItemStackWithinNbtLimit(stack)) {
-                return false;
-            }
             ItemStack existing = templateInSlot(slot);
-            return existing.isEmpty() || ItemHandlerHelper.canItemStacksStack(existing, stack);
+            if (!existing.isEmpty()) {
+                return ItemHandlerHelper.canItemStacksStack(existing, stack);
+            }
+            return isItemStackWithinNbtLimit(stack);
         }
     }
 }
