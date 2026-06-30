@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "skylogistics:item/filter_list"
+    "layer0": "skylogistics:item/tag_filter_list"
   }
 }
