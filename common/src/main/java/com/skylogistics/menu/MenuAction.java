@@ -34,6 +34,7 @@ public final class MenuAction {
     public static final int NECKLACE_PRIORITY_UP = 37;
     public static final int NECKLACE_PRIORITY_DOWN_FAST = 38;
     public static final int NECKLACE_PRIORITY_UP_FAST = 39;
+    public static final int TOGGLE_AUTO_RESOURCES = 40;
     public static final int FACE_NONE_BASE = 100;
     public static final int FACE_EXTRACT_BASE = 110;
     public static final int FACE_INSERT_BASE = 120;

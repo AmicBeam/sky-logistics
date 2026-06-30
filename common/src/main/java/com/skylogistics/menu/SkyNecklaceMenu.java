@@ -133,7 +133,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             setFilter(ItemStack.EMPTY);
             return ItemStack.EMPTY;
         }
-        if (original.is(ModItems.FILTER_LIST.get())) {
+        if (FilterListItem.isFilterItem(original)) {
             setFilter(original);
             return ItemStack.EMPTY;
         }
@@ -228,7 +228,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         if (!stack.is(ModItems.SKY_NECKLACE.get())) {
             return;
         }
-        if (!filter.isEmpty() && filter.is(ModItems.FILTER_LIST.get()) && !FilterListItem.isWhitelist(filter)) {
+        if (!filter.isEmpty() && FilterListItem.isFilterItem(filter) && !FilterListItem.isWhitelist(filter)) {
             player.displayClientMessage(Component.translatable("message.skylogistics.sky_necklace.blacklist_filter"), true);
             return;
         }

@@ -38,6 +38,7 @@ public class ConfiguratorItem extends Item {
     private static final String ITEMS = "Items";
     private static final String FLUIDS = "Fluids";
     private static final String ENERGY = "Energy";
+    private static final String AUTO_RESOURCES = "AutoResources";
     private static final String PASTE_MODE = "PasteMode";
     private static final String PLACEMENT = "Placement";
     private static final String FACES = "Faces";
@@ -157,8 +158,13 @@ public class ConfiguratorItem extends Item {
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.line", config.lineName())
                 .withStyle(ChatFormatting.AQUA));
-        tooltip.add(Component.translatable("tooltip.skylogistics.configurator.types",
-                config.itemsEnabled(), config.fluidsEnabled(), config.energyEnabled()).withStyle(ChatFormatting.GRAY));
+        if (config.autoDetectResources()) {
+            tooltip.add(Component.translatable("tooltip.skylogistics.configurator.types_auto")
+                    .withStyle(ChatFormatting.GRAY));
+        } else {
+            tooltip.add(Component.translatable("tooltip.skylogistics.configurator.types",
+                    config.itemsEnabled(), config.fluidsEnabled(), config.energyEnabled()).withStyle(ChatFormatting.GRAY));
+        }
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.face",
                 Component.translatable(config.placement().redstoneControl().translationKey()),
                 config.placement().priority()).withStyle(ChatFormatting.GRAY));
@@ -691,11 +697,12 @@ public class ConfiguratorItem extends Item {
     }
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,
-                             RedstoneControl redstoneControl, int priority, List<ItemStack> filters) {
+                             boolean autoDetectResources, RedstoneControl redstoneControl, int priority,
+                             List<ItemStack> filters) {
         private static final FaceConfig DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                RedstoneControl.IGNORE, 0, emptyFaceFilters());
+                false, RedstoneControl.IGNORE, 0, emptyFaceFilters());
         private static final FaceConfig PLACEMENT_DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                RedstoneControl.IGNORE, 0, emptyFaceFilters());
+                true, RedstoneControl.IGNORE, 0, emptyFaceFilters());
 
         public FaceConfig {
             priority = Math.max(-99, Math.min(99, priority));
@@ -708,6 +715,7 @@ public class ConfiguratorItem extends Item {
             tag.putBoolean(ITEMS, itemsEnabled);
             tag.putBoolean(FLUIDS, fluidsEnabled);
             tag.putBoolean(ENERGY, energyEnabled);
+            tag.putBoolean(AUTO_RESOURCES, autoDetectResources);
             tag.putString(REDSTONE, redstoneControl.name());
             tag.putInt(PRIORITY, priority);
             ListTag filterTags = new ListTag();
@@ -745,6 +753,7 @@ public class ConfiguratorItem extends Item {
                     tag.contains(ITEMS) ? tag.getBoolean(ITEMS) : fallback.itemsEnabled(),
                     tag.contains(FLUIDS) ? tag.getBoolean(FLUIDS) : fallback.fluidsEnabled(),
                     tag.contains(ENERGY) ? tag.getBoolean(ENERGY) : fallback.energyEnabled(),
+                    tag.contains(AUTO_RESOURCES) ? tag.getBoolean(AUTO_RESOURCES) : false,
                     tag.contains(REDSTONE) ? RedstoneControl.byName(tag.getString(REDSTONE)) : fallback.redstoneControl(),
                     tag.contains(PRIORITY) ? tag.getInt(PRIORITY) : fallback.priority(),
                     filters);
@@ -755,19 +764,34 @@ public class ConfiguratorItem extends Item {
         }
 
         public FaceConfig withItemsEnabled(boolean enabled) {
-            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, redstoneControl, priority, filters);
+            if (autoDetectResources) {
+                return new FaceConfig(mode, enabled, false, false, false, redstoneControl, priority, filters);
+            }
+            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, false, redstoneControl, priority, filters);
         }
 
         public FaceConfig withFluidsEnabled(boolean enabled) {
-            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, redstoneControl, priority, filters);
+            if (autoDetectResources) {
+                return new FaceConfig(mode, false, enabled, false, false, redstoneControl, priority, filters);
+            }
+            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, false, redstoneControl, priority, filters);
         }
 
         public FaceConfig withEnergyEnabled(boolean enabled) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, redstoneControl, priority, filters);
+            if (autoDetectResources) {
+                return new FaceConfig(mode, false, false, enabled, false, redstoneControl, priority, filters);
+            }
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, false, redstoneControl, priority, filters);
+        }
+
+        public FaceConfig withAutoDetectResources() {
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, true, redstoneControl, priority,
+                    filters);
         }
 
         public FaceConfig withRedstoneControl(RedstoneControl control) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, control, priority, filters);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources, control,
+                    priority, filters);
         }
 
         public FaceConfig cycleRedstoneControl() {
@@ -775,8 +799,8 @@ public class ConfiguratorItem extends Item {
         }
 
         public FaceConfig adjustPriority(int delta) {
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, redstoneControl, priority + delta,
-                    filters);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources, redstoneControl,
+                    priority + delta, filters);
         }
     }
 
@@ -796,7 +820,7 @@ public class ConfiguratorItem extends Item {
                 }
                 faces.put(direction, new FaceConfig(node.getFaceMode(direction), node.isItemsEnabled(direction),
                         node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
-                        node.getRedstoneControl(direction), node.getPriority(direction), filters));
+                        false, node.getRedstoneControl(direction), node.getPriority(direction), filters));
             }
             return new ToolConfig(node.getLineId(), node.getLineName(),
                     faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT), faces, true,
@@ -808,15 +832,19 @@ public class ConfiguratorItem extends Item {
         }
 
         public boolean itemsEnabled() {
-            return placement.itemsEnabled();
+            return !placement.autoDetectResources() && placement.itemsEnabled();
         }
 
         public boolean fluidsEnabled() {
-            return placement.fluidsEnabled();
+            return !placement.autoDetectResources() && placement.fluidsEnabled();
         }
 
         public boolean energyEnabled() {
-            return placement.energyEnabled();
+            return !placement.autoDetectResources() && placement.energyEnabled();
+        }
+
+        public boolean autoDetectResources() {
+            return placement.autoDetectResources();
         }
 
         public FaceConfig face(Direction direction) {
@@ -846,6 +874,10 @@ public class ConfiguratorItem extends Item {
 
         public ToolConfig withEnergyEnabled(boolean enabled) {
             return withPlacement(placement.withEnergyEnabled(enabled));
+        }
+
+        public ToolConfig withAutoDetectResources() {
+            return withPlacement(placement.withAutoDetectResources());
         }
 
         public ToolConfig cycleRedstoneControl() {

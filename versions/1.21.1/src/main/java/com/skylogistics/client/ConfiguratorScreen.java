@@ -50,8 +50,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_VISIBLE_ROWS = DETAIL_HEIGHT / DETAIL_ROW_HEIGHT;
     private static final int DETAIL_ICON_X = DETAIL_X + 5;
     private static final int DETAIL_TEXT_X = DETAIL_X + 25;
-    private static final int CONTROL_START_X = 62;
-    private static final int CONTROL_STEP_X = 54;
+    private static final int CONTROL_START_X = 58;
+    private static final int CONTROL_STEP_X = 44;
+    private static final int RESOURCE_BUTTON_WIDTH = 42;
     private static final int PRIORITY_ROW_Y = 218;
     private static final int PRIORITY_DOWN_X = CONTROL_START_X;
     private static final int PRIORITY_VALUE_X = 84;
@@ -96,6 +97,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addTypeButton(leftPos + CONTROL_START_X, topPos + 166, ResourceType.ITEMS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 166, ResourceType.FLUIDS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 166, ResourceType.ENERGY);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 166, ResourceType.AUTO);
         redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + CONTROL_START_X, topPos + 192));
         addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + PRIORITY_ROW_Y, -1, Component.literal("-"));
         addPriorityButton(leftPos + PRIORITY_UP_X, topPos + PRIORITY_ROW_Y, 1, Component.literal("+"));
@@ -476,6 +478,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             case MenuAction.TOGGLE_ITEMS -> config.withItemsEnabled(!config.itemsEnabled());
             case MenuAction.TOGGLE_FLUIDS -> config.withFluidsEnabled(!config.fluidsEnabled());
             case MenuAction.TOGGLE_ENERGY -> config.withEnergyEnabled(!config.energyEnabled());
+            case MenuAction.TOGGLE_AUTO_RESOURCES -> config.withAutoDetectResources();
             case MenuAction.CONFIG_REDSTONE -> config.cycleRedstoneControl();
             case MenuAction.CONFIG_PRIORITY_DOWN -> config.adjustPriority(-1);
             case MenuAction.CONFIG_PRIORITY_UP -> config.adjustPriority(1);
@@ -606,7 +609,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private enum ResourceType {
         ITEMS("button.skylogistics.items"),
         FLUIDS("button.skylogistics.fluids"),
-        ENERGY("button.skylogistics.energy");
+        ENERGY("button.skylogistics.energy"),
+        AUTO("button.skylogistics.auto_detect");
 
         private final String translationKey;
 
@@ -619,7 +623,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final ResourceType type;
 
         private TypeToggleButton(int x, int y, ResourceType type) {
-            super(x, y, 48, 20, Component.translatable(type.translationKey));
+            super(x, y, RESOURCE_BUTTON_WIDTH, 20, Component.translatable(type.translationKey));
             this.type = type;
         }
 
@@ -632,6 +636,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 case ITEMS -> ModNetworking.sendMenuAction(MenuAction.TOGGLE_ITEMS);
                 case FLUIDS -> ModNetworking.sendMenuAction(MenuAction.TOGGLE_FLUIDS);
                 case ENERGY -> ModNetworking.sendMenuAction(MenuAction.TOGGLE_ENERGY);
+                case AUTO -> ModNetworking.sendMenuAction(MenuAction.TOGGLE_AUTO_RESOURCES);
             }
         }
 
@@ -652,6 +657,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 case ITEMS -> config.itemsEnabled();
                 case FLUIDS -> config.fluidsEnabled();
                 case ENERGY -> config.energyEnabled();
+                case AUTO -> config.autoDetectResources();
             };
         }
 

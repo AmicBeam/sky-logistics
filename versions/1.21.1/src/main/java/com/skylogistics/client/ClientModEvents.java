@@ -25,10 +25,11 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.CONFIGURATOR.get(), ConfiguratorScreen::new);
-        event.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
-        event.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
-        event.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
-        event.register(ModMenus.ITEM_VAULT.get(), ItemVaultScreen::new);
+            event.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
+            event.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
+            event.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
+            event.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);
+            event.register(ModMenus.ITEM_VAULT.get(), ItemVaultScreen::new);
         event.register(ModMenus.FLUID_VAULT.get(), FluidVaultScreen::new);
     }
 

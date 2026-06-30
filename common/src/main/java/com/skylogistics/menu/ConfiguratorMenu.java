@@ -167,6 +167,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             case MenuAction.TOGGLE_ITEMS -> config = config.withItemsEnabled(!config.itemsEnabled());
             case MenuAction.TOGGLE_FLUIDS -> config = config.withFluidsEnabled(!config.fluidsEnabled());
             case MenuAction.TOGGLE_ENERGY -> config = config.withEnergyEnabled(!config.energyEnabled());
+            case MenuAction.TOGGLE_AUTO_RESOURCES -> config = config.withAutoDetectResources();
             case MenuAction.CONFIG_REDSTONE -> config = config.cycleRedstoneControl();
             case MenuAction.CONFIG_PRIORITY_DOWN -> config = config.adjustPriority(-1);
             case MenuAction.CONFIG_PRIORITY_UP -> config = config.adjustPriority(1);

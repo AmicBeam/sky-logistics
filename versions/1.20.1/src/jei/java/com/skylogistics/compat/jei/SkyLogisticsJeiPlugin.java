@@ -51,5 +51,7 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGhostIngredientHandler(com.skylogistics.client.FilterListScreen.class,
                 new SkyFilterGhostIngredientHandler());
+        registration.addGhostIngredientHandler(com.skylogistics.client.TagFilterListScreen.class,
+                new SkyTagFilterGhostIngredientHandler());
     }
 }

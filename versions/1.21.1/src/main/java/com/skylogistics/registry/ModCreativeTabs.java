@@ -21,6 +21,7 @@ public final class ModCreativeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.CONFIGURATOR.get());
                         output.accept(ModItems.FILTER_LIST.get());
+                        output.accept(ModItems.TAG_FILTER_LIST.get());
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());

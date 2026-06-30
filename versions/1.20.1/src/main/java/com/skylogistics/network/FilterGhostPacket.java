@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.menu.TagFilterListMenu;
 import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,13 +49,17 @@ public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, bool
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
-            if (player == null || !(player.containerMenu instanceof FilterListMenu menu)) {
+            if (player == null) {
                 return;
             }
-            if (packet.fluidEntry) {
-                menu.setGhostFluid(packet.slot, packet.fluid);
-            } else {
-                menu.setGhostItem(packet.slot, packet.item);
+            if (player.containerMenu instanceof FilterListMenu menu) {
+                if (packet.fluidEntry) {
+                    menu.setGhostFluid(packet.slot, packet.fluid);
+                } else {
+                    menu.setGhostItem(packet.slot, packet.item);
+                }
+            } else if (!packet.fluidEntry && player.containerMenu instanceof TagFilterListMenu menu) {
+                menu.setGhostSample(packet.item);
             }
         });
         context.setPacketHandled(true);

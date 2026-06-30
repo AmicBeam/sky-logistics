@@ -28,6 +28,8 @@ public final class ModNetworking {
                 VaultTerminalClickPacket::handle);
         registrar.playToServer(LineRenamePacket.TYPE, LineRenamePacket.STREAM_CODEC, LineRenamePacket::handle);
         registrar.playToClient(LineNamePacket.TYPE, LineNamePacket.STREAM_CODEC, LineNamePacket::handle);
+        registrar.playToServer(TagFilterEditPacket.TYPE, TagFilterEditPacket.STREAM_CODEC,
+                TagFilterEditPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -44,6 +46,10 @@ public final class ModNetworking {
 
     public static void sendFilterGhostFluid(int slot, FluidStack stack) {
         PacketDistributor.sendToServer(FilterGhostPacket.fluid(slot, stack));
+    }
+
+    public static void sendTagFilterTag(int slot, String tag) {
+        PacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

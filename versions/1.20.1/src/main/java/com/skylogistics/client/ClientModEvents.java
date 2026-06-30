@@ -29,6 +29,7 @@ public final class ClientModEvents {
             MenuScreens.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
             MenuScreens.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
             MenuScreens.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
+            MenuScreens.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);
             MenuScreens.register(ModMenus.ITEM_VAULT.get(), ItemVaultScreen::new);
             MenuScreens.register(ModMenus.FLUID_VAULT.get(), FluidVaultScreen::new);
             ItemBlockRenderTypes.setRenderLayer(ModBlocks.CELESTIAL_GLASS.get(), RenderType.translucent());

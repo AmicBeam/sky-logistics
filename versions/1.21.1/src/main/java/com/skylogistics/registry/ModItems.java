@@ -8,6 +8,7 @@ import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyNodeBlockItem;
 import com.skylogistics.item.SkyNecklaceItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.item.UpgradeCardItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -50,6 +51,8 @@ public final class ModItems {
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",
             () -> new FilterListItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredHolder<Item, TagFilterListItem> TAG_FILTER_LIST = ITEMS.register("tag_filter_list",
+            () -> new TagFilterListItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, SkyNecklaceItem> SKY_NECKLACE = ITEMS.register("sky_necklace",
             () -> new SkyNecklaceItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, UpgradeCardItem> SPEED_UPGRADE = ITEMS.register("speed_upgrade",

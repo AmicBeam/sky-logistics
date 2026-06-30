@@ -1,6 +1,7 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.storage.FluidStackKey;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -211,10 +213,27 @@ public class FilterListItem extends Item {
     }
 
     public static boolean hasAnyFilters(ItemStack stack) {
-        return countFilters(stack) + countFluidFilters(stack) > 0;
+        return countFilters(stack) + countFluidFilters(stack) + TagFilterListItem.countTags(stack) > 0;
+    }
+
+    public static boolean isFilterItem(ItemStack stack) {
+        return stack.is(ModItems.FILTER_LIST.get()) || stack.is(ModItems.TAG_FILTER_LIST.get());
+    }
+
+    public static int countItemRules(ItemStack stack) {
+        return TagFilterListItem.isTagFilterList(stack) ? TagFilterListItem.countTags(stack) : countFilters(stack);
     }
 
     public static void appendFilterContentsOrHint(ItemStack stack, List<Component> tooltip, TooltipFlag flag) {
+        if (TagFilterListItem.isTagFilterList(stack)) {
+            if (showFilterContents()) {
+                TagFilterListItem.appendFilterContents(stack, tooltip, true);
+            } else {
+                tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
+                        .withStyle(ChatFormatting.DARK_GRAY));
+            }
+            return;
+        }
         if (showFilterContents()) {
             appendFilterContents(stack, tooltip, true);
         } else {
@@ -305,6 +324,13 @@ public class FilterListItem extends Item {
     public static CompiledFilter compile(ItemStack filterList) {
         if (filterList.isEmpty()) {
             return CompiledFilter.ALLOW_ALL;
+        }
+        if (TagFilterListItem.isTagFilterList(filterList)) {
+            List<TagKey<Item>> tagKeys = TagFilterListItem.getTagKeys(filterList);
+            if (tagKeys.isEmpty()) {
+                return CompiledFilter.ALLOW_ALL;
+            }
+            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys.toArray(TagKey[]::new));
         }
         boolean whitelist = isWhitelist(filterList);
         List<ItemStack> filters = getFilters(filterList);
@@ -409,8 +435,9 @@ public class FilterListItem extends Item {
         private static final int HASH_LOOKUP_THRESHOLD = 5;
         private static final Entry[] NO_ENTRIES = new Entry[0];
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
+        private static final TagKey<Item>[] NO_TAG_ENTRIES = new TagKey[0];
         public static final CompiledFilter ALLOW_ALL = new CompiledFilter(Mode.ALLOW_ALL, true, false, false,
-                NO_ENTRIES, NO_FLUID_ENTRIES, null, null);
+                NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, null, null);
 
         private final Mode mode;
         private final boolean whitelist;
@@ -418,11 +445,12 @@ public class FilterListItem extends Item {
         private final boolean matchDurability;
         private final Entry[] entries;
         private final FluidEntry[] fluidEntries;
+        private final TagKey<Item>[] tagEntries;
         private final Set<ItemFilterKey> itemKeys;
         private final Set<FluidStackKey> fluidKeys;
 
         private CompiledFilter(Mode mode, boolean whitelist, boolean matchNbt, boolean matchDurability,
-                Entry[] entries, FluidEntry[] fluidEntries, Set<ItemFilterKey> itemKeys,
+                Entry[] entries, FluidEntry[] fluidEntries, TagKey<Item>[] tagEntries, Set<ItemFilterKey> itemKeys,
                 Set<FluidStackKey> fluidKeys) {
             this.mode = mode;
             this.whitelist = whitelist;
@@ -430,6 +458,7 @@ public class FilterListItem extends Item {
             this.matchDurability = matchDurability;
             this.entries = entries;
             this.fluidEntries = fluidEntries;
+            this.tagEntries = tagEntries;
             this.itemKeys = itemKeys;
             this.fluidKeys = fluidKeys;
         }
@@ -437,7 +466,12 @@ public class FilterListItem extends Item {
         private static CompiledFilter list(boolean whitelist, boolean matchNbt, boolean matchDurability, Entry[] entries,
                 FluidEntry[] fluidEntries) {
             return new CompiledFilter(Mode.LIST, whitelist, matchNbt, matchDurability, entries, fluidEntries,
-                    compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
+                    NO_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
+        }
+
+        private static CompiledFilter tagList(boolean whitelist, TagKey<Item>[] tagEntries) {
+            return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES, tagEntries,
+                    null, null);
         }
 
         public boolean matches(ItemStack candidate) {
@@ -454,18 +488,30 @@ public class FilterListItem extends Item {
         }
 
         private boolean matchesList(ItemStack candidate) {
-            if (entries.length == 0) {
+            if (entries.length == 0 && tagEntries.length == 0) {
                 return true;
             }
             boolean matched = itemKeys == null
                     ? matchesItemEntries(candidate)
                     : itemKeys.contains(ItemFilterKey.of(candidate, matchNbt, matchDurability));
+            if (!matched) {
+                matched = matchesTagEntries(candidate);
+            }
             return whitelist == matched;
         }
 
         private boolean matchesItemEntries(ItemStack candidate) {
             for (Entry entry : entries) {
                 if (matchesItemSample(entry.stack(), candidate, matchNbt, matchDurability)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean matchesTagEntries(ItemStack candidate) {
+            for (TagKey<Item> tag : tagEntries) {
+                if (candidate.is(tag)) {
                     return true;
                 }
             }
@@ -498,7 +544,7 @@ public class FilterListItem extends Item {
         }
 
         public boolean hasItemRules() {
-            return entries.length > 0;
+            return entries.length > 0 || tagEntries.length > 0;
         }
 
         public boolean hasFluidRules() {

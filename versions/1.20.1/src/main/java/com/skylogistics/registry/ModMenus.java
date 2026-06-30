@@ -7,6 +7,7 @@ import com.skylogistics.menu.FluidVaultMenu;
 import com.skylogistics.menu.ItemVaultMenu;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.menu.SkyNecklaceMenu;
+import com.skylogistics.menu.TagFilterListMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -29,6 +30,10 @@ public final class ModMenus {
     public static final RegistryObject<MenuType<FilterListMenu>> FILTER_LIST = MENUS.register("filter_list",
             () -> IForgeMenuType.create((id, inventory, buffer) ->
                     new FilterListMenu(id, inventory, buffer.readEnum(net.minecraft.world.InteractionHand.class))));
+
+    public static final RegistryObject<MenuType<TagFilterListMenu>> TAG_FILTER_LIST = MENUS.register("tag_filter_list",
+            () -> IForgeMenuType.create((id, inventory, buffer) ->
+                    new TagFilterListMenu(id, inventory, buffer.readEnum(net.minecraft.world.InteractionHand.class))));
 
     public static final RegistryObject<MenuType<SkyNecklaceMenu>> SKY_NECKLACE = MENUS.register("sky_necklace",
             () -> IForgeMenuType.create((id, inventory, buffer) ->

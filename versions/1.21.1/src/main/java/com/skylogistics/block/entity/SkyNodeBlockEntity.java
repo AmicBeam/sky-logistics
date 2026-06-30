@@ -389,7 +389,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public static boolean isFaceFilterItem(ItemStack stack) {
-        return stack.is(ModItems.FILTER_LIST.get());
+        return FilterListItem.isFilterItem(stack);
     }
 
     public Direction getTargetDirection() {
@@ -591,17 +591,21 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
             topologyChanged = true;
         }
-        if (isItemsEnabled(direction) != face.itemsEnabled()) {
-            faceItemsEnabled.put(direction, face.itemsEnabled());
-            topologyChanged = true;
-        }
-        if (isFluidsEnabled(direction) != face.fluidsEnabled()) {
-            faceFluidsEnabled.put(direction, face.fluidsEnabled());
-            topologyChanged = true;
-        }
-        if (isEnergyEnabled(direction) != face.energyEnabled()) {
-            faceEnergyEnabled.put(direction, face.energyEnabled());
-            topologyChanged = true;
+        if (face.autoDetectResources()) {
+            topologyChanged |= updateTargetResourcesFromCapabilities(direction);
+        } else {
+            if (isItemsEnabled(direction) != face.itemsEnabled()) {
+                faceItemsEnabled.put(direction, face.itemsEnabled());
+                topologyChanged = true;
+            }
+            if (isFluidsEnabled(direction) != face.fluidsEnabled()) {
+                faceFluidsEnabled.put(direction, face.fluidsEnabled());
+                topologyChanged = true;
+            }
+            if (isEnergyEnabled(direction) != face.energyEnabled()) {
+                faceEnergyEnabled.put(direction, face.energyEnabled());
+                topologyChanged = true;
+            }
         }
         if (getRedstoneControl(direction) != face.redstoneControl()) {
             redstoneControls.put(direction, face.redstoneControl());

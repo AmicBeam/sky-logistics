@@ -4,6 +4,7 @@ import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.menu.SkyNecklaceMenu;
+import com.skylogistics.menu.TagFilterListMenu;
 import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,6 +33,8 @@ public record MenuActionPacket(int action) {
             } else if (player.containerMenu instanceof SkyNecklaceMenu menu) {
                 menu.applyAction(player, packet.action);
             } else if (player.containerMenu instanceof FilterListMenu menu) {
+                menu.applyAction(player, packet.action);
+            } else if (player.containerMenu instanceof TagFilterListMenu menu) {
                 menu.applyAction(player, packet.action);
             }
         });

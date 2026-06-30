@@ -38,6 +38,8 @@ public final class ModNetworking {
                 LineRenamePacket::handle);
         CHANNEL.registerMessage(7, LineNamePacket.class, LineNamePacket::encode, LineNamePacket::decode,
                 LineNamePacket::handle);
+        CHANNEL.registerMessage(8, TagFilterEditPacket.class, TagFilterEditPacket::encode,
+                TagFilterEditPacket::decode, TagFilterEditPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -54,6 +56,10 @@ public final class ModNetworking {
 
     public static void sendFilterGhostFluid(int slot, FluidStack stack) {
         CHANNEL.sendToServer(FilterGhostPacket.fluid(slot, stack));
+    }
+
+    public static void sendTagFilterTag(int slot, String tag) {
+        CHANNEL.sendToServer(new TagFilterEditPacket(slot, tag));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

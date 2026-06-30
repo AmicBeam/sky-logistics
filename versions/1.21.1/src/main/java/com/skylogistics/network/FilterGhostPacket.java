@@ -2,6 +2,7 @@ package com.skylogistics.network;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.menu.TagFilterListMenu;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -52,13 +53,17 @@ public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, bool
 
     public static void handle(FilterGhostPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player) || !(player.containerMenu instanceof FilterListMenu menu)) {
+            if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
-            if (packet.fluidEntry) {
-                menu.setGhostFluid(packet.slot, packet.fluid);
-            } else {
-                menu.setGhostItem(packet.slot, packet.item);
+            if (player.containerMenu instanceof FilterListMenu menu) {
+                if (packet.fluidEntry) {
+                    menu.setGhostFluid(packet.slot, packet.fluid);
+                } else {
+                    menu.setGhostItem(packet.slot, packet.item);
+                }
+            } else if (!packet.fluidEntry && player.containerMenu instanceof TagFilterListMenu menu) {
+                menu.setGhostSample(packet.item);
             }
         });
     }

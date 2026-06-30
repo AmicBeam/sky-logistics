@@ -7,6 +7,7 @@ import com.skylogistics.menu.FluidVaultMenu;
 import com.skylogistics.menu.ItemVaultMenu;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.menu.SkyNecklaceMenu;
+import com.skylogistics.menu.TagFilterListMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
@@ -29,6 +30,12 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<FilterListMenu>> FILTER_LIST = MENUS.register("filter_list",
             () -> IMenuTypeExtension.create((id, inventory, buffer) ->
                     new FilterListMenu(id, inventory, buffer.readEnum(net.minecraft.world.InteractionHand.class))));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<TagFilterListMenu>> TAG_FILTER_LIST =
+            MENUS.register("tag_filter_list",
+                    () -> IMenuTypeExtension.create((id, inventory, buffer) ->
+                            new TagFilterListMenu(id, inventory,
+                                    buffer.readEnum(net.minecraft.world.InteractionHand.class))));
 
     public static final DeferredHolder<MenuType<?>, MenuType<SkyNecklaceMenu>> SKY_NECKLACE = MENUS.register("sky_necklace",
             () -> IMenuTypeExtension.create((id, inventory, buffer) ->

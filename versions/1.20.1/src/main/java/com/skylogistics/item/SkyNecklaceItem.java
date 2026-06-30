@@ -1,7 +1,6 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.SkyNecklaceMenu;
-import com.skylogistics.registry.ModItems;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
@@ -68,7 +67,7 @@ public class SkyNecklaceItem extends Item {
                     .withStyle(ChatFormatting.RED));
         } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.filter",
-                    FilterListItem.countFilters(filter)).withStyle(ChatFormatting.GRAY));
+                    FilterListItem.countItemRules(filter)).withStyle(ChatFormatting.GRAY));
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.insert_slots",
                 insertSlots(stack)).withStyle(ChatFormatting.GRAY));
@@ -129,7 +128,7 @@ public class SkyNecklaceItem extends Item {
             return ItemStack.EMPTY;
         }
         ItemStack filter = ItemStack.of(tag.getCompound(FILTER));
-        return filter.is(ModItems.FILTER_LIST.get()) ? filter : ItemStack.EMPTY;
+        return FilterListItem.isFilterItem(filter) ? filter : ItemStack.EMPTY;
     }
 
     public static boolean setFilterList(ItemStack necklace, ItemStack filter) {
@@ -148,7 +147,7 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static boolean canAcceptFilter(ItemStack stack) {
-        return stack.isEmpty() || (stack.is(ModItems.FILTER_LIST.get()) && FilterListItem.isWhitelist(stack));
+        return stack.isEmpty() || (FilterListItem.isFilterItem(stack) && FilterListItem.isWhitelist(stack));
     }
 
     public static boolean hasValidItemWhitelist(ItemStack necklace) {
