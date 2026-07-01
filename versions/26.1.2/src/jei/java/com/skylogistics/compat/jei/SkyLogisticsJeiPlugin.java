@@ -19,9 +19,8 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.client.Minecraft;
+import mezz.jei.common.Internal;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 
@@ -42,14 +41,10 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
-        if (server == null) {
-            return;
-        }
-        List<OfferingRecipe> recipes = server.getRecipeManager().getRecipes().stream()
+        List<OfferingRecipe> recipes = Internal.getClientSyncedRecipes()
+                .byType(ModRecipes.SKY_OFFERING_TYPE.get())
+                .stream()
                 .map(RecipeHolder::value)
-                .filter(ModRecipes.SKY_OFFERING_TYPE.get()::equals)
-                .map(OfferingRecipe.class::cast)
                 .toList();
         registration.addRecipes(SKY_OFFERING, recipes);
     }

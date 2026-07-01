@@ -1,5 +1,6 @@
 package com.skylogistics.compat.jade;
 
+import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.SkyNodeBlock;
@@ -11,7 +12,7 @@ import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.WailaPlugin;
 
-@WailaPlugin
+@WailaPlugin(SkyLogistics.MOD_ID)
 public class SkyLogisticsJadePlugin implements IWailaPlugin {
     @Override
     public void register(IWailaCommonRegistration registration) {

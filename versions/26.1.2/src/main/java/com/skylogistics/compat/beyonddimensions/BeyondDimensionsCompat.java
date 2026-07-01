@@ -8,6 +8,7 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.util.TransferCompat;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,6 +27,7 @@ import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 
 public final class BeyondDimensionsCompat {
     private static final String BEYOND_DIMENSIONS = "beyonddimensions";
@@ -477,7 +479,7 @@ public final class BeyondDimensionsCompat {
             Constructor<?> constructor = type.getConstructor(Class.forName(
                     "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
             Object handler = constructor.newInstance(storage);
-            return handler instanceof IItemHandler itemHandler ? itemHandler : EmptyExternalHandlers.Items.INSTANCE;
+            return asItemHandler(handler);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Items.INSTANCE;
@@ -495,7 +497,7 @@ public final class BeyondDimensionsCompat {
             Constructor<?> constructor = type.getConstructor(Class.forName(
                     "com.wintercogs.beyonddimensions.api.dimensionnet.UnifiedStorage"));
             Object handler = constructor.newInstance(storage);
-            return handler instanceof IFluidHandler fluidHandler ? fluidHandler : EmptyExternalHandlers.Fluids.INSTANCE;
+            return asFluidHandler(handler);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
@@ -512,11 +514,45 @@ public final class BeyondDimensionsCompat {
                     "com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler");
             Constructor<?> constructor = type.getConstructor(unifiedStorageClass());
             Object handler = constructor.newInstance(storage);
-            return handler instanceof IEnergyStorage energyHandler ? energyHandler : EmptyExternalHandlers.Energy.INSTANCE;
+            return asEnergyHandler(handler);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Energy.INSTANCE;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static IItemHandler asItemHandler(Object handler) {
+        if (handler instanceof IItemHandler itemHandler) {
+            return itemHandler;
+        }
+        if (handler instanceof ResourceHandler<?> resourceHandler) {
+            return TransferCompat.legacyItemHandler(
+                    (ResourceHandler<net.neoforged.neoforge.transfer.item.ItemResource>) resourceHandler);
+        }
+        return EmptyExternalHandlers.Items.INSTANCE;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static IFluidHandler asFluidHandler(Object handler) {
+        if (handler instanceof IFluidHandler fluidHandler) {
+            return fluidHandler;
+        }
+        if (handler instanceof ResourceHandler<?> resourceHandler) {
+            return TransferCompat.legacyFluidHandler(
+                    (ResourceHandler<net.neoforged.neoforge.transfer.fluid.FluidResource>) resourceHandler);
+        }
+        return EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    private static IEnergyStorage asEnergyHandler(Object handler) {
+        if (handler instanceof IEnergyStorage energyStorage) {
+            return energyStorage;
+        }
+        if (handler instanceof net.neoforged.neoforge.transfer.energy.EnergyHandler energyHandler) {
+            return TransferCompat.legacyEnergyHandler(energyHandler);
+        }
+        return EmptyExternalHandlers.Energy.INSTANCE;
     }
 
     private static SourceHandlerBridge sourceHandler(BlockEntity host) {
