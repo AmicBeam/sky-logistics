@@ -86,7 +86,7 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.
 
-Patchouli support is data-only and adds one guide book plus one multiblock preview when Patchouli is installed. Jade and JEI compatibility sources under `src/jade/java` and `src/jei/java` are compiled when matching 1.21.1 NeoForge API jars are available through `SKYLOGISTICS_JADE_API_JAR` / `SKYLOGISTICS_JEI_API_JAR`, `-Dskylogistics.jadeApiJar` / `-Dskylogistics.jeiApiJar`, `/private/tmp/jade-api.jar`, or the local Gradle cache.
+GuideME support adds a data-driven Sky Logistics manual for 26.1.2 when GuideME is installed. Jade and JEI compatibility sources under `src/jade/java` and `src/jei/java` are compiled when matching 26.1.2 NeoForge API jars are available through `SKYLOGISTICS_JADE_API_JAR` / `SKYLOGISTICS_JEI_API_JAR`, `-Dskylogistics.jadeApiJar` / `-Dskylogistics.jeiApiJar`, `/private/tmp/jade-api.jar`, or the local Gradle cache.
 
 ## Build Note
 

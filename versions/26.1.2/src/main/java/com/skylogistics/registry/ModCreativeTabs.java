@@ -1,6 +1,7 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.compat.ManualCompat;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
@@ -31,6 +32,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
+                        ManualCompat.createManualStack().ifPresent(output::accept);
                         output.accept(ModItems.CELESTIAL_STONE.get());
                         output.accept(ModItems.CELESTIAL_STONE_SLAB.get());
                         output.accept(ModItems.CELESTIAL_STONE_STAIRS.get());

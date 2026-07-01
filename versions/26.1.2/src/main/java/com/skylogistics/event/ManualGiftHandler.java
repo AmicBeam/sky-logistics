@@ -1,7 +1,7 @@
 package com.skylogistics.event;
 
 import com.skylogistics.SkyLogistics;
-import com.skylogistics.compat.PatchouliCompat;
+import com.skylogistics.compat.ManualCompat;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +20,7 @@ public final class ManualGiftHandler {
             return;
         }
 
-        PatchouliCompat.createManualStack().ifPresent(manual -> {
+        ManualCompat.createManualStack().ifPresent(manual -> {
             ItemStack toGive = manual.copy();
             if (!player.addItem(toGive)) {
                 player.drop(toGive, false);
