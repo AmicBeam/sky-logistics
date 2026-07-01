@@ -1,12 +1,12 @@
 package com.skylogistics.compat.jei;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.client.ClientOfferingRecipes;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModItems;
-import com.skylogistics.registry.ModRecipes;
 import java.util.ArrayList;
 import java.util.List;
 import mezz.jei.api.IModPlugin;
@@ -19,15 +19,15 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
-import mezz.jei.common.Internal;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeHolder;
 
 @JeiPlugin
 public class SkyLogisticsJeiPlugin implements IModPlugin {
     static final RecipeType<OfferingRecipe> SKY_OFFERING =
             RecipeType.create(SkyLogistics.MOD_ID, "sky_offering", OfferingRecipe.class);
+    private static IJeiRuntime runtime;
+    private static List<OfferingRecipe> registeredRuntimeRecipes = List.of();
 
     @Override
     public Identifier getPluginUid() {
@@ -41,11 +41,9 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        List<OfferingRecipe> recipes = Internal.getClientSyncedRecipes()
-                .byType(ModRecipes.SKY_OFFERING_TYPE.get())
-                .stream()
-                .map(RecipeHolder::value)
-                .toList();
+        List<OfferingRecipe> recipes = ClientOfferingRecipes.recipes();
+        registeredRuntimeRecipes = recipes;
+        SkyLogistics.LOGGER.info("Registering {} sky offering recipes with JEI.", recipes.size());
         registration.addRecipes(SKY_OFFERING, recipes);
     }
 
@@ -65,7 +63,35 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
+        runtime = jeiRuntime;
+        ClientOfferingRecipes.setChangeListener(SkyLogisticsJeiPlugin::syncRecipesAtRuntime);
+        syncRecipesAtRuntime();
         hideMissingIntegrationItems(jeiRuntime.getIngredientManager());
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        runtime = null;
+        registeredRuntimeRecipes = List.of();
+        ClientOfferingRecipes.setChangeListener(null);
+    }
+
+    private static void syncRecipesAtRuntime() {
+        if (runtime == null) {
+            return;
+        }
+        List<OfferingRecipe> recipes = ClientOfferingRecipes.recipes();
+        if (recipes.equals(registeredRuntimeRecipes)) {
+            return;
+        }
+        if (!registeredRuntimeRecipes.isEmpty()) {
+            runtime.getRecipeManager().hideRecipes(SKY_OFFERING, registeredRuntimeRecipes);
+        }
+        if (!recipes.isEmpty()) {
+            SkyLogistics.LOGGER.info("Adding {} synced sky offering recipes to active JEI runtime.", recipes.size());
+            runtime.getRecipeManager().addRecipes(SKY_OFFERING, recipes);
+        }
+        registeredRuntimeRecipes = recipes;
     }
 
     private static void hideMissingIntegrationItems(IIngredientManager ingredientManager) {

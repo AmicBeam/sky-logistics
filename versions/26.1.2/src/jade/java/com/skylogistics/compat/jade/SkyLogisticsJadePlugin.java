@@ -1,6 +1,7 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.block.ExternalNetworkInterfaceBlock;
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.SkyNodeBlock;
@@ -24,6 +25,7 @@ public class SkyLogisticsJadePlugin implements IWailaPlugin {
     @Override
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerBlockComponent(SkyNodeJadeProvider.INSTANCE, SkyNodeBlock.class);
+        registration.registerBlockComponent(SkyNodeJadeProvider.INSTANCE, ExternalNetworkInterfaceBlock.class);
         registration.registerBlockComponent(ItemVaultJadeProvider.INSTANCE, ItemVaultBlock.class);
         registration.registerBlockComponent(FluidVaultJadeProvider.INSTANCE, FluidVaultBlock.class);
     }

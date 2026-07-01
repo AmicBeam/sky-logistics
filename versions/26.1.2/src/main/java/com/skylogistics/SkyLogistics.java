@@ -8,6 +8,7 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.network.SkyOfferingRecipesPacket;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModCreativeTabs;
@@ -66,6 +67,7 @@ public class SkyLogistics {
 
         NeoForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
+        NeoForge.EVENT_BUS.addListener(SkyOfferingRecipesPacket::onDatapackSync);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);

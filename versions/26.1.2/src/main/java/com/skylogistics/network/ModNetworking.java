@@ -22,6 +22,8 @@ public final class ModNetworking {
                 ItemVaultSnapshotPacket::handle);
         registrar.playToClient(FluidVaultSnapshotPacket.TYPE, FluidVaultSnapshotPacket.STREAM_CODEC,
                 FluidVaultSnapshotPacket::handle);
+        registrar.playToClient(SkyOfferingRecipesPacket.TYPE, SkyOfferingRecipesPacket.STREAM_CODEC,
+                SkyOfferingRecipesPacket::handle);
         registrar.playToServer(FilterGhostPacket.TYPE, FilterGhostPacket.STREAM_CODEC, FilterGhostPacket::handle);
         registrar.playToClient(ConfiguratorLineDetailsPacket.TYPE, ConfiguratorLineDetailsPacket.STREAM_CODEC,
                 ConfiguratorLineDetailsPacket::handle);

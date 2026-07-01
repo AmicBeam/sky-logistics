@@ -126,6 +126,10 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
         return new ItemStack(ModItems.OFFERING_ALTAR.get());
     }
 
+    public static StreamCodec<RegistryFriendlyByteBuf, OfferingRecipe> streamCodec() {
+        return Serializer.STREAM_CODEC;
+    }
+
     @Override
     public boolean isSpecial() {
         return true;
