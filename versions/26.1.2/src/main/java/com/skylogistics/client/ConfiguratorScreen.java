@@ -420,13 +420,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
         String playerName = entry.displayName();
         if (!playerName.isBlank()) {
-            PropertyMap properties = new PropertyMap(HashMultimap.create());
+            HashMultimap<String, Property> profileProperties = HashMultimap.create();
             if (!entry.profileTexture().isBlank()) {
                 Property texture = entry.profileTextureSignature().isBlank()
                         ? new Property("textures", entry.profileTexture())
                         : new Property("textures", entry.profileTexture(), entry.profileTextureSignature());
-                properties.put("textures", texture);
+                profileProperties.put("textures", texture);
             }
+            PropertyMap properties = new PropertyMap(profileProperties);
             icon.set(DataComponents.PROFILE,
                     ResolvableProfile.createResolved(new GameProfile(entry.profileId(), playerName, properties)));
         }
