@@ -208,14 +208,20 @@ public class TagFilterListItem extends Item {
         if (value.startsWith("#")) {
             value = value.substring(1).trim();
         }
+        if (value.isBlank()) {
+            return "";
+        }
         if (value.length() > MAX_TAG_LENGTH) {
             value = value.substring(0, MAX_TAG_LENGTH);
         }
-        if (!value.contains(":") && !value.isBlank()) {
+        int separator = value.indexOf(':');
+        if (separator < 0) {
             value = "minecraft:" + value;
+        } else if (separator == 0 || separator == value.length() - 1) {
+            return "";
         }
         ResourceLocation id = ResourceLocation.tryParse(value);
-        return id == null ? "" : id.toString();
+        return id == null || id.getNamespace().isBlank() || id.getPath().isBlank() ? "" : id.toString();
     }
 
     private static void saveTags(ItemStack stack, List<String> tags) {
