@@ -2,6 +2,7 @@ package com.skylogistics.menu;
 
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
+import com.skylogistics.network.ConfiguratorStackPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -315,5 +316,6 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         int slot = hand == InteractionHand.OFF_HAND ? Inventory.SLOT_OFFHAND : player.getInventory().getSelectedSlot();
         player.getInventory().setChanged();
         serverPlayer.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, slot, stack.copy()));
+        ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorStackPacket(hand, stack.copy()));
     }
 }

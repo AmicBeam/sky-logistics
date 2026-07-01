@@ -27,6 +27,8 @@ public final class ModNetworking {
         registrar.playToServer(FilterGhostPacket.TYPE, FilterGhostPacket.STREAM_CODEC, FilterGhostPacket::handle);
         registrar.playToClient(ConfiguratorLineDetailsPacket.TYPE, ConfiguratorLineDetailsPacket.STREAM_CODEC,
                 ConfiguratorLineDetailsPacket::handle);
+        registrar.playToClient(ConfiguratorStackPacket.TYPE, ConfiguratorStackPacket.STREAM_CODEC,
+                ConfiguratorStackPacket::handle);
         registrar.playToServer(VaultTerminalClickPacket.TYPE, VaultTerminalClickPacket.STREAM_CODEC,
                 VaultTerminalClickPacket::handle);
         registrar.playToServer(LineRenamePacket.TYPE, LineRenamePacket.STREAM_CODEC, LineRenamePacket::handle);
