@@ -1,12 +1,15 @@
 package com.skylogistics.item;
 
+import com.skylogistics.SkyLogistics;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.util.StackData;
 import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -27,6 +30,7 @@ public class EulogiaCrystalItem extends Item {
     private static final int TICKS_PER_SECOND = 20;
     private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
+    private static final Identifier CHARGED_ITEM_MODEL = SkyLogistics.id("eulogia_crystal_charged");
 
     public EulogiaCrystalItem(Properties properties) {
         super(properties);
@@ -41,7 +45,7 @@ public class EulogiaCrystalItem extends Item {
 
     public static ItemStack chargedStack(Item item) {
         ItemStack stack = new ItemStack(item);
-        StackData.update(stack, tag -> tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE));
+        setCharged(stack, StackData.getOrEmpty(stack));
         return stack;
     }
 
@@ -53,9 +57,7 @@ public class EulogiaCrystalItem extends Item {
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
         if (chargeSeconds >= requiredSeconds) {
-            tag.remove(CHARGE_SECONDS_TAG);
-            tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
-            StackData.set(stack, tag);
+            setCharged(stack, tag);
             return true;
         }
         tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
@@ -85,7 +87,14 @@ public class EulogiaCrystalItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-        if (!(entity instanceof Player player) || player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
+        if (!(entity instanceof Player player)) {
+            return;
+        }
+        if (isCharged(stack)) {
+            ensureChargedModel(stack);
+            return;
+        }
+        if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
             return;
         }
         if (level.getGameTime() % TICKS_PER_SECOND != 0L) {
@@ -95,6 +104,19 @@ public class EulogiaCrystalItem extends Item {
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS,
                     0.8F, 1.4F);
             player.sendOverlayMessage(Component.translatable("message.skylogistics.eulogia_crystal.charged"));
+        }
+    }
+
+    private static void setCharged(ItemStack stack, CompoundTag tag) {
+        tag.remove(CHARGE_SECONDS_TAG);
+        tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
+        StackData.set(stack, tag);
+        ensureChargedModel(stack);
+    }
+
+    private static void ensureChargedModel(ItemStack stack) {
+        if (!CHARGED_ITEM_MODEL.equals(stack.get(DataComponents.ITEM_MODEL))) {
+            stack.set(DataComponents.ITEM_MODEL, CHARGED_ITEM_MODEL);
         }
     }
 

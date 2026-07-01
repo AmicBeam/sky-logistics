@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "skylogistics:item/sky_rs_interface"
+  }
+}
