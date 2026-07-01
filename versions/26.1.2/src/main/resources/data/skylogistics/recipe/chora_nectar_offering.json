@@ -1,0 +1,40 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 240,
+  "altar_tier": 2,
+  "main": {
+    "ingredient": {
+      "item": "skylogistics:eulogia_crystal"
+    },
+    "charged": true
+  },
+  "offerings": [
+    {
+      "ingredient": {
+        "item": "minecraft:dragon_breath"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:diamond"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:amethyst_shard"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:glass_bottle"
+      },
+      "count": 1
+    }
+  ],
+  "result": {
+    "id": "skylogistics:chora_nectar"
+  }
+}

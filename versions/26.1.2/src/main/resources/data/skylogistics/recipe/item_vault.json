@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CSC",
+    "SNS",
+    "CHC"
+  ],
+  "key": {
+    "C": {
+      "item": "skylogistics:celestial_stone"
+    },
+    "S": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "N": {
+      "item": "skylogistics:chora_nectar"
+    },
+    "H": {
+      "item": "minecraft:chest"
+    }
+  },
+  "result": {
+    "id": "skylogistics:item_vault"
+  }
+}

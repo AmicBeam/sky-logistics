@@ -1,0 +1,40 @@
+{
+  "name": "Eulogia Crystal Charging",
+  "icon": "skylogistics:eulogia_crystal",
+  "category": "skylogistics:offerings",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A crafted Eulogia Crystal starts uncharged. Bring it to the configured sky height or higher to let it absorb high-sky light; the server config rituals.skyRitualMinY defaults to Y=200."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:eulogia_crystal",
+      "text": "The Eulogia Crystal is built around a diamond core and does not consume an Ender Pearl. Newly crafted crystals start uncharged."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Uncharged crystals charge in a player's inventory or on a Sky Offering Table. Ordinary containers do not charge them. The default charge time is 60 seconds, controlled by rituals.eulogiaCrystalChargeSeconds."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "When charging finishes, the crystal icon changes and its tooltip says it is charged. A charged Eulogia Crystal can be crafted with #c:stones into Celestial Stone; Celestial Glass is made through offering."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone",
+      "text": "Celestial Stone is the base material for offering circles, tables, nodes, and vaults."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone_slab",
+      "recipe2": "skylogistics:celestial_stone_stairs",
+      "text": "Celestial Stone slabs, stairs, and walls can all be used in the tier 1 altar frame."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:celestial_stone_wall"
+    }
+  ]
+}

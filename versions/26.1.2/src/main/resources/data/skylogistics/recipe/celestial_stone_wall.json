@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SSS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "skylogistics:celestial_stone"
+    }
+  },
+  "result": {
+    "id": "skylogistics:celestial_stone_wall",
+    "count": 6
+  }
+}

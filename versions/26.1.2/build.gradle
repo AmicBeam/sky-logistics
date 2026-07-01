@@ -1,0 +1,182 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = "${mod_version}+${minecraft_version}"
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'ModMaven'
+        url = 'https://modmaven.dev'
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+    }
+}
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.console.level', 'debug'
+        }
+
+        client {
+            client()
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', file('src/main/resources/').absolutePath
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+def jadeApiPath = System.getProperty('skylogistics.jadeApiJar') ?: System.getenv('SKYLOGISTICS_JADE_API_JAR')
+def defaultJadeApiJar = file('/private/tmp/jade-api.jar')
+def tmpJadeApiJars = fileTree(
+        dir: '/private/tmp',
+        include: [
+                "Jade-${minecraft_version}-NeoForge-*.jar",
+                "Jade-${minecraft_version}-neoforge-*.jar",
+                "jade-${minecraft_version}-neoforge-*.jar"
+        ]
+).files.toList().sort { it.absolutePath }
+def cachedJadeApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1",
+        include: [
+                "**/Jade-${minecraft_version}-NeoForge-*.jar",
+                "**/Jade-${minecraft_version}-neoforge-*.jar",
+                "**/jade-${minecraft_version}-neoforge-*.jar"
+        ]
+).files.toList().sort { it.absolutePath }
+def jadeApiJar = jadeApiPath ? file(jadeApiPath)
+        : (!tmpJadeApiJars.isEmpty() ? tmpJadeApiJars.last()
+        : (defaultJadeApiJar.exists() ? defaultJadeApiJar
+        : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null)))
+def includeJadeCompat = true
+def includeJeiCompat = true
+
+sourceSets {
+    main {
+        resources.srcDir '../../common/src/main/resources'
+    }
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    source fileTree(dir: '../../common/src/main/java', exclude: [
+            'com/skylogistics/client/TagFilterListScreen.java',
+            'com/skylogistics/client/SingleSlotDisplayRenderer.java',
+            'com/skylogistics/menu/ConfiguratorMenu.java',
+            'com/skylogistics/menu/SkyNodeMenu.java',
+            'com/skylogistics/menu/SkyNecklaceMenu.java',
+            'com/skylogistics/menu/TagFilterListMenu.java'
+    ])
+}
+
+if (jadeApiPath && !jadeApiJar.exists()) {
+    throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
+}
+
+sourceSets.main.java.srcDir 'src/jade/java'
+sourceSets.main.java.srcDir 'src/jei/java'
+
+dependencies {
+    compileOnly "maven.modrinth:ae2:${ae2_version}"
+    compileOnly "maven.modrinth:refined-storage:${refined_storage_version}"
+    compileOnly "maven.modrinth:beyonddimensions:${beyond_dimensions_version}"
+    if (includeJadeCompat) {
+        if (jadeApiJar != null && jadeApiJar.exists()) {
+            compileOnly files(jadeApiJar)
+        } else {
+            compileOnly "maven.modrinth:jade:${jade_version}"
+        }
+    }
+    if (includeJeiCompat) {
+        compileOnly "maven.modrinth:jei:${jei_version}"
+    }
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_display_name       : mod_display_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CSC",
+    "SNS",
+    "CBC"
+  ],
+  "key": {
+    "C": {
+      "item": "skylogistics:celestial_stone"
+    },
+    "S": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "N": {
+      "item": "skylogistics:chora_nectar"
+    },
+    "B": {
+      "item": "minecraft:bucket"
+    }
+  },
+  "result": {
+    "id": "skylogistics:fluid_vault"
+  }
+}
