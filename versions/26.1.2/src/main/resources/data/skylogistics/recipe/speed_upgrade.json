@@ -6,15 +6,9 @@
     "SRS"
   ],
   "key": {
-    "S": {
-      "item": "minecraft:sugar"
-    },
-    "R": {
-      "item": "minecraft:redstone"
-    },
-    "N": {
-      "item": "skylogistics:chora_nectar"
-    }
+    "S": "minecraft:sugar",
+    "R": "minecraft:redstone",
+    "N": "skylogistics:chora_nectar"
   },
   "result": {
     "id": "skylogistics:speed_upgrade"

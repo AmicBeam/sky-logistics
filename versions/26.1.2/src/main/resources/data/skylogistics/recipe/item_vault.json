@@ -6,18 +6,10 @@
     "CHC"
   ],
   "key": {
-    "C": {
-      "item": "skylogistics:celestial_stone"
-    },
-    "S": {
-      "item": "minecraft:amethyst_shard"
-    },
-    "N": {
-      "item": "skylogistics:chora_nectar"
-    },
-    "H": {
-      "item": "minecraft:chest"
-    }
+    "C": "skylogistics:celestial_stone",
+    "S": "minecraft:amethyst_shard",
+    "N": "skylogistics:chora_nectar",
+    "H": "minecraft:chest"
   },
   "result": {
     "id": "skylogistics:item_vault"

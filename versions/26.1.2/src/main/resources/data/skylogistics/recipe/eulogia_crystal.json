@@ -6,15 +6,9 @@
     " A "
   ],
   "key": {
-    "A": {
-      "item": "minecraft:amethyst_shard"
-    },
-    "G": {
-      "item": "minecraft:glass"
-    },
-    "D": {
-      "item": "minecraft:diamond"
-    }
+    "A": "minecraft:amethyst_shard",
+    "G": "minecraft:glass",
+    "D": "minecraft:diamond"
   },
   "result": {
     "id": "skylogistics:eulogia_crystal"

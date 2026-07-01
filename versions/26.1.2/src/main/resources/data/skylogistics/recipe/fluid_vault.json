@@ -6,18 +6,10 @@
     "CBC"
   ],
   "key": {
-    "C": {
-      "item": "skylogistics:celestial_stone"
-    },
-    "S": {
-      "item": "minecraft:amethyst_shard"
-    },
-    "N": {
-      "item": "skylogistics:chora_nectar"
-    },
-    "B": {
-      "item": "minecraft:bucket"
-    }
+    "C": "skylogistics:celestial_stone",
+    "S": "minecraft:amethyst_shard",
+    "N": "skylogistics:chora_nectar",
+    "B": "minecraft:bucket"
   },
   "result": {
     "id": "skylogistics:fluid_vault"

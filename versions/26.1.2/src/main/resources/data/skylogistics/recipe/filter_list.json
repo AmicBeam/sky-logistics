@@ -6,15 +6,9 @@
     " C "
   ],
   "key": {
-    "P": {
-      "item": "minecraft:paper"
-    },
-    "R": {
-      "item": "minecraft:redstone"
-    },
-    "C": {
-      "item": "minecraft:amethyst_shard"
-    }
+    "P": "minecraft:paper",
+    "R": "minecraft:redstone",
+    "C": "minecraft:amethyst_shard"
   },
   "result": {
     "id": "skylogistics:filter_list"

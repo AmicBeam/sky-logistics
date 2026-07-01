@@ -6,9 +6,7 @@
     "SSS"
   ],
   "key": {
-    "S": {
-      "item": "skylogistics:celestial_stone"
-    }
+    "S": "skylogistics:celestial_stone"
   },
   "result": {
     "id": "skylogistics:offering_table"

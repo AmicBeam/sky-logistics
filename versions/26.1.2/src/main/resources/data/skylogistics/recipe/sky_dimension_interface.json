@@ -9,32 +9,22 @@
   "duration": 160,
   "altar_tier": 1,
   "main": {
-    "ingredient": {
-      "item": "skylogistics:eulogia_crystal"
-    },
+    "ingredient": "skylogistics:eulogia_crystal",
     "charged": true
   },
   "offerings": [
     {
-      "ingredient": {
-        "item": "beyonddimensions:net_pathway"
-      }
+      "ingredient": "beyonddimensions:net_pathway"
     },
     {
-      "ingredient": {
-        "item": "beyonddimensions:dimensional_connect_block"
-      }
+      "ingredient": "beyonddimensions:dimensional_connect_block"
     },
     {
-      "ingredient": {
-        "item": "skylogistics:celestial_stone"
-      },
+      "ingredient": "skylogistics:celestial_stone",
       "count": 4
     },
     {
-      "ingredient": {
-        "item": "minecraft:amethyst_shard"
-      }
+      "ingredient": "minecraft:amethyst_shard"
     }
   ],
   "result": {
