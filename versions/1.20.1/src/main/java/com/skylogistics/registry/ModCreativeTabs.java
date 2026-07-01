@@ -1,7 +1,10 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
+import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.PatchouliCompat;
+import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
 import com.skylogistics.item.EulogiaCrystalItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -39,9 +42,15 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.OFFERING_TABLE.get());
                         output.accept(ModItems.ITEM_VAULT.get());
                         output.accept(ModItems.FLUID_VAULT.get());
-                        output.accept(ModItems.SKY_ME_INTERFACE.get());
-                        output.accept(ModItems.SKY_RS_INTERFACE.get());
-                        output.accept(ModItems.SKY_DIMENSION_INTERFACE.get());
+                        if (AppliedEnergisticsCompat.isLoaded()) {
+                            output.accept(ModItems.SKY_ME_INTERFACE.get());
+                        }
+                        if (RefinedStorageCompat.isLoaded()) {
+                            output.accept(ModItems.SKY_RS_INTERFACE.get());
+                        }
+                        if (BeyondDimensionsCompat.isLoaded()) {
+                            output.accept(ModItems.SKY_DIMENSION_INTERFACE.get());
+                        }
                         output.accept(ModItems.SKY_NODE.get());
                     })
                     .build());

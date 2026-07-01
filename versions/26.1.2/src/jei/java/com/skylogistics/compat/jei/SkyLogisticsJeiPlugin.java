@@ -1,20 +1,28 @@
 package com.skylogistics.compat.jei;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
+import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
+import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModRecipes;
+import java.util.ArrayList;
 import java.util.List;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 
 @JeiPlugin
@@ -58,5 +66,26 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
                 new SkyFilterGhostIngredientHandler());
         registration.addGhostIngredientHandler(com.skylogistics.client.TagFilterListScreen.class,
                 new SkyTagFilterGhostIngredientHandler());
+    }
+
+    @Override
+    public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
+        hideMissingIntegrationItems(jeiRuntime.getIngredientManager());
+    }
+
+    private static void hideMissingIntegrationItems(IIngredientManager ingredientManager) {
+        List<ItemStack> hidden = new ArrayList<>();
+        if (!AppliedEnergisticsCompat.isLoaded()) {
+            hidden.add(ModItems.SKY_ME_INTERFACE.get().getDefaultInstance());
+        }
+        if (!RefinedStorageCompat.isLoaded()) {
+            hidden.add(ModItems.SKY_RS_INTERFACE.get().getDefaultInstance());
+        }
+        if (!BeyondDimensionsCompat.isLoaded()) {
+            hidden.add(ModItems.SKY_DIMENSION_INTERFACE.get().getDefaultInstance());
+        }
+        if (!hidden.isEmpty()) {
+            ingredientManager.removeIngredientsAtRuntime(VanillaTypes.ITEM_STACK, hidden);
+        }
     }
 }
