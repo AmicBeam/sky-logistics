@@ -17,6 +17,10 @@ public final class ClientOfferingRecipes {
         changeListener.run();
     }
 
+    public static void clear() {
+        apply(List.of());
+    }
+
     public static List<OfferingRecipe> recipes() {
         return recipes;
     }

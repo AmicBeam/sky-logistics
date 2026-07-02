@@ -41,6 +41,7 @@ public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements 
     }
 
     public static void onDatapackSync(OnDatapackSyncEvent event) {
+        event.sendRecipes(ModRecipes.SKY_OFFERING_TYPE.get());
         List<OfferingRecipe> recipes = skyOfferingRecipes(event.getPlayerList().getServer().getRecipeManager());
         event.getRelevantPlayers().forEach(player -> ModNetworking.sendToPlayer(player,
                 new SkyOfferingRecipesPacket(recipes)));
