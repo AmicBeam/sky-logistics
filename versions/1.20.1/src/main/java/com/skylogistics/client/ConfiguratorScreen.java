@@ -50,7 +50,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int CONTROL_START_X = 48;
     private static final int CONTROL_STEP_X = 44;
     private static final int RESOURCE_BUTTON_WIDTH = 42;
-    private static final int CONTROL_DIVIDER_X = 127;
     private static final int CONTROL_LEFT_WIDTH = 76;
     private static final int PRIORITY_ROW_Y = 218;
     private static final int PRIORITY_DOWN_X = CONTROL_START_X;
@@ -58,8 +57,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int PRIORITY_VALUE_WIDTH = 34;
     private static final int PRIORITY_UP_X = 104;
     private static final int SLOT_LIMIT_ROW_Y = 192;
-    private static final int SLOT_LIMIT_LABEL_X = 132;
-    private static final int SLOT_LIMIT_DOWN_X = 184;
+    private static final int SLOT_LIMIT_LABEL_X = 142;
+    private static final int SLOT_LIMIT_DOWN_X = 176;
     private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + 20;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
     private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
@@ -212,8 +211,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         renderLineDetails(graphics, config);
         graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
                 14, 172, ConfigPanel.MUTED, false);
-        graphics.fill(CONTROL_DIVIDER_X, SLOT_LIMIT_ROW_Y - 2,
-                CONTROL_DIVIDER_X + 1, PRIORITY_ROW_Y + 20, ConfigPanel.BORDER_DIM);
         graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                 14, 198, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
