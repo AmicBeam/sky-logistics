@@ -40,7 +40,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int DETAIL_LABEL_OFFSET_Y = 6;
     private static final int ADVANCED_CONTROL_X = 48;
     private static final int ADVANCED_CONTROL_WIDTH = 76;
-    private static final int ADVANCED_RIGHT_LABEL_X = 142;
+    private static final int ADVANCED_RIGHT_LABEL_X = 138;
     private static final int PRIORITY_BUTTON_WIDTH = 20;
     private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
     private static final int PRIORITY_UP_X = 104;

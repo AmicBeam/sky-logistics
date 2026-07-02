@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class SkyNodeMenu extends AbstractContainerMenu {
     public static final int UPGRADE_ROW_Y = 153;
-    public static final int FACE_FILTER_SLOT_X = 176;
+    public static final int FACE_FILTER_SLOT_X = 172;
     public static final int FACE_FILTER_ROW_Y = 126;
     public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 44;
     private static final int UPGRADE_SLOT_X = 78;

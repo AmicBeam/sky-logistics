@@ -57,8 +57,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int PRIORITY_VALUE_WIDTH = 34;
     private static final int PRIORITY_UP_X = 104;
     private static final int SLOT_LIMIT_ROW_Y = 192;
-    private static final int SLOT_LIMIT_LABEL_X = 142;
-    private static final int SLOT_LIMIT_DOWN_X = 176;
+    private static final int SLOT_LIMIT_LABEL_X = 138;
+    private static final int SLOT_LIMIT_DOWN_X = 172;
     private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + 20;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
     private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
