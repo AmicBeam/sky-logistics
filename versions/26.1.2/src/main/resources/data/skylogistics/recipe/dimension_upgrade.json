@@ -11,12 +11,8 @@
       "count": 4
     },
     {
-      "ingredient": "minecraft:ender_pearl",
-      "count": 2
-    },
-    {
       "ingredient": "skylogistics:chora_nectar",
-      "count": 2
+      "count": 1
     }
   ],
   "result": {
