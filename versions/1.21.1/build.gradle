@@ -20,6 +20,10 @@ repositories {
         name = 'ModMaven'
         url = 'https://modmaven.dev'
     }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+    }
 }
 
 neoForge {
@@ -83,7 +87,7 @@ def jadeApiJar = jadeApiPath ? file(jadeApiPath)
         : (!tmpJadeApiJars.isEmpty() ? tmpJadeApiJars.last()
         : (defaultJadeApiJar.exists() ? defaultJadeApiJar
         : (!cachedJadeApiJars.isEmpty() ? cachedJadeApiJars.last() : null)))
-def includeJadeCompat = false
+def includeJadeCompat = true
 def jeiApiPath = System.getProperty('skylogistics.jeiApiJar') ?: System.getenv('SKYLOGISTICS_JEI_API_JAR')
 def cachedJeiApiJars = fileTree(
         dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/mezz.jei/jei-${minecraft_version}-neoforge",
@@ -120,10 +124,7 @@ if (jadeApiPath && !jadeApiJar.exists()) {
     throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
 }
 
-if (jadeApiJar != null && jadeApiJar.exists()) {
-    sourceSets.main.java.srcDir 'src/jade/java'
-    includeJadeCompat = true
-}
+sourceSets.main.java.srcDir 'src/jade/java'
 
 if (jeiApiPath && !jeiApiJar.exists()) {
     throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
@@ -137,7 +138,11 @@ if (jeiApiJar != null && jeiApiJar.exists()) {
 dependencies {
     compileOnly "mekanism:Mekanism:${mekanism_version}"
     if (includeJadeCompat) {
-        compileOnly files(jadeApiJar)
+        if (jadeApiJar != null && jadeApiJar.exists()) {
+            compileOnly files(jadeApiJar)
+        } else {
+            compileOnly "maven.modrinth:jade:${jade_version}"
+        }
     }
     if (includeJeiCompat) {
         compileOnly files(jeiApiJar)

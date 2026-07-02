@@ -28,6 +28,13 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.skylogistics]]
+modId="jade"
+mandatory=false
+versionRange="[11,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.skylogistics]]
 modId="ae2"
 mandatory=false
 versionRange="[15.2.0,)"
