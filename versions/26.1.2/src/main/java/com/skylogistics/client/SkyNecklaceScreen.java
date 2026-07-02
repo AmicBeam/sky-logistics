@@ -160,13 +160,10 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
         graphics.text(font, Component.translatable("screen.skylogistics.mode_label"),
                 14, MODE_ROW_Y, ConfigPanel.MUTED, false);
-        boolean insertMode = SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT;
-        int insertTextColor = insertMode ? ConfigPanel.TEXT : ConfigPanel.MUTED;
         graphics.text(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots"),
-                14, INSERT_SLOTS_ROW_Y + 6, insertTextColor, false);
-        graphics.centeredText(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots_value",
-                        SkyNecklaceItem.insertSlots(stack)),
-                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, INSERT_SLOTS_ROW_Y + 5, insertTextColor);
+                14, INSERT_SLOTS_ROW_Y + 6, ConfigPanel.MUTED, false);
+        graphics.centeredText(font, SkyNecklaceItem.insertSlotsDisplay(stack),
+                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, INSERT_SLOTS_ROW_Y + 5, ConfigPanel.TEXT);
         graphics.text(font, Component.translatable("screen.skylogistics.priority"),
                 14, PRIORITY_ROW_Y + 6, ConfigPanel.MUTED, false);
         graphics.centeredText(font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
@@ -379,9 +376,8 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
 
         private void refresh(ItemStack stack) {
-            boolean insertMode = SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT;
             int slots = SkyNecklaceItem.insertSlots(stack);
-            active = insertMode && switch (action) {
+            active = switch (action) {
                 case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> slots > SkyNecklaceItem.MIN_INSERT_SLOTS;
                 case MenuAction.NECKLACE_INSERT_SLOTS_UP -> slots < SkyNecklaceItem.MAX_INSERT_SLOTS;
                 default -> false;

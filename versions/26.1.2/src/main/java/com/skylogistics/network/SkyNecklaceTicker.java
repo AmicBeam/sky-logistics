@@ -104,7 +104,7 @@ public final class SkyNecklaceTicker {
         }
         for (ActiveNecklace active : activeNecklaces) {
             if (active.mode() == SkyNecklaceItem.NecklaceMode.EXTRACT) {
-                tryExtract(active.player(), active.lineId(), active.itemWhitelist(), gameTime);
+                tryExtract(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             } else {
                 tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             }
@@ -154,14 +154,20 @@ public final class SkyNecklaceTicker {
         return compiled.hasItemRules() ? compiled : null;
     }
 
-    private static void tryExtract(ServerPlayer player, UUID lineId, FilterListItem.CompiledFilter itemWhitelist,
-            long gameTime) {
+    private static void tryExtract(ServerPlayer player, ItemStack necklace, UUID lineId,
+            FilterListItem.CompiledFilter itemWhitelist, long gameTime) {
         List<CachedEndpoint> targets = SkyNetworkRegistry.lineItemOutputs(player.level().getServer(), player.level().dimension(), lineId);
         if (targets.isEmpty()) {
             return;
         }
+        List<IItemHandler> sources = sources(player);
+        int slotLimit = SkyNecklaceItem.insertSlots(necklace);
+        if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS
+                && countMatchingSlots(sources, itemWhitelist) <= slotLimit) {
+            return;
+        }
         int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
-        for (IItemHandler source : sources(player)) {
+        for (IItemHandler source : sources) {
             for (int slot = 0; slot < source.getSlots(); slot++) {
                 ItemStack simulated = source.extractItem(slot, transferLimit, true);
                 if (simulated.isEmpty() || shouldSkipSourceStack(simulated) || !itemWhitelist.matches(simulated)) {
@@ -179,6 +185,19 @@ public final class SkyNecklaceTicker {
         sources.add(new PlayerMainInventoryHandler(player.getInventory(), null, PlayerMainInventoryHandler.MAIN_SLOTS));
         sources.addAll(SophisticatedBackpacksCompat.carriedBackpackHandlers(player));
         return sources;
+    }
+
+    private static int countMatchingSlots(List<IItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist) {
+        int matching = 0;
+        for (IItemHandler source : sources) {
+            for (int slot = 0; slot < source.getSlots(); slot++) {
+                ItemStack stack = source.getStackInSlot(slot);
+                if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && itemWhitelist.matches(stack)) {
+                    matching++;
+                }
+            }
+        }
+        return matching;
     }
 
     private static void tryInsert(ServerPlayer player, ItemStack necklace, UUID lineId,
@@ -308,7 +327,8 @@ public final class SkyNecklaceTicker {
                 int insertSlotLimit) {
             this.inventory = inventory;
             this.insertFilter = insertFilter;
-            this.insertSlotLimit = Math.max(1, Math.min(MAIN_SLOTS, insertSlotLimit));
+            this.insertSlotLimit = Math.max(SkyNecklaceItem.MIN_INSERT_SLOTS,
+                    Math.min(MAIN_SLOTS, insertSlotLimit));
         }
 
         @Override
@@ -328,7 +348,7 @@ public final class SkyNecklaceTicker {
             }
             ItemStack existing = inventory.getItem(slot);
             int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
-            if (isInsertLimited() && fullWhitelistSlots() >= insertSlotLimit) {
+            if (isInsertLimited() && matchingWhitelistSlots() >= insertSlotLimit) {
                 return stack;
             }
             if (existing.isEmpty()) {
@@ -390,22 +410,19 @@ public final class SkyNecklaceTicker {
         }
 
         private boolean isInsertLimited() {
-            return insertFilter != null;
+            return insertFilter != null && insertSlotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS;
         }
 
-        private int fullWhitelistSlots() {
-            int full = 0;
+        private int matchingWhitelistSlots() {
+            int matching = 0;
             for (int slot = 0; slot < MAIN_SLOTS; slot++) {
                 ItemStack existing = inventory.getItem(slot);
                 if (existing.isEmpty() || !insertFilter.matches(existing)) {
                     continue;
                 }
-                int limit = Math.min(getSlotLimit(slot), existing.getMaxStackSize());
-                if (existing.getCount() >= limit) {
-                    full++;
-                }
+                matching++;
             }
-            return full;
+            return matching;
         }
 
         private static ItemStack remainder(ItemStack original, int inserted) {

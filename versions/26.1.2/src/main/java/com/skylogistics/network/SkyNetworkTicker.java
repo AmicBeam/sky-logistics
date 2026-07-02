@@ -19,6 +19,7 @@ import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -254,6 +255,10 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
+        if (isExtractionBlockedBySlotLimit(sourceNode, sourceEndpoint.direction(), source)) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return 0;
+        }
         int operations = 0;
         boolean foundCandidate = false;
         int slotChecks = Math.min(slots, sourceNode.getOperationRate());
@@ -300,8 +305,7 @@ public final class SkyNetworkTicker {
 
     private static int nextItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int slots,
             long gameTime, int firstTriedSlot, int secondTriedSlot) {
-        boolean discoveryActive = sourceEndpoint.isItemSlotDiscoveryActive();
-        if (discoveryActive && sourceEndpoint.shouldTryItemSlotDiscoveryBeforePreferred()) {
+        if (sourceEndpoint.isItemSlotDiscoveryActive()) {
             int discoverySlot = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                     firstTriedSlot, secondTriedSlot, true);
             if (discoverySlot >= 0) {
@@ -309,20 +313,10 @@ public final class SkyNetworkTicker {
                 return discoverySlot;
             }
             sourceEndpoint.clearItemSlotDiscovery();
-            discoveryActive = false;
         }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return preferredSlot;
-        }
-        if (discoveryActive) {
-            int discoverySlot = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, true);
-            if (discoverySlot >= 0) {
-                sourceEndpoint.recordItemSlotDiscoveryCheck();
-                return discoverySlot;
-            }
-            sourceEndpoint.clearItemSlotDiscovery();
         }
         return nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                 firstTriedSlot, secondTriedSlot, false);
@@ -343,6 +337,35 @@ public final class SkyNetworkTicker {
 
     private static boolean wasSlotTried(int firstTriedSlot, int secondTriedSlot, int slot) {
         return firstTriedSlot == slot || secondTriedSlot == slot;
+    }
+
+    private static boolean isExtractionBlockedBySlotLimit(SkyNodeBlockEntity node, net.minecraft.core.Direction direction,
+            IItemHandler source) {
+        int limit = node.getItemSlotLimit(direction);
+        return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack)) <= limit;
+    }
+
+    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target) {
+        if (target == null) {
+            return false;
+        }
+        SkyNodeBlockEntity node = endpoint.node();
+        net.minecraft.core.Direction direction = endpoint.direction();
+        int limit = node.getItemSlotLimit(direction);
+        return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack)) >= limit;
+    }
+
+    private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate) {
+        int count = 0;
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack stack = handler.getStackInSlot(slot);
+            if (!stack.isEmpty() && predicate.test(stack)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
@@ -392,6 +415,10 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemFilterReject(simulated, gameTime);
                     continue;
                 }
+                IItemHandler target = targetEndpoint.itemHandler(gameTime);
+                if (isInsertionBlockedBySlotLimit(targetEndpoint, target)) {
+                    continue;
+                }
                 LongItemEndpoint targetLongEndpoint = longItemEndpoint(targetEndpoint);
                 if (sourceLongEndpoint != null && targetLongEndpoint != null) {
                     long moved = moveLongItem(sourceEndpoint, sourceLongEndpoint, slot, targetEndpoint,
@@ -407,7 +434,6 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
-                IItemHandler target = targetEndpoint.itemHandler(gameTime);
                 if (target == null) {
                     continue;
                 }

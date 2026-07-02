@@ -39,11 +39,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int DETAIL_LABEL_OFFSET_Y = 6;
     private static final int ADVANCED_CONTROL_X = 62;
     private static final int ADVANCED_CONTROL_WIDTH = 86;
+    private static final int ADVANCED_RIGHT_LABEL_X = 154;
     private static final int PRIORITY_BUTTON_WIDTH = 20;
     private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
     private static final int PRIORITY_UP_X = 128;
     private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
     private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
+    private static final int SLOT_LIMIT_DOWN_X = 176;
+    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + PRIORITY_BUTTON_WIDTH;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 30;
+    private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private static final int MORE_BUTTON_X = 162;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
@@ -120,6 +125,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 moreWidth);
         addRenderableWidget(moreButton);
         addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y)));
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+                -1, Component.literal("-")));
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+                1, Component.literal("+")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
                 -1, Component.literal("-")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
@@ -251,10 +260,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (advancedPanel) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                     14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
+            graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.MUTED, false);
+            graphics.drawCenteredString(font, slotLimitDisplay(node.getItemSlotLimit(face)),
+                    SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
+                    menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.TEXT);
             graphics.drawString(font, Component.translatable(node.usesSingleEndpoint()
                             ? "screen.skylogistics.filter_slot"
                             : "screen.skylogistics.face_filters"),
-                    SkyNodeMenu.FACE_FILTER_SLOT_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
                     14, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
@@ -442,6 +457,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private boolean energyEnabled(SkyNodeBlockEntity node) {
         return localEnergyEnabled == null ? node.isEnergyEnabled(selectedFace) : localEnergyEnabled;
+    }
+
+    private Component slotLimitDisplay(int slotLimit) {
+        return slotLimit == SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
+                : Component.literal(String.valueOf(slotLimit));
     }
 
     private SkyNodeBlockEntity node() {
@@ -666,6 +687,28 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                                 : MenuAction.facePriorityDown(selectedFace))
                         : (fast ? MenuAction.facePriorityUpFast(selectedFace)
                                 : MenuAction.facePriorityUp(selectedFace));
+                ModNetworking.sendMenuAction(action);
+            }
+        }
+    }
+
+    private final class SlotLimitButton extends AdvancedButton {
+        private final int delta;
+
+        private SlotLimitButton(int x, int y, int delta, Component message) {
+            super(x, y, PRIORITY_BUTTON_WIDTH, 18, message);
+            this.delta = delta;
+        }
+
+        @Override
+        public void onPress() {
+            if (active) {
+                boolean fast = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+                int action = delta < 0
+                        ? (fast ? MenuAction.faceSlotLimitDownFast(selectedFace)
+                                : MenuAction.faceSlotLimitDown(selectedFace))
+                        : (fast ? MenuAction.faceSlotLimitUpFast(selectedFace)
+                                : MenuAction.faceSlotLimitUp(selectedFace));
                 ModNetworking.sendMenuAction(action);
             }
         }

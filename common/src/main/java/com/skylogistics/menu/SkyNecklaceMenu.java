@@ -171,26 +171,10 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             }
             case MenuAction.MODE_EXTRACT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.EXTRACT);
             case MenuAction.MODE_INSERT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.INSERT);
-            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> {
-                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
-                    SkyNecklaceItem.adjustInsertSlots(stack, -1);
-                }
-            }
-            case MenuAction.NECKLACE_INSERT_SLOTS_UP -> {
-                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
-                    SkyNecklaceItem.adjustInsertSlots(stack, 1);
-                }
-            }
-            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST -> {
-                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
-                    SkyNecklaceItem.adjustInsertSlots(stack, -10);
-                }
-            }
-            case MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST -> {
-                if (SkyNecklaceItem.mode(stack) == SkyNecklaceItem.NecklaceMode.INSERT) {
-                    SkyNecklaceItem.adjustInsertSlots(stack, 10);
-                }
-            }
+            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> SkyNecklaceItem.adjustInsertSlots(stack, -1);
+            case MenuAction.NECKLACE_INSERT_SLOTS_UP -> SkyNecklaceItem.adjustInsertSlots(stack, 1);
+            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST -> SkyNecklaceItem.adjustInsertSlots(stack, -10);
+            case MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST -> SkyNecklaceItem.adjustInsertSlots(stack, 10);
             case MenuAction.NECKLACE_PRIORITY_DOWN -> SkyNecklaceItem.adjustPriority(stack, -1);
             case MenuAction.NECKLACE_PRIORITY_UP -> SkyNecklaceItem.adjustPriority(stack, 1);
             case MenuAction.NECKLACE_PRIORITY_DOWN_FAST -> SkyNecklaceItem.adjustPriority(stack, -10);

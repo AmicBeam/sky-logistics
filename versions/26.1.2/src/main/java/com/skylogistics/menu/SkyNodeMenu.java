@@ -300,6 +300,42 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             broadcastChanges();
             return;
         }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_DOWN_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, -1);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_UP_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, 1);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_DOWN_FAST_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, -10);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_UP_FAST_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, 10);
+            broadcastChanges();
+            return;
+        }
         face = faceForAction(action, MenuAction.FACE_REDSTONE_BASE);
         if (face != null) {
             if (!node.canConfigureFace(face)) {

@@ -132,6 +132,9 @@ public class SkyNodeBlock extends BaseEntityBlock {
             return SingleSlotDisplayBlock.toInteractionResult(
                     ConfiguratorItem.useOnNode(level, pos, node, player, hand, stack));
         }
+        if (tryApplyHeldItem(stack, level, pos, player, hit.getDirection())) {
+            return com.skylogistics.util.InteractionResults.sidedSuccess(level.isClientSide());
+        }
         openNode(level, pos, player, hand);
         return com.skylogistics.util.InteractionResults.sidedSuccess(level.isClientSide());
     }
@@ -160,6 +163,54 @@ public class SkyNodeBlock extends BaseEntityBlock {
                         buffer.writeEnum(hand);
                     });
         }
+    }
+
+    private boolean tryApplyHeldItem(ItemStack stack, Level level, BlockPos pos, Player player, Direction clickedFace) {
+        if (!player.isShiftKeyDown() || !(level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node)) {
+            return false;
+        }
+        if (SkyNodeBlockEntity.isUpgradeItem(stack)) {
+            int slot = firstAcceptingUpgradeSlot(node, stack);
+            if (slot < 0) {
+                return false;
+            }
+            if (!level.isClientSide()) {
+                node.setUpgrade(slot, stack);
+                if (!player.getAbilities().instabuild) {
+                    stack.shrink(1);
+                }
+            }
+            return true;
+        }
+        if (SkyNodeBlockEntity.isFaceFilterItem(stack)) {
+            Direction direction = configurableFace(node, clickedFace);
+            if (direction == null) {
+                return false;
+            }
+            if (!level.isClientSide()) {
+                node.setFaceFilter(direction, 0, stack);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private int firstAcceptingUpgradeSlot(SkyNodeBlockEntity node, ItemStack stack) {
+        for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
+            if (node.canAcceptUpgrade(slot, stack)) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private Direction configurableFace(SkyNodeBlockEntity node, Direction clickedFace) {
+        Direction direction = node.usesSingleEndpoint() ? node.getSingleEndpointDirection() : clickedFace;
+        if (node.canConfigureFace(direction)) {
+            return direction;
+        }
+        Direction target = node.getTargetDirection();
+        return node.canConfigureFace(target) ? target : null;
     }
 
     @Override

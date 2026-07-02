@@ -174,6 +174,10 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             case MenuAction.CONFIG_PRIORITY_UP -> config = config.adjustPriority(1);
             case MenuAction.CONFIG_PRIORITY_DOWN_FAST -> config = config.adjustPriority(-10);
             case MenuAction.CONFIG_PRIORITY_UP_FAST -> config = config.adjustPriority(10);
+            case MenuAction.CONFIG_SLOT_LIMIT_DOWN -> config = config.adjustSlotLimit(-1);
+            case MenuAction.CONFIG_SLOT_LIMIT_UP -> config = config.adjustSlotLimit(1);
+            case MenuAction.CONFIG_SLOT_LIMIT_DOWN_FAST -> config = config.adjustSlotLimit(-10);
+            case MenuAction.CONFIG_SLOT_LIMIT_UP_FAST -> config = config.adjustSlotLimit(10);
             default -> {
                 return;
             }
