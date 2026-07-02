@@ -46,6 +46,7 @@ public final class SkyNetworkRegistry {
     private static final int REJECTED_ITEM_CACHE_SIZE = 4;
     private static final int EMPTY_ITEM_SLOT_CACHE_SIZE = 32;
     private static final int PREFERRED_ITEM_SLOT_MISS_LIMIT = 3;
+    private static final int ITEM_SLOT_DISCOVERY_PREFERRED_INTERVAL = 4;
     private static final int EMPTY_ITEM_SLOT_RETRY_TICKS = 20;
     private static final int PREFERRED_FLUID_TANK_CACHE_SIZE = 4;
     private static final int EMPTY_FLUID_TANK_CACHE_SIZE = 16;
@@ -799,6 +800,7 @@ public final class SkyNetworkRegistry {
         private int preferredItemSlotCursor;
         private int preferredItemSlotWriteCursor;
         private int itemSlotDiscoveryRemaining;
+        private int itemSlotDiscoveryDeferrals;
         private final int[] emptyItemSlots = new int[EMPTY_ITEM_SLOT_CACHE_SIZE];
         private final long[] emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
         private int emptyItemSlotCursor;
@@ -1205,6 +1207,7 @@ public final class SkyNetworkRegistry {
                 preferredItemSlotMisses[insertIndex] = 0;
                 if (preferredCount == 0 && totalSlots > 1) {
                     itemSlotDiscoveryRemaining = Math.max(itemSlotDiscoveryRemaining, totalSlots - 1);
+                    itemSlotDiscoveryDeferrals = 0;
                 }
             }
             clearEmptyItemSlot(slot);
@@ -1212,6 +1215,21 @@ public final class SkyNetworkRegistry {
 
         public boolean isItemSlotDiscoveryActive() {
             return itemSlotDiscoveryRemaining > 0;
+        }
+
+        public boolean shouldTryItemSlotDiscoveryBeforePreferred() {
+            if (itemSlotDiscoveryRemaining <= 0) {
+                return false;
+            }
+            if (preferredItemSlotCount() <= 0) {
+                return true;
+            }
+            itemSlotDiscoveryDeferrals++;
+            if (itemSlotDiscoveryDeferrals >= ITEM_SLOT_DISCOVERY_PREFERRED_INTERVAL) {
+                itemSlotDiscoveryDeferrals = 0;
+                return true;
+            }
+            return false;
         }
 
         public void recordItemSlotDiscoveryCheck() {
@@ -1222,6 +1240,7 @@ public final class SkyNetworkRegistry {
 
         public void clearItemSlotDiscovery() {
             itemSlotDiscoveryRemaining = 0;
+            itemSlotDiscoveryDeferrals = 0;
         }
 
         public void recordItemSlotMiss(int slot, long gameTime) {
@@ -1607,6 +1626,7 @@ public final class SkyNetworkRegistry {
             preferredItemSlotCursor = 0;
             preferredItemSlotWriteCursor = 0;
             itemSlotDiscoveryRemaining = 0;
+            itemSlotDiscoveryDeferrals = 0;
             emptyItemSlotCursor = 0;
         }
 

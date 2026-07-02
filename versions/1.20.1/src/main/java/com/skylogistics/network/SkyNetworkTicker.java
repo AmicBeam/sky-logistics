@@ -303,7 +303,8 @@ public final class SkyNetworkTicker {
 
     private static int nextItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int slots,
             long gameTime, int firstTriedSlot, int secondTriedSlot) {
-        if (sourceEndpoint.isItemSlotDiscoveryActive()) {
+        boolean discoveryActive = sourceEndpoint.isItemSlotDiscoveryActive();
+        if (discoveryActive && sourceEndpoint.shouldTryItemSlotDiscoveryBeforePreferred()) {
             int discoverySlot = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                     firstTriedSlot, secondTriedSlot, true);
             if (discoverySlot >= 0) {
@@ -311,10 +312,20 @@ public final class SkyNetworkTicker {
                 return discoverySlot;
             }
             sourceEndpoint.clearItemSlotDiscovery();
+            discoveryActive = false;
         }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return preferredSlot;
+        }
+        if (discoveryActive) {
+            int discoverySlot = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    firstTriedSlot, secondTriedSlot, true);
+            if (discoverySlot >= 0) {
+                sourceEndpoint.recordItemSlotDiscoveryCheck();
+                return discoverySlot;
+            }
+            sourceEndpoint.clearItemSlotDiscovery();
         }
         return nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                 firstTriedSlot, secondTriedSlot, false);
