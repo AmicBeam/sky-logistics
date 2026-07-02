@@ -18,6 +18,8 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
+        registrar.playToServer(RequestSkyOfferingRecipesPacket.TYPE, RequestSkyOfferingRecipesPacket.STREAM_CODEC,
+                RequestSkyOfferingRecipesPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
                 ItemVaultSnapshotPacket::handle);
         registrar.playToClient(FluidVaultSnapshotPacket.TYPE, FluidVaultSnapshotPacket.STREAM_CODEC,
@@ -39,6 +41,14 @@ public final class ModNetworking {
 
     public static void sendMenuAction(int action) {
         ClientPacketDistributor.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void requestSkyOfferingRecipes() {
+        try {
+            ClientPacketDistributor.sendToServer(RequestSkyOfferingRecipesPacket.INSTANCE);
+        } catch (NullPointerException ignored) {
+            // JEI can initialize before the client has a play connection.
+        }
     }
 
     public static void sendLineRename(String lineName) {

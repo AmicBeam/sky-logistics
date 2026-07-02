@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.recipe.OfferingRecipe;
+import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
@@ -20,6 +21,7 @@ public final class ClientModEvents {
         modBus.addListener(ClientModEvents::registerMenuScreens);
         modBus.addListener(ClientModEvents::registerBlockEntityRenderers);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onRecipesReceived);
+        NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingIn);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingOut);
     }
 
@@ -46,6 +48,10 @@ public final class ClientModEvents {
                 .map(holder -> holder.value())
                 .toList();
         ClientOfferingRecipes.apply(recipes);
+    }
+
+    private static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        ModNetworking.requestSkyOfferingRecipes();
     }
 
     private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {

@@ -5,6 +5,7 @@ import com.skylogistics.client.ClientOfferingRecipes;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.network.ModNetworking;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModItems;
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
         runtime = jeiRuntime;
         ClientOfferingRecipes.setChangeListener(SkyLogisticsJeiPlugin::syncRecipesAtRuntime);
         syncRecipesAtRuntime();
+        ModNetworking.requestSkyOfferingRecipes();
         hideMissingIntegrationItems(jeiRuntime.getIngredientManager());
     }
 

@@ -9,6 +9,7 @@ import java.util.List;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -43,8 +44,18 @@ public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements 
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         event.sendRecipes(ModRecipes.SKY_OFFERING_TYPE.get());
         List<OfferingRecipe> recipes = skyOfferingRecipes(event.getPlayerList().getServer().getRecipeManager());
-        event.getRelevantPlayers().forEach(player -> ModNetworking.sendToPlayer(player,
-                new SkyOfferingRecipesPacket(recipes)));
+        event.getRelevantPlayers().forEach(player -> sendToPlayer(player, recipes));
+    }
+
+    public static void sendToPlayer(ServerPlayer player) {
+        if (player.level().getServer() == null) {
+            return;
+        }
+        sendToPlayer(player, skyOfferingRecipes(player.level().getServer().getRecipeManager()));
+    }
+
+    private static void sendToPlayer(ServerPlayer player, List<OfferingRecipe> recipes) {
+        ModNetworking.sendToPlayer(player, new SkyOfferingRecipesPacket(recipes));
     }
 
     private static List<OfferingRecipe> skyOfferingRecipes(RecipeManager recipeManager) {

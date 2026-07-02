@@ -10,7 +10,7 @@ import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 
 public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
-        implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
+        implements IBlockComponentProvider {
     public static final SkyNodeJadeProvider INSTANCE = new SkyNodeJadeProvider();
     private static final String DATA = "SkyLogisticsNode";
 
@@ -29,13 +29,6 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
             }
         }
         appendNodeTooltip(tooltip, data);
-    }
-
-    @Override
-    public void appendServerData(CompoundTag data, BlockAccessor accessor) {
-        if (accessor.getBlockEntity() instanceof SkyNodeBlockEntity node) {
-            data.put(DATA, writeNodeData(node));
-        }
     }
 
     private static CompoundTag writeNodeData(SkyNodeBlockEntity node) {
@@ -67,5 +60,21 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
             summary.append(Component.translatable("jade.skylogistics.upgrade_dimension_name"));
         }
         return summary;
+    }
+
+    public static final class DataProvider extends BaseSkyLogisticsJadeProvider
+            implements IServerDataProvider<BlockAccessor> {
+        public static final DataProvider INSTANCE = new DataProvider();
+
+        private DataProvider() {
+            super("node");
+        }
+
+        @Override
+        public void appendServerData(CompoundTag data, BlockAccessor accessor) {
+            if (accessor.getBlockEntity() instanceof SkyNodeBlockEntity node) {
+                data.put(DATA, writeNodeData(node));
+            }
+        }
     }
 }
