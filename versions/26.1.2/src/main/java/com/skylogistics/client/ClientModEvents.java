@@ -6,6 +6,7 @@ import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
 import java.util.List;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -44,8 +45,8 @@ public final class ClientModEvents {
         if (!event.getRecipeTypes().contains(ModRecipes.SKY_OFFERING_TYPE.get())) {
             return;
         }
-        List<OfferingRecipe> recipes = event.getRecipeMap().byType(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
-                .map(holder -> holder.value())
+        List<RecipeHolder<OfferingRecipe>> recipes = event.getRecipeMap()
+                .byType(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
                 .toList();
         ClientOfferingRecipes.apply(recipes);
     }

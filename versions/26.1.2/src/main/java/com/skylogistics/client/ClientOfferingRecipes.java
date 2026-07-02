@@ -2,17 +2,18 @@ package com.skylogistics.client;
 
 import com.skylogistics.recipe.OfferingRecipe;
 import java.util.List;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 public final class ClientOfferingRecipes {
     private static final Runnable NOOP = () -> {
     };
-    private static List<OfferingRecipe> recipes = List.of();
+    private static List<RecipeHolder<OfferingRecipe>> recipes = List.of();
     private static Runnable changeListener = NOOP;
 
     private ClientOfferingRecipes() {
     }
 
-    public static void apply(List<OfferingRecipe> syncedRecipes) {
+    public static void apply(List<RecipeHolder<OfferingRecipe>> syncedRecipes) {
         recipes = List.copyOf(syncedRecipes);
         changeListener.run();
     }
@@ -21,7 +22,7 @@ public final class ClientOfferingRecipes {
         apply(List.of());
     }
 
-    public static List<OfferingRecipe> recipes() {
+    public static List<RecipeHolder<OfferingRecipe>> recipes() {
         return recipes;
     }
 

@@ -6,15 +6,19 @@ import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModRecipes;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements CustomPacketPayload {
+public record SkyOfferingRecipesPacket(List<RecipeHolder<OfferingRecipe>> recipes) implements CustomPacketPayload {
     public static final Type<SkyOfferingRecipesPacket> TYPE = new Type<>(SkyLogistics.id("sky_offering_recipes"));
     public static final StreamCodec<RegistryFriendlyByteBuf, SkyOfferingRecipesPacket> STREAM_CODEC =
             StreamCodec.ofMember(SkyOfferingRecipesPacket::encode, SkyOfferingRecipesPacket::decode);
@@ -24,15 +28,21 @@ public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements 
         int size = Math.min(packet.recipes.size(), MAX_RECIPES);
         buffer.writeVarInt(size);
         for (int i = 0; i < size; i++) {
-            OfferingRecipe.streamCodec().encode(buffer, packet.recipes.get(i));
+            RecipeHolder<OfferingRecipe> recipe = packet.recipes.get(i);
+            buffer.writeResourceKey(recipe.id());
+            OfferingRecipe.streamCodec().encode(buffer, recipe.value());
         }
     }
 
     public static SkyOfferingRecipesPacket decode(RegistryFriendlyByteBuf buffer) {
         int size = buffer.readVarInt();
-        List<OfferingRecipe> recipes = new ArrayList<>(size);
+        if (size < 0 || size > MAX_RECIPES) {
+            throw new IllegalArgumentException("Invalid sky offering recipe packet size: " + size);
+        }
+        List<RecipeHolder<OfferingRecipe>> recipes = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            recipes.add(OfferingRecipe.streamCodec().decode(buffer));
+            ResourceKey<Recipe<?>> id = buffer.readResourceKey(Registries.RECIPE);
+            recipes.add(new RecipeHolder<>(id, OfferingRecipe.streamCodec().decode(buffer)));
         }
         return new SkyOfferingRecipesPacket(recipes);
     }
@@ -43,7 +53,8 @@ public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements 
 
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         event.sendRecipes(ModRecipes.SKY_OFFERING_TYPE.get());
-        List<OfferingRecipe> recipes = skyOfferingRecipes(event.getPlayerList().getServer().getRecipeManager());
+        List<RecipeHolder<OfferingRecipe>> recipes = skyOfferingRecipes(
+                event.getPlayerList().getServer().getRecipeManager());
         event.getRelevantPlayers().forEach(player -> sendToPlayer(player, recipes));
     }
 
@@ -54,15 +65,15 @@ public record SkyOfferingRecipesPacket(List<OfferingRecipe> recipes) implements 
         sendToPlayer(player, skyOfferingRecipes(player.level().getServer().getRecipeManager()));
     }
 
-    private static void sendToPlayer(ServerPlayer player, List<OfferingRecipe> recipes) {
+    private static void sendToPlayer(ServerPlayer player, List<RecipeHolder<OfferingRecipe>> recipes) {
         ModNetworking.sendToPlayer(player, new SkyOfferingRecipesPacket(recipes));
     }
 
-    private static List<OfferingRecipe> skyOfferingRecipes(RecipeManager recipeManager) {
+    @SuppressWarnings("unchecked")
+    private static List<RecipeHolder<OfferingRecipe>> skyOfferingRecipes(RecipeManager recipeManager) {
         return recipeManager.getRecipes().stream()
-                .map(holder -> holder.value())
-                .filter(recipe -> recipe.getType() == ModRecipes.SKY_OFFERING_TYPE.get())
-                .map(OfferingRecipe.class::cast)
+                .filter(holder -> holder.value().getType() == ModRecipes.SKY_OFFERING_TYPE.get())
+                .map(holder -> (RecipeHolder<OfferingRecipe>) holder)
                 .toList();
     }
 
