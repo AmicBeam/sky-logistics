@@ -100,6 +100,22 @@ sourceSets {
     }
 }
 
+def commonResourcesDir = file('../../common/src/main/resources').absolutePath
+def versionSkyMeTextures = [
+        'assets/skylogistics/textures/block/sky_me_interface_front.png',
+        'assets/skylogistics/textures/block/sky_me_interface_side.png',
+        'assets/skylogistics/textures/block/sky_me_interface_top.png'
+]
+
+tasks.named('processResources', ProcessResources).configure {
+    eachFile { details ->
+        if (versionSkyMeTextures.contains(details.path)
+                && details.file.absolutePath.startsWith(commonResourcesDir)) {
+            details.exclude()
+        }
+    }
+}
+
 if (jadeApiPath && !jadeApiJar.exists()) {
     throw new GradleException("Configured Jade API jar does not exist: ${jadeApiJar}")
 }
