@@ -334,9 +334,10 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             return Optional.empty();
         }
         List<ItemStack> offeringStacks = getOfferingStacks();
-        return skyOfferingRecipes(level).stream()
+        OfferingRecipe.Input input = new OfferingRecipe.Input(mainStack, offeringStacks);
+        return level.recipeAccess().recipeMap()
+                .getRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get(), input, level)
                 .filter(recipe -> structureTier >= recipe.value().requiredTier())
-                .filter(recipe -> recipe.value().matches(mainStack, offeringStacks))
                 .findFirst();
     }
 
@@ -461,13 +462,9 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         return Component.literal(ingredient.count() + "x ").append(name);
     }
 
-    @SuppressWarnings("unchecked")
     private static List<RecipeHolder<OfferingRecipe>> skyOfferingRecipes(ServerLevel level) {
         RecipeManager recipes = level.recipeAccess();
-        return recipes.getRecipes().stream()
-                .filter(recipe -> recipe.value().getType() == ModRecipes.SKY_OFFERING_TYPE.get())
-                .map(recipe -> (RecipeHolder<OfferingRecipe>) recipe)
-                .toList();
+        return List.copyOf(recipes.recipeMap().byType(ModRecipes.SKY_OFFERING_TYPE.get()));
     }
 
     private record OfferingCheck(List<OfferingRecipe.CountedIngredient> missing, int extraCount) {

@@ -69,12 +69,8 @@ public record SkyOfferingRecipesPacket(List<RecipeHolder<OfferingRecipe>> recipe
         ModNetworking.sendToPlayer(player, new SkyOfferingRecipesPacket(recipes));
     }
 
-    @SuppressWarnings("unchecked")
     private static List<RecipeHolder<OfferingRecipe>> skyOfferingRecipes(RecipeManager recipeManager) {
-        return recipeManager.getRecipes().stream()
-                .filter(holder -> holder.value().getType() == ModRecipes.SKY_OFFERING_TYPE.get())
-                .map(holder -> (RecipeHolder<OfferingRecipe>) holder)
-                .toList();
+        return List.copyOf(recipeManager.recipeMap().byType(ModRecipes.SKY_OFFERING_TYPE.get()));
     }
 
     @Override
