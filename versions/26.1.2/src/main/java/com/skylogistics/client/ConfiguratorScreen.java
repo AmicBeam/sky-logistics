@@ -51,20 +51,22 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_VISIBLE_ROWS = DETAIL_HEIGHT / DETAIL_ROW_HEIGHT;
     private static final int DETAIL_ICON_X = DETAIL_X + 5;
     private static final int DETAIL_TEXT_X = DETAIL_X + 25;
-    private static final int CONTROL_START_X = 58;
+    private static final int CONTROL_START_X = 48;
     private static final int CONTROL_STEP_X = 44;
     private static final int RESOURCE_BUTTON_WIDTH = 42;
+    private static final int CONTROL_DIVIDER_X = 127;
+    private static final int CONTROL_LEFT_WIDTH = 76;
     private static final int PRIORITY_ROW_Y = 218;
     private static final int PRIORITY_DOWN_X = CONTROL_START_X;
-    private static final int PRIORITY_VALUE_X = 84;
-    private static final int PRIORITY_VALUE_WIDTH = 52;
-    private static final int PRIORITY_UP_X = 136;
+    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + 22;
+    private static final int PRIORITY_VALUE_WIDTH = 34;
+    private static final int PRIORITY_UP_X = 104;
     private static final int SLOT_LIMIT_ROW_Y = 192;
-    private static final int SLOT_LIMIT_LABEL_X = 154;
-    private static final int SLOT_LIMIT_DOWN_X = 176;
-    private static final int SLOT_LIMIT_VALUE_X = 198;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 28;
-    private static final int SLOT_LIMIT_UP_X = 226;
+    private static final int SLOT_LIMIT_LABEL_X = 132;
+    private static final int SLOT_LIMIT_DOWN_X = 184;
+    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + 20;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
+    private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -206,6 +208,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         renderLineDetails(graphics, config);
         graphics.text(font, Component.translatable("screen.skylogistics.resources"),
                 14, 172, ConfigPanel.MUTED, false);
+        graphics.fill(CONTROL_DIVIDER_X, SLOT_LIMIT_ROW_Y - 2,
+                CONTROL_DIVIDER_X + 1, PRIORITY_ROW_Y + 20, ConfigPanel.BORDER_DIM);
         graphics.text(font, Component.translatable("screen.skylogistics.redstone"),
                 14, 198, ConfigPanel.MUTED, false);
         graphics.text(font, Component.translatable("screen.skylogistics.slot_limit"),
@@ -578,7 +582,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private final class RedstoneButton extends AbstractButton {
         private RedstoneButton(int x, int y) {
-            super(x, y, 96, 20, Component.translatable("screen.skylogistics.redstone"));
+            super(x, y, CONTROL_LEFT_WIDTH, 20, Component.translatable("screen.skylogistics.redstone"));
         }
 
         @Override

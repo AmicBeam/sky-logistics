@@ -37,17 +37,18 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FIRST_DETAIL_ROW_Y = 100;
     private static final int SECOND_DETAIL_ROW_Y = 126;
     private static final int DETAIL_LABEL_OFFSET_Y = 6;
-    private static final int ADVANCED_CONTROL_X = 62;
-    private static final int ADVANCED_CONTROL_WIDTH = 86;
-    private static final int ADVANCED_RIGHT_LABEL_X = 154;
+    private static final int ADVANCED_DIVIDER_X = 127;
+    private static final int ADVANCED_CONTROL_X = 48;
+    private static final int ADVANCED_CONTROL_WIDTH = 76;
+    private static final int ADVANCED_RIGHT_LABEL_X = 132;
     private static final int PRIORITY_BUTTON_WIDTH = 20;
     private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
-    private static final int PRIORITY_UP_X = 128;
+    private static final int PRIORITY_UP_X = 104;
     private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
     private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
-    private static final int SLOT_LIMIT_DOWN_X = 176;
+    private static final int SLOT_LIMIT_DOWN_X = 184;
     private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + PRIORITY_BUTTON_WIDTH;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 30;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
     private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private static final int MORE_BUTTON_X = 162;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
@@ -258,6 +259,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
         }
         if (advancedPanel) {
+            graphics.fill(ADVANCED_DIVIDER_X, menu.screenY(FIRST_DETAIL_ROW_Y) - 2,
+                    ADVANCED_DIVIDER_X + 1, menu.screenY(SECOND_DETAIL_ROW_Y) + 20, ConfigPanel.BORDER_DIM);
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                     14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
