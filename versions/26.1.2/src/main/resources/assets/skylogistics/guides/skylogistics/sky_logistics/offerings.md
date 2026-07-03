@@ -22,13 +22,14 @@ Offerings are the early progression path for Sky Logistics. The altar validates 
   <ItemIcon id="chora_nectar" />
 </ItemGrid>
 
-## Charging Eulogia Crystals
+Start here:
 
-Use <ItemLink id="eulogia_crystal" /> under open sky and above the configured ritual height to charge it. Charged crystals are used by several offering recipes.
+- [Eulogia Crystal Charging](eulogia_crystal_charging.md)
+- [Using the Offering Altar](offering_altar_usage.md)
+- [Sky Offering Circle](sky_offering_circle.md)
+- [Chora Nectar Offering](chora_nectar_offering.md)
 
-## Altar Layout
-
-Place an <ItemLink id="offering_altar" /> in the center and arrange <ItemLink id="offering_table" /> blocks around it. Higher tier layouts allow stronger offerings. Use JEI to inspect the exact Sky Offering recipes.
+Offerings require the altar to be at the configured sky height or higher and inside a valid circle. Put the main ingredient on the altar, place the offerings on the four side tables in any order, then wait for the recipe duration.
 
 <RecipeFor id="offering_altar" fallbackText="The offering altar recipe is unavailable." />
 <RecipeFor id="offering_table" fallbackText="The offering table recipe is unavailable." />

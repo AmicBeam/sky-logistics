@@ -9,7 +9,7 @@ item_ids:
 
 # Sky Logistics Manual
 
-Sky Logistics moves resources through named wireless lines instead of block-by-block pipes. Place nodes near inventories, tanks, batteries, or supported external networks, then give their faces matching line settings with the configurator.
+Sky Logistics is not a block-by-block pipe network. Players place Sky Logistics Nodes, and the server directly pairs extract faces with insert faces that share a line ID. Lines have no hidden buffer; if the target cannot accept resources, the source is not extracted first.
 
 <ItemGrid>
   <ItemIcon id="configurator" />
@@ -19,13 +19,14 @@ Sky Logistics moves resources through named wireless lines instead of block-by-b
   <ItemIcon id="offering_altar" />
 </ItemGrid>
 
-Start with [offerings](offerings.md) to unlock core materials, then build [logistics nodes](logistics.md) and tune them with [tools and upgrades](tools.md).
+A line can carry items, fluids, and energy. Nodes are configured per face: extract faces pull from adjacent machines or containers, and insert faces push into adjacent machines or containers. The node screen lets you edit all six directions independently.
 
-## Quick Setup
+Typical setup: create a line with the configurator, place one node beside a source and set it to extract, place another same-line node beside a destination and set it to insert, then copy and paste settings for repeated machines.
 
-1. Craft or obtain an <ItemLink id="eulogia_crystal" /> and use offerings to make <ItemLink id="chora_nectar" />.
-2. Craft a <ItemLink id="configurator" /> and at least two <ItemLink id="sky_node" /> blocks.
-3. Put one node beside a source and one beside a target.
-4. Open the node UI or use the configurator to set one face to extract and the other to insert on the same line.
+## Topics
+
+- [Sky Offerings](offerings.md): charge crystals, build offering circles, and make Chora Nectar.
+- [Logistics Network](logistics.md): connect nodes, vaults, filters, and external networks.
+- [Tools and Upgrades](tools.md): configure lines, copy settings, and extend throughput or dimensions.
 
 <RecipeFor id="sky_node" fallbackText="Install the recipe data pack or check JEI for the Sky Node recipe." />

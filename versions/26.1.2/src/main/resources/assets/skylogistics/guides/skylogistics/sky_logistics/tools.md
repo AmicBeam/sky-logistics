@@ -26,6 +26,12 @@ The configurator is the main tool for copying, pasting, and editing line setting
   <ItemIcon id="sky_necklace" />
 </ItemGrid>
 
+Read the detailed pages:
+
+- [Sky Configurator](configurator.md)
+- [Configurator and Upgrades](logistics_configurator_upgrades.md)
+- [Vaults and Filters](logistics_vaults_filters.md)
+
 ## Filters
 
 Use <ItemLink id="filter_list" /> for explicit item or fluid filters, and <ItemLink id="tag_filter_list" /> when an entire tag should match.

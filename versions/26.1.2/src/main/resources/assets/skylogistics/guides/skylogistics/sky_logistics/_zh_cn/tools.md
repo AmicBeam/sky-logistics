@@ -26,6 +26,12 @@ item_ids:
   <ItemIcon id="sky_necklace" />
 </ItemGrid>
 
+详细页面：
+
+- [天穹配置器](configurator.md)
+- [配置器与升级](logistics_configurator_upgrades.md)
+- [容器与过滤](logistics_vaults_filters.md)
+
 ## 过滤器
 
 <ItemLink id="filter_list" /> 用于指定物品或流体；需要按标签匹配一整类资源时，使用 <ItemLink id="tag_filter_list" />。
