@@ -15,13 +15,8 @@ public final class ModRecipes {
     public static final DeferredRegister<RecipeType<?>> TYPES =
             DeferredRegister.create(Registries.RECIPE_TYPE, SkyLogistics.MOD_ID);
 
-    public static final DeferredHolder<RecipeType<?>, RecipeType<OfferingRecipe>> SKY_OFFERING_TYPE = TYPES.register("sky_offering",
-            () -> new RecipeType<>() {
-                @Override
-                public String toString() {
-                    return SkyLogistics.MOD_ID + ":sky_offering";
-                }
-            });
+    public static final DeferredHolder<RecipeType<?>, RecipeType<OfferingRecipe>> SKY_OFFERING_TYPE =
+            TYPES.register("sky_offering", () -> RecipeType.simple(SkyLogistics.id("sky_offering")));
 
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<OfferingRecipe>> SKY_OFFERING_SERIALIZER =
             SERIALIZERS.register("sky_offering", OfferingRecipe.Serializer::create);

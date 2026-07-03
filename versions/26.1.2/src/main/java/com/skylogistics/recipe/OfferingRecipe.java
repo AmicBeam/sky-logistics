@@ -13,6 +13,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.Recipe;
@@ -28,11 +29,11 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
 
     private final CountedIngredient main;
     private final NonNullList<CountedIngredient> offerings;
-    private final ItemStack result;
+    private final ItemStackTemplate result;
     private final int duration;
     private final int requiredTier;
 
-    public OfferingRecipe(CountedIngredient main, List<CountedIngredient> offerings, ItemStack result,
+    public OfferingRecipe(CountedIngredient main, List<CountedIngredient> offerings, ItemStackTemplate result,
             int duration, int requiredTier) {
         if (offerings.size() > MAX_OFFERINGS) {
             throw new IllegalArgumentException("Sky offering recipes support at most " + MAX_OFFERINGS + " offerings");
@@ -40,7 +41,7 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
         this.main = main;
         this.offerings = NonNullList.create();
         this.offerings.addAll(offerings);
-        this.result = result.copy();
+        this.result = result;
         this.duration = Math.max(1, duration);
         this.requiredTier = Math.max(1, requiredTier);
     }
@@ -97,7 +98,7 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
 
     @Override
     public ItemStack assemble(Input input) {
-        return result.copy();
+        return result.create();
     }
 
     public boolean canCraftInDimensions(int width, int height) {
@@ -105,11 +106,15 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
     }
 
     public ItemStack getResultItem(HolderLookup.Provider registries) {
-        return result.copy();
+        return result.create();
     }
 
     public ItemStack result() {
-        return result.copy();
+        return result.create();
+    }
+
+    private ItemStackTemplate resultTemplate() {
+        return result;
     }
 
     @Override
@@ -200,7 +205,7 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
                 CountedIngredient.MAP_CODEC.codec().fieldOf("main").forGetter(OfferingRecipe::main),
                 CountedIngredient.MAP_CODEC.codec().listOf().optionalFieldOf("offerings", List.of())
                         .forGetter(recipe -> List.copyOf(recipe.offerings)),
-                ItemStack.CODEC.fieldOf("result").forGetter(recipe -> recipe.result),
+                ItemStackTemplate.CODEC.fieldOf("result").forGetter(OfferingRecipe::resultTemplate),
                 Codec.INT.optionalFieldOf("duration", 200).forGetter(OfferingRecipe::duration),
                 Codec.INT.optionalFieldOf("altar_tier", 1).forGetter(OfferingRecipe::requiredTier)
         ).apply(instance, OfferingRecipe::new));
@@ -219,7 +224,7 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
             for (int i = 0; i < offeringCount; i++) {
                 offerings.add(CountedIngredient.fromNetwork(buffer));
             }
-            ItemStack result = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
+            ItemStackTemplate result = ItemStackTemplate.STREAM_CODEC.decode(buffer);
             int duration = buffer.readVarInt();
             int requiredTier = buffer.readVarInt();
             return new OfferingRecipe(main, offerings, result, duration, requiredTier);
@@ -231,7 +236,7 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
             for (CountedIngredient offering : recipe.offerings) {
                 offering.toNetwork(buffer);
             }
-            ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.result);
+            ItemStackTemplate.STREAM_CODEC.encode(buffer, recipe.result);
             buffer.writeVarInt(recipe.duration);
             buffer.writeVarInt(recipe.requiredTier);
         }
