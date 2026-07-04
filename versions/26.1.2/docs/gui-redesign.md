@@ -23,6 +23,31 @@
 - AE2/RS 风格终端的动态行数、左侧工具栏、排序方向、视图锁定。
 - 通用 GUI 元素层：统一按钮、分段控件、滚动条、tooltip、资源格渲染。
 
+## 从 AE2、Mek 等 GUI 学到的东西
+
+这次参考的重点不是“深色面板 + 发光按钮”，而是大型模组怎么把复杂状态拆成玩家能稳定操作的界面结构：
+
+- AE2 / RS 的核心是“资源视图模型”，不是静态大背包。终端应有服务端快照、客户端过滤视图、搜索、排序、方向、视图锁定和左侧工具栏；资源变化时可以只刷新数量，避免鼠标下条目跳动。
+- Mekanism 的核心是“元素生命周期和层级”。按钮、槽位、tooltip、弹窗和虚拟槽都应是 GUI element，按背景、前景、窗口、tooltip 分层渲染；弹窗或覆盖层存在时，底下的槽不能响应点击。
+- XNet 的核心是“网络矩阵编辑”。复杂网络不应该让玩家逐个方块试错，而应在控制台里同时看到线路、连接器、方向、资源类型和每条线路的启用状态；当前线路和当前连接器分别有编辑器。
+- LaserIO 的核心是“六面/卡片上下文”。节点 GUI 要先让玩家明确当前正在配置哪个方向、哪个相邻设备、当前面是什么模式，再只显示与当前面相关的资源、红石、优先级和过滤设置。
+- Create 风格过滤器的核心是“ghost slot 直接编辑 + 少量模式切换”。天穹过滤升级保留一个物品，但内部用 List / Attribute / Tag 等模式页承载不同过滤语义。
+
+落地到图片里：配置器改成 XNet 式线路矩阵；节点改成 Mek/LaserIO 式六面配置器；终端改成 AE2/RS 式资源视图；过滤升级改成 Create/LaserIO 式 ghost-slot 编辑器。
+
+## UI 样式图片
+
+总览图：
+
+![Sky Logistics GUI visual style board](gui-mockups/gui-style-board.png)
+
+单屏落地图：
+
+- [配置器线路仪表盘](gui-mockups/configurator-dashboard.png)
+- [物流节点六面配置](gui-mockups/node-face-config.png)
+- [过滤升级双模式](gui-mockups/filter-upgrade-modes.png)
+- [物品/流体库终端](gui-mockups/vault-terminal.png)
+
 ## 调研结论
 
 ### 推荐方案
