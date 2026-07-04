@@ -23,7 +23,9 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.CONFIGURATOR.get()))
                     .title(Component.translatable("itemGroup.skylogistics"))
                     .displayItems((parameters, output) -> {
-                        PatchouliCompat.createManualStack().ifPresent(output::accept);
+                        if (PatchouliCompat.isLoaded()) {
+                            output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
+                        }
                         output.accept(ModItems.CONFIGURATOR.get());
                         output.accept(ModItems.FILTER_LIST.get());
                         output.accept(ModItems.TAG_FILTER_LIST.get());

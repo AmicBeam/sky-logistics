@@ -5,5 +5,7 @@
   "creative_tab": "skylogistics:main",
   "model": "skylogistics:sky_logistics_manual",
   "book_texture": "patchouli:textures/gui/book_cyan.png",
+  "dont_generate_book": true,
+  "custom_book_item": "skylogistics:sky_logistics_manual",
   "use_resource_pack": true
 }

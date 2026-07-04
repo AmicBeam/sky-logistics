@@ -5,12 +5,16 @@ import java.util.Optional;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
 public final class PatchouliCompat {
     private static final boolean SUPPORTED_IN_26_1_2 = false;
+    private static final String PATCHOULI_API = "vazkii.patchouli.api.PatchouliAPI";
+    private static final String PATCHOULI_API_INTERFACE = "vazkii.patchouli.api.PatchouliAPI$IPatchouliAPI";
     private static final Identifier GUIDE_BOOK = Identifier.fromNamespaceAndPath("patchouli", "guide_book");
     private static final Identifier BOOK_COMPONENT = Identifier.fromNamespaceAndPath("patchouli", "book");
     private static final Identifier SKY_LOGISTICS_BOOK =
@@ -44,5 +48,21 @@ public final class PatchouliCompat {
     private static Optional<DataComponentType<Identifier>> bookComponent() {
         return BuiltInRegistries.DATA_COMPONENT_TYPE.getOptional(BOOK_COMPONENT)
                 .map(component -> (DataComponentType<Identifier>) component);
+    }
+
+    public static boolean openManual(Player player) {
+        if (!isLoaded() || !(player instanceof ServerPlayer serverPlayer)) {
+            return false;
+        }
+        try {
+            Class<?> apiClass = Class.forName(PATCHOULI_API);
+            Object api = apiClass.getMethod("get").invoke(null);
+            Class<?> apiInterface = Class.forName(PATCHOULI_API_INTERFACE);
+            apiInterface.getMethod("openBookGUI", ServerPlayer.class, Identifier.class)
+                    .invoke(api, serverPlayer, SKY_LOGISTICS_BOOK);
+            return true;
+        } catch (ReflectiveOperationException | LinkageError | ClassCastException ignored) {
+            return false;
+        }
     }
 }

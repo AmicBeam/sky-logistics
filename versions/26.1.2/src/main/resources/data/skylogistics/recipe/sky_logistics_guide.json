@@ -11,10 +11,7 @@
     "skylogistics:eulogia_crystal"
   ],
   "result": {
-    "id": "guideme:guide",
-    "count": 1,
-    "components": {
-      "guideme:guide_id": "skylogistics:sky_logistics"
-    }
+    "id": "skylogistics:sky_logistics_manual",
+    "count": 1
   }
 }
