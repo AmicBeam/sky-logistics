@@ -37,6 +37,8 @@
 
 ## UI 样式图片
 
+以下样例图使用中文界面文案，并按 Minecraft GUI 逻辑像素绘制后 2x 导出，便于文档查看。尺寸基准：文字 8px、槽位 18x18、文字按钮高 20px、图标按钮 20x20、边框 1px。
+
 总览图：
 
 ![Sky Logistics GUI visual style board](gui-mockups/gui-style-board.png)
