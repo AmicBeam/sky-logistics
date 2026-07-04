@@ -3,12 +3,14 @@
   "values": [
     "skylogistics:item_vault",
     "skylogistics:fluid_vault",
+    "skylogistics:sky_me_interface",
+    "skylogistics:sky_rs_interface",
+    "skylogistics:sky_dimension_interface",
     "skylogistics:sky_node",
     "skylogistics:celestial_stone",
     "skylogistics:celestial_stone_slab",
     "skylogistics:celestial_stone_stairs",
     "skylogistics:celestial_stone_wall",
-    "skylogistics:celestial_glass",
     "skylogistics:offering_altar",
     "skylogistics:offering_table"
   ]
