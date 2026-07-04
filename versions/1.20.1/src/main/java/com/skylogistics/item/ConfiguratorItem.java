@@ -315,12 +315,6 @@ public class ConfiguratorItem extends Item {
         rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
         if (lines.size() <= 1) {
-            LineEntry line = createLine(tag, linePrefix(player), List.of());
-            lines.clear();
-            lines.add(line);
-            writeLineList(tag, lines, 0);
-            config = config.withLine(line.id(), line.name());
-            writeConfig(stack, config);
             return config;
         }
         lines.remove(index);

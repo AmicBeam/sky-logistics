@@ -527,7 +527,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             active = switch (action) {
                 case MenuAction.LINE_FIRST, MenuAction.LINE_PREVIOUS -> count > 1 && index > 0;
                 case MenuAction.LINE_LAST -> count > 1 && index < count - 1;
-                case MenuAction.LINE_REMOVE_CURRENT -> count > 0;
+                case MenuAction.LINE_REMOVE_CURRENT -> count > 1;
                 default -> true;
             };
         }

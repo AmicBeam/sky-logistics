@@ -96,9 +96,6 @@ public final class SkyPlayerLines extends SavedData {
         PlayerLines playerLines = playerLines(player);
         int index = ensureLine(server, playerLines, player, currentLineId, assignedFallback, displayFallback);
         if (playerLines.lines.size() <= 1) {
-            playerLines.lines.clear();
-            playerLines.lines.add(createLine(player, List.of()));
-            setDirty();
             return selectionAt(server, playerLines, 0, displayFallback);
         }
         playerLines.lines.remove(index);

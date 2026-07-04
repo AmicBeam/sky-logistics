@@ -986,14 +986,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     public void removeCurrentLine(Player player) {
         ensureLineList();
         if (lines.size() <= 1) {
-            lines.clear();
-            lineNames.clear();
-            lineAssignedNames.clear();
-            String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), -1);
-            lines.add(ConfiguratorItem.lineIdForName(newLineName));
-            lineNames.add(newLineName);
-            lineAssignedNames.add(newLineName);
-            selectLine(0);
             return;
         }
         lines.remove(lineIndex);
