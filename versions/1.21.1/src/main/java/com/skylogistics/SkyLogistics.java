@@ -1,5 +1,7 @@
 package com.skylogistics;
 
+import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
+import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.event.ManualGiftHandler;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
@@ -13,9 +15,13 @@ import com.skylogistics.registry.ModCreativeTabs;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -23,6 +29,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -96,10 +104,38 @@ public class SkyLogistics {
         event.setUseItem(TriState.FALSE);
         event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide));
         event.setCanceled(true);
-        if (!level.isClientSide) {
-            level.destroyBlock(event.getPos(), true, player, 512);
+        if (level instanceof ServerLevel serverLevel) {
+            dismantleIntoPlayerInventory(serverLevel, event.getPos(), state, player, event.getItemStack());
         }
         return true;
+    }
+
+    private static void dismantleIntoPlayerInventory(ServerLevel level, BlockPos pos, BlockState state, Player player,
+            ItemStack tool) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        List<ItemStack> drops = new ArrayList<>(Block.getDrops(state, level, pos, blockEntity, player, tool));
+        collectAdditionalDismantleDrops(blockEntity, drops);
+
+        for (ItemStack drop : drops) {
+            player.getInventory().placeItemBackInInventory(drop);
+        }
+
+        Block block = state.getBlock();
+        block.playerWillDestroy(level, pos, state, player);
+        level.removeBlock(pos, false);
+        block.destroy(level, pos, state);
+    }
+
+    private static void collectAdditionalDismantleDrops(BlockEntity blockEntity, List<ItemStack> drops) {
+        if (blockEntity instanceof SingleSlotDisplayBlockEntity display) {
+            ItemStack stored = display.removeDisplayedItem();
+            if (!stored.isEmpty()) {
+                drops.add(stored);
+            }
+        }
+        if (blockEntity instanceof SkyNodeBlockEntity node) {
+            node.removeUpgrades(drops);
+        }
     }
 
     private static boolean isWrench(ItemStack stack) {

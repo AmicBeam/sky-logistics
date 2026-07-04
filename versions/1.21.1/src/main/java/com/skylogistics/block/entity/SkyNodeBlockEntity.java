@@ -338,13 +338,21 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (level == null || level.isClientSide) {
             return;
         }
+        List<ItemStack> drops = new ArrayList<>();
+        removeUpgrades(drops);
+        for (ItemStack upgrade : drops) {
+            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
+                    worldPosition.getZ() + 0.5D, upgrade);
+        }
+    }
+
+    public void removeUpgrades(List<ItemStack> drops) {
         for (int slot = 0; slot < upgrades.size(); slot++) {
             ItemStack upgrade = upgrades.get(slot);
             if (upgrade.isEmpty()) {
                 continue;
             }
-            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
-                    worldPosition.getZ() + 0.5D, upgrade.copy());
+            drops.add(upgrade.copy());
             upgrades.set(slot, ItemStack.EMPTY);
         }
     }
