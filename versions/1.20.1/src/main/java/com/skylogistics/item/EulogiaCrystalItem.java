@@ -17,9 +17,10 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 public class EulogiaCrystalItem extends Item {
-    private static final String CHARGE_SECONDS_TAG = "skylogistics_eulogia_charge_seconds";
-    private static final String CHARGED_TAG = "skylogistics_eulogia_charged";
+    private static final String CHARGE_SECONDS_TAG = "EulogiaChargeSeconds";
+    private static final String DAMAGE_TAG = "Damage";
     private static final int TICKS_PER_SECOND = 20;
+    private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
 
     public EulogiaCrystalItem(Properties properties) {
@@ -28,12 +29,14 @@ public class EulogiaCrystalItem extends Item {
 
     public static boolean isCharged(ItemStack stack) {
         CompoundTag tag = stack.getTag();
-        return stack.getItem() instanceof EulogiaCrystalItem && tag != null && tag.getInt(CHARGED_TAG) == 1;
+        return stack.getItem() instanceof EulogiaCrystalItem
+                && tag != null
+                && tag.getInt(DAMAGE_TAG) >= CHARGED_DAMAGE_VALUE;
     }
 
     public static ItemStack chargedStack(Item item) {
         ItemStack stack = new ItemStack(item);
-        setCharged(stack, stack.getOrCreateTag());
+        stack.getOrCreateTag().putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
         return stack;
     }
 
@@ -42,15 +45,13 @@ public class EulogiaCrystalItem extends Item {
             return false;
         }
         CompoundTag tag = stack.getOrCreateTag();
-        tag.remove("Damage");
-        tag.remove("skylogistics");
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
         if (chargeSeconds >= requiredSeconds) {
-            setCharged(stack, tag);
+            tag.remove(CHARGE_SECONDS_TAG);
+            tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
             return true;
         }
-        tag.remove(CHARGED_TAG);
         tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
         return false;
     }
@@ -73,14 +74,6 @@ public class EulogiaCrystalItem extends Item {
         }
         int requiredSeconds = Math.max(1, SkyLogisticsConfig.eulogiaCrystalChargeSeconds());
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
-    }
-
-    private static void setCharged(ItemStack stack, CompoundTag tag) {
-        tag.remove("Damage");
-        tag.remove(CHARGE_SECONDS_TAG);
-        tag.remove("skylogistics");
-        tag.putInt(CHARGED_TAG, 1);
-        stack.setTag(tag);
     }
 
     @Override

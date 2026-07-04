@@ -14,7 +14,6 @@ import com.skylogistics.network.SkyOfferingRecipesPacket;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModCreativeTabs;
-import com.skylogistics.registry.ModDataComponents;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
@@ -62,7 +61,6 @@ public class SkyLogistics {
 
     public SkyLogistics(IEventBus modBus, ModContainer container) {
         ModBlocks.register(modBus);
-        ModDataComponents.register(modBus);
         ModItems.register(modBus);
         ModBlockEntities.register(modBus);
         ModMenus.register(modBus);

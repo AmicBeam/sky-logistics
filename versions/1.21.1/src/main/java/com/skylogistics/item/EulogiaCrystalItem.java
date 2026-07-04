@@ -1,7 +1,6 @@
 package com.skylogistics.item;
 
 import com.skylogistics.config.SkyLogisticsConfig;
-import com.skylogistics.registry.ModDataComponents;
 import com.skylogistics.util.StackData;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -20,10 +19,10 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 public class EulogiaCrystalItem extends Item {
-    private static final String SKYLOGISTICS_TAG = "skylogistics";
-    private static final String CHARGE_SECONDS_TAG = "eulogia_charge_seconds";
-    private static final String LEGACY_CHARGED_TAG = "eulogia_charged";
+    private static final String CHARGE_SECONDS_TAG = "EulogiaChargeSeconds";
+    private static final String DAMAGE_TAG = "Damage";
     private static final int TICKS_PER_SECOND = 20;
+    private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
 
     public EulogiaCrystalItem(Properties properties) {
@@ -32,7 +31,7 @@ public class EulogiaCrystalItem extends Item {
 
     public static boolean isCharged(ItemStack stack) {
         return stack.getItem() instanceof EulogiaCrystalItem
-                && Boolean.TRUE.equals(stack.get(ModDataComponents.EULOGIA_CHARGED.get()));
+                && chargeDamage(stack) >= CHARGED_DAMAGE_VALUE;
     }
 
     public static ItemStack chargedStack(Item item) {
@@ -45,16 +44,14 @@ public class EulogiaCrystalItem extends Item {
         if (!(stack.getItem() instanceof EulogiaCrystalItem) || isCharged(stack)) {
             return false;
         }
-        stack.remove(DataComponents.DAMAGE);
         CompoundTag tag = StackData.getOrEmpty(stack);
-        clearLegacyChargedData(tag);
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
         if (chargeSeconds >= requiredSeconds) {
             setCharged(stack, tag);
             return true;
         }
-        skyDataForWrite(tag).putInt(CHARGE_SECONDS_TAG, chargeSeconds);
+        tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
         StackData.set(stack, tag);
         return false;
     }
@@ -65,9 +62,8 @@ public class EulogiaCrystalItem extends Item {
     }
 
     private static int storedChargeSeconds(CompoundTag tag) {
-        CompoundTag data = skyData(tag);
-        if (data.contains(CHARGE_SECONDS_TAG)) {
-            return Math.max(0, data.getInt(CHARGE_SECONDS_TAG));
+        if (tag.contains(CHARGE_SECONDS_TAG)) {
+            return Math.max(0, tag.getInt(CHARGE_SECONDS_TAG));
         }
         return 0;
     }
@@ -80,34 +76,26 @@ public class EulogiaCrystalItem extends Item {
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
     }
 
-    private static void setCharged(ItemStack stack, CompoundTag tag) {
-        stack.remove(DataComponents.DAMAGE);
-        tag.remove("Damage");
-        CompoundTag data = skyData(tag);
-        data.remove(CHARGE_SECONDS_TAG);
-        data.remove(LEGACY_CHARGED_TAG);
-        if (data.isEmpty()) {
-            tag.remove(SKYLOGISTICS_TAG);
+    private static int chargeDamage(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage != null && damage >= CHARGED_DAMAGE_VALUE) {
+            return damage;
         }
+        CompoundTag tag = StackData.get(stack);
+        return tag == null ? 0 : tag.getInt(DAMAGE_TAG);
+    }
+
+    private static void setCharged(ItemStack stack, CompoundTag tag) {
+        tag.remove(CHARGE_SECONDS_TAG);
+        tag.remove(DAMAGE_TAG);
+        stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
         StackData.set(stack, tag);
-        stack.set(ModDataComponents.EULOGIA_CHARGED.get(), true);
     }
 
-    private static CompoundTag skyData(CompoundTag tag) {
-        return tag.getCompound(SKYLOGISTICS_TAG);
-    }
-
-    private static CompoundTag skyDataForWrite(CompoundTag tag) {
-        CompoundTag data = tag.getCompound(SKYLOGISTICS_TAG);
-        tag.put(SKYLOGISTICS_TAG, data);
-        return data;
-    }
-
-    private static void clearLegacyChargedData(CompoundTag tag) {
-        CompoundTag data = skyData(tag);
-        data.remove(LEGACY_CHARGED_TAG);
-        if (data.isEmpty()) {
-            tag.remove(SKYLOGISTICS_TAG);
+    private static void ensureChargedDamageComponent(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage == null || damage < CHARGED_DAMAGE_VALUE) {
+            stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
         }
     }
 
@@ -116,7 +104,10 @@ public class EulogiaCrystalItem extends Item {
         if (level.isClientSide || !(entity instanceof Player player)) {
             return;
         }
-        stack.remove(DataComponents.DAMAGE);
+        if (isCharged(stack)) {
+            ensureChargedDamageComponent(stack);
+            return;
+        }
         if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
             return;
         }

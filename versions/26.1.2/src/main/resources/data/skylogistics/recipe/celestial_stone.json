@@ -10,7 +10,7 @@
     "X": {
       "items": "skylogistics:eulogia_crystal",
       "components": {
-        "skylogistics:eulogia_charged": true
+        "minecraft:damage": 1
       },
       "neoforge:ingredient_type": "neoforge:components"
     }
