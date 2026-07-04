@@ -25,10 +25,10 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
 public class EulogiaCrystalItem extends Item {
-    private static final String CHARGE_SECONDS_TAG = "EulogiaChargeSeconds";
-    private static final String DAMAGE_TAG = "Damage";
+    private static final String SKYLOGISTICS_TAG = "skylogistics";
+    private static final String CHARGE_SECONDS_TAG = "eulogia_charge_seconds";
+    private static final String CHARGED_TAG = "eulogia_charged";
     private static final int TICKS_PER_SECOND = 20;
-    private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
     private static final Identifier CHARGED_ITEM_MODEL = SkyLogistics.id("eulogia_crystal_charged");
 
@@ -38,7 +38,7 @@ public class EulogiaCrystalItem extends Item {
 
     public static boolean isCharged(ItemStack stack) {
         return stack.getItem() instanceof EulogiaCrystalItem
-                && chargeDamage(stack) >= CHARGED_DAMAGE_VALUE;
+                && skyData(StackData.getOrEmpty(stack)).getIntOr(CHARGED_TAG, 0) == 1;
     }
 
     public static ItemStack chargedStack(Item item) {
@@ -58,7 +58,7 @@ public class EulogiaCrystalItem extends Item {
             setCharged(stack, tag);
             return true;
         }
-        tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
+        skyDataForWrite(tag).putInt(CHARGE_SECONDS_TAG, chargeSeconds);
         StackData.set(stack, tag);
         return false;
     }
@@ -69,8 +69,9 @@ public class EulogiaCrystalItem extends Item {
     }
 
     private static int storedChargeSeconds(CompoundTag tag) {
-        if (tag.contains(CHARGE_SECONDS_TAG)) {
-            return Math.max(0, tag.getIntOr(CHARGE_SECONDS_TAG, 0));
+        CompoundTag data = skyData(tag);
+        if (data.contains(CHARGE_SECONDS_TAG)) {
+            return Math.max(0, data.getIntOr(CHARGE_SECONDS_TAG, 0));
         }
         return 0;
     }
@@ -83,15 +84,6 @@ public class EulogiaCrystalItem extends Item {
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
     }
 
-    private static int chargeDamage(ItemStack stack) {
-        Integer damage = stack.get(DataComponents.DAMAGE);
-        if (damage != null && damage >= CHARGED_DAMAGE_VALUE) {
-            return damage;
-        }
-        CompoundTag tag = StackData.get(stack);
-        return tag == null ? 0 : tag.getIntOr(DAMAGE_TAG, 0);
-    }
-
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
         if (!(entity instanceof Player player)) {
@@ -101,6 +93,7 @@ public class EulogiaCrystalItem extends Item {
             ensureChargedComponents(stack);
             return;
         }
+        clearUnchargedComponents(stack);
         if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
             return;
         }
@@ -115,18 +108,17 @@ public class EulogiaCrystalItem extends Item {
     }
 
     private static void setCharged(ItemStack stack, CompoundTag tag) {
-        tag.remove(CHARGE_SECONDS_TAG);
-        tag.remove(DAMAGE_TAG);
-        stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
+        stack.remove(DataComponents.DAMAGE);
+        tag.remove("Damage");
+        CompoundTag data = skyDataForWrite(tag);
+        data.remove(CHARGE_SECONDS_TAG);
+        data.putInt(CHARGED_TAG, 1);
         StackData.set(stack, tag);
         ensureChargedComponents(stack);
     }
 
     private static void ensureChargedComponents(ItemStack stack) {
-        Integer damage = stack.get(DataComponents.DAMAGE);
-        if (damage == null || damage < CHARGED_DAMAGE_VALUE) {
-            stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
-        }
+        stack.remove(DataComponents.DAMAGE);
         ensureChargedModel(stack);
     }
 
@@ -134,6 +126,23 @@ public class EulogiaCrystalItem extends Item {
         if (!CHARGED_ITEM_MODEL.equals(stack.get(DataComponents.ITEM_MODEL))) {
             stack.set(DataComponents.ITEM_MODEL, CHARGED_ITEM_MODEL);
         }
+    }
+
+    private static void clearUnchargedComponents(ItemStack stack) {
+        stack.remove(DataComponents.DAMAGE);
+        if (CHARGED_ITEM_MODEL.equals(stack.get(DataComponents.ITEM_MODEL))) {
+            stack.remove(DataComponents.ITEM_MODEL);
+        }
+    }
+
+    private static CompoundTag skyData(CompoundTag tag) {
+        return tag.getCompoundOrEmpty(SKYLOGISTICS_TAG);
+    }
+
+    private static CompoundTag skyDataForWrite(CompoundTag tag) {
+        CompoundTag data = tag.getCompoundOrEmpty(SKYLOGISTICS_TAG);
+        tag.put(SKYLOGISTICS_TAG, data);
+        return data;
     }
 
     @Override

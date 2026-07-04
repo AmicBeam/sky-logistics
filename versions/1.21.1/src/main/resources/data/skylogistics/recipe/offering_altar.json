@@ -13,7 +13,11 @@
       "type": "neoforge:components",
       "items": "skylogistics:eulogia_crystal",
       "components": {
-        "minecraft:damage": 1
+        "minecraft:custom_data": {
+          "skylogistics": {
+            "eulogia_charged": 1
+          }
+        }
       }
     }
   },
