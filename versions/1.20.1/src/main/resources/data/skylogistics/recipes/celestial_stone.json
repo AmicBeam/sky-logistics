@@ -12,7 +12,7 @@
     "X": {
       "type": "forge:partial_nbt",
       "item": "skylogistics:eulogia_crystal",
-      "nbt": "{skylogistics:{eulogia_charged:1}}"
+      "nbt": "{skylogistics_eulogia_charged:1}"
     }
   },
   "result": {
