@@ -98,7 +98,7 @@ env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/j
   ./gradlew --no-daemon build
 ```
 
-The verified output jar is `build/libs/skylogistics-0.1.0+26.1.2.jar`.
+The verified output jar is `build/libs/skylogistics-0.1.1+26.1.2.jar`.
 
 This branch uses NeoForge ModDev, Java 21 toolchains, Parchment `1.21-2024.11.10`, and NeoForge `21.1.169`. Runtime metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml`.
 
