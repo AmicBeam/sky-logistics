@@ -44,6 +44,7 @@ public class EulogiaCrystalItem extends Item {
         if (!(stack.getItem() instanceof EulogiaCrystalItem) || isCharged(stack)) {
             return false;
         }
+        stack.remove(DataComponents.DAMAGE);
         CompoundTag tag = StackData.getOrEmpty(stack);
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
