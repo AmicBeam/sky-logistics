@@ -105,6 +105,20 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         wakeForRecipeCheck();
     }
 
+    public boolean hasActiveRecipe() {
+        return activeRecipeId != null;
+    }
+
+    @Override
+    protected boolean isDisplaySlotLocked() {
+        return hasActiveRecipe();
+    }
+
+    @Override
+    protected boolean canPlayerExtractDisplayWhileLocked(Player player) {
+        return true;
+    }
+
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
