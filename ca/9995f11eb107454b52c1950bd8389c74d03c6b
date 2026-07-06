@@ -1,0 +1,27 @@
+common/src/main/java/com/skylogistics/menu/ItemVaultMenu.java
+  s_b005629b6cf485::t_7303dfbc316ff0 16-17,21,174-178,185
+versions/1.20.1/src/main/java/com/skylogistics/menu/FluidVaultMenu.java
+  s_b005629b6cf485::t_fe2444e4d7c670 21-22,26,185-189,196
+versions/1.21.1/src/main/java/com/skylogistics/menu/FluidVaultMenu.java
+  s_b005629b6cf485::t_591a864a1cab38 20-21,25,175-179,186
+versions/26.1.2/src/main/java/com/skylogistics/menu/FluidVaultMenu.java
+  s_b005629b6cf485::t_455a54622f212a 20-21,25,175-179,186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "ca9995f11eb107454b52c1950bd8389c74d03c6b",
+  "prompts": {},
+  "sessions": {
+    "s_b005629b6cf485": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f387d-e9ed-7d02-b684-4588b61e7ce5",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
