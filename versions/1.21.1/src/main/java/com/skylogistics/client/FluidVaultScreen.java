@@ -9,9 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
@@ -38,7 +37,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.fluidVault();
 
     private EditBox searchBox;
-    private AbstractButton sortButton;
+    private Button sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private FluidVaultBlockEntity cachedVault;
@@ -60,11 +59,15 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         searchBox = new EditBox(font, leftPos + 8, topPos + 22, 114, 18,
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
-        searchBox.setBordered(false);
-        searchBox.setTextColor(ConfigPanel.TEXT);
-        searchBox.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(new SortButton(leftPos + 128, topPos + 22));
+        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+                    setSortMode(sortMode.next());
+                    scrollRow = 0;
+                    invalidateFilteredCache();
+                    refreshButtons();
+                })
+                .bounds(leftPos + 128, topPos + 22, 60, 18)
+                .build());
     }
 
     @Override
@@ -79,13 +82,6 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         }
     }
 
-    private void cycleSortMode() {
-        setSortMode(sortMode.next());
-        scrollRow = 0;
-        invalidateFilteredCache();
-        refreshButtons();
-    }
-
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics, mouseX, mouseY, partialTick);
@@ -97,8 +93,6 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        ConfigPanel.drawInputBox(graphics, leftPos + 8, topPos + 22, 114, 18,
-                searchBox != null && searchBox.isFocused());
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
         FluidVaultBlockEntity vault = vault();
         int gridX = gridX(vault);
@@ -359,31 +353,6 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
         return blockEntity instanceof FluidVaultBlockEntity vault ? vault : null;
-    }
-
-    private final class SortButton extends AbstractButton {
-        private SortButton(int x, int y) {
-            super(x, y, 60, 18, sortLabel());
-        }
-
-        @Override
-        public void onPress() {
-            if (active) {
-                cycleSortMode();
-            }
-        }
-
-        @Override
-        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            defaultButtonNarrationText(output);
-        }
     }
 
     private enum SortMode {

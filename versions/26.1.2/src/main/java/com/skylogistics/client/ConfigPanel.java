@@ -9,32 +9,27 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
 final class ConfigPanel {
-    static final int BG = 0xF00C1419;
-    static final int BORDER = 0xFF3A727A;
-    static final int BORDER_ACTIVE = 0xFF65D9E6;
-    static final int TEXT = 0xFFEAF7F6;
-    static final int MUTED = 0xFF8FA7AB;
-    static final int ACCENT = 0xFFF1C86B;
-    static final int PANEL = 0xFF081015;
-    static final int PANEL_SOFT = 0xAA101A20;
-    static final int BUTTON = 0xFF101B21;
-    static final int BUTTON_DISABLED = 0xFF0B1115;
-    static final int BUTTON_SELECTED = 0xFF14323A;
-    static final int BUTTON_SELECTED_SOFT = 0xFF12272D;
-    static final int BORDER_DIM = 0xFF213941;
-    static final int SLOT_DIVIDER = 0xFF263E46;
-    static final int SLOT_SHADOW = 0xFF101A20;
-    static final int SLOT_FILL = 0xFF243B43;
-    private static final int INPUT = 0xFF05090C;
-    private static final int PANEL_BOTTOM = 0xFF050B0F;
-    private static final int PANEL_HIGHLIGHT = 0x332D5961;
-    private static final int BUTTON_HIGHLIGHT = 0x332B5058;
-    private static final int BUTTON_INSET = 0x66121B20;
-    private static final int SLOT_LOCKED_DIVIDER = 0xFF17262D;
-    private static final int SLOT_LOCKED_SHADOW = 0xFF050A0D;
-    private static final int SLOT_LOCKED_FILL = 0xFF091115;
-    private static final int SLOT_HIGHLIGHT = 0x6658737A;
-    private static final int SLOT_LOCKED_HIGHLIGHT = 0x221B3138;
+    static final int BG = 0xF0101D24;
+    static final int BORDER = 0xFF3E8B99;
+    static final int BORDER_ACTIVE = 0xFF68D7E5;
+    static final int TEXT = 0xFFE8FBFF;
+    static final int MUTED = 0xFF8FB7C1;
+    static final int ACCENT = 0xFFFFE59A;
+    static final int PANEL = 0xFF0B151B;
+    static final int PANEL_SOFT = 0x99101B22;
+    static final int BUTTON = 0xFF0D1D25;
+    static final int BUTTON_DISABLED = 0xFF101820;
+    static final int BUTTON_SELECTED = 0xFF12343C;
+    static final int BUTTON_SELECTED_SOFT = 0xFF122930;
+    static final int BORDER_DIM = 0xFF24454F;
+    static final int SLOT_DIVIDER = 0xFF2B4C57;
+    static final int SLOT_SHADOW = 0xFF142A33;
+    static final int SLOT_FILL = 0xFF24424C;
+    private static final int SLOT_LOCKED_DIVIDER = 0xFF172830;
+    private static final int SLOT_LOCKED_SHADOW = 0xFF071016;
+    private static final int SLOT_LOCKED_FILL = 0xFF0A141A;
+    private static final int SLOT_HIGHLIGHT = 0x444D6D78;
+    private static final int SLOT_LOCKED_HIGHLIGHT = 0x221A3038;
 
     private ConfigPanel() {
     }
@@ -46,20 +41,18 @@ final class ConfigPanel {
     static void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, BG);
         graphics.fill(x, y, x + width, y + 1, BORDER_ACTIVE);
-        graphics.fill(x, y + height - 1, x + width, y + height, BORDER_DIM);
+        graphics.fill(x, y + height - 1, x + width, y + height, BORDER);
         graphics.fill(x, y, x + 1, y + height, BORDER_ACTIVE);
         graphics.fill(x + width - 1, y, x + width, y + height, BORDER);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, PANEL_HIGHLIGHT);
-        graphics.fill(x + 5, y + 6, x + width - 5, y + 7, 0x221B3037);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, 0x223DE6F5);
     }
 
     static void drawContentPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, PANEL);
         graphics.fill(x, y, x + width, y + 1, BORDER_DIM);
-        graphics.fill(x, y + height - 1, x + width, y + height, PANEL_BOTTOM);
+        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
         graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142A31);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, 0x221E3941);
+        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
     }
 
     static void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
@@ -67,18 +60,8 @@ final class ConfigPanel {
         int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
         int border = selected ? BORDER_ACTIVE : (active ? BORDER : BORDER_DIM);
         drawBox(graphics, x, y, width, height, fill, border);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, active ? BUTTON_HIGHLIGHT : BUTTON_INSET);
-        graphics.fill(x + 1, y + height - 2, x + width - 1, y + height - 1, BUTTON_INSET);
         if (selected) {
-            graphics.fill(x + 3, y + height - 4, x + width - 3, y + height - 3, ACCENT);
-        }
-    }
-
-    static void drawInputBox(GuiGraphicsExtractor graphics, int x, int y, int width, int height, boolean focused) {
-        drawBox(graphics, x, y, width, height, INPUT, focused ? BORDER_ACTIVE : BORDER_DIM);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, 0x221E3941);
-        if (focused) {
-            graphics.fill(x + 3, y + height - 3, x + width - 3, y + height - 2, ACCENT);
+            graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, ACCENT);
         }
     }
 
@@ -90,16 +73,15 @@ final class ConfigPanel {
     static void drawSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
         graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_DIVIDER);
         graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
-        graphics.fill(x + 1, y + 1, x + 16, y + 16, SLOT_FILL);
-        graphics.fill(x + 1, y + 1, x + 16, y + 2, SLOT_HIGHLIGHT);
-        graphics.fill(x + 1, y + 16, x + 16, y + 17, 0x6610181D);
+        graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
+        graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
     }
 
     static void drawLockedSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
         graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_LOCKED_DIVIDER);
         graphics.fill(x, y, x + 17, y + 17, SLOT_LOCKED_SHADOW);
-        graphics.fill(x + 1, y + 1, x + 16, y + 16, SLOT_LOCKED_FILL);
-        graphics.fill(x + 1, y + 1, x + 16, y + 2, SLOT_LOCKED_HIGHLIGHT);
+        graphics.fill(x, y, x + 16, y + 16, SLOT_LOCKED_FILL);
+        graphics.fill(x, y, x + 16, y + 1, SLOT_LOCKED_HIGHLIGHT);
     }
 
     static String yesNo(boolean value) {

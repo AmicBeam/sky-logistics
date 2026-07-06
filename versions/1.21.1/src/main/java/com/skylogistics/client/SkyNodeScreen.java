@@ -96,7 +96,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setBordered(false);
         lineNameEdit.setTextColor(ConfigPanel.TEXT);
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
@@ -232,9 +231,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
-                LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit != null && lineNameEdit.isFocused());
-        ConfigPanel.drawContentPanel(graphics, leftPos + 14, topPos + menu.screenY(90), 226, 64);
         renderMenuSlotBackgrounds(graphics);
     }
 
