@@ -22,14 +22,12 @@ final class ConfigPanel {
     static final int BUTTON = 0xFF17212D;
     static final int BUTTON_DISABLED = 0xFF0A1626;
     static final int BUTTON_SELECTED = 0xFF3A2B16;
-    static final int BUTTON_SELECTED_SOFT = 0xFF172B49;
     static final int BORDER_DIM = 0xFF244966;
     static final int SLOT_DIVIDER = 0xFFEAF6FF;
     static final int SLOT_SHADOW = 0xFF262C30;
     static final int SLOT_FILL = 0xFF6F7678;
     private static final int SKY_TOP = 0xFF172B49;
     private static final int SKY_HORIZON = 0xFF1F456C;
-    private static final int CLOUD_EDGE = 0x338ECFFF;
     private static final int STAR = 0x55EAF6FF;
     private static final int FRAME_LIGHT = 0xFFEAF6FF;
     private static final int FRAME = 0xFF637984;
@@ -39,7 +37,6 @@ final class ConfigPanel {
     private static final int SLOT_LOCKED_DIVIDER = 0xFF1C3147;
     private static final int SLOT_LOCKED_SHADOW = 0xFF050B14;
     private static final int SLOT_LOCKED_FILL = 0xFF0D1928;
-    private static final int SLOT_HIGHLIGHT = 0x336FB9FF;
     private static final int SLOT_LOCKED_HIGHLIGHT = 0x225C7890;
 
     private ConfigPanel() {
@@ -59,32 +56,28 @@ final class ConfigPanel {
         editBox.setTextColorUneditable(MUTED);
     }
 
+    static int textCenterY(int y, int height) {
+        return y + (height - 8) / 2;
+    }
+
     static void drawInputBox(GuiGraphics graphics, int x, int y, int width, int height, boolean active) {
         int border = active ? BORDER_ACTIVE : FRAME;
         int fill = active ? 0xEE07111F : 0xDD07111F;
-        drawCutBox(graphics, x, y, width, height, fill, border, active ? FRAME_LIGHT : FRAME, FRAME_DARK);
-        graphics.fill(x + 4, y + 3, x + width - 4, y + 4, 0x335E8CB7);
-        graphics.fill(x + 4, y + height - 4, x + width - 4, y + height - 3, 0x99050B12);
+        drawThinFrame(graphics, x, y, width, height, fill, active ? FRAME_LIGHT : FRAME, border, FRAME_DARK);
     }
 
     static void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x99000000);
+        graphics.fill(x + 1, y + 1, x + width + 1, y + height + 1, 0x99000000);
         graphics.fill(x, y, x + width, y + height, BG);
         graphics.fill(x + 2, y + 2, x + width - 2, y + 16, SKY_TOP);
         graphics.fill(x + 2, y + 16, x + width - 2, y + height - 2, PANEL_SOFT);
         graphics.fill(x + 2, y + height - 18, x + width - 2, y + height - 2, 0x551F456C);
         drawSkyPixels(graphics, x, y, width, height);
         drawOuterFrame(graphics, x, y, width, height);
-        graphics.fill(x + 2, y + 2, x + width - 2, y + 3, CLOUD_EDGE);
-        graphics.fill(x + 4, y + height - 4, x + width - 4, y + height - 3, 0x7707111F);
     }
 
     static void drawContentPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        drawCutBox(graphics, x, y, width, height, PANEL, BORDER, BORDER_ACTIVE, FRAME_DARK);
-        graphics.fill(x + 3, y + 3, x + width - 3, y + 10, 0x66172B49);
-        graphics.fill(x + 3, y + 3, x + width - 3, y + 4, 0x556FB9FF);
-        graphics.fill(x + 3, y + height - 4, x + width - 3, y + height - 3, 0x99050B14);
-        drawCornerBolts(graphics, x, y, width, height, BORDER_ACTIVE);
+        drawThinFrame(graphics, x, y, width, height, PANEL, FRAME, BORDER_DIM, FRAME_DARK);
     }
 
     static void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
@@ -93,12 +86,8 @@ final class ConfigPanel {
         int border = selected ? ACCENT : (active ? FRAME : BORDER_DIM);
         int light = selected ? 0xFFFFD980 : (active ? 0xFF9FB4B8 : BORDER_DIM);
         int dark = selected ? GOLD_DARK : FRAME_DARK;
-        drawCutBox(graphics, x, y, width, height, fill, border, light, dark);
-        graphics.fill(x + 4, y + 3, x + width - 4, y + 4, selected ? 0x55FFE49A : 0x334F7180);
-        graphics.fill(x + 4, y + height - 4, x + width - 4, y + height - 3, FRAME_SHADOW);
-        if (selected) {
-            graphics.fill(x + 4, y + height - 4, x + width - 4, y + height - 2, ACCENT);
-        }
+        graphics.fill(x + 1, y + 1, x + width + 1, y + height + 1, FRAME_SHADOW);
+        drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
     }
 
     static void drawFaceButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
@@ -110,9 +99,8 @@ final class ConfigPanel {
         if (selected) {
             drawSelectorTriangle(graphics, x + width / 2 - 4, y - 8);
         }
-        drawCutBox(graphics, x, y, width, height, fill, border, light, dark);
-        graphics.fill(x + 4, y + 3, x + width - 4, y + 4, active ? 0x334F7180 : 0x223A5260);
-        graphics.fill(x + 4, y + height - 4, x + width - 4, y + height - 3, FRAME_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width + 1, y + height + 1, FRAME_SHADOW);
+        drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
     }
 
     static void drawStatusStrip(GuiGraphics graphics, int x, int y, int width, int height, int color) {
@@ -127,17 +115,13 @@ final class ConfigPanel {
         int border = selected ? ACCENT : BORDER_DIM;
         int light = selected ? 0xFFFFD980 : FRAME;
         int dark = selected ? GOLD_DARK : FRAME_DARK;
-        drawCutBox(graphics, x, y, width, height, fill, border, light, dark);
-        graphics.fill(x + 2, y + 2, x + 5, y + height - 2, accent);
-        graphics.fill(x + 6, y + 3, x + width - 3, y + 4, 0x223F6A86);
-        if (selected) {
-            graphics.fill(x + 6, y + height - 4, x + width - 4, y + height - 3, ACCENT);
-        }
+        drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
+        graphics.fill(x + 1, y + 2, x + 4, y + height - 2, accent);
     }
 
     static void drawScrollbar(GuiGraphics graphics, int x, int y, int height, int thumbY, int thumbHeight,
             boolean active) {
-        drawCutBox(graphics, x, y, 7, height, 0xDD07111F, BORDER_DIM, FRAME, FRAME_DARK);
+        drawThinFrame(graphics, x, y, 7, height, 0xDD07111F, FRAME, BORDER_DIM, FRAME_DARK);
         if (!active) {
             graphics.fill(x + 2, y + 2, x + 5, y + height - 2, 0x77425058);
             return;
@@ -149,9 +133,7 @@ final class ConfigPanel {
     }
 
     static void drawInventoryPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        drawCutBox(graphics, x, y, width, height, 0xBB07111F, BORDER_DIM, FRAME, FRAME_DARK);
-        graphics.fill(x + 3, y + 3, x + width - 3, y + 4, 0x335E8CB7);
-        graphics.fill(x + 3, y + height - 4, x + width - 3, y + height - 3, 0x88050B12);
+        drawThinFrame(graphics, x, y, width, height, 0xBB07111F, FRAME, BORDER_DIM, FRAME_DARK);
     }
 
     static void drawBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {
@@ -160,22 +142,37 @@ final class ConfigPanel {
     }
 
     static void drawSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, 0xAA050B12);
         graphics.fill(x, y, x + 18, y + 18, SLOT_SHADOW);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, SLOT_FILL);
-        graphics.fill(x + 1, y + 1, x + 17, y + 2, SLOT_HIGHLIGHT);
-        graphics.fill(x + 1, y + 1, x + 2, y + 17, 0x88EAF6FF);
+        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x99EAF6FF);
+        graphics.fill(x + 1, y + 1, x + 2, y + 17, 0x99EAF6FF);
         graphics.fill(x + 2, y + 16, x + 17, y + 17, 0xCC15191D);
         graphics.fill(x + 16, y + 2, x + 17, y + 17, 0xCC15191D);
         graphics.fill(x + 2, y + 2, x + 16, y + 16, 0xFF8B9090);
     }
 
     static void drawLockedSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, 0xAA050B12);
         graphics.fill(x, y, x + 18, y + 18, SLOT_LOCKED_SHADOW);
         graphics.fill(x + 1, y + 1, x + 17, y + 17, SLOT_LOCKED_FILL);
         graphics.fill(x + 1, y + 1, x + 17, y + 2, SLOT_LOCKED_HIGHLIGHT);
         graphics.fill(x + 4, y + 8, x + 14, y + 9, 0x665C7890);
+    }
+
+    static void drawTerminalSlotBackground(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x, y, x + 18, y + 18, 0xFF050B12);
+        graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF0D1928);
+        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x332F5E82);
+        graphics.fill(x + 1, y + 1, x + 2, y + 17, 0x33172B49);
+        graphics.fill(x + 2, y + 16, x + 17, y + 17, 0xCC050B12);
+        graphics.fill(x + 16, y + 2, x + 17, y + 17, 0xCC050B12);
+        graphics.fill(x + 5, y + 8, x + 13, y + 9, 0x66425B6A);
+    }
+
+    static void drawLockedTerminalSlotBackground(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x, y, x + 18, y + 18, 0xFF050B12);
+        graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF09121E);
+        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x22172B49);
+        graphics.fill(x + 5, y + 8, x + 13, y + 9, 0x44425B6A);
     }
 
     static String yesNo(boolean value) {
@@ -200,34 +197,17 @@ final class ConfigPanel {
     }
 
     private static void drawOuterFrame(GuiGraphics graphics, int x, int y, int width, int height) {
-        drawCutBox(graphics, x, y, width, height, 0x00000000, FRAME_LIGHT, FRAME_LIGHT, FRAME_SHADOW);
-        drawCutBox(graphics, x + 2, y + 2, width - 4, height - 4, 0x00000000, BORDER_ACTIVE, BORDER_ACTIVE,
-                FRAME_DARK);
-        drawCutBox(graphics, x + 4, y + 4, width - 8, height - 8, 0x00000000, BORDER_DIM, BORDER, FRAME_SHADOW);
-        drawCornerBolts(graphics, x + 4, y + 4, width - 8, height - 8, BORDER_ACTIVE);
+        drawThinFrame(graphics, x, y, width, height, 0x00000000, FRAME_LIGHT, BORDER_ACTIVE, FRAME_SHADOW);
     }
 
-    private static void drawCutBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border,
-            int light, int dark) {
-        graphics.fill(x + 3, y, x + width - 3, y + 1, light);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, border);
-        graphics.fill(x, y + 3, x + 1, y + height - 3, light);
-        graphics.fill(x + 1, y + 2, x + 2, y + height - 2, border);
-        graphics.fill(x + width - 2, y + 2, x + width - 1, y + height - 2, dark);
-        graphics.fill(x + width - 1, y + 3, x + width, y + height - 3, FRAME_SHADOW);
-        graphics.fill(x + 1, y + height - 2, x + width - 1, y + height - 1, dark);
-        graphics.fill(x + 3, y + height - 1, x + width - 3, y + height, FRAME_SHADOW);
-
-        graphics.fill(x + 2, y + 2, x + width - 2, y + height - 2, fill);
-        graphics.fill(x + 3, y + 1, x + width - 3, y + 2, fill);
-        graphics.fill(x + 1, y + 3, x + 2, y + height - 3, fill);
-        graphics.fill(x + width - 2, y + 3, x + width - 1, y + height - 3, fill);
-        graphics.fill(x + 3, y + height - 2, x + width - 3, y + height - 1, fill);
-
-        graphics.fill(x + 1, y + 2, x + 3, y + 3, light);
-        graphics.fill(x + width - 3, y + 1, x + width - 1, y + 2, dark);
-        graphics.fill(x + 1, y + height - 3, x + 3, y + height - 2, dark);
-        graphics.fill(x + width - 3, y + height - 2, x + width - 1, y + height - 1, FRAME_SHADOW);
+    private static void drawThinFrame(GuiGraphics graphics, int x, int y, int width, int height, int fill,
+            int light, int border, int dark) {
+        graphics.fill(x, y, x + width, y + height, border);
+        graphics.fill(x, y, x + width, y + 1, light);
+        graphics.fill(x, y, x + 1, y + height, light);
+        graphics.fill(x + width - 1, y, x + width, y + height, dark);
+        graphics.fill(x, y + height - 1, x + width, y + height, FRAME_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, fill);
     }
 
     private static void drawSelectorTriangle(GuiGraphics graphics, int x, int y) {
@@ -235,17 +215,6 @@ final class ConfigPanel {
         graphics.fill(x + 1, y + 2, x + 7, y + 4, ACCENT);
         graphics.fill(x + 2, y + 4, x + 6, y + 6, ACCENT);
         graphics.fill(x + 3, y + 6, x + 5, y + 8, GOLD_DARK);
-    }
-
-    private static void drawCornerBolts(GuiGraphics graphics, int x, int y, int width, int height, int color) {
-        graphics.fill(x + 3, y + 3, x + 8, y + 4, color);
-        graphics.fill(x + 3, y + 3, x + 4, y + 8, color);
-        graphics.fill(x + width - 8, y + 3, x + width - 3, y + 4, color);
-        graphics.fill(x + width - 4, y + 3, x + width - 3, y + 8, color);
-        graphics.fill(x + 3, y + height - 4, x + 8, y + height - 3, color);
-        graphics.fill(x + 3, y + height - 8, x + 4, y + height - 3, color);
-        graphics.fill(x + width - 8, y + height - 4, x + width - 3, y + height - 3, color);
-        graphics.fill(x + width - 4, y + height - 8, x + width - 3, y + height - 3, color);
     }
 
     private static final class StyledButton extends AbstractButton {
@@ -267,7 +236,7 @@ final class ConfigPanel {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, active ? TEXT : MUTED);
+                    textCenterY(getY(), height), active ? TEXT : MUTED);
         }
 
         @Override

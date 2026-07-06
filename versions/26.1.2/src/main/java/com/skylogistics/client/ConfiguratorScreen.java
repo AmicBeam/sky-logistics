@@ -569,7 +569,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 5,
+            graphics.centeredText(font, getMessage(), getX() + width / 2,
+                    ConfigPanel.textCenterY(getY(), height),
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -597,7 +598,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
             graphics.centeredText(font, Component.translatable(control.translationKey()),
-                    getX() + width / 2, getY() + 6, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+                    getX() + width / 2, ConfigPanel.textCenterY(getY(), height),
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
         @Override
@@ -628,7 +630,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
+            graphics.centeredText(font, getMessage(), getX() + width / 2,
+                    ConfigPanel.textCenterY(getY(), height),
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -660,7 +663,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
+            graphics.centeredText(font, getMessage(), getX() + width / 2,
+                    ConfigPanel.textCenterY(getY(), height),
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -708,7 +712,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
+            graphics.centeredText(font, getMessage(), getX() + width / 2,
+                    ConfigPanel.textCenterY(getY(), height),
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 

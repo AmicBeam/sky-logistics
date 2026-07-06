@@ -290,9 +290,9 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             int x, int y) {
         int slotIndex = scrollRow * GRID_COLUMNS + visibleIndex;
         if (vault != null && slotIndex >= vault.getTypeLimit()) {
-            ConfigPanel.drawLockedSlotBackground(graphics, x, y);
+            ConfigPanel.drawLockedTerminalSlotBackground(graphics, x, y);
         } else {
-            ConfigPanel.drawSlotBackground(graphics, x, y);
+            ConfigPanel.drawTerminalSlotBackground(graphics, x, y);
         }
     }
 
