@@ -504,16 +504,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = direction == selectedFace;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            ConfigPanel.drawFaceButtonChrome(graphics, getX(), getY(), width, height, active, selected);
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
-                    graphics.renderItem(icon, getX() + 10, getY() + 7);
+                    graphics.renderItem(icon, getX() + 8, getY() + 12);
                 }
-                graphics.drawString(font, faceShortName(direction), getX() + 3, getY() + 3,
-                        active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                graphics.drawCenteredString(font, faceShortName(direction), getX() + width / 2, getY() + 4,
+                        active ? (selected ? ConfigPanel.ACCENT : ConfigPanel.TEXT) : ConfigPanel.MUTED);
                 int modeColor = colorFor(modeFor(node, direction));
-                graphics.fill(getX() + 6, getY() + height - 5, getX() + width - 6, getY() + height - 3, modeColor);
+                ConfigPanel.drawStatusStrip(graphics, getX() + 8, getY() + height - 5, width - 16, 3, modeColor);
             }
         }
 
