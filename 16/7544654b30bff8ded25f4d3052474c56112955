@@ -1,0 +1,25 @@
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_9976a77f6a6cd0::t_e87cb1b94a9249 508,512,514-515,517
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_9976a77f6a6cd0::t_20b6e30b827f64 507,511,513-514,516
+versions/26.1.2/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_9976a77f6a6cd0::t_44fb50f6391b4c 502,506,508-509,511
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "167544654b30bff8ded25f4d3052474c56112955",
+  "prompts": {},
+  "sessions": {
+    "s_9976a77f6a6cd0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2d03-d13b-70a2-a956-37364464208f",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
