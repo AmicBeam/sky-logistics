@@ -1,0 +1,41 @@
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_9976a77f6a6cd0::t_a5d5ff231c340e 59-62,66,70,80,89-90,102-103,118-119,124,136,147-148,161-177,200,203-210,239
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_9976a77f6a6cd0::t_83e6740f0d8099 582-583,611-612,643-644,676-677,725-726
+versions/1.20.1/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_9976a77f6a6cd0::t_6feb7e478806df 297,299
+versions/1.20.1/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_9976a77f6a6cd0::t_c425d164967fba 290,292
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_9976a77f6a6cd0::t_c40fce4cf27a9d 59-62,66,70,80,89-90,102-103,118-119,124,136,147-148,161-177,200,203-210,239
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_9976a77f6a6cd0::t_3f9fc261c34b4d 576-577,605-606,637-638,670-671,719-720
+versions/1.21.1/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_9976a77f6a6cd0::t_85760210e75e4c 297,299
+versions/1.21.1/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_9976a77f6a6cd0::t_ed2fb8cc6cfd28 290,292
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_9976a77f6a6cd0::t_19bc1f8703b873 572-573,601-602,633-634,666-667,715-716
+versions/26.1.2/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_9976a77f6a6cd0::t_5fc2342cde2e17 293,295
+versions/26.1.2/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_9976a77f6a6cd0::t_1642546bc59326 290,292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "58dc0de05f772015a4f41b0cf55b2ca56675e447",
+  "prompts": {},
+  "sessions": {
+    "s_9976a77f6a6cd0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2d03-d13b-70a2-a956-37364464208f",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
