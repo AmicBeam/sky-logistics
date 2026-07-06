@@ -338,9 +338,6 @@ public class FluidVaultBlockEntity extends BlockEntity {
         syncVersion++;
         invalidateSummaryCache();
         setChanged();
-        if (level instanceof ServerLevel) {
-            syncToViewingPlayers();
-        }
     }
 
     private void markMetadataChanged() {
