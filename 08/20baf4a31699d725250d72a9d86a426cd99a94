@@ -1,0 +1,23 @@
+common/src/main/java/com/skylogistics/menu/ConfiguratorMenu.java
+  s_696952ae890d84::t_5b834a16a281b1 38,211,317-329
+versions/26.1.2/src/main/java/com/skylogistics/menu/ConfiguratorMenu.java
+  s_696952ae890d84::t_459a4477324184 39,212,318-330
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "0820baf4a31699d725250d72a9d86a426cd99a94",
+  "prompts": {},
+  "sessions": {
+    "s_696952ae890d84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f387b-c866-77c3-b7c1-778239c6b024",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
