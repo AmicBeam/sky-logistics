@@ -60,8 +60,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         tagEdit = new EditBox(font, leftPos + EDIT_X, topPos + EDIT_Y, EDIT_WIDTH, EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.tag_filter_list.tag"));
         tagEdit.setMaxLength(TagFilterListItem.MAX_TAG_LENGTH);
-        tagEdit.setTextColor(ConfigPanel.TEXT);
-        tagEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        ConfigPanel.styleEditBox(tagEdit);
         addRenderableWidget(tagEdit);
         for (int slot = 0; slot < TagFilterListItem.TAG_SLOTS; slot++) {
             int y = topPos + TAG_ROW_Y + slot * TAG_ROW_HEIGHT;
@@ -98,6 +97,10 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         drawScreenBackground(graphics);
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        if (tagEdit != null) {
+            ConfigPanel.drawInputBox(graphics, leftPos + EDIT_X, topPos + EDIT_Y, EDIT_WIDTH, EDIT_HEIGHT,
+                    tagEdit.isFocused());
+        }
         ConfigPanel.drawContentPanel(graphics, leftPos + TAG_PANEL_X, topPos + TAG_PANEL_Y,
                 TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT);
         ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,

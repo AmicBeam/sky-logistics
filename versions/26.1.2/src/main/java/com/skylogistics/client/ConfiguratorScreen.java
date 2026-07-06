@@ -98,8 +98,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.TEXT);
-        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        ConfigPanel.styleEditBox(lineNameEdit);
         addRenderableWidget(lineNameEdit);
 
         addTypeButton(leftPos + CONTROL_START_X, topPos + 166, ResourceType.ITEMS);
@@ -182,6 +181,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        if (lineNameEdit != null && lineNameEdit.visible) {
+            ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
+                    LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
+        }
     }
 
     @Override

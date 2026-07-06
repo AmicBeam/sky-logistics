@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -37,7 +37,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.fluidVault();
 
     private EditBox searchBox;
-    private Button sortButton;
+    private AbstractButton sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private FluidVaultBlockEntity cachedVault;
@@ -59,15 +59,14 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         searchBox = new EditBox(font, leftPos + 8, topPos + 22, 114, 18,
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
+        ConfigPanel.styleEditBox(searchBox);
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
-                    setSortMode(sortMode.next());
-                    scrollRow = 0;
-                    invalidateFilteredCache();
-                    refreshButtons();
-                })
-                .bounds(leftPos + 128, topPos + 22, 60, 18)
-                .build());
+        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
+            setSortMode(sortMode.next());
+            scrollRow = 0;
+            invalidateFilteredCache();
+            refreshButtons();
+        }));
     }
 
     @Override
@@ -93,6 +92,9 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        if (searchBox != null) {
+            ConfigPanel.drawInputBox(graphics, leftPos + 8, topPos + 22, 114, 18, searchBox.isFocused());
+        }
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
         FluidVaultBlockEntity vault = vault();
         int gridX = gridX(vault);
