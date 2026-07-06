@@ -103,6 +103,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         ConfigPanel.drawContentPanel(graphics, leftPos + TAG_PANEL_X, topPos + TAG_PANEL_Y,
                 TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 61, topPos + 129, 101, 29);
+        ConfigPanel.drawInventoryPanel(graphics, leftPos + 25, topPos + 153, 174, 84);
         ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
                 topPos + TagFilterListMenu.SAMPLE_SLOT_Y);
         renderMenuSlotBackgrounds(graphics);

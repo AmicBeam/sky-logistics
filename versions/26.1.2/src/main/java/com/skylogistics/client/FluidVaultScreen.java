@@ -89,6 +89,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
             ConfigPanel.drawInputBox(graphics, leftPos + 8, topPos + 22, 114, 18, searchBox.isFocused());
         }
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
+        ConfigPanel.drawInventoryPanel(graphics, leftPos + 13, topPos + 134, 170, 84);
         FluidVaultBlockEntity vault = vault();
         int gridX = gridX(vault);
         for (int row = 0; row < GRID_ROWS; row++) {
@@ -242,16 +243,13 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         int x = leftPos + gridX(vault) + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
-        graphics.fill(x, y, x + 5, y + height, ConfigPanel.PANEL);
-        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER_DIM);
-        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER_DIM);
         if (max <= 0) {
-            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, ConfigPanel.BORDER_DIM);
+            ConfigPanel.drawScrollbar(graphics, x, y, height, y + 2, height - 4, false);
             return;
         }
         int thumbHeight = Math.max(14, height / (max + 1));
-        int thumbY = y + 1 + (height - thumbHeight - 2) * scrollRow / max;
-        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER_ACTIVE);
+        int thumbY = y + 2 + (height - thumbHeight - 4) * scrollRow / max;
+        ConfigPanel.drawScrollbar(graphics, x, y, height, thumbY, thumbHeight, true);
     }
 
     private void sort(List<FluidVaultBlockEntity.StoredFluid> result) {

@@ -189,6 +189,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                     LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
         }
+        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 158, imageWidth - 16, 76);
     }
 
     @Override
@@ -344,10 +345,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             }
             ConfiguratorLineDetailsPacket.Entry entry = entries.get(index);
             int y = DETAIL_Y + 2 + row * DETAIL_ROW_HEIGHT;
-            if (row % 2 == 1) {
-                graphics.fill(DETAIL_X + 1, y - 1, DETAIL_X + DETAIL_WIDTH - 1,
-                        y + DETAIL_ROW_HEIGHT - 1, 0x22000000);
-            }
+            ConfigPanel.drawListRow(graphics, DETAIL_X + 3, y - 1, DETAIL_WIDTH - 6,
+                    DETAIL_ROW_HEIGHT, false, modeColor(entry.mode()));
             ItemStack icon = targetIcon(entry);
             if (icon.isEmpty()) {
                 graphics.drawString(font, "?", DETAIL_ICON_X + 5, y + 5, ConfigPanel.MUTED, false);

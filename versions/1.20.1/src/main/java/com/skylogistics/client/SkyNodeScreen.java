@@ -235,6 +235,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                     LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
         }
+        renderSectionPanels(graphics);
         renderMenuSlotBackgrounds(graphics);
     }
 
@@ -393,6 +394,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 ConfigPanel.drawSlotBackground(graphics, leftPos + slot.x, topPos + slot.y);
             }
         }
+    }
+
+    private void renderSectionPanels(GuiGraphics graphics) {
+        SkyNodeBlockEntity node = node();
+        if (node != null && !node.usesSingleEndpoint()) {
+            ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 42, imageWidth - 16, 45);
+        }
+        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + menu.screenY(96), imageWidth - 16, 52);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + menu.screenY(147), imageWidth - 16, 25);
+        ConfigPanel.drawInventoryPanel(graphics, leftPos + 42, topPos + menu.screenY(174), 170, 86);
     }
 
     private int colorFor(NodeFaceMode mode) {

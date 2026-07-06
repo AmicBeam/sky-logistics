@@ -148,6 +148,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                     LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
         }
+        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 54, imageWidth - 16, 45);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 100, imageWidth - 16, 51);
+        ConfigPanel.drawInventoryPanel(graphics, leftPos + 40, topPos + 153, 174, 88);
         renderMenuSlotBackgrounds(graphics);
     }
 
