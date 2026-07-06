@@ -36,6 +36,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private int lineCount = 1;
     private UUID lastDetailLine;
     private long lastDetailSyncTime = Long.MIN_VALUE;
+    private boolean initialStackSynced;
 
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
         super(ModMenus.CONFIGURATOR.get(), containerId);
@@ -208,6 +209,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     public void broadcastChanges() {
         syncPlayerLineSelection();
         refreshLineStats();
+        syncInitialHeldStack();
         syncLineDetails(false);
         super.broadcastChanges();
     }
@@ -311,6 +313,19 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
                 selection.displayName());
         lastDetailLine = config.lineId();
         lastDetailSyncTime = gameTime;
+    }
+
+    private void syncInitialHeldStack() {
+        if (initialStackSynced || !(player instanceof ServerPlayer)) {
+            return;
+        }
+        ItemStack stack = player.getItemInHand(hand);
+        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+            return;
+        }
+        // The configurator menu has no inventory slots, so opening-time NBT needs an explicit sync.
+        syncHeldStack(stack);
+        initialStackSynced = true;
     }
 
     private void syncHeldStack(ItemStack stack) {
