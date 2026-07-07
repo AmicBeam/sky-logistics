@@ -1,0 +1,25 @@
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_9976a77f6a6cd0::t_07bae89ac39963 80,114-115,117-119,136,162,166
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_9976a77f6a6cd0::t_556d23a80a6a0f 80,114-115,117-119,136,162,166
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_9976a77f6a6cd0::t_fdabd48977cff8 80,114-115,117-119,136,162,166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "7e558bfc4b0dc995d6579f60564cf0615946cc99",
+  "prompts": {},
+  "sessions": {
+    "s_9976a77f6a6cd0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f2d03-d13b-70a2-a956-37364464208f",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
