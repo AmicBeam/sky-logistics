@@ -4,11 +4,13 @@ import com.google.common.collect.HashMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.properties.Property;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
@@ -440,7 +442,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private ItemStack createTargetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return playerHeadIcon(entry);
+            return SkyLogisticsConfig.renderConfiguratorPlayerHeads()
+                    ? playerHeadIcon(entry)
+                    : ModItems.SKY_NECKLACE.get().getDefaultInstance();
         }
         Identifier id = Identifier.tryParse(entry.targetBlockId());
         if (id == null) {

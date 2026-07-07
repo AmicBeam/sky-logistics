@@ -5,11 +5,17 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public final class SkyLogisticsConfig {
     public static final ForgeConfigSpec SERVER_SPEC;
     public static final Server SERVER;
+    public static final ForgeConfigSpec CLIENT_SPEC;
+    public static final Client CLIENT;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-        SERVER = new Server(builder);
-        SERVER_SPEC = builder.build();
+        ForgeConfigSpec.Builder serverBuilder = new ForgeConfigSpec.Builder();
+        SERVER = new Server(serverBuilder);
+        SERVER_SPEC = serverBuilder.build();
+
+        ForgeConfigSpec.Builder clientBuilder = new ForgeConfigSpec.Builder();
+        CLIENT = new Client(clientBuilder);
+        CLIENT_SPEC = clientBuilder.build();
     }
 
     public static int maxVaultTypes() {
@@ -98,6 +104,10 @@ public final class SkyLogisticsConfig {
 
     public static int eulogiaCrystalChargeSeconds() {
         return SERVER.eulogiaCrystalChargeSeconds.get();
+    }
+
+    public static boolean renderConfiguratorPlayerHeads() {
+        return CLIENT.renderConfiguratorPlayerHeads.get();
     }
 
     public static final class Server {
@@ -201,6 +211,18 @@ public final class SkyLogisticsConfig {
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.")
                     .defineInRange("eulogiaCrystalChargeSeconds", 60, 1, 3600);
+            builder.pop();
+        }
+    }
+
+    public static final class Client {
+        public final ForgeConfigSpec.BooleanValue renderConfiguratorPlayerHeads;
+
+        private Client(ForgeConfigSpec.Builder builder) {
+            builder.push("gui");
+            renderConfiguratorPlayerHeads = builder
+                    .comment("Whether the configurator line details render active Sky Necklaces as player heads. Disable this if player head rendering causes display driver stalls.")
+                    .define("renderConfiguratorPlayerHeads", true);
             builder.pop();
         }
     }
