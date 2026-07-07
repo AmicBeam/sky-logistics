@@ -8,7 +8,9 @@ import com.skylogistics.network.ModNetworking;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
@@ -73,6 +75,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private UUID detailLine;
+    private List<ConfiguratorLineDetailsPacket.Entry> detailEntries = List.of();
+    private final Map<ConfiguratorLineDetailsPacket.Entry, ItemStack> detailIconCache = new HashMap<>();
     private int detailScroll;
 
     public ConfiguratorScreen(ConfiguratorMenu menu, Inventory inventory, Component title) {
@@ -145,6 +149,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (!Objects.equals(detailLine, currentLine)) {
             detailLine = currentLine;
             detailScroll = 0;
+            detailIconCache.clear();
         }
         detailScroll = Mth.clamp(detailScroll, 0, maxDetailScroll(currentLine));
         int index = menu.getLineIndex();
@@ -332,7 +337,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
-        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces"),
                 DETAIL_X, DETAIL_Y - 11, ConfigPanel.MUTED, false);
         if (entries.size() > DETAIL_VISIBLE_ROWS) {
@@ -376,7 +381,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private int maxDetailScroll(UUID lineId) {
-        int size = ClientConfiguratorLineDetails.entries(lineId).size();
+        int size = lineDetailEntries(lineId).size();
         return Math.max(0, size - DETAIL_VISIBLE_ROWS);
     }
 
@@ -408,7 +413,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (config == null) {
             return null;
         }
-        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
         for (int row = 0; row < DETAIL_VISIBLE_ROWS; row++) {
             int index = detailScroll + row;
             if (index >= entries.size()) {
@@ -432,6 +437,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        return detailIconCache.computeIfAbsent(entry, this::createTargetIcon);
+    }
+
+    private ItemStack createTargetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
             return playerHeadIcon(entry);
         }
@@ -448,6 +457,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         Item item = ForgeRegistries.ITEMS.getValue(id);
         return item == null ? ItemStack.EMPTY : item.getDefaultInstance();
+    }
+
+    private List<ConfiguratorLineDetailsPacket.Entry> lineDetailEntries(UUID lineId) {
+        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(lineId);
+        if (entries != detailEntries) {
+            detailEntries = entries;
+            detailIconCache.clear();
+        }
+        return entries;
     }
 
     private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
