@@ -77,7 +77,7 @@ final class ConfigPanel {
     }
 
     static void drawContentPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        drawThinFrame(graphics, x, y, width, height, PANEL, FRAME, BORDER_DIM, FRAME_DARK);
+        graphics.fill(x, y, x + width, y + height, 0x3307111F);
     }
 
     static void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
@@ -111,12 +111,12 @@ final class ConfigPanel {
 
     static void drawListRow(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
             boolean selected, int accent) {
-        int fill = selected ? 0xEE07111F : 0xCC07111F;
-        int border = selected ? ACCENT : BORDER_DIM;
-        int light = selected ? 0xFFFFD980 : FRAME;
-        int dark = selected ? GOLD_DARK : FRAME_DARK;
-        drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
+        int fill = selected ? 0xDD07111F : 0x6607111F;
+        graphics.fill(x, y, x + width, y + height, fill);
         graphics.fill(x + 1, y + 2, x + 4, y + height - 2, accent);
+        if (selected) {
+            graphics.fill(x, y, x + width, y + 1, ACCENT);
+        }
     }
 
     static void drawScrollbar(GuiGraphicsExtractor graphics, int x, int y, int height, int thumbY, int thumbHeight,
@@ -133,7 +133,7 @@ final class ConfigPanel {
     }
 
     static void drawInventoryPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        drawThinFrame(graphics, x, y, width, height, 0xBB07111F, FRAME, BORDER_DIM, FRAME_DARK);
+        graphics.fill(x, y, x + width, y + height, 0x2207111F);
     }
 
     static void drawBox(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int fill, int border) {
@@ -159,20 +159,11 @@ final class ConfigPanel {
     }
 
     static void drawTerminalSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x, y, x + 18, y + 18, 0xFF050B12);
-        graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF0D1928);
-        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x332F5E82);
-        graphics.fill(x + 1, y + 1, x + 2, y + 17, 0x33172B49);
-        graphics.fill(x + 2, y + 16, x + 17, y + 17, 0xCC050B12);
-        graphics.fill(x + 16, y + 2, x + 17, y + 17, 0xCC050B12);
-        graphics.fill(x + 5, y + 8, x + 13, y + 9, 0x66425B6A);
+        drawSlotBackground(graphics, x, y);
     }
 
     static void drawLockedTerminalSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x, y, x + 18, y + 18, 0xFF050B12);
-        graphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF09121E);
-        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x22172B49);
-        graphics.fill(x + 5, y + 8, x + 13, y + 9, 0x44425B6A);
+        drawLockedSlotBackground(graphics, x, y);
     }
 
     static String yesNo(boolean value) {
