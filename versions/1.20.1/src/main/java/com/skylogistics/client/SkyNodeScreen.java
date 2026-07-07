@@ -608,10 +608,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             SkyNodeBlockEntity node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
-            if (selected) {
-                graphics.fill(getX() + 4, getY() + height - 4, getX() + width - 4, getY() + height - 2,
-                        colorFor(mode));
-            }
             int textColor = active ? ConfigPanel.TEXT : ConfigPanel.MUTED;
             graphics.drawCenteredString(font, getMessage(), getX() + width / 2,
                     ConfigPanel.textCenterY(getY(), height), textColor);
