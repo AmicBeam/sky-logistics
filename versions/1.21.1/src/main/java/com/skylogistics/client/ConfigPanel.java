@@ -90,6 +90,16 @@ final class ConfigPanel {
         drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
     }
 
+    static void drawStepperValue(GuiGraphics graphics, int x, int y, int width, int height, boolean active) {
+        int fill = active ? 0xEE07111F : 0xDD07111F;
+        int border = active ? FRAME : BORDER_DIM;
+        graphics.fill(x, y + 1, x + width, y + height + 1, FRAME_SHADOW);
+        graphics.fill(x, y, x + width, y + height, border);
+        graphics.fill(x, y + 1, x + width, y + height - 1, fill);
+        graphics.fill(x, y, x + width, y + 1, active ? 0x663F5660 : BORDER_DIM);
+        graphics.fill(x, y + height - 1, x + width, y + height, FRAME_SHADOW);
+    }
+
     static void drawFaceButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
             boolean active, boolean selected) {
         int fill = active ? 0xFF132839 : BUTTON_DISABLED;
