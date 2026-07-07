@@ -21,13 +21,14 @@ final class ConfigPanel {
     static final int PANEL_SOFT = 0x99172B49;
     static final int BUTTON = 0xFF17212D;
     static final int BUTTON_DISABLED = 0xFF0A1626;
-    static final int BUTTON_SELECTED = 0xFF3A2B16;
     static final int BORDER_DIM = 0xFF244966;
     static final int SLOT_DIVIDER = 0xFFEAF6FF;
     static final int SLOT_SHADOW = 0xFF262C30;
     static final int SLOT_FILL = 0xFF6F7678;
     private static final int SKY_TOP = 0xFF172B49;
     private static final int SKY_HORIZON = 0xFF1F456C;
+    private static final int SKY_CLOUD = 0x1F8ECFFF;
+    private static final int SKY_CLOUD_SOFT = 0x146FB9FF;
     private static final int STAR = 0x55EAF6FF;
     private static final int FRAME_LIGHT = 0xFFEAF6FF;
     private static final int FRAME = 0xFF637984;
@@ -73,6 +74,7 @@ final class ConfigPanel {
         graphics.fill(x + 2, y + 16, x + width - 2, y + height - 2, PANEL_SOFT);
         graphics.fill(x + 2, y + height - 18, x + width - 2, y + height - 2, 0x551F456C);
         drawSkyPixels(graphics, x, y, width, height);
+        drawCloudBand(graphics, x, y, width, height);
         drawOuterFrame(graphics, x, y, width, height);
     }
 
@@ -82,12 +84,20 @@ final class ConfigPanel {
 
     static void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
             boolean active, boolean selected) {
-        int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
-        int border = selected ? ACCENT : (active ? FRAME : BORDER_DIM);
-        int light = selected ? 0xFFFFD980 : (active ? 0xFF9FB4B8 : BORDER_DIM);
-        int dark = selected ? GOLD_DARK : FRAME_DARK;
+        int fill = selected ? 0xFF123342 : (active ? BUTTON : BUTTON_DISABLED);
+        int border = selected ? CYAN : (active ? 0xFF3E8394 : BORDER_DIM);
+        int light = selected ? FRAME_LIGHT : (active ? 0xFF8FC2C8 : 0xFF425765);
+        int dark = selected ? 0xFF0A1B26 : FRAME_DARK;
         graphics.fill(x + 1, y + 1, x + width + 1, y + height + 1, FRAME_SHADOW);
         drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
+        if (active) {
+            graphics.fill(x + 2, y + 2, x + width - 2, y + 3, selected ? 0x664DEBFF : 0x554F6F79);
+            graphics.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, FRAME_SHADOW);
+        }
+        if (selected && height >= 14 && width >= 12) {
+            graphics.fill(x + 4, y + height - 5, x + width - 4, y + height - 3, ACCENT);
+            graphics.fill(x + 4, y + height - 3, x + width - 4, y + height - 2, GOLD_DARK);
+        }
     }
 
     static void drawStepperValue(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
@@ -103,15 +113,18 @@ final class ConfigPanel {
 
     static void drawFaceButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
             boolean active, boolean selected) {
-        int fill = active ? 0xFF132839 : BUTTON_DISABLED;
-        int border = selected ? ACCENT : (active ? FRAME : BORDER_DIM);
-        int light = selected ? 0xFFFFD66B : (active ? FRAME_LIGHT : 0xFF4B5F68);
-        int dark = selected ? GOLD_DARK : FRAME_DARK;
+        int fill = selected ? 0xFF123342 : (active ? 0xFF132839 : BUTTON_DISABLED);
+        int border = selected ? CYAN : (active ? 0xFF3E8394 : BORDER_DIM);
+        int light = selected ? FRAME_LIGHT : (active ? FRAME_LIGHT : 0xFF4B5F68);
+        int dark = selected ? 0xFF0A1B26 : FRAME_DARK;
         if (selected) {
             drawSelectorTriangle(graphics, x + width / 2 - 4, y - 8);
         }
         graphics.fill(x + 1, y + 1, x + width + 1, y + height + 1, FRAME_SHADOW);
         drawThinFrame(graphics, x, y, width, height, fill, light, border, dark);
+        if (active) {
+            graphics.fill(x + 2, y + 2, x + width - 2, y + 3, selected ? 0x664DEBFF : 0x554F6F79);
+        }
     }
 
     static void drawStatusStrip(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
@@ -196,6 +209,27 @@ final class ConfigPanel {
         }
         graphics.fill(x + 6, y + height - 9, x + 18, y + height - 8, SKY_HORIZON);
         graphics.fill(x + width - 26, y + height - 10, x + width - 9, y + height - 9, SKY_HORIZON);
+    }
+
+    private static void drawCloudBand(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+        if (width < 72 || height < 70) {
+            return;
+        }
+        int cloudY = y + height - 30;
+        drawCloudCluster(graphics, x + 10, cloudY, Math.min(58, width / 3));
+        drawCloudCluster(graphics, x + width - Math.min(70, width / 3) - 8, cloudY - 5,
+                Math.min(70, width / 3));
+        if (width > 180) {
+            drawCloudCluster(graphics, x + width / 2 - 24, cloudY + 3, 48);
+        }
+    }
+
+    private static void drawCloudCluster(GuiGraphicsExtractor graphics, int x, int y, int width) {
+        graphics.fill(x, y + 8, x + width, y + 9, SKY_CLOUD_SOFT);
+        graphics.fill(x + 6, y + 5, x + width - 10, y + 7, SKY_CLOUD);
+        graphics.fill(x + 16, y + 2, x + width - 22, y + 5, SKY_CLOUD_SOFT);
+        graphics.fill(x + 24, y, x + width - 30, y + 2, SKY_CLOUD);
+        graphics.fill(x + width - 18, y + 6, x + width - 4, y + 8, SKY_CLOUD);
     }
 
     private static void drawOuterFrame(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
