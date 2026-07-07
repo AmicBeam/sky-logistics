@@ -154,20 +154,24 @@ final class ConfigPanel {
     }
 
     static void drawSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x, y, x + 18, y + 18, SLOT_SHADOW);
-        graphics.fill(x + 1, y + 1, x + 17, y + 17, SLOT_FILL);
-        graphics.fill(x + 1, y + 1, x + 17, y + 2, 0x99EAF6FF);
-        graphics.fill(x + 1, y + 1, x + 2, y + 17, 0x99EAF6FF);
-        graphics.fill(x + 2, y + 16, x + 17, y + 17, 0xCC15191D);
-        graphics.fill(x + 16, y + 2, x + 17, y + 17, 0xCC15191D);
-        graphics.fill(x + 2, y + 2, x + 16, y + 16, 0xFF8B9090);
+        int frameX = x - 1;
+        int frameY = y - 1;
+        graphics.fill(frameX, frameY, frameX + 18, frameY + 18, SLOT_SHADOW);
+        graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 17, SLOT_FILL);
+        graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 2, 0x99EAF6FF);
+        graphics.fill(frameX + 1, frameY + 1, frameX + 2, frameY + 17, 0x99EAF6FF);
+        graphics.fill(frameX + 2, frameY + 16, frameX + 17, frameY + 17, 0xCC15191D);
+        graphics.fill(frameX + 16, frameY + 2, frameX + 17, frameY + 17, 0xCC15191D);
+        graphics.fill(frameX + 2, frameY + 2, frameX + 16, frameY + 16, 0xFF8B9090);
     }
 
     static void drawLockedSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x, y, x + 18, y + 18, SLOT_LOCKED_SHADOW);
-        graphics.fill(x + 1, y + 1, x + 17, y + 17, SLOT_LOCKED_FILL);
-        graphics.fill(x + 1, y + 1, x + 17, y + 2, SLOT_LOCKED_HIGHLIGHT);
-        graphics.fill(x + 4, y + 8, x + 14, y + 9, 0x665C7890);
+        int frameX = x - 1;
+        int frameY = y - 1;
+        graphics.fill(frameX, frameY, frameX + 18, frameY + 18, SLOT_LOCKED_SHADOW);
+        graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 17, SLOT_LOCKED_FILL);
+        graphics.fill(frameX + 1, frameY + 1, frameX + 17, frameY + 2, SLOT_LOCKED_HIGHLIGHT);
+        graphics.fill(frameX + 4, frameY + 8, frameX + 14, frameY + 9, 0x665C7890);
     }
 
     static void drawTerminalSlotBackground(GuiGraphics graphics, int x, int y) {
