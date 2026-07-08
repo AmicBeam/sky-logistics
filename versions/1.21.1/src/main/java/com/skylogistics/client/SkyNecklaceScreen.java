@@ -73,7 +73,8 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        ConfigPanel.styleEditBox(lineNameEdit);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
         addModeButton(leftPos + 54, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.EXTRACT,
                 MenuAction.MODE_EXTRACT);
@@ -144,13 +145,6 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        if (lineNameEdit != null && lineNameEdit.visible) {
-            ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
-                    LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
-        }
-        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 54, imageWidth - 16, 45);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 100, imageWidth - 16, 51);
-        ConfigPanel.drawInventoryPanel(graphics, leftPos + 40, topPos + 153, 174, 88);
         renderMenuSlotBackgrounds(graphics);
     }
 

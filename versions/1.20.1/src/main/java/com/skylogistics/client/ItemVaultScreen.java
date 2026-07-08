@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -32,7 +32,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.itemVault();
 
     private EditBox searchBox;
-    private AbstractButton sortButton;
+    private Button sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private ItemVaultBlockEntity cachedVault;
@@ -54,14 +54,15 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         searchBox = new EditBox(font, leftPos + 8, topPos + 22, 114, 18,
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
-        ConfigPanel.styleEditBox(searchBox);
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
-            setSortMode(sortMode.next());
-            scrollRow = 0;
-            invalidateFilteredCache();
-            refreshButtons();
-        }));
+        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+                    setSortMode(sortMode.next());
+                    scrollRow = 0;
+                    invalidateFilteredCache();
+                    refreshButtons();
+                })
+                .bounds(leftPos + 128, topPos + 22, 60, 18)
+                .build());
     }
 
     @Override
@@ -87,11 +88,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        if (searchBox != null) {
-            ConfigPanel.drawInputBox(graphics, leftPos + 8, topPos + 22, 114, 18, searchBox.isFocused());
-        }
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 42, imageWidth - 14, GRID_BOTTOM - GRID_Y + 5);
-        ConfigPanel.drawInventoryPanel(graphics, leftPos + 13, topPos + 134, 170, 84);
         ItemVaultBlockEntity vault = vault();
         int gridX = gridX(vault);
         for (int row = 0; row < GRID_ROWS; row++) {
@@ -240,13 +237,16 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         int x = leftPos + gridX(vault) + GRID_COLUMNS * CELL_SIZE + 5;
         int y = topPos + GRID_Y;
         int height = GRID_ROWS * CELL_SIZE;
+        graphics.fill(x, y, x + 5, y + height, ConfigPanel.PANEL);
+        graphics.fill(x, y, x + 5, y + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(x, y + height - 1, x + 5, y + height, ConfigPanel.BORDER_DIM);
         if (max <= 0) {
-            ConfigPanel.drawScrollbar(graphics, x, y, height, y + 2, height - 4, false);
+            graphics.fill(x + 1, y + 1, x + 4, y + height - 1, ConfigPanel.BORDER_DIM);
             return;
         }
         int thumbHeight = Math.max(14, height / (max + 1));
-        int thumbY = y + 2 + (height - thumbHeight - 4) * scrollRow / max;
-        ConfigPanel.drawScrollbar(graphics, x, y, height, thumbY, thumbHeight, true);
+        int thumbY = y + 1 + (height - thumbHeight - 2) * scrollRow / max;
+        graphics.fill(x + 1, thumbY, x + 4, thumbY + thumbHeight, ConfigPanel.BORDER_ACTIVE);
     }
 
     private void sort(List<ItemVaultBlockEntity.StoredItem> result) {
@@ -287,9 +287,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             int x, int y) {
         int slotIndex = scrollRow * GRID_COLUMNS + visibleIndex;
         if (vault != null && slotIndex >= vault.getTypeLimit()) {
-            ConfigPanel.drawLockedTerminalSlotBackground(graphics, x, y);
+            ConfigPanel.drawLockedSlotBackground(graphics, x, y);
         } else {
-            ConfigPanel.drawTerminalSlotBackground(graphics, x, y);
+            ConfigPanel.drawSlotBackground(graphics, x, y);
         }
     }
 

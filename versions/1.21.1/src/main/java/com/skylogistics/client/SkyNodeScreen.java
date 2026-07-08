@@ -36,11 +36,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     };
     private static final int FIRST_DETAIL_ROW_Y = 100;
     private static final int SECOND_DETAIL_ROW_Y = 126;
+    private static final int DETAIL_LABEL_OFFSET_Y = 6;
     private static final int ADVANCED_CONTROL_X = 48;
     private static final int ADVANCED_CONTROL_WIDTH = 76;
     private static final int ADVANCED_RIGHT_LABEL_X = 138;
     private static final int PRIORITY_BUTTON_WIDTH = 20;
-    private static final int STEPPER_HEIGHT = 18;
     private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
     private static final int PRIORITY_UP_X = 104;
     private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
@@ -96,7 +96,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        ConfigPanel.styleEditBox(lineNameEdit);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
         if (!singleEndpoint) {
@@ -230,11 +231,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        if (lineNameEdit != null && lineNameEdit.visible) {
-            ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
-                    LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
-        }
-        renderSectionPanels(graphics);
         renderMenuSlotBackgrounds(graphics);
     }
 
@@ -262,22 +258,24 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
         }
         if (advancedPanel) {
-            int slotLimitTextY = ConfigPanel.textCenterY(menu.screenY(FIRST_DETAIL_ROW_Y), STEPPER_HEIGHT);
-            int priorityTextY = ConfigPanel.textCenterY(menu.screenY(SECOND_DETAIL_ROW_Y), STEPPER_HEIGHT);
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
-                    14, slotLimitTextY, ConfigPanel.MUTED, false);
+                    14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
-                    ADVANCED_RIGHT_LABEL_X, slotLimitTextY, ConfigPanel.MUTED, false);
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.MUTED, false);
             graphics.drawCenteredString(font, slotLimitDisplay(node.getItemSlotLimit(face)),
-                    SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, slotLimitTextY, ConfigPanel.TEXT);
+                    SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
+                    menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.TEXT);
             graphics.drawString(font, Component.translatable(node.usesSingleEndpoint()
                             ? "screen.skylogistics.filter_slot"
                             : "screen.skylogistics.face_filters"),
-                    ADVANCED_RIGHT_LABEL_X, priorityTextY, ConfigPanel.MUTED, false);
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.MUTED, false);
             graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                    14, priorityTextY, ConfigPanel.MUTED, false);
+                    14, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
             graphics.drawCenteredString(font, Component.literal(String.valueOf(node.getPriority(face))),
-                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, priorityTextY, ConfigPanel.TEXT);
+                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.TEXT);
         } else {
             graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
                     14, menu.screenY(106), ConfigPanel.MUTED, false);
@@ -393,25 +391,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private void renderSectionPanels(GuiGraphics graphics) {
-        SkyNodeBlockEntity node = node();
-        if (node != null && !node.usesSingleEndpoint()) {
-            ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 42, imageWidth - 16, 45);
-        }
-        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + menu.screenY(96), imageWidth - 16, 52);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + menu.screenY(147), imageWidth - 16, 25);
-        ConfigPanel.drawInventoryPanel(graphics, leftPos + 42, topPos + menu.screenY(174), 170, 86);
-        boolean stepperActive = advancedPanel && node != null && hasTargetBlock(node, selectedFace);
-        if (advancedPanel) {
-            ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X,
-                    topPos + menu.screenY(FIRST_DETAIL_ROW_Y), SLOT_LIMIT_VALUE_WIDTH, STEPPER_HEIGHT,
-                    stepperActive);
-            ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X,
-                    topPos + menu.screenY(SECOND_DETAIL_ROW_Y), PRIORITY_VALUE_WIDTH, STEPPER_HEIGHT,
-                    stepperActive);
-        }
-    }
-
     private int colorFor(NodeFaceMode mode) {
         return switch (mode) {
             case INPUT -> 0xFFFFB56B;
@@ -522,16 +501,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = direction == selectedFace;
-            ConfigPanel.drawFaceButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
-                    graphics.renderItem(icon, getX() + 8, getY() + 12);
+                    graphics.renderItem(icon, getX() + 10, getY() + 7);
                 }
-                graphics.drawCenteredString(font, faceShortName(direction), getX() + width / 2, getY() + 4,
-                        active ? (selected ? ConfigPanel.ACCENT : ConfigPanel.TEXT) : ConfigPanel.MUTED);
+                graphics.drawString(font, faceShortName(direction), getX() + 3, getY() + 3,
+                        active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
                 int modeColor = colorFor(modeFor(node, direction));
-                ConfigPanel.drawStatusStrip(graphics, getX() + 8, getY() + height - 5, width - 16, 3, modeColor);
+                graphics.fill(getX() + 6, getY() + height - 5, getX() + width - 6, getY() + height - 3, modeColor);
             }
         }
 
@@ -569,8 +548,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -607,9 +585,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             SkyNodeBlockEntity node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            if (selected) {
+                graphics.fill(getX() + 4, getY() + height - 4, getX() + width - 4, getY() + height - 2,
+                        colorFor(mode));
+            }
             int textColor = active ? ConfigPanel.TEXT : ConfigPanel.MUTED;
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height), textColor);
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6, textColor);
         }
 
         @Override
@@ -633,8 +614,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, advancedPanel);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -662,8 +642,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             SkyNodeBlockEntity node = node();
             Component message = node == null ? getMessage() : dynamicMessage(node);
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, message, getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.drawCenteredString(font, message, getX() + width / 2, getY() + (height - 8) / 2,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -785,8 +764,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             SkyNodeBlockEntity node = node();
             boolean enabled = node != null && active && isEnabled(node);
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 

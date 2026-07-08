@@ -110,8 +110,6 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + FILTER_PANEL_X, topPos + FILTER_PANEL_Y,
                 FILTER_PANEL_WIDTH, FILTER_PANEL_HEIGHT);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 24, topPos + 69, imageWidth - 48, 30);
-        ConfigPanel.drawInventoryPanel(graphics, leftPos + 25, topPos + 102, 174, 84);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
             int x = leftPos + filterSlotX(slot);
             int y = topPos + filterSlotY(slot);

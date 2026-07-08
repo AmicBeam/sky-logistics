@@ -51,17 +51,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int CONTROL_STEP_X = 44;
     private static final int RESOURCE_BUTTON_WIDTH = 42;
     private static final int CONTROL_LEFT_WIDTH = 76;
-    private static final int STEPPER_BUTTON_WIDTH = 20;
-    private static final int STEPPER_HEIGHT = 20;
     private static final int PRIORITY_ROW_Y = 218;
     private static final int PRIORITY_DOWN_X = CONTROL_START_X;
+    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + 22;
+    private static final int PRIORITY_VALUE_WIDTH = 34;
     private static final int PRIORITY_UP_X = 104;
-    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + STEPPER_BUTTON_WIDTH;
-    private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
     private static final int SLOT_LIMIT_ROW_Y = 192;
     private static final int SLOT_LIMIT_LABEL_X = 138;
     private static final int SLOT_LIMIT_DOWN_X = 172;
-    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + STEPPER_BUTTON_WIDTH;
+    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + 20;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
     private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -98,7 +96,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        ConfigPanel.styleEditBox(lineNameEdit);
+        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
         addTypeButton(leftPos + CONTROL_START_X, topPos + 166, ResourceType.ITEMS);
@@ -182,16 +181,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        if (lineNameEdit != null && lineNameEdit.visible) {
-            ConfigPanel.drawInputBox(graphics, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
-                    LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT, lineNameEdit.isFocused());
-        }
-        ConfigPanel.drawContentPanel(graphics, leftPos + 8, topPos + 158, imageWidth - 16, 76);
-        boolean active = config() != null;
-        ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X, topPos + SLOT_LIMIT_ROW_Y,
-                SLOT_LIMIT_VALUE_WIDTH, STEPPER_HEIGHT, active);
-        ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X, topPos + PRIORITY_ROW_Y,
-                PRIORITY_VALUE_WIDTH, STEPPER_HEIGHT, active);
     }
 
     @Override
@@ -220,16 +209,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.text(font, Component.translatable("screen.skylogistics.redstone"),
                 14, 198, ConfigPanel.MUTED, false);
         graphics.text(font, Component.translatable("screen.skylogistics.slot_limit"),
-                SLOT_LIMIT_LABEL_X, ConfigPanel.textCenterY(SLOT_LIMIT_ROW_Y, STEPPER_HEIGHT),
-                ConfigPanel.MUTED, false);
+                SLOT_LIMIT_LABEL_X, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.MUTED, false);
         graphics.centeredText(font, slotLimitDisplay(config.slotLimit()),
-                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
-                ConfigPanel.textCenterY(SLOT_LIMIT_ROW_Y, STEPPER_HEIGHT), ConfigPanel.TEXT);
+                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.TEXT);
         graphics.text(font, Component.translatable("screen.skylogistics.priority"),
-                14, ConfigPanel.textCenterY(PRIORITY_ROW_Y, STEPPER_HEIGHT), ConfigPanel.MUTED, false);
+                14, 224, ConfigPanel.MUTED, false);
         graphics.centeredText(font, Component.literal(String.valueOf(config.placement().priority())),
-                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2,
-                ConfigPanel.textCenterY(PRIORITY_ROW_Y, STEPPER_HEIGHT), ConfigPanel.TEXT);
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 6, ConfigPanel.TEXT);
     }
 
     @Override
@@ -352,8 +338,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             }
             ConfiguratorLineDetailsPacket.Entry entry = entries.get(index);
             int y = DETAIL_Y + 2 + row * DETAIL_ROW_HEIGHT;
-            ConfigPanel.drawListRow(graphics, DETAIL_X + 3, y - 1, DETAIL_WIDTH - 6,
-                    DETAIL_ROW_HEIGHT, false, modeColor(entry.mode()));
+            if (row % 2 == 1) {
+                graphics.fill(DETAIL_X + 1, y - 1, DETAIL_X + DETAIL_WIDTH - 1,
+                        y + DETAIL_ROW_HEIGHT - 1, 0x22000000);
+            }
             ItemStack icon = targetIcon(entry);
             if (icon.isEmpty()) {
                 graphics.text(font, "?", DETAIL_ICON_X + 5, y + 5, ConfigPanel.MUTED, false);
@@ -573,8 +561,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -602,8 +589,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
             graphics.centeredText(font, Component.translatable(control.translationKey()),
-                    getX() + width / 2, ConfigPanel.textCenterY(getY(), height),
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+                    getX() + width / 2, getY() + 6, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
         @Override
@@ -616,7 +602,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private PriorityButton(int x, int y, int delta, Component message) {
-            super(x, y, STEPPER_BUTTON_WIDTH, STEPPER_HEIGHT, message);
+            super(x, y, 22, 20, message);
             this.delta = delta;
         }
 
@@ -634,8 +620,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -649,7 +634,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private SlotLimitButton(int x, int y, int delta, Component message) {
-            super(x, y, STEPPER_BUTTON_WIDTH, STEPPER_HEIGHT, message);
+            super(x, y, 22, 20, message);
             this.delta = delta;
         }
 
@@ -667,8 +652,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.centeredText(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -716,8 +700,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
-            graphics.centeredText(font, getMessage(), getX() + width / 2,
-                    ConfigPanel.textCenterY(getY(), height),
+            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
