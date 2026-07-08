@@ -1,0 +1,37 @@
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_3dec4b7bfc4885 443
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_79301e8604f326 10-12
+versions/1.20.1/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_ef913e731d9948 21-22,58
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_74a3ef185ccc9f 443
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_b6dc904f7f430f 10-12
+versions/1.21.1/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_7ccaeffc50aea9 26-27,63
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_a6cd4b54c7d9a4 437
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_763f4dd1e4121c 10-12
+versions/26.1.2/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_cc823c925728a7 26-27,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "ea0056e214d81625ad0ff37774590bbb00fb470e",
+  "prompts": {},
+  "sessions": {
+    "s_b005629b6cf485": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f387d-e9ed-7d02-b684-4588b61e7ce5",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
