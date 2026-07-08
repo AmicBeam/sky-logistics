@@ -1,0 +1,65 @@
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_43a9124f322e79::t_40c5fa0adcf514 12-32,38,43-47,51-55,60-62,64,74-77,81-84,95-96,98-100,106,114
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_65bd77e26f1b66 56-57,62,101-102,220,222,224,226,347-350,570,598,611,629,643,661,709
+versions/1.20.1/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_43a9124f322e79::t_4dcdc947d1546b 12,40,63-70,247-249,251,255-256,297,299
+versions/1.20.1/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_43a9124f322e79::t_6a04b836242f32 12,35,58-65,240-242,244,248-249,290,292
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNecklaceScreen.java
+  s_43a9124f322e79::t_bc2fd5fe3ce9a7 76-77
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_43a9124f322e79::t_f39c9a1ddacd76 40,100-101,263,265-266,268-269,273-274,276,278-279,505,509,511-512,514,552,589-592,594,618,646,768
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_43a9124f322e79::t_09bca134128939 12-32,38,43-47,51-55,60-62,64,74-77,81-84,95-96,98-100,106,114
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_260037599f3b8b 56-57,62,101-102,220,222,224,226,347-350,570,598,611,629,643,661,709
+versions/1.21.1/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_43a9124f322e79::t_ceb11161561a53 12,40,63-70,247-249,251,255-256,297,299
+versions/1.21.1/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_43a9124f322e79::t_ed22d4ccd0c891 12,35,58-65,240-242,244,248-249,290,292
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNecklaceScreen.java
+  s_43a9124f322e79::t_058e587126b388 76-77
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_43a9124f322e79::t_102e4a629ae208 39,99-100,262,264-265,267-268,272-273,275,277-278,504,508,510-511,513,551,588-591,593,617,645,767
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfigPanel.java
+  s_43a9124f322e79::t_63bf42c8e39dcf 12-32,38,43-47,51-55,60-62,64,74-77,81-84,95-96,98-100,106,114
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_a4b9528d2a7aa9 56-57,62,99-100,212,214,216,218,341-344,564,592,605,623,637,655,703
+versions/26.1.2/src/main/java/com/skylogistics/client/FluidVaultScreen.java
+  s_43a9124f322e79::t_b0bcd8911314ee 12,36,57-64,243-245,247,251-252,293,295
+versions/26.1.2/src/main/java/com/skylogistics/client/ItemVaultScreen.java
+  s_43a9124f322e79::t_e366d7a974bfe3 12,35,56-63,240-242,244,248-249,290,292
+versions/26.1.2/src/main/java/com/skylogistics/client/SkyNecklaceScreen.java
+  s_43a9124f322e79::t_8f250a7a5433fb 74-75
+versions/26.1.2/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_43a9124f322e79::t_6a126fe1f2f4f5 39,98-99,255,257-258,260-261,265-266,268,270-271,499,503,505-506,508,546,583-586,588,612,640,762
+versions/26.1.2/src/main/java/com/skylogistics/client/TagFilterListScreen.java
+  s_43a9124f322e79::t_bcfa0d0d911770 63-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "da759392c46b6c51b7923df768f5ba08eb5af707",
+  "prompts": {},
+  "sessions": {
+    "s_43a9124f322e79": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4267-8318-7840-8e0f-6547cfdb47d9",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    },
+    "s_b005629b6cf485": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f387d-e9ed-7d02-b684-4588b61e7ce5",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
