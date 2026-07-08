@@ -294,18 +294,16 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
                 break;
             }
             entries.add(new ConfiguratorLineDetailsPacket.Entry(detail.dimension(), detail.pos(), Direction.UP,
-                    detail.pos(), "skylogistics:sky_necklace", detail.playerName(), detail.profileId(),
-                    detail.profileTexture(), detail.profileTextureSignature(), detail.mode(), true, false, false,
-                    RedstoneControl.IGNORE, detail.priority()));
+                    detail.pos(), "skylogistics:sky_necklace", detail.playerName(), detail.mode(), true, false,
+                    false, RedstoneControl.IGNORE, detail.priority()));
         }
         for (SkyNetworkRegistry.LineFaceDetail detail : details) {
             if (entries.size() >= LINE_DETAIL_LIMIT) {
                 break;
             }
             entries.add(new ConfiguratorLineDetailsPacket.Entry(detail.dimension(), detail.nodePos(), detail.face(),
-                    detail.targetPos(), detail.targetBlockId(), "", null, "", "", detail.mode(),
-                    detail.itemsEnabled(), detail.fluidsEnabled(), detail.energyEnabled(), detail.redstoneControl(),
-                    detail.priority()));
+                    detail.targetPos(), detail.targetBlockId(), "", detail.mode(), detail.itemsEnabled(),
+                    detail.fluidsEnabled(), detail.energyEnabled(), detail.redstoneControl(), detail.priority()));
         }
         ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorLineDetailsPacket(config.lineId(), entries));
         SkyPlayerLines.LineSelection selection = playerLineSelection(config);

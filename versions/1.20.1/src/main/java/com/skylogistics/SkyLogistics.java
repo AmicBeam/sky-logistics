@@ -62,7 +62,6 @@ public class SkyLogistics {
         ModRecipes.register(modBus);
         ModNetworking.register();
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, SkyLogisticsConfig.SERVER_SPEC);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, SkyLogisticsConfig.CLIENT_SPEC);
 
         MinecraftForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
