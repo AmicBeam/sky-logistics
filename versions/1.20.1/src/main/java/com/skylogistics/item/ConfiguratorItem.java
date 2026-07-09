@@ -707,8 +707,7 @@ public class ConfiguratorItem extends Item {
 
         public FaceConfig {
             priority = Math.max(-99, Math.min(99, priority));
-            slotLimit = Math.max(SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED,
-                    Math.min(SkyNodeBlockEntity.MAX_ITEM_SLOT_LIMIT, slotLimit));
+            slotLimit = SkyNodeBlockEntity.clampItemSlotLimit(slotLimit);
             filters = List.copyOf(copyFaceFilters(filters));
         }
 

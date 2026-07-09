@@ -1639,8 +1639,11 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return true;
     }
 
-    private static int clampItemSlotLimit(int limit) {
-        return Math.max(ITEM_SLOT_LIMIT_UNLIMITED, Math.min(MAX_ITEM_SLOT_LIMIT, limit));
+    public static int clampItemSlotLimit(int limit) {
+        if (limit <= ITEM_SLOT_LIMIT_UNLIMITED) {
+            return ITEM_SLOT_LIMIT_UNLIMITED;
+        }
+        return Math.min(SkyLogisticsConfig.maxItemSlotLimit(), limit);
     }
 
     private boolean isPoweredCached() {

@@ -56,6 +56,10 @@ public final class SkyLogisticsConfig {
         return SERVER.sourceSearchAttemptsPerEndpoint.get();
     }
 
+    public static int maxItemSlotLimit() {
+        return SERVER.maxItemSlotLimit.get();
+    }
+
     public static boolean allowAe2ItemTransfer() {
         return SERVER.allowAe2ItemTransfer.get();
     }
@@ -155,6 +159,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue endpointTargetAttempts;
         public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
+        public final ModConfigSpec.IntValue maxItemSlotLimit;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ModConfigSpec.IntValue transferRetryFirstTicks;
         public final ModConfigSpec.IntValue transferRetrySecondTicks;
@@ -220,6 +225,9 @@ public final class SkyLogisticsConfig {
             sourceSearchAttemptsPerEndpoint = builder
                     .comment("Maximum slot/tank cursor positions one source endpoint may skip while searching for work in one transfer attempt.")
                     .defineInRange("sourceSearchAttemptsPerEndpoint", 64, 1, 1_000_000);
+            maxItemSlotLimit = builder
+                    .comment("Maximum item slot keep limit configurable on a logistics face. Face value 0 still means unlimited.")
+                    .defineInRange("maxItemSlotLimit", 36, 1, 999);
             allowAe2ItemTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer items stored in AE2 networks.")
                     .define("allowAe2ItemTransfer", true);
