@@ -137,6 +137,7 @@ if (jeiApiJar != null && jeiApiJar.exists()) {
 
 dependencies {
     compileOnly "mekanism:Mekanism:${mekanism_version}"
+    compileOnly "maven.modrinth:beyonddimensions:${beyond_dimensions_version}"
     if (includeJadeCompat) {
         if (jadeApiJar != null && jadeApiJar.exists()) {
             compileOnly files(jadeApiJar)
