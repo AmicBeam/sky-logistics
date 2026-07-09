@@ -1,0 +1,47 @@
+versions/1.20.1/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_cbcdd0e940153e 35,47
+versions/1.20.1/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsCompat.java
+  s_71b9755ed09cae::t_df0932bc968212 50,62-63,75,87-88,100-101,187,223,235,247,259,271,283-284,296-297,309-310,322-323,335-336,348-349
+versions/1.20.1/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_7841e6d7635090 5,23,35
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_050cc034c416d0 55-74,99-106,111-118,139-142,161,168,172-175,182-183,185-186,225-239,258-263,267-272,300-302
+versions/1.21.1/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_b80994b8fbc082 60-61,65-66
+versions/1.21.1/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsCompat.java
+  s_71b9755ed09cae::t_91bb1cc1703772 42-43,47-49,53-54,58-60,112,148,160,172,184,196,208-209,221-222,234-235,284-285,294-296,305-306,315-317
+versions/1.21.1/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_a4c4e88a1ed10b 5,41-42,46-47
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_4e0ae829242ca3 55-74,99-106,111-114,135-138,157,164,168-171,178-179,181,220-234,253-258,262-264,292-294
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_71b9755ed09cae::t_6fb921b36f4546 278-281,283,355-358,360,579-580,582-584,586-591,596,599,602-607,611-614,617,619,630,642,646,652-654,991-994,996,1035-1036,1038-1040,1042-1047,1052,1055,1058-1063,1067-1070,1073,1075,1322-1325,1327,1362-1363,1365-1367,1369-1374,1379,1382,1385-1390,1394-1397,1400,1402,1954-1956
+versions/26.1.2/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_815fa5c42cc275 64-65,69-70
+versions/26.1.2/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsCompat.java
+  s_71b9755ed09cae::t_ab59d85a166b90 42-43,47-49,53-54,58-60,112,148,160,172,184,196,208-209,221-222,234-235,284-285,294-296,305-306,315-317
+versions/26.1.2/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_bb3575739330b2 5,41-42,46-47
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_004e15605eac20 55-74,99-106,111-114,135-138,157,164,168-171,178-179,181,220-234,253-258,262-264,292-294
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_71b9755ed09cae::t_dea164f719fc75 278-281,283,355-358,360,579-580,582-584,586-591,596,599,602-607,611-614,617,619,630,642,646,652-654,991-994,996,1035-1036,1038-1040,1042-1047,1052,1055,1058-1063,1067-1070,1073,1075,1322-1325,1327,1362-1363,1365-1367,1369-1374,1379,1382,1385-1390,1394-1397,1400,1402,1954-1956
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f7b12eec482eedcd7295a8edf7839a56b761938b",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
