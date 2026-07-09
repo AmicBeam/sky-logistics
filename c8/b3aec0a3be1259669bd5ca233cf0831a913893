@@ -1,0 +1,37 @@
+versions/1.20.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_4aef80994f4215 1613-1617
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_5208c2b29f0071 59-62,166,233-235
+versions/1.20.1/src/main/java/com/skylogistics/item/ConfiguratorItem.java
+  s_71b9755ed09cae::t_e96379bcb33ef9 710
+versions/1.21.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_3d68783588b0da 1611-1615
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_bb59ce56c89724 59-62,162,228-230
+versions/1.21.1/src/main/java/com/skylogistics/item/ConfiguratorItem.java
+  s_71b9755ed09cae::t_12b6dda33d06a1 716
+versions/26.1.2/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_29e23fa1235b39 1642-1646
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_71b9755ed09cae::t_590fb887e042bf 59-62,162,228-230
+versions/26.1.2/src/main/java/com/skylogistics/item/ConfiguratorItem.java
+  s_71b9755ed09cae::t_9651830a03af7e 719
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c8b3aec0a3be1259669bd5ca233cf0831a913893",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
