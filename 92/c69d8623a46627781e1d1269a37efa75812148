@@ -1,0 +1,31 @@
+versions/1.21.1/build.gradle
+  s_2115eb28c06e6c::t_7918db2e4ac1f8 140
+versions/1.21.1/gradle.properties
+  s_2115eb28c06e6c::t_4000c12e112aa3 14
+versions/1.21.1/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsApiBridge.java
+  s_2115eb28c06e6c::t_ed36a444e9fe97 1-334
+versions/1.21.1/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsCompat.java
+  s_2115eb28c06e6c::t_62e1ca40ce30b4 58-59,70-71,82-83,94-95,106-107,118-119,130-131,142-143,154-155,166-167,178-179,190-191,202-203,216-217,225-226,234-235,241,243-244,246,250,252-253,255,259,261-262,358,363,368,378
+versions/26.1.2/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsApiBridge.java
+  s_2115eb28c06e6c::t_8c4dbdae736890 1-338
+versions/26.1.2/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsCompat.java
+  s_2115eb28c06e6c::t_b4650400b7534d 58-59,70-71,82-83,94-95,106-107,118-119,130-131,142-143,154-155,166-167,178-179,190-191,202-203,216-217,225-226,234-235,241,243-244,246,250,252-253,255,259,261-262,358,363,368,378
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "92c69d8623a46627781e1d1269a37efa75812148",
+  "prompts": {},
+  "sessions": {
+    "s_2115eb28c06e6c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4559-9dcb-7f82-bef4-66cc47941ec5",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
