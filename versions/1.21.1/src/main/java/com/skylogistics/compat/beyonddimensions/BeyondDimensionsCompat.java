@@ -39,19 +39,25 @@ public final class BeyondDimensionsCompat {
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()
+                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
 
     public static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
-        return isLoaded() && MekanismCompat.isLoaded() ? new ChemicalHandler(host) : null;
+        return isLoaded() && MekanismCompat.isLoaded()
+                && SkyLogisticsConfig.allowBeyondDimensionsMekanismChemicalTransfer()
+                ? new ChemicalHandler(host) : null;
     }
 
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {
-        return isLoaded() ? new EnergyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()
+                ? new EnergyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
     }
 
     public static SourceHandlerBridge createSourceHandler(BlockEntity host) {
-        return isLoaded() && ArsNouveauCompat.isLoaded() ? new SourceHandler(host) : null;
+        return isLoaded() && ArsNouveauCompat.isLoaded()
+                && SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()
+                ? new SourceHandler(host) : null;
     }
 
     public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -103,7 +109,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static FluidResource fluidResourceInTank(BlockEntity host, int tank) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return FluidResource.EMPTY;
         }
         try {
@@ -139,7 +145,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return 0L;
         }
         try {
@@ -151,7 +157,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return 0L;
         }
         try {
@@ -163,7 +169,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long energyStored(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -175,7 +181,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -187,7 +193,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -199,7 +205,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long sourceStored(BlockEntity host) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
@@ -211,7 +218,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertSource(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
@@ -223,7 +231,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractSource(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
@@ -272,7 +281,8 @@ public final class BeyondDimensionsCompat {
 
     private static IFluidHandler fluidHandler(BlockEntity host) {
         try {
-            return isLoaded() ? BeyondDimensionsApiBridge.fluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+            return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()
+                    ? BeyondDimensionsApiBridge.fluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
@@ -281,7 +291,9 @@ public final class BeyondDimensionsCompat {
 
     private static ChemicalHandlerBridge chemicalHandler(BlockEntity host) {
         try {
-            return isLoaded() && MekanismCompat.isLoaded() ? BeyondDimensionsApiBridge.chemicalHandler(host) : null;
+            return isLoaded() && MekanismCompat.isLoaded()
+                    && SkyLogisticsConfig.allowBeyondDimensionsMekanismChemicalTransfer()
+                    ? BeyondDimensionsApiBridge.chemicalHandler(host) : null;
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return null;
@@ -290,7 +302,8 @@ public final class BeyondDimensionsCompat {
 
     private static IEnergyStorage energyHandler(BlockEntity host) {
         try {
-            return isLoaded() ? BeyondDimensionsApiBridge.energyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
+            return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()
+                    ? BeyondDimensionsApiBridge.energyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Energy.INSTANCE;
@@ -299,7 +312,9 @@ public final class BeyondDimensionsCompat {
 
     private static SourceHandlerBridge sourceHandler(BlockEntity host) {
         try {
-            return isLoaded() && ArsNouveauCompat.isLoaded() ? BeyondDimensionsApiBridge.sourceHandler(host) : null;
+            return isLoaded() && ArsNouveauCompat.isLoaded()
+                    && SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()
+                    ? BeyondDimensionsApiBridge.sourceHandler(host) : null;
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return null;

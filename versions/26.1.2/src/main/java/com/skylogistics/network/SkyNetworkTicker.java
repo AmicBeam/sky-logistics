@@ -275,9 +275,12 @@ public final class SkyNetworkTicker {
         boolean sourceSlotsExhausted = false;
         int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
         for (int i = 0; i < slotChecks && operations < budget; i++) {
-            int slot = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime, firstTriedSlot, secondTriedSlot);
+            SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    firstTriedSlot, secondTriedSlot, budget - operations);
+            operations += search.skippedChecks();
+            int slot = search.index();
             if (slot < 0) {
-                sourceSlotsExhausted = true;
+                sourceSlotsExhausted = search.exhausted();
                 break;
             }
             if (firstTriedSlot < 0) {
@@ -349,9 +352,12 @@ public final class SkyNetworkTicker {
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
         for (int i = 0; i < slotChecks && operations < budget; i++) {
-            int slot = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime, firstTriedSlot, secondTriedSlot);
+            SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    firstTriedSlot, secondTriedSlot, budget - operations);
+            operations += search.skippedChecks();
+            int slot = search.index();
             if (slot < 0) {
-                sourceSlotsExhausted = true;
+                sourceSlotsExhausted = search.exhausted();
                 break;
             }
             if (firstTriedSlot < 0) {
@@ -570,36 +576,47 @@ public final class SkyNetworkTicker {
         return true;
     }
 
-    private static int nextItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int slots,
-            long gameTime, int firstTriedSlot, int secondTriedSlot) {
+    private static SourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
+            int slots, long gameTime, int firstTriedSlot, int secondTriedSlot, int skipBudget) {
         if (sourceEndpoint.isItemSlotDiscoveryActive()) {
-            int discoverySlot = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, true);
-            if (discoverySlot >= 0) {
+            SourceSearchResult discovery = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    firstTriedSlot, secondTriedSlot, true, skipBudget);
+            if (discovery.index() >= 0) {
                 sourceEndpoint.recordItemSlotDiscoveryCheck();
-                return discoverySlot;
+                return discovery;
             }
-            sourceEndpoint.clearItemSlotDiscovery();
+            if (discovery.exhausted()) {
+                sourceEndpoint.clearItemSlotDiscovery();
+            } else {
+                return discovery;
+            }
         }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
-            return preferredSlot;
+            return new SourceSearchResult(preferredSlot, 0, false);
         }
         return nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                firstTriedSlot, secondTriedSlot, false);
+                firstTriedSlot, secondTriedSlot, false, skipBudget);
     }
 
-    private static int nextSequentialItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int slots,
-            long gameTime, int firstTriedSlot, int secondTriedSlot, boolean ignoreEmptyCooldown) {
-        for (int attempts = 0; attempts < slots; attempts++) {
+    private static SourceSearchResult nextSequentialItemSlot(CachedEndpoint sourceEndpoint,
+            SkyNodeBlockEntity sourceNode, int slots, long gameTime, int firstTriedSlot, int secondTriedSlot,
+            boolean ignoreEmptyCooldown, int skipBudget) {
+        int skippedChecks = 0;
+        int attemptLimit = Math.min(slots, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
+        for (int attempts = 0; attempts < attemptLimit; attempts++) {
             int slot = sourceNode.nextItemStart(slots);
             if (wasSlotTried(firstTriedSlot, secondTriedSlot, slot)
                     || (!ignoreEmptyCooldown && !sourceEndpoint.canTryItemSlot(slot, gameTime))) {
+                skippedChecks++;
+                if (skippedChecks >= skipBudget) {
+                    return new SourceSearchResult(-1, skippedChecks, false);
+                }
                 continue;
             }
-            return slot;
+            return new SourceSearchResult(slot, skippedChecks, false);
         }
-        return -1;
+        return new SourceSearchResult(-1, skippedChecks, attemptLimit >= slots);
     }
 
     private static boolean wasSlotTried(int firstTriedSlot, int secondTriedSlot, int slot) {
@@ -610,7 +627,7 @@ public final class SkyNetworkTicker {
             IItemHandler source) {
         int limit = node.getItemSlotLimit(direction);
         return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack)) <= limit;
+                && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack), limit + 1) <= limit;
     }
 
     private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target,
@@ -622,16 +639,19 @@ public final class SkyNetworkTicker {
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
         return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack)) >= limit
+                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack), limit) >= limit
                 && !canRefillMatchingItemSlot(target, node, direction, candidate);
     }
 
-    private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate) {
+    private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate, int stopAt) {
         int count = 0;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack stack = handler.getStackInSlot(slot);
             if (!stack.isEmpty() && predicate.test(stack)) {
                 count++;
+                if (count >= stopAt) {
+                    return count;
+                }
             }
         }
         return count;
@@ -968,9 +988,12 @@ public final class SkyNetworkTicker {
         int secondTriedTank = -1;
         boolean sourceTanksExhausted = false;
         for (int i = 0; i < tankChecks && operations < budget; i++) {
-            int tank = nextFluidTank(sourceEndpoint, sourceNode, tanks, gameTime, firstTriedTank, secondTriedTank);
+            SourceSearchResult search = nextFluidTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                    firstTriedTank, secondTriedTank, budget - operations);
+            operations += search.skippedChecks();
+            int tank = search.index();
             if (tank < 0) {
-                sourceTanksExhausted = true;
+                sourceTanksExhausted = search.exhausted();
                 break;
             }
             if (firstTriedTank < 0) {
@@ -1009,36 +1032,47 @@ public final class SkyNetworkTicker {
         return operations;
     }
 
-    private static int nextFluidTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int tanks,
-            long gameTime, int firstTriedTank, int secondTriedTank) {
+    private static SourceSearchResult nextFluidTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
+            int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
         if (sourceEndpoint.isFluidTankDiscoveryActive()) {
-            int discoveryTank = nextSequentialFluidTank(sourceEndpoint, sourceNode, tanks, gameTime,
-                    firstTriedTank, secondTriedTank, true);
-            if (discoveryTank >= 0) {
+            SourceSearchResult discovery = nextSequentialFluidTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                    firstTriedTank, secondTriedTank, true, skipBudget);
+            if (discovery.index() >= 0) {
                 sourceEndpoint.recordFluidTankDiscoveryCheck();
-                return discoveryTank;
+                return discovery;
             }
-            sourceEndpoint.clearFluidTankDiscovery();
+            if (discovery.exhausted()) {
+                sourceEndpoint.clearFluidTankDiscovery();
+            } else {
+                return discovery;
+            }
         }
         int preferredTank = sourceEndpoint.nextPreferredFluidTank(tanks, gameTime, firstTriedTank, secondTriedTank);
         if (preferredTank >= 0) {
-            return preferredTank;
+            return new SourceSearchResult(preferredTank, 0, false);
         }
         return nextSequentialFluidTank(sourceEndpoint, sourceNode, tanks, gameTime,
-                firstTriedTank, secondTriedTank, false);
+                firstTriedTank, secondTriedTank, false, skipBudget);
     }
 
-    private static int nextSequentialFluidTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int tanks,
-            long gameTime, int firstTriedTank, int secondTriedTank, boolean ignoreEmptyCooldown) {
-        for (int attempts = 0; attempts < tanks; attempts++) {
+    private static SourceSearchResult nextSequentialFluidTank(CachedEndpoint sourceEndpoint,
+            SkyNodeBlockEntity sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
+            boolean ignoreEmptyCooldown, int skipBudget) {
+        int skippedChecks = 0;
+        int attemptLimit = Math.min(tanks, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
+        for (int attempts = 0; attempts < attemptLimit; attempts++) {
             int tank = sourceNode.nextFluidStart(tanks);
             if (wasSlotTried(firstTriedTank, secondTriedTank, tank)
                     || (!ignoreEmptyCooldown && !sourceEndpoint.canTryFluidTank(tank, gameTime))) {
+                skippedChecks++;
+                if (skippedChecks >= skipBudget) {
+                    return new SourceSearchResult(-1, skippedChecks, false);
+                }
                 continue;
             }
-            return tank;
+            return new SourceSearchResult(tank, skippedChecks, false);
         }
-        return -1;
+        return new SourceSearchResult(-1, skippedChecks, attemptLimit >= tanks);
     }
 
     private static MoveResult tryMoveFluid(CachedEndpoint sourceEndpoint, IFluidHandler source, int sourceTank,
@@ -1285,9 +1319,12 @@ public final class SkyNetworkTicker {
         int secondTriedTank = -1;
         boolean sourceTanksExhausted = false;
         for (int i = 0; i < tankChecks && operations < budget; i++) {
-            int tank = nextChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime, firstTriedTank, secondTriedTank);
+            SourceSearchResult search = nextChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                    firstTriedTank, secondTriedTank, budget - operations);
+            operations += search.skippedChecks();
+            int tank = search.index();
             if (tank < 0) {
-                sourceTanksExhausted = true;
+                sourceTanksExhausted = search.exhausted();
                 break;
             }
             if (firstTriedTank < 0) {
@@ -1322,36 +1359,47 @@ public final class SkyNetworkTicker {
         return operations;
     }
 
-    private static int nextChemicalTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int tanks,
-            long gameTime, int firstTriedTank, int secondTriedTank) {
+    private static SourceSearchResult nextChemicalTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
+            int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
         if (sourceEndpoint.isChemicalTankDiscoveryActive()) {
-            int discoveryTank = nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
-                    firstTriedTank, secondTriedTank, true);
-            if (discoveryTank >= 0) {
+            SourceSearchResult discovery = nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
+                    firstTriedTank, secondTriedTank, true, skipBudget);
+            if (discovery.index() >= 0) {
                 sourceEndpoint.recordChemicalTankDiscoveryCheck();
-                return discoveryTank;
+                return discovery;
             }
-            sourceEndpoint.clearChemicalTankDiscovery();
+            if (discovery.exhausted()) {
+                sourceEndpoint.clearChemicalTankDiscovery();
+            } else {
+                return discovery;
+            }
         }
         int preferredTank = sourceEndpoint.nextPreferredChemicalTank(tanks, gameTime, firstTriedTank, secondTriedTank);
         if (preferredTank >= 0) {
-            return preferredTank;
+            return new SourceSearchResult(preferredTank, 0, false);
         }
         return nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
-                firstTriedTank, secondTriedTank, false);
+                firstTriedTank, secondTriedTank, false, skipBudget);
     }
 
-    private static int nextSequentialChemicalTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
-            int tanks, long gameTime, int firstTriedTank, int secondTriedTank, boolean ignoreEmptyCooldown) {
-        for (int attempts = 0; attempts < tanks; attempts++) {
+    private static SourceSearchResult nextSequentialChemicalTank(CachedEndpoint sourceEndpoint,
+            SkyNodeBlockEntity sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
+            boolean ignoreEmptyCooldown, int skipBudget) {
+        int skippedChecks = 0;
+        int attemptLimit = Math.min(tanks, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
+        for (int attempts = 0; attempts < attemptLimit; attempts++) {
             int tank = sourceNode.nextFluidStart(tanks);
             if (wasSlotTried(firstTriedTank, secondTriedTank, tank)
                     || (!ignoreEmptyCooldown && !sourceEndpoint.canTryChemicalTank(tank, gameTime))) {
+                skippedChecks++;
+                if (skippedChecks >= skipBudget) {
+                    return new SourceSearchResult(-1, skippedChecks, false);
+                }
                 continue;
             }
-            return tank;
+            return new SourceSearchResult(tank, skippedChecks, false);
         }
-        return -1;
+        return new SourceSearchResult(-1, skippedChecks, attemptLimit >= tanks);
     }
 
     private static MoveResult tryMoveChemical(CachedEndpoint sourceEndpoint, ChemicalHandlerBridge source,
@@ -1901,6 +1949,9 @@ public final class SkyNetworkTicker {
 
     private record DimensionDirectResult(boolean moved, int operations, boolean scanFallback,
                                          boolean candidateFound) {
+    }
+
+    private record SourceSearchResult(int index, int skippedChecks, boolean exhausted) {
     }
 
     private record MoveResult(boolean moved, int operations) {

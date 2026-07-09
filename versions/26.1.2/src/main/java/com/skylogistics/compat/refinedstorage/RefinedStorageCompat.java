@@ -2,6 +2,7 @@ package com.skylogistics.compat.refinedstorage;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.config.SkyLogisticsConfig;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,11 +38,13 @@ public final class RefinedStorageCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        return isLoaded() ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageItemTransfer()
+                ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()
+                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
 
     private static Object storage(BlockEntity host) {

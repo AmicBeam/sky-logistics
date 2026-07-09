@@ -52,6 +52,26 @@ public final class SkyLogisticsConfig {
         return SERVER.externalTankScansPerEndpoint.get();
     }
 
+    public static int sourceSearchAttemptsPerEndpoint() {
+        return SERVER.sourceSearchAttemptsPerEndpoint.get();
+    }
+
+    public static boolean allowAe2ItemTransfer() {
+        return SERVER.allowAe2ItemTransfer.get();
+    }
+
+    public static boolean allowAe2FluidTransfer() {
+        return SERVER.allowAe2FluidTransfer.get();
+    }
+
+    public static boolean allowRefinedStorageItemTransfer() {
+        return SERVER.allowRefinedStorageItemTransfer.get();
+    }
+
+    public static boolean allowRefinedStorageFluidTransfer() {
+        return SERVER.allowRefinedStorageFluidTransfer.get();
+    }
+
     public static boolean allowFluidChemicalTransfer() {
         return SERVER.allowFluidChemicalTransfer.get();
     }
@@ -76,8 +96,24 @@ public final class SkyLogisticsConfig {
         return SERVER.allowBeyondDimensionsItemTransfer.get();
     }
 
+    public static boolean allowBeyondDimensionsFluidTransfer() {
+        return SERVER.allowBeyondDimensionsFluidTransfer.get();
+    }
+
+    public static boolean allowBeyondDimensionsEnergyTransfer() {
+        return SERVER.allowBeyondDimensionsEnergyTransfer.get();
+    }
+
     public static boolean allowBeyondDimensionsMekanismChemicalTransfer() {
         return SERVER.allowBeyondDimensionsMekanismChemicalTransfer.get();
+    }
+
+    public static boolean allowBeyondDimensionsManaTransfer() {
+        return SERVER.allowBeyondDimensionsManaTransfer.get();
+    }
+
+    public static boolean allowBeyondDimensionsSourceTransfer() {
+        return SERVER.allowBeyondDimensionsSourceTransfer.get();
     }
 
     public static boolean allowAe2AppliedBotanicsManaTransfer() {
@@ -100,6 +136,10 @@ public final class SkyLogisticsConfig {
         return SERVER.skyNecklaceTickInterval.get();
     }
 
+    public static int skyNecklaceSlotScansPerTick() {
+        return SERVER.skyNecklaceSlotScansPerTick.get();
+    }
+
     public static int skyRitualMinY() {
         return SERVER.skyRitualMinY.get();
     }
@@ -118,22 +158,32 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue lineOpsPerTick;
         public final ForgeConfigSpec.IntValue endpointTargetAttempts;
         public final ForgeConfigSpec.IntValue externalTankScansPerEndpoint;
+        public final ForgeConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ForgeConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ForgeConfigSpec.IntValue transferRetryFirstTicks;
         public final ForgeConfigSpec.IntValue transferRetrySecondTicks;
         public final ForgeConfigSpec.IntValue transferRetryThirdTicks;
         public final ForgeConfigSpec.IntValue transferRetryMaxTicks;
         public final ForgeConfigSpec.IntValue skyNecklaceTickInterval;
+        public final ForgeConfigSpec.IntValue skyNecklaceSlotScansPerTick;
         public final ForgeConfigSpec.IntValue skyRitualMinY;
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
+        public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
+        public final ForgeConfigSpec.BooleanValue allowAe2FluidTransfer;
+        public final ForgeConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
+        public final ForgeConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
         public final ForgeConfigSpec.BooleanValue allowFluidChemicalTransfer;
         public final ForgeConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ForgeConfigSpec.BooleanValue allowEnergySourceTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
         public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsItemTransfer;
+        public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsFluidTransfer;
+        public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsEnergyTransfer;
         public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsMekanismChemicalTransfer;
+        public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsManaTransfer;
+        public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsSourceTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
 
@@ -172,6 +222,21 @@ public final class SkyLogisticsConfig {
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
+            sourceSearchAttemptsPerEndpoint = builder
+                    .comment("Maximum slot/tank cursor positions one source endpoint may skip while searching for work in one transfer attempt.")
+                    .defineInRange("sourceSearchAttemptsPerEndpoint", 64, 1, 1_000_000);
+            allowAe2ItemTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer items stored in AE2 networks.")
+                    .define("allowAe2ItemTransfer", true);
+            allowAe2FluidTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer fluids stored in AE2 networks.")
+                    .define("allowAe2FluidTransfer", true);
+            allowRefinedStorageItemTransfer = builder
+                    .comment("Whether Sky RS Interfaces may transfer items stored in Refined Storage networks.")
+                    .define("allowRefinedStorageItemTransfer", true);
+            allowRefinedStorageFluidTransfer = builder
+                    .comment("Whether Sky RS Interfaces may transfer fluids stored in Refined Storage networks.")
+                    .define("allowRefinedStorageFluidTransfer", true);
             allowFluidChemicalTransfer = builder
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.")
                     .define("allowFluidChemicalTransfer", true);
@@ -190,9 +255,21 @@ public final class SkyLogisticsConfig {
             allowBeyondDimensionsItemTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer items stored in Beyond Dimensions networks.")
                     .define("allowBeyondDimensionsItemTransfer", true);
+            allowBeyondDimensionsFluidTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer fluids stored in Beyond Dimensions networks.")
+                    .define("allowBeyondDimensionsFluidTransfer", true);
+            allowBeyondDimensionsEnergyTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer FE stored in Beyond Dimensions networks.")
+                    .define("allowBeyondDimensionsEnergyTransfer", true);
             allowBeyondDimensionsMekanismChemicalTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer Mekanism chemicals stored in Beyond Dimensions networks.")
                     .define("allowBeyondDimensionsMekanismChemicalTransfer", true);
+            allowBeyondDimensionsManaTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer Botania mana stored in Beyond Dimensions networks.")
+                    .define("allowBeyondDimensionsManaTransfer", true);
+            allowBeyondDimensionsSourceTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer Ars Nouveau source stored in Beyond Dimensions networks.")
+                    .define("allowBeyondDimensionsSourceTransfer", true);
             allowAe2AppliedBotanicsManaTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer Applied Botanics mana stored in AE2 networks.")
                     .define("allowAe2AppliedBotanicsManaTransfer", true);
@@ -220,6 +297,9 @@ public final class SkyLogisticsConfig {
             skyNecklaceTickInterval = builder
                     .comment("Server ticks between Sky Necklace work scans. Higher values reduce player inventory and backpack scanning frequency.")
                     .defineInRange("skyNecklaceTickInterval", 10, 1, 1200);
+            skyNecklaceSlotScansPerTick = builder
+                    .comment("Maximum inventory, backpack, or network item slots one Sky Necklace may scan each work tick.")
+                    .defineInRange("skyNecklaceSlotScansPerTick", 64, 1, 1_000_000);
             builder.pop();
 
             builder.push("rituals");

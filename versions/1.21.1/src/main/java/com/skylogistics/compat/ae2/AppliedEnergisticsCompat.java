@@ -57,11 +57,13 @@ public final class AppliedEnergisticsCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        return isLoaded() ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowAe2ItemTransfer()
+                ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowAe2FluidTransfer()
+                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
 
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {

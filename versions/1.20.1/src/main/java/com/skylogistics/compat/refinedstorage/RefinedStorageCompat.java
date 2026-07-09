@@ -2,6 +2,7 @@ package com.skylogistics.compat.refinedstorage;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.config.SkyLogisticsConfig;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.ModList;
@@ -19,7 +20,7 @@ public final class RefinedStorageCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageItemTransfer()) {
             return EmptyExternalHandlers.Items.INSTANCE;
         }
         try {
@@ -31,7 +32,7 @@ public final class RefinedStorageCompat {
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageFluidTransfer()) {
             return EmptyExternalHandlers.Fluids.INSTANCE;
         }
         try {

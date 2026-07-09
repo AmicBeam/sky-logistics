@@ -32,7 +32,7 @@ public final class AppliedEnergisticsCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer()) {
             return EmptyExternalHandlers.Items.INSTANCE;
         }
         try {
@@ -44,7 +44,7 @@ public final class AppliedEnergisticsCompat {
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer()) {
             return EmptyExternalHandlers.Fluids.INSTANCE;
         }
         try {

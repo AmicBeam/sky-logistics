@@ -47,7 +47,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return EmptyExternalHandlers.Fluids.INSTANCE;
         }
         try {
@@ -59,7 +59,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
-        if (!isLoaded() || !MekanismCompat.isLoaded()) {
+        if (!isLoaded() || !MekanismCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsMekanismChemicalTransfer()) {
             return null;
         }
         try {
@@ -71,7 +72,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return EmptyExternalHandlers.Energy.INSTANCE;
         }
         try {
@@ -83,7 +84,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static ManaHandlerBridge createManaHandler(BlockEntity host) {
-        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsManaTransfer()) {
             return null;
         }
         try {
@@ -95,7 +97,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static SourceHandlerBridge createSourceHandler(BlockEntity host) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return null;
         }
         try {
@@ -181,7 +184,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static FluidResource fluidResourceInTank(BlockEntity host, int tank) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return FluidResource.EMPTY;
         }
         try {
@@ -217,7 +220,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return 0L;
         }
         try {
@@ -229,7 +232,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()) {
             return 0L;
         }
         try {
@@ -241,7 +244,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long energyStored(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -253,7 +256,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -265,7 +268,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()) {
             return 0L;
         }
         try {
@@ -277,7 +280,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long manaStored(BlockEntity host) {
-        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsManaTransfer()) {
             return 0L;
         }
         try {
@@ -289,7 +293,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertMana(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsManaTransfer()) {
             return 0L;
         }
         try {
@@ -301,7 +306,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractMana(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !BotaniaCompat.isLoaded()) {
+        if (!isLoaded() || !BotaniaCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsManaTransfer()) {
             return 0L;
         }
         try {
@@ -313,7 +319,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long sourceStored(BlockEntity host) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
@@ -325,7 +332,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertSource(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
@@ -337,7 +345,8 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractSource(BlockEntity host, long amount, boolean simulate) {
-        if (!isLoaded() || !ArsNouveauCompat.isLoaded()) {
+        if (!isLoaded() || !ArsNouveauCompat.isLoaded()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()) {
             return 0L;
         }
         try {
