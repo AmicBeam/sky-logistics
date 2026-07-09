@@ -349,7 +349,8 @@ public final class SkyNetworkTicker {
                 && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack)) <= limit;
     }
 
-    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target) {
+    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target,
+            ItemStack candidate) {
         if (target == null) {
             return false;
         }
@@ -357,7 +358,8 @@ public final class SkyNetworkTicker {
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
         return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack)) >= limit;
+                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack)) >= limit
+                && !canRefillMatchingItemSlot(target, node, direction, candidate);
     }
 
     private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate) {
@@ -369,6 +371,26 @@ public final class SkyNetworkTicker {
             }
         }
         return count;
+    }
+
+    private static boolean canRefillMatchingItemSlot(IItemHandler handler, SkyNodeBlockEntity node,
+            net.minecraft.core.Direction direction, ItemStack candidate) {
+        if (candidate.isEmpty()) {
+            return false;
+        }
+        ItemStack probe = candidate.copy();
+        probe.setCount(1);
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack existing = handler.getStackInSlot(slot);
+            if (existing.isEmpty() || !node.allowsItem(direction, existing)
+                    || !ItemStack.isSameItemSameTags(existing, candidate)) {
+                continue;
+            }
+            if (handler.insertItem(slot, probe, true).getCount() < probe.getCount()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
@@ -419,7 +441,7 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 IItemHandler target = targetEndpoint.itemHandler(gameTime);
-                if (isInsertionBlockedBySlotLimit(targetEndpoint, target)) {
+                if (isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
                     continue;
                 }
                 LongItemEndpoint targetLongEndpoint = longItemEndpoint(targetEndpoint);

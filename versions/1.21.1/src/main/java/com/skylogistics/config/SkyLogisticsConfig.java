@@ -88,6 +88,10 @@ public final class SkyLogisticsConfig {
         return SERVER.preferredItemSlotCacheSize.get();
     }
 
+    public static int transferRetryDelayTicks(int failures) {
+        return SERVER.transferRetryDelayTicks(failures);
+    }
+
     public static int skyNecklaceTickInterval() {
         return SERVER.skyNecklaceTickInterval.get();
     }
@@ -111,6 +115,10 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue endpointTargetAttempts;
         public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
+        public final ModConfigSpec.IntValue transferRetryFirstTicks;
+        public final ModConfigSpec.IntValue transferRetrySecondTicks;
+        public final ModConfigSpec.IntValue transferRetryThirdTicks;
+        public final ModConfigSpec.IntValue transferRetryMaxTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
@@ -186,6 +194,18 @@ public final class SkyLogisticsConfig {
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
+            transferRetryFirstTicks = builder
+                    .comment("Ticks to wait after the first failed transfer attempt. Shared by sending endpoint failures and receiving endpoint accept-reject retries.")
+                    .defineInRange("transferRetryFirstTicks", 5, 1, 1200);
+            transferRetrySecondTicks = builder
+                    .comment("Ticks to wait after the second consecutive failed transfer attempt.")
+                    .defineInRange("transferRetrySecondTicks", 10, 1, 1200);
+            transferRetryThirdTicks = builder
+                    .comment("Ticks to wait after the third consecutive failed transfer attempt.")
+                    .defineInRange("transferRetryThirdTicks", 20, 1, 1200);
+            transferRetryMaxTicks = builder
+                    .comment("Ticks to wait after the fourth and later consecutive failed transfer attempts.")
+                    .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
             builder.pop();
 
             builder.push("necklaces");
@@ -202,6 +222,19 @@ public final class SkyLogisticsConfig {
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.")
                     .defineInRange("eulogiaCrystalChargeSeconds", 60, 1, 3600);
             builder.pop();
+        }
+
+        private int transferRetryDelayTicks(int failures) {
+            if (failures <= 1) {
+                return transferRetryFirstTicks.get();
+            }
+            if (failures == 2) {
+                return transferRetrySecondTicks.get();
+            }
+            if (failures == 3) {
+                return transferRetryThirdTicks.get();
+            }
+            return transferRetryMaxTicks.get();
         }
     }
 

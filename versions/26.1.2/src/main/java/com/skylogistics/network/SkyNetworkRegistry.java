@@ -63,10 +63,7 @@ public final class SkyNetworkRegistry {
     private static final int PREFERRED_CHEMICAL_TANK_MISS_LIMIT = 3;
     private static final int EMPTY_CHEMICAL_TANK_RETRY_TICKS = 20;
     private static final int REJECTED_ACCEPT_CACHE_SIZE = 8;
-    private static final int REJECTED_ACCEPT_RETRY_TICKS = 20;
-    private static final int FIRST_FAILURE_RETRY_TICKS = 5;
-    private static final int NORMAL_FAILURE_RETRY_TICKS = 20;
-    private static final int MAX_FAILURE_RETRY_TICKS = 40;
+    private static final int MAX_TRANSFER_FAILURES = 8;
 
     private static final Map<ResourceKey<Level>, DimensionIndex> DIMENSIONS = new HashMap<>();
     private static final Set<LineIndex> ACTIVE_LINES = new LinkedHashSet<>();
@@ -832,12 +829,15 @@ public final class SkyNetworkRegistry {
         private int rejectedItemCursor;
         private final ItemStackKey[] rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
         private final long[] rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+        private final int[] rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
         private int rejectedItemAcceptCursor;
         private final FluidStackKey[] rejectedFluidAccepts = new FluidStackKey[REJECTED_ACCEPT_CACHE_SIZE];
         private final long[] rejectedFluidAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+        private final int[] rejectedFluidAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
         private int rejectedFluidAcceptCursor;
         private final ChemicalStackView[] rejectedChemicalAccepts = new ChemicalStackView[REJECTED_ACCEPT_CACHE_SIZE];
         private final long[] rejectedChemicalAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+        private final int[] rejectedChemicalAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
         private int rejectedChemicalAcceptCursor;
 
         private CachedEndpoint(SkyNodeBlockEntity node, Direction direction) {
@@ -1106,7 +1106,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemFailure(long gameTime) {
-            itemFailures = Math.min(itemFailures + 1, 8);
+            itemFailures = Math.min(itemFailures + 1, MAX_TRANSFER_FAILURES);
             itemRetryAfter = gameTime + delay(itemFailures);
         }
 
@@ -1145,9 +1145,16 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {
-            rejectedItemAccepts[rejectedItemAcceptCursor] = key;
-            rejectedItemAcceptUntil[rejectedItemAcceptCursor] = gameTime + REJECTED_ACCEPT_RETRY_TICKS;
-            rejectedItemAcceptCursor = (rejectedItemAcceptCursor + 1) % rejectedItemAccepts.length;
+            int index = findRejectedItemAccept(key);
+            if (index < 0) {
+                index = rejectedItemAcceptCursor;
+                rejectedItemAcceptCursor = (rejectedItemAcceptCursor + 1) % rejectedItemAccepts.length;
+                rejectedItemAccepts[index] = key;
+                rejectedItemAcceptFailures[index] = 0;
+            }
+            int failures = Math.min(rejectedItemAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
+            rejectedItemAcceptFailures[index] = failures;
+            rejectedItemAcceptUntil[index] = gameTime + delay(failures);
         }
 
         public int nextPreferredItemSlot(int slots, long gameTime, int firstTriedSlot, int secondTriedSlot) {
@@ -1276,7 +1283,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidFailure(long gameTime) {
-            fluidFailures = Math.min(fluidFailures + 1, 8);
+            fluidFailures = Math.min(fluidFailures + 1, MAX_TRANSFER_FAILURES);
             fluidRetryAfter = gameTime + delay(fluidFailures);
         }
 
@@ -1290,9 +1297,16 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidAcceptReject(FluidStackKey key, long gameTime) {
-            rejectedFluidAccepts[rejectedFluidAcceptCursor] = key;
-            rejectedFluidAcceptUntil[rejectedFluidAcceptCursor] = gameTime + REJECTED_ACCEPT_RETRY_TICKS;
-            rejectedFluidAcceptCursor = (rejectedFluidAcceptCursor + 1) % rejectedFluidAccepts.length;
+            int index = findRejectedFluidAccept(key);
+            if (index < 0) {
+                index = rejectedFluidAcceptCursor;
+                rejectedFluidAcceptCursor = (rejectedFluidAcceptCursor + 1) % rejectedFluidAccepts.length;
+                rejectedFluidAccepts[index] = key;
+                rejectedFluidAcceptFailures[index] = 0;
+            }
+            int failures = Math.min(rejectedFluidAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
+            rejectedFluidAcceptFailures[index] = failures;
+            rejectedFluidAcceptUntil[index] = gameTime + delay(failures);
         }
 
         public int nextPreferredFluidTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
@@ -1404,7 +1418,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordChemicalFailure(long gameTime) {
-            chemicalFailures = Math.min(chemicalFailures + 1, 8);
+            chemicalFailures = Math.min(chemicalFailures + 1, MAX_TRANSFER_FAILURES);
             chemicalRetryAfter = gameTime + delay(chemicalFailures);
         }
 
@@ -1420,9 +1434,16 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordChemicalAcceptReject(ChemicalStackView key, long gameTime) {
-            rejectedChemicalAccepts[rejectedChemicalAcceptCursor] = key.copyWithAmount(1L);
-            rejectedChemicalAcceptUntil[rejectedChemicalAcceptCursor] = gameTime + REJECTED_ACCEPT_RETRY_TICKS;
-            rejectedChemicalAcceptCursor = (rejectedChemicalAcceptCursor + 1) % rejectedChemicalAccepts.length;
+            int index = findRejectedChemicalAccept(key);
+            if (index < 0) {
+                index = rejectedChemicalAcceptCursor;
+                rejectedChemicalAcceptCursor = (rejectedChemicalAcceptCursor + 1) % rejectedChemicalAccepts.length;
+                rejectedChemicalAccepts[index] = key.copyWithAmount(1L);
+                rejectedChemicalAcceptFailures[index] = 0;
+            }
+            int failures = Math.min(rejectedChemicalAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
+            rejectedChemicalAcceptFailures[index] = failures;
+            rejectedChemicalAcceptUntil[index] = gameTime + delay(failures);
         }
 
         public int nextPreferredChemicalTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
@@ -1507,7 +1528,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordEnergyFailure(long gameTime) {
-            energyFailures = Math.min(energyFailures + 1, 8);
+            energyFailures = Math.min(energyFailures + 1, MAX_TRANSFER_FAILURES);
             energyRetryAfter = gameTime + delay(energyFailures);
         }
 
@@ -1517,7 +1538,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordManaFailure(long gameTime) {
-            manaFailures = Math.min(manaFailures + 1, 8);
+            manaFailures = Math.min(manaFailures + 1, MAX_TRANSFER_FAILURES);
             manaRetryAfter = gameTime + delay(manaFailures);
         }
 
@@ -1527,7 +1548,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordSourceFailure(long gameTime) {
-            sourceFailures = Math.min(sourceFailures + 1, 8);
+            sourceFailures = Math.min(sourceFailures + 1, MAX_TRANSFER_FAILURES);
             sourceRetryAfter = gameTime + delay(sourceFailures);
         }
 
@@ -1633,6 +1654,7 @@ public final class SkyNetworkRegistry {
             for (int i = 0; i < rejectedItemAccepts.length; i++) {
                 rejectedItemAccepts[i] = null;
                 rejectedItemAcceptUntil[i] = 0L;
+                rejectedItemAcceptFailures[i] = 0;
             }
             rejectedItemAcceptCursor = 0;
         }
@@ -1641,6 +1663,7 @@ public final class SkyNetworkRegistry {
             for (int i = 0; i < rejectedFluidAccepts.length; i++) {
                 rejectedFluidAccepts[i] = null;
                 rejectedFluidAcceptUntil[i] = 0L;
+                rejectedFluidAcceptFailures[i] = 0;
             }
             rejectedFluidAcceptCursor = 0;
         }
@@ -1649,6 +1672,7 @@ public final class SkyNetworkRegistry {
             for (int i = 0; i < rejectedChemicalAccepts.length; i++) {
                 rejectedChemicalAccepts[i] = null;
                 rejectedChemicalAcceptUntil[i] = 0L;
+                rejectedChemicalAcceptFailures[i] = 0;
             }
             rejectedChemicalAcceptCursor = 0;
         }
@@ -1904,14 +1928,35 @@ public final class SkyNetworkRegistry {
             }
         }
 
+        private int findRejectedItemAccept(ItemStackKey key) {
+            for (int i = 0; i < rejectedItemAccepts.length; i++) {
+                if (key.equals(rejectedItemAccepts[i])) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int findRejectedFluidAccept(FluidStackKey key) {
+            for (int i = 0; i < rejectedFluidAccepts.length; i++) {
+                if (key.equals(rejectedFluidAccepts[i])) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int findRejectedChemicalAccept(ChemicalStackView key) {
+            for (int i = 0; i < rejectedChemicalAccepts.length; i++) {
+                if (rejectedChemicalAccepts[i] != null && rejectedChemicalAccepts[i].isSameChemical(key)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         private static int delay(int failures) {
-            if (failures <= 1) {
-                return FIRST_FAILURE_RETRY_TICKS;
-            }
-            if (failures <= 4) {
-                return NORMAL_FAILURE_RETRY_TICKS;
-            }
-            return MAX_FAILURE_RETRY_TICKS;
+            return SkyLogisticsConfig.transferRetryDelayTicks(failures);
         }
     }
 }
