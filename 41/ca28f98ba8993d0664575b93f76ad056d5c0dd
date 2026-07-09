@@ -1,0 +1,53 @@
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_513ddaef2c366b 75-78,135,190-192
+versions/1.20.1/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_7ba1b11dfd55b5::t_41e05841be2bcf 550-571
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_eb9510bdfe167c::t_3db0edead64d57 4,21,23,25,212-220,250-308,319-325,354-377
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_7ba1b11dfd55b5::t_2f2a379e6821c1 16,22,26-27,255-257,316-574,724-741,822-883,1992-1999
+versions/1.21.1/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsApiBridge.java
+  s_7ba1b11dfd55b5::t_c58ab4195a16a9 26,28,108-121,124-131,134-136,324-340
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_749e29aa602348 75-78,135,190-192
+versions/1.21.1/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_7ba1b11dfd55b5::t_9145df2e4be61f 550-571
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_eb9510bdfe167c::t_9316f21755432b 4,21,23,25,209-217,247-305,316-322,351-374
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_7ba1b11dfd55b5::t_009806b5603559 16,23,27-28,253-255,314-572,722-739,820-881,1898-1905
+versions/26.1.2/src/main/java/com/skylogistics/compat/beyonddimensions/BeyondDimensionsApiBridge.java
+  s_7ba1b11dfd55b5::t_996707c13b4168 27,29,112-125,128-135,138-140,328-344
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_12c89f6e9fff34 75-78,135,190-192
+versions/26.1.2/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_7ba1b11dfd55b5::t_5bdf81f4b6cdd2 556-577
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_eb9510bdfe167c::t_e8a6af4eee443a 4,21,23,25,209-217,247-305,316-322,351-374
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "41ca28f98ba8993d0664575b93f76ad056d5c0dd",
+  "prompts": {},
+  "sessions": {
+    "s_7ba1b11dfd55b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f45f7-91e7-7751-bae3-de2cef29dd8c",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    },
+    "s_eb9510bdfe167c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f45eb-ef34-7f33-9612-cf0adc7384eb",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
