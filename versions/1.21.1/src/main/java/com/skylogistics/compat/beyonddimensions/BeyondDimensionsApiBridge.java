@@ -23,7 +23,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -103,17 +105,35 @@ final class BeyondDimensionsApiBridge {
         if (key == null) {
             return BeyondDimensionsCompat.ItemResource.EMPTY;
         }
-        Object outStack = storage.getOutStackByKey(key);
-        if (!(outStack instanceof ItemStack stack) || stack.isEmpty()) {
+        return itemResourceByKey(storage, key);
+    }
+
+    static int itemTypeCount(BlockEntity host) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null) {
+            return 0;
+        }
+        return storage.getBucket(ItemStackKey.ID).map(TypeBucket::size).orElse(0);
+    }
+
+    static BeyondDimensionsCompat.ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || stack.isEmpty()) {
             return BeyondDimensionsCompat.ItemResource.EMPTY;
         }
-        long amount = Math.max(0L, storage.getStackByKey(key).amount());
-        if (amount <= 0L) {
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
+        return itemResourceByKey(storage, new ItemStackKey(normalized));
+    }
+
+    static BeyondDimensionsCompat.ItemResource itemResourceForTag(BlockEntity host, TagKey<Item> tag) {
+        UnifiedStorage storage = storage(host);
+        if (storage == null || tag == null) {
             return BeyondDimensionsCompat.ItemResource.EMPTY;
         }
-        ItemStack copy = stack.copy();
-        copy.setCount((int) Math.min(Integer.MAX_VALUE, amount));
-        return new BeyondDimensionsCompat.ItemResource(copy, amount);
+        KeyAmount extracted = storage.extract(tag, Long.MAX_VALUE, true);
+        return extracted.isEmpty() ? BeyondDimensionsCompat.ItemResource.EMPTY : itemResourceByKey(storage,
+                extracted.key());
     }
 
     static BeyondDimensionsCompat.FluidResource fluidResourceInTank(BlockEntity host, int tank) {
@@ -299,6 +319,23 @@ final class BeyondDimensionsApiBridge {
             return null;
         }
         return bucket.get().get(slot);
+    }
+
+    private static BeyondDimensionsCompat.ItemResource itemResourceByKey(UnifiedStorage storage, IStackKey<?> key) {
+        if (key == null) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        Object outStack = storage.getOutStackByKey(key);
+        if (!(outStack instanceof ItemStack stack) || stack.isEmpty()) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        long amount = Math.max(0L, storage.getStackByKey(key).amount());
+        if (amount <= 0L) {
+            return BeyondDimensionsCompat.ItemResource.EMPTY;
+        }
+        ItemStack copy = stack.copy();
+        copy.setCount((int) Math.min(Integer.MAX_VALUE, amount));
+        return new BeyondDimensionsCompat.ItemResource(copy, amount);
     }
 
     private static IStackKey<?> sourceStackKey() throws ReflectiveOperationException {

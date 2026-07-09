@@ -13,15 +13,19 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
 import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.StackData;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.energy.IEnergyStorage;
@@ -246,6 +250,9 @@ public final class SkyNetworkTicker {
 
     private static int transferItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        if (isDimensionItemEndpoint(sourceEndpoint)) {
+            return transferDimensionItems(sourceEndpoint, targets, budget, gameTime);
+        }
         SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
         IItemHandler source = sourceEndpoint.itemHandler(gameTime);
         if (source == null || budget <= 0) {
@@ -302,6 +309,265 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
         }
         return operations;
+    }
+
+    private static boolean isDimensionItemEndpoint(CachedEndpoint endpoint) {
+        return endpoint.targetBlockEntity() instanceof BeyondDimensionsCompat.NetworkBoundHost;
+    }
+
+    private static int transferDimensionItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+        if (!(sourceBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) || budget <= 0) {
+            return 0;
+        }
+        DimensionDirectResult direct = tryTransferDimensionWhitelistItems(sourceEndpoint, sourceBlockEntity, targets,
+                budget, gameTime);
+        int operations = direct.operations();
+        if (direct.moved()) {
+            sourceEndpoint.recordItemSuccess();
+            return operations;
+        }
+        if (!direct.scanFallback()) {
+            if (!direct.candidateFound() && operations > 0) {
+                sourceEndpoint.recordItemSourceMiss(operations, operations, gameTime);
+            }
+            return operations;
+        }
+        if (operations >= budget) {
+            return operations;
+        }
+        SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
+        int slots = BeyondDimensionsCompat.itemTypeCount(sourceBlockEntity);
+        if (slots <= 0) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return operations;
+        }
+        boolean foundCandidate = false;
+        int slotChecks = Math.min(slots, sourceNode.getOperationRate());
+        int firstTriedSlot = -1;
+        int secondTriedSlot = -1;
+        boolean sourceSlotsExhausted = false;
+        for (int i = 0; i < slotChecks && operations < budget; i++) {
+            int slot = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime, firstTriedSlot, secondTriedSlot);
+            if (slot < 0) {
+                sourceSlotsExhausted = true;
+                break;
+            }
+            if (firstTriedSlot < 0) {
+                firstTriedSlot = slot;
+            } else {
+                secondTriedSlot = slot;
+            }
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceInSlot(sourceBlockEntity,
+                    slot);
+            operations++;
+            if (resource.isEmpty()) {
+                sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                continue;
+            }
+            ItemStack simulated = resource.stack();
+            if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
+                sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                continue;
+            }
+            foundCandidate = true;
+            sourceEndpoint.recordItemCandidateFound();
+            MoveResult result = tryMoveDimensionItem(sourceEndpoint, sourceBlockEntity, simulated, resource.amount(),
+                    targets, budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                sourceEndpoint.recordItemSlotSuccess(slot, slots);
+                sourceEndpoint.recordItemSuccess();
+            }
+        }
+        if (!foundCandidate && !direct.candidateFound()) {
+            sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
+        }
+        return operations;
+    }
+
+    private static DimensionDirectResult tryTransferDimensionWhitelistItems(CachedEndpoint sourceEndpoint,
+            BlockEntity sourceBlockEntity, List<CachedEndpoint> targets, int budget, long gameTime) {
+        DimensionWhitelistCandidates candidates = dimensionWhitelistCandidates(sourceEndpoint.node(),
+                sourceEndpoint.direction());
+        if (!candidates.hasWhitelist()) {
+            return new DimensionDirectResult(false, 0, true, false);
+        }
+        int operations = 0;
+        boolean candidateFound = false;
+        for (ItemStack sample : candidates.samples()) {
+            if (operations >= budget) {
+                break;
+            }
+            operations++;
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForStack(
+                    sourceBlockEntity, sample);
+            if (resource.isEmpty() || !sourceEndpoint.node().allowsItem(sourceEndpoint.direction(), resource.stack())) {
+                continue;
+            }
+            candidateFound = true;
+            sourceEndpoint.recordItemCandidateFound();
+            MoveResult result = tryMoveDimensionItem(sourceEndpoint, sourceBlockEntity, resource.stack(),
+                    resource.amount(), targets, budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                return new DimensionDirectResult(true, operations, false, true);
+            }
+        }
+        boolean scanFallback = false;
+        for (TagKey<Item> tag : candidates.tags()) {
+            if (operations >= budget) {
+                break;
+            }
+            operations++;
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForTag(
+                    sourceBlockEntity, tag);
+            if (resource.isEmpty()) {
+                continue;
+            }
+            if (!sourceEndpoint.node().allowsItem(sourceEndpoint.direction(), resource.stack())) {
+                scanFallback = true;
+                continue;
+            }
+            candidateFound = true;
+            sourceEndpoint.recordItemCandidateFound();
+            MoveResult result = tryMoveDimensionItem(sourceEndpoint, sourceBlockEntity, resource.stack(),
+                    resource.amount(), targets, budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                return new DimensionDirectResult(true, operations, false, true);
+            }
+            scanFallback = true;
+        }
+        return new DimensionDirectResult(false, operations, scanFallback, candidateFound);
+    }
+
+    private static DimensionWhitelistCandidates dimensionWhitelistCandidates(SkyNodeBlockEntity node,
+            net.minecraft.core.Direction direction) {
+        List<ItemStack> samples = new ArrayList<>();
+        List<TagKey<Item>> tags = new ArrayList<>();
+        boolean hasWhitelist = false;
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = FilterListItem.compile(node.getFaceFilter(direction, slot));
+            if (!compiled.whitelist() || !compiled.hasItemRules()) {
+                continue;
+            }
+            hasWhitelist = true;
+            samples.addAll(compiled.itemSamples());
+            tags.addAll(compiled.itemTags());
+        }
+        return new DimensionWhitelistCandidates(hasWhitelist, samples, tags);
+    }
+
+    private static MoveResult tryMoveDimensionItem(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
+            ItemStack simulated, long available, List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0 || simulated.isEmpty() || available <= 0L) {
+            return new MoveResult(false, 0);
+        }
+        LongItemEndpoint sourceLongEndpoint = new DimensionItemLongEndpoint(sourceBlockEntity);
+        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
+        targetLoop:
+        for (int groupStart = 0; groupStart < targets.size();) {
+            int groupEnd = priorityGroupEnd(targets, groupStart);
+            int groupSize = groupEnd - groupStart;
+            int groupCursor = Math.floorMod(targetCursor, groupSize);
+            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
+                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
+                        groupOffset);
+                if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    redstoneBlocked = true;
+                    continue;
+                }
+                if (!targetEndpoint.canTryItems(gameTime)
+                        || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())) {
+                    continue;
+                }
+                if (targetEndpoint.isItemFilterRejected(simulated, gameTime)
+                        || targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
+                    continue;
+                }
+                if (operations >= targetAttemptBudget) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                operations++;
+                if (!targetEndpoint.node().allowsItem(targetEndpoint.direction(), simulated)) {
+                    targetEndpoint.recordItemFilterReject(simulated, gameTime);
+                    continue;
+                }
+                LongItemEndpoint targetLongEndpoint = longItemEndpoint(targetEndpoint);
+                if (targetLongEndpoint != null) {
+                    long moved = moveLongItemStack(sourceEndpoint, sourceLongEndpoint, simulated, available,
+                            targetEndpoint, targetLongEndpoint, skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordItemSuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordItemFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
+                    continue;
+                }
+                if (tryMoveDimensionItemToHandler(sourceEndpoint, sourceBlockEntity, simulated, available,
+                        targetEndpoint, targetEndpoint.itemHandler(gameTime), simulatedKey, gameTime)) {
+                    targetEndpoint.recordItemSuccess();
+                    return new MoveResult(true, operations);
+                }
+            }
+            groupStart = groupEnd;
+        }
+        if (!redstoneBlocked && !budgetExhausted) {
+            sourceEndpoint.recordItemFailure(gameTime);
+        }
+        return new MoveResult(false, operations);
+    }
+
+    private static boolean tryMoveDimensionItemToHandler(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
+            ItemStack simulated, long available, CachedEndpoint targetEndpoint, IItemHandler target,
+            ItemStackKey simulatedKey, long gameTime) {
+        if (target == null || isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
+            return false;
+        }
+        int requested = (int) Math.min(Math.min(available, SkyLogisticsConfig.nodeItemTransferLimit()),
+                Integer.MAX_VALUE);
+        if (requested <= 0) {
+            return false;
+        }
+        ItemStack offer = simulated.copyWithCount(requested);
+        ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, offer.copy(), true);
+        int movable = offer.getCount() - remainder.getCount();
+        if (movable <= 0) {
+            targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
+            return false;
+        }
+        long extractedAmount = BeyondDimensionsCompat.extractItem(sourceBlockEntity, offer, movable, false);
+        if (extractedAmount <= 0L) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return false;
+        }
+        ItemStack extracted = offer.copyWithCount((int) extractedAmount);
+        ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+        if (!leftover.isEmpty()) {
+            long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlockEntity, leftover, leftover.getCount(),
+                    false);
+            if (rolledBack < leftover.getCount()) {
+                SkyLogistics.LOGGER.warn(
+                        "Item rollback failed after simulated target insertion changed during dimension transfer. Source node {} face {}, target node {} face {}, extracted {}, target leftover {}, rollback remainder {}",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, leftover,
+                        leftover.getCount() - rolledBack);
+            }
+        }
+        return true;
     }
 
     private static int nextItemSlot(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode, int slots,
@@ -457,6 +723,20 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
+                if (targetLongEndpoint != null) {
+                    long moved = moveItemToLongTarget(sourceEndpoint, source, slot, simulated, targetEndpoint,
+                            targetLongEndpoint, skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordItemSuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordItemFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
+                    continue;
+                }
                 if (target == null) {
                     continue;
                 }
@@ -532,6 +812,68 @@ public final class SkyNetworkTicker {
                         sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                         targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
                         inserted, rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private static long moveLongItemStack(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceEndpointLong,
+            ItemStack stack, long available, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong,
+            long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, available);
+        if (requested <= 0L || stack.isEmpty()) {
+            return 0L;
+        }
+        long accepted = targetEndpointLong.insert(stack, requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        long extracted = sourceEndpointLong.extract(-1, stack, accepted, false);
+        if (extracted <= 0L) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insert(stack, extracted, false);
+        if (inserted < extracted) {
+            long rollback = extracted - inserted;
+            long rolledBack = sourceEndpointLong.insert(stack, rollback, false);
+            if (rolledBack < rollback) {
+                SkyLogistics.LOGGER.warn(
+                        "Item rollback failed after simulated long item insertion changed during dimension transfer. Source node {} face {}, target node {} face {}, extracted {}, inserted {}, rollback remainder {}",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private static long moveItemToLongTarget(CachedEndpoint sourceEndpoint, IItemHandler source, int sourceSlot,
+            ItemStack simulated, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong, long maxAmount) {
+        long requested = Math.min(maxAmount, simulated.getCount());
+        if (requested <= 0L) {
+            return 0L;
+        }
+        long accepted = targetEndpointLong.insert(simulated, requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        ItemStack extracted = source.extractItem(sourceSlot, (int) Math.min(Integer.MAX_VALUE, accepted), false);
+        if (extracted.isEmpty()) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
+        if (inserted < extracted.getCount()) {
+            ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
+            ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, rollback, false);
+            if (!rollbackRemainder.isEmpty()) {
+                SkyLogistics.LOGGER.warn(
+                        "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
+                        inserted, rollbackRemainder);
             }
         }
         return inserted;
@@ -1551,6 +1893,14 @@ public final class SkyNetworkTicker {
     private static CachedEndpoint targetInGroup(List<CachedEndpoint> targets, int groupStart, int groupSize,
             int cursor, int offset) {
         return targets.get(groupStart + (cursor + offset) % groupSize);
+    }
+
+    private record DimensionWhitelistCandidates(boolean hasWhitelist, List<ItemStack> samples,
+                                                List<TagKey<Item>> tags) {
+    }
+
+    private record DimensionDirectResult(boolean moved, int operations, boolean scanFallback,
+                                         boolean candidateFound) {
     }
 
     private record MoveResult(boolean moved, int operations) {

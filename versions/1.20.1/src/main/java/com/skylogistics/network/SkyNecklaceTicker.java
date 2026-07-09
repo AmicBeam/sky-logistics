@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.curios.CuriosCompat;
 import com.skylogistics.compat.sophisticated.SophisticatedBackpacksCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -17,8 +18,11 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
@@ -205,6 +209,15 @@ public final class SkyNecklaceTicker {
                     || !sourceEndpoint.node().isItemsEnabled(sourceEndpoint.direction())) {
                 continue;
             }
+            BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+            if (sourceBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost
+                    && tryInsertFromDimensionSource(sourceEndpoint, sourceBlockEntity, itemWhitelist, target,
+                    transferLimit, gameTime)) {
+                return;
+            }
+            if (sourceBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+                continue;
+            }
             IItemHandler source = sourceEndpoint.itemHandler(gameTime);
             if (source == null) {
                 continue;
@@ -234,6 +247,65 @@ public final class SkyNecklaceTicker {
                 || SophisticatedBackpacksCompat.isBackpackItem(stack);
     }
 
+    private static boolean tryInsertFromDimensionSource(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
+            FilterListItem.CompiledFilter itemWhitelist, IItemHandler target, int transferLimit, long gameTime) {
+        for (ItemStack sample : itemWhitelist.itemSamples()) {
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForStack(
+                    sourceBlockEntity, sample);
+            if (tryMoveDimensionToPlayer(sourceEndpoint, sourceBlockEntity, resource, itemWhitelist, target,
+                    transferLimit, gameTime)) {
+                return true;
+            }
+        }
+        for (TagKey<Item> tag : itemWhitelist.itemTags()) {
+            BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForTag(
+                    sourceBlockEntity, tag);
+            if (tryMoveDimensionToPlayer(sourceEndpoint, sourceBlockEntity, resource, itemWhitelist, target,
+                    transferLimit, gameTime)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean tryMoveDimensionToPlayer(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
+            BeyondDimensionsCompat.ItemResource resource, FilterListItem.CompiledFilter itemWhitelist,
+            IItemHandler target, int transferLimit, long gameTime) {
+        if (resource.isEmpty()) {
+            return false;
+        }
+        ItemStack simulated = resource.stack().copyWithCount((int) Math.min(Math.min(resource.amount(), transferLimit),
+                Integer.MAX_VALUE));
+        if (simulated.isEmpty()
+                || !sourceEndpoint.node().allowsItem(sourceEndpoint.direction(), simulated)
+                || !itemWhitelist.matches(simulated)) {
+            return false;
+        }
+        ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
+        int movable = simulated.getCount() - remainder.getCount();
+        if (movable <= 0) {
+            return false;
+        }
+        long extractedAmount = BeyondDimensionsCompat.extractItem(sourceBlockEntity, simulated, movable, false);
+        if (extractedAmount <= 0L) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return false;
+        }
+        ItemStack extracted = simulated.copyWithCount((int) extractedAmount);
+        ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+        if (!leftover.isEmpty()) {
+            long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlockEntity, leftover, leftover.getCount(),
+                    false);
+            if (rolledBack < leftover.getCount()) {
+                SkyLogistics.LOGGER.warn(
+                        "Sky necklace dimension insert rollback failed: extracted {}, leftover {}, rollback remainder {}",
+                        extracted, leftover, leftover.getCount() - rolledBack);
+            }
+        }
+        sourceEndpoint.recordItemSuccess();
+        return true;
+    }
+
     private static boolean tryMove(IItemHandler source, int slot, ItemStack simulated, List<CachedEndpoint> targets,
             long gameTime) {
         for (CachedEndpoint targetEndpoint : targets) {
@@ -242,6 +314,13 @@ public final class SkyNecklaceTicker {
                     || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())
                     || targetEndpoint.isItemFilterRejected(simulated, gameTime)
                     || !targetEndpoint.node().allowsItem(targetEndpoint.direction(), simulated)) {
+                continue;
+            }
+            BlockEntity targetBlockEntity = targetEndpoint.targetBlockEntity();
+            if (targetBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+                if (tryMoveToDimensionTarget(source, slot, simulated, targetEndpoint, targetBlockEntity, gameTime)) {
+                    return true;
+                }
                 continue;
             }
             IItemHandler target = targetEndpoint.itemHandler(gameTime);
@@ -270,6 +349,30 @@ public final class SkyNecklaceTicker {
             return true;
         }
         return false;
+    }
+
+    private static boolean tryMoveToDimensionTarget(IItemHandler source, int slot, ItemStack simulated,
+            CachedEndpoint targetEndpoint, BlockEntity targetBlockEntity, long gameTime) {
+        long accepted = BeyondDimensionsCompat.insertItem(targetBlockEntity, simulated, simulated.getCount(), true);
+        if (accepted <= 0L) {
+            targetEndpoint.recordItemFailure(gameTime);
+            return false;
+        }
+        ItemStack extracted = source.extractItem(slot, (int) Math.min(Integer.MAX_VALUE, accepted), false);
+        if (extracted.isEmpty()) {
+            return false;
+        }
+        long inserted = BeyondDimensionsCompat.insertItem(targetBlockEntity, extracted, extracted.getCount(), false);
+        if (inserted < extracted.getCount()) {
+            ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
+            ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, rollback, false);
+            if (!rollbackRemainder.isEmpty()) {
+                SkyLogistics.LOGGER.warn("Sky necklace dimension target rollback failed: extracted {}, inserted {}, rollback {}",
+                        extracted, inserted, rollbackRemainder);
+            }
+        }
+        targetEndpoint.recordItemSuccess();
+        return true;
     }
 
     private static boolean tryMoveToPlayer(CachedEndpoint sourceEndpoint, IItemHandler source, int slot,

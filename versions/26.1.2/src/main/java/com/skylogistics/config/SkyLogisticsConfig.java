@@ -72,6 +72,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowAe2AppliedMekanisticsChemicalTransfer.get();
     }
 
+    public static boolean allowBeyondDimensionsItemTransfer() {
+        return SERVER.allowBeyondDimensionsItemTransfer.get();
+    }
+
     public static boolean allowBeyondDimensionsMekanismChemicalTransfer() {
         return SERVER.allowBeyondDimensionsMekanismChemicalTransfer.get();
     }
@@ -128,6 +132,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowBeyondDimensionsItemTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsMekanismChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
         public final ModConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
@@ -182,6 +187,9 @@ public final class SkyLogisticsConfig {
             allowAe2AppliedMekanisticsChemicalTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer Applied Mekanistics chemicals stored in AE2 networks.")
                     .define("allowAe2AppliedMekanisticsChemicalTransfer", true);
+            allowBeyondDimensionsItemTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer items stored in Beyond Dimensions networks.")
+                    .define("allowBeyondDimensionsItemTransfer", true);
             allowBeyondDimensionsMekanismChemicalTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer Mekanism chemicals stored in Beyond Dimensions networks.")
                     .define("allowBeyondDimensionsMekanismChemicalTransfer", true);

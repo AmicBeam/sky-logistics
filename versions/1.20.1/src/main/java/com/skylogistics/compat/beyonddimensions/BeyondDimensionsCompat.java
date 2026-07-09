@@ -8,9 +8,12 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -32,7 +35,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
             return EmptyExternalHandlers.Items.INSTANCE;
         }
         try {
@@ -130,11 +133,47 @@ public final class BeyondDimensionsCompat {
     }
 
     public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
             return ItemResource.EMPTY;
         }
         try {
             return BeyondDimensionsApiBridge.itemResourceInSlot(host, slot);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return ItemResource.EMPTY;
+        }
+    }
+
+    public static int itemTypeCount(BlockEntity host) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
+            return 0;
+        }
+        try {
+            return BeyondDimensionsApiBridge.itemTypeCount(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0;
+        }
+    }
+
+    public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
+            return ItemResource.EMPTY;
+        }
+        try {
+            return BeyondDimensionsApiBridge.itemResourceForStack(host, stack);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return ItemResource.EMPTY;
+        }
+    }
+
+    public static ItemResource itemResourceForTag(BlockEntity host, TagKey<Item> tag) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
+            return ItemResource.EMPTY;
+        }
+        try {
+            return BeyondDimensionsApiBridge.itemResourceForTag(host, tag);
         } catch (RuntimeException | LinkageError error) {
             warn(error);
             return ItemResource.EMPTY;
@@ -154,7 +193,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
             return 0L;
         }
         try {
@@ -166,7 +205,7 @@ public final class BeyondDimensionsCompat {
     }
 
     public static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
-        if (!isLoaded()) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()) {
             return 0L;
         }
         try {
