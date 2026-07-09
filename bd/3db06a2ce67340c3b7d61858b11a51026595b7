@@ -1,0 +1,45 @@
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_91fcd79726fd40 91-94,118-121,197-208,226-238
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNetworkRegistry.java
+  s_7ba1b11dfd55b5::t_d00f679fc5f59d 60,825,829,833,1125,1164-1173,1302,1316-1325,1437,1453-1462,1547,1557,1567,1618,1627,1636,1892-1896,1898-1905,1907-1920
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_7ba1b11dfd55b5::t_6ce125ef4b3ffb 352-353,361-362,376-395,444
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_12c71cf88200a7 91-94,118-121,197-208,226-238
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNetworkRegistry.java
+  s_7ba1b11dfd55b5::t_c723882098d3fa 61,827,831,835,1104,1143-1152,1281,1295-1304,1416,1432-1441,1526,1536,1546,1652,1661,1670,1926-1930,1932-1939,1941-1954
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_7ba1b11dfd55b5::t_3386d68a5fba08 21,350-351,359-360,374-393,442
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_7ba1b11dfd55b5::t_ebd839d01d36ff 91-94,118-121,197-208,226-238
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNetworkRegistry.java
+  s_7ba1b11dfd55b5::t_8eb70f52c44e6a 66,832,836,840,1109,1148-1157,1286,1300-1309,1421,1437-1446,1531,1541,1551,1657,1666,1675,1931-1935,1937-1944,1946-1959
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_eb9510bdfe167c::t_9b96011e0c954c 21,350-351,359-360,374-393,442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "bd3db06a2ce67340c3b7d61858b11a51026595b7",
+  "prompts": {},
+  "sessions": {
+    "s_7ba1b11dfd55b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f45f7-91e7-7751-bae3-de2cef29dd8c",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    },
+    "s_eb9510bdfe167c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f45eb-ef34-7f33-9612-cf0adc7384eb",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
