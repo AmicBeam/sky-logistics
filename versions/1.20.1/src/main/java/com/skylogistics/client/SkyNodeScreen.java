@@ -68,7 +68,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private boolean advancedPanel;
-    private boolean tagFilterRejectedThisScreen;
+    private Direction tagFilterRejectedFace;
+    private int tagFilterRejectedSlot = -1;
+    private ItemStack tagFilterRejectedPrevious = ItemStack.EMPTY;
 
     public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -225,6 +227,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (localEnergyEnabled != null && node.isEnergyEnabled(selectedFace) == localEnergyEnabled) {
             localEnergyEnabled = null;
         }
+        if (shouldClearTagFilterWarning(node)) {
+            clearTagFilterWarning();
+        }
     }
 
     @Override
@@ -327,9 +332,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             lineNameEdit.setFocused(false);
             setFocused(null);
         }
-        if (clickedRejectedTagFilter(mouseX, mouseY)) {
-            tagFilterRejectedThisScreen = true;
-        }
+        updateTagFilterWarningFromClick(mouseX, mouseY, hasShiftDown());
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
@@ -401,7 +404,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (!node.hasTagFaceFilterRestriction(face)) {
             return null;
         }
-        if (tagFilterRejectedThisScreen) {
+        if (tagFilterRejectedFace == face) {
             return Component.translatable("message.skylogistics.sky_node.tag_filter_external_extract");
         }
         return node.hasValidItemWhitelistFaceFilter(face)
@@ -409,19 +412,60 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 : Component.translatable("screen.skylogistics.sky_node.needs_whitelist_external_extract");
     }
 
-    private boolean clickedRejectedTagFilter(double mouseX, double mouseY) {
+    private void updateTagFilterWarningFromClick(double mouseX, double mouseY, boolean shiftDown) {
         SkyNodeBlockEntity node = node();
         if (node == null || !node.hasTagFaceFilterRestriction(selectedFace)) {
-            return false;
+            return;
         }
         Slot slot = slotAt(mouseX, mouseY);
         if (slot == null) {
+            return;
+        }
+        ItemStack attempted = ItemStack.EMPTY;
+        int targetSlot = faceFilterMenuSlot(slot);
+        if (targetSlot >= 0) {
+            attempted = menu.getCarried();
+            if (!attempted.isEmpty() && !SkyNodeBlockEntity.isFaceFilterItem(attempted)) {
+                return;
+            }
+        } else if (advancedPanel && shiftDown && SkyNodeBlockEntity.isFaceFilterItem(slot.getItem())) {
+            targetSlot = 0;
+            attempted = slot.getItem();
+        } else {
+            return;
+        }
+        refreshTagFilterWarning(node, selectedFace, targetSlot, attempted);
+    }
+
+    private void refreshTagFilterWarning(SkyNodeBlockEntity node, Direction face, int slot, ItemStack attempted) {
+        if (TagFilterListItem.isTagFilterList(attempted)) {
+            tagFilterRejectedFace = face;
+            tagFilterRejectedSlot = slot;
+            tagFilterRejectedPrevious = node.getFaceFilter(face, slot).copy();
+        } else {
+            clearTagFilterWarning();
+        }
+    }
+
+    private boolean shouldClearTagFilterWarning(SkyNodeBlockEntity node) {
+        if (tagFilterRejectedFace == null) {
             return false;
         }
-        if (isFaceFilterMenuSlot(slot)) {
-            return TagFilterListItem.isTagFilterList(menu.getCarried());
+        if (!node.hasTagFaceFilterRestriction(tagFilterRejectedFace)
+                || node.hasValidItemWhitelistFaceFilter(tagFilterRejectedFace)) {
+            return true;
         }
-        return advancedPanel && hasShiftDown() && TagFilterListItem.isTagFilterList(slot.getItem());
+        if (tagFilterRejectedSlot < 0 || tagFilterRejectedSlot >= SkyNodeBlockEntity.FACE_FILTER_SLOTS) {
+            return false;
+        }
+        return !ItemStack.matches(node.getFaceFilter(tagFilterRejectedFace, tagFilterRejectedSlot),
+                tagFilterRejectedPrevious);
+    }
+
+    private void clearTagFilterWarning() {
+        tagFilterRejectedFace = null;
+        tagFilterRejectedSlot = -1;
+        tagFilterRejectedPrevious = ItemStack.EMPTY;
     }
 
     private Slot slotAt(double mouseX, double mouseY) {
@@ -434,15 +478,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return null;
     }
 
-    private boolean isFaceFilterMenuSlot(Slot slot) {
+    private int faceFilterMenuSlot(Slot slot) {
         int start = SkyNodeBlockEntity.UPGRADE_SLOTS;
         int end = start + SkyNodeBlockEntity.FACE_FILTER_SLOTS;
         for (int index = start; index < end && index < menu.slots.size(); index++) {
             if (menu.slots.get(index) == slot) {
-                return true;
+                return index - start;
             }
         }
-        return false;
+        return -1;
     }
 
     private void renderMenuSlotBackgrounds(GuiGraphics graphics) {
