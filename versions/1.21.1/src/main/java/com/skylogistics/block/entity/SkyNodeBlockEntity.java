@@ -332,6 +332,22 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return isExternalNetworkItemExtractionFace(direction);
     }
 
+    public boolean hasValidItemWhitelistFaceFilter(Direction direction) {
+        NonNullList<ItemStack> filters = faceFilters.get(direction);
+        if (filters == null) {
+            return false;
+        }
+        for (ItemStack filter : filters) {
+            if (!filter.isEmpty()
+                    && !TagFilterListItem.isTagFilterList(filter)
+                    && FilterListItem.isWhitelist(filter)
+                    && FilterListItem.countItemRules(filter) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isExternalNetworkItemExtractionFace(Direction direction) {
         return getFaceMode(direction) == NodeFaceMode.INPUT
                 && isItemsEnabled(direction)
