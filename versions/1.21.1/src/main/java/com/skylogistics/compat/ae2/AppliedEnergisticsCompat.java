@@ -66,6 +66,82 @@ public final class AppliedEnergisticsCompat {
                 ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
 
+    public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty()) {
+            return ItemResource.EMPTY;
+        }
+        Object storage = storage(host);
+        Object key = itemKey(stack);
+        long amount = extractKey(host, storage, key, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return ItemResource.EMPTY;
+        }
+        ItemStack display = itemStack(new Entry(key, amount));
+        return display.isEmpty() ? ItemResource.EMPTY : new ItemResource(display, amount);
+    }
+
+    public static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        Object key = itemKey(stack);
+        long inserted = insertKey(host, storage(host), key, amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    public static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        Object key = itemKey(stack);
+        long extracted = extractKey(host, storage(host), key, amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    public static FluidResource fluidResourceForStack(BlockEntity host, FluidStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty()) {
+            return FluidResource.EMPTY;
+        }
+        Object storage = storage(host);
+        Object key = fluidKey(stack);
+        long amount = extractKey(host, storage, key, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return FluidResource.EMPTY;
+        }
+        FluidStack display = fluidStack(new Entry(key, amount));
+        return display.isEmpty() ? FluidResource.EMPTY : new FluidResource(display, amount);
+    }
+
+    public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        Object key = fluidKey(stack);
+        long inserted = insertKey(host, storage(host), key, amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        Object key = fluidKey(stack);
+        long extracted = extractKey(host, storage(host), key, amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    public static boolean sameNetwork(BlockEntity first, BlockEntity second) {
+        if (first == second) {
+            return true;
+        }
+        if (!isLoaded() || first == null || second == null) {
+            return false;
+        }
+        Object firstGrid = grid(first);
+        Object secondGrid = grid(second);
+        return firstGrid != null && firstGrid == secondGrid;
+    }
+
     public static IEnergyStorage createEnergyHandler(BlockEntity host) {
         if (!canUseAppFlux()) {
             return EmptyExternalHandlers.Energy.INSTANCE;
@@ -686,6 +762,22 @@ public final class AppliedEnergisticsCompat {
                 }
             }
             return Reflect.defaultValue(method.getReturnType());
+        }
+    }
+
+    public record ItemResource(ItemStack stack, long amount) {
+        public static final ItemResource EMPTY = new ItemResource(ItemStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
+    }
+
+    public record FluidResource(FluidStack stack, long amount) {
+        public static final FluidResource EMPTY = new FluidResource(FluidStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
         }
     }
 

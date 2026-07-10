@@ -8,10 +8,12 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.config.SkyLogisticsConfig;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -52,6 +54,93 @@ public final class AppliedEnergisticsCompat {
         } catch (LinkageError error) {
             warn(error);
             return EmptyExternalHandlers.Fluids.INSTANCE;
+        }
+    }
+
+    public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty()) {
+            return ItemResource.EMPTY;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.itemResourceForStack(host, stack);
+        } catch (LinkageError error) {
+            warn(error);
+            return ItemResource.EMPTY;
+        }
+    }
+
+    public static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.insertItem(host, stack, amount, simulate);
+        } catch (LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.extractItem(host, stack, amount, simulate);
+        } catch (LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static FluidResource fluidResourceForStack(BlockEntity host, FluidStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty()) {
+            return FluidResource.EMPTY;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.fluidResourceForStack(host, stack);
+        } catch (LinkageError error) {
+            warn(error);
+            return FluidResource.EMPTY;
+        }
+    }
+
+    public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.insertFluid(host, stack, amount, simulate);
+        } catch (LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer() || stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.extractFluid(host, stack, amount, simulate);
+        } catch (LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static boolean sameNetwork(BlockEntity first, BlockEntity second) {
+        if (first == second) {
+            return true;
+        }
+        if (!isLoaded() || first == null || second == null) {
+            return false;
+        }
+        try {
+            return AppliedEnergisticsApiBridge.sameNetwork(first, second);
+        } catch (LinkageError error) {
+            warn(error);
+            return false;
         }
     }
 
@@ -163,6 +252,22 @@ public final class AppliedEnergisticsCompat {
 
     public interface GridNodeOwner {
         GridNodeHandle ae2GridNodeHandle();
+    }
+
+    public record ItemResource(ItemStack stack, long amount) {
+        public static final ItemResource EMPTY = new ItemResource(ItemStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
+    }
+
+    public record FluidResource(FluidStack stack, long amount) {
+        public static final FluidResource EMPTY = new FluidResource(FluidStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
     }
 
     public interface GridNodeHandle {

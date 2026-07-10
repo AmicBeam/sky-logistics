@@ -3,15 +3,19 @@ package com.skylogistics.network;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
+import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
@@ -250,6 +254,9 @@ public final class SkyNetworkTicker {
 
     private static int transferItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        if (isExternalNetworkItemEndpoint(sourceEndpoint)) {
+            return transferExternalNetworkItems(sourceEndpoint, targets, budget, gameTime);
+        }
         if (isDimensionItemEndpoint(sourceEndpoint)) {
             return transferDimensionItems(sourceEndpoint, targets, budget, gameTime);
         }
@@ -312,6 +319,88 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
         }
         return operations;
+    }
+
+    private static boolean isExternalNetworkItemEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        return (blockEntity instanceof SkyMEInterfaceBlockEntity
+                && AppliedEnergisticsCompat.isLoaded()
+                && SkyLogisticsConfig.allowAe2ItemTransfer())
+                || (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && RefinedStorageCompat.isLoaded()
+                && SkyLogisticsConfig.allowRefinedStorageItemTransfer());
+    }
+
+    private static int transferExternalNetworkItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
+            int budget, long gameTime) {
+        BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+        LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
+        if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
+            return 0;
+        }
+        ExternalItemWhitelistCandidates candidates = externalItemWhitelistCandidates(sourceEndpoint.node(),
+                sourceEndpoint.direction());
+        if (!candidates.hasWhitelist() || candidates.samples().isEmpty()) {
+            sourceEndpoint.recordItemSourceMiss(0, 0, gameTime);
+            return 0;
+        }
+        int operations = 0;
+        boolean candidateFound = false;
+        for (ItemStack sample : candidates.samples()) {
+            if (operations >= budget) {
+                break;
+            }
+            operations++;
+            LongItemResource resource = externalNetworkItemResourceForStack(sourceBlockEntity, sample);
+            if (resource.isEmpty()
+                    || !sourceEndpoint.node().allowsItem(sourceEndpoint.direction(), resource.stack())) {
+                continue;
+            }
+            candidateFound = true;
+            sourceEndpoint.recordItemCandidateFound();
+            MoveResult result = tryMoveLongItem(sourceEndpoint, sourceLongEndpoint, resource.stack(),
+                    resource.amount(), targets, budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                sourceEndpoint.recordItemSuccess();
+                return operations;
+            }
+        }
+        if (!candidateFound) {
+            sourceEndpoint.recordItemSourceMiss(operations, candidates.samples().size(), gameTime);
+        }
+        return operations;
+    }
+
+    private static ExternalItemWhitelistCandidates externalItemWhitelistCandidates(SkyNodeBlockEntity node,
+            net.minecraft.core.Direction direction) {
+        List<ItemStack> samples = new ArrayList<>();
+        boolean hasWhitelist = false;
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = FilterListItem.compile(node.getFaceFilter(direction, slot));
+            if (!compiled.whitelist() || !compiled.hasItemRules()) {
+                continue;
+            }
+            hasWhitelist = true;
+            samples.addAll(compiled.itemSamples());
+        }
+        return new ExternalItemWhitelistCandidates(hasWhitelist, samples);
+    }
+
+    private static LongItemResource externalNetworkItemResourceForStack(BlockEntity blockEntity, ItemStack sample) {
+        if (blockEntity instanceof SkyMEInterfaceBlockEntity) {
+            AppliedEnergisticsCompat.ItemResource resource = AppliedEnergisticsCompat.itemResourceForStack(blockEntity,
+                    sample);
+            return resource.isEmpty() ? LongItemResource.EMPTY
+                    : new LongItemResource(resource.stack(), resource.amount());
+        }
+        if (blockEntity instanceof SkyRSInterfaceBlockEntity) {
+            RefinedStorageCompat.ItemResource resource = RefinedStorageCompat.itemResourceForStack(blockEntity,
+                    sample);
+            return resource.isEmpty() ? LongItemResource.EMPTY
+                    : new LongItemResource(resource.stack(), resource.amount());
+        }
+        return LongItemResource.EMPTY;
     }
 
     private static boolean isDimensionItemEndpoint(CachedEndpoint endpoint) {
@@ -468,10 +557,15 @@ public final class SkyNetworkTicker {
 
     private static MoveResult tryMoveDimensionItem(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
             ItemStack simulated, long available, List<CachedEndpoint> targets, int budget, long gameTime) {
+        return tryMoveLongItem(sourceEndpoint, new DimensionItemLongEndpoint(sourceBlockEntity), simulated, available,
+                targets, budget, gameTime);
+    }
+
+    private static MoveResult tryMoveLongItem(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceLongEndpoint,
+            ItemStack simulated, long available, List<CachedEndpoint> targets, int budget, long gameTime) {
         if (budget <= 0 || simulated.isEmpty() || available <= 0L) {
             return new MoveResult(false, 0);
         }
-        LongItemEndpoint sourceLongEndpoint = new DimensionItemLongEndpoint(sourceBlockEntity);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
@@ -523,7 +617,7 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
-                if (tryMoveDimensionItemToHandler(sourceEndpoint, sourceBlockEntity, simulated, available,
+                if (tryMoveLongItemToHandler(sourceEndpoint, sourceLongEndpoint, simulated, available,
                         targetEndpoint, targetEndpoint.itemHandler(gameTime), simulatedKey, gameTime)) {
                     targetEndpoint.recordItemSuccess();
                     return new MoveResult(true, operations);
@@ -537,7 +631,7 @@ public final class SkyNetworkTicker {
         return new MoveResult(false, operations);
     }
 
-    private static boolean tryMoveDimensionItemToHandler(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
+    private static boolean tryMoveLongItemToHandler(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceLongEndpoint,
             ItemStack simulated, long available, CachedEndpoint targetEndpoint, IItemHandler target,
             ItemStackKey simulatedKey, long gameTime) {
         if (target == null || isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
@@ -555,7 +649,7 @@ public final class SkyNetworkTicker {
             targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
             return false;
         }
-        long extractedAmount = BeyondDimensionsCompat.extractItem(sourceBlockEntity, offer, movable, false);
+        long extractedAmount = sourceLongEndpoint.extract(-1, offer, movable, false);
         if (extractedAmount <= 0L) {
             sourceEndpoint.recordItemFailure(gameTime);
             return false;
@@ -563,11 +657,10 @@ public final class SkyNetworkTicker {
         ItemStack extracted = offer.copyWithCount((int) extractedAmount);
         ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
         if (!leftover.isEmpty()) {
-            long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlockEntity, leftover, leftover.getCount(),
-                    false);
+            long rolledBack = sourceLongEndpoint.insert(leftover, leftover.getCount(), false);
             if (rolledBack < leftover.getCount()) {
                 SkyLogistics.LOGGER.warn(
-                        "Item rollback failed after simulated target insertion changed during dimension transfer. Source node {} face {}, target node {} face {}, extracted {}, target leftover {}, rollback remainder {}",
+                        "Item rollback failed after simulated target insertion changed during long item transfer. Source node {} face {}, target node {} face {}, extracted {}, target leftover {}, rollback remainder {}",
                         sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                         targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, leftover,
                         leftover.getCount() - rolledBack);
@@ -801,6 +894,16 @@ public final class SkyNetworkTicker {
         if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
             return new DimensionItemLongEndpoint(blockEntity);
         }
+        if (blockEntity instanceof SkyMEInterfaceBlockEntity
+                && AppliedEnergisticsCompat.isLoaded()
+                && SkyLogisticsConfig.allowAe2ItemTransfer()) {
+            return new Ae2ItemLongEndpoint(blockEntity);
+        }
+        if (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && RefinedStorageCompat.isLoaded()
+                && SkyLogisticsConfig.allowRefinedStorageItemTransfer()) {
+            return new RefinedStorageItemLongEndpoint(blockEntity);
+        }
         return null;
     }
 
@@ -968,8 +1071,57 @@ public final class SkyNetworkTicker {
         }
     }
 
+    private record Ae2ItemLongEndpoint(BlockEntity blockEntity) implements LongItemEndpoint {
+        @Override
+        public LongItemResource resourceInSlot(int slot) {
+            return LongItemResource.EMPTY;
+        }
+
+        @Override
+        public long insert(ItemStack stack, long amount, boolean simulate) {
+            return AppliedEnergisticsCompat.insertItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int slot, ItemStack stack, long amount, boolean simulate) {
+            return AppliedEnergisticsCompat.extractItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongItemEndpoint other) {
+            return other instanceof Ae2ItemLongEndpoint endpoint
+                    && AppliedEnergisticsCompat.sameNetwork(blockEntity, endpoint.blockEntity);
+        }
+    }
+
+    private record RefinedStorageItemLongEndpoint(BlockEntity blockEntity) implements LongItemEndpoint {
+        @Override
+        public LongItemResource resourceInSlot(int slot) {
+            return LongItemResource.EMPTY;
+        }
+
+        @Override
+        public long insert(ItemStack stack, long amount, boolean simulate) {
+            return RefinedStorageCompat.insertItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int slot, ItemStack stack, long amount, boolean simulate) {
+            return RefinedStorageCompat.extractItem(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongItemEndpoint other) {
+            return other instanceof RefinedStorageItemLongEndpoint endpoint
+                    && RefinedStorageCompat.sameNetwork(blockEntity, endpoint.blockEntity);
+        }
+    }
+
     private static int transferFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        if (isExternalNetworkFluidEndpoint(sourceEndpoint)) {
+            return transferExternalNetworkFluids(sourceEndpoint, targets, budget, gameTime);
+        }
         SkyNodeBlockEntity sourceNode = sourceEndpoint.node();
         IFluidHandler source = sourceEndpoint.fluidHandler(gameTime);
         if (source == null || budget <= 0) {
@@ -1030,6 +1182,88 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordFluidSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
         }
         return operations;
+    }
+
+    private static boolean isExternalNetworkFluidEndpoint(CachedEndpoint endpoint) {
+        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        return (blockEntity instanceof SkyMEInterfaceBlockEntity
+                && AppliedEnergisticsCompat.isLoaded()
+                && SkyLogisticsConfig.allowAe2FluidTransfer())
+                || (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && RefinedStorageCompat.isLoaded()
+                && SkyLogisticsConfig.allowRefinedStorageFluidTransfer());
+    }
+
+    private static int transferExternalNetworkFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
+            int budget, long gameTime) {
+        BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+        LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
+        if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
+            return 0;
+        }
+        ExternalFluidWhitelistCandidates candidates = externalFluidWhitelistCandidates(sourceEndpoint.node(),
+                sourceEndpoint.direction());
+        if (!candidates.hasWhitelist() || candidates.samples().isEmpty()) {
+            sourceEndpoint.recordFluidSourceMiss(0, 0, gameTime);
+            return 0;
+        }
+        int operations = 0;
+        boolean candidateFound = false;
+        for (FluidStack sample : candidates.samples()) {
+            if (operations >= budget) {
+                break;
+            }
+            operations++;
+            LongFluidResource resource = externalNetworkFluidResourceForStack(sourceBlockEntity, sample);
+            if (resource.isEmpty()
+                    || !sourceEndpoint.node().allowsFluid(sourceEndpoint.direction(), resource.stack())) {
+                continue;
+            }
+            candidateFound = true;
+            sourceEndpoint.recordFluidCandidateFound();
+            MoveResult result = tryMoveLongFluid(sourceEndpoint, sourceLongEndpoint, resource.stack(),
+                    resource.amount(), targets, budget - operations, gameTime);
+            operations += result.operations();
+            if (result.moved()) {
+                sourceEndpoint.recordFluidSuccess();
+                return operations;
+            }
+        }
+        if (!candidateFound) {
+            sourceEndpoint.recordFluidSourceMiss(operations, candidates.samples().size(), gameTime);
+        }
+        return operations;
+    }
+
+    private static ExternalFluidWhitelistCandidates externalFluidWhitelistCandidates(SkyNodeBlockEntity node,
+            net.minecraft.core.Direction direction) {
+        List<FluidStack> samples = new ArrayList<>();
+        boolean hasWhitelist = false;
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = FilterListItem.compile(node.getFaceFilter(direction, slot));
+            if (!compiled.whitelist() || !compiled.hasFluidRules()) {
+                continue;
+            }
+            hasWhitelist = true;
+            samples.addAll(compiled.fluidSamples());
+        }
+        return new ExternalFluidWhitelistCandidates(hasWhitelist, samples);
+    }
+
+    private static LongFluidResource externalNetworkFluidResourceForStack(BlockEntity blockEntity, FluidStack sample) {
+        if (blockEntity instanceof SkyMEInterfaceBlockEntity) {
+            AppliedEnergisticsCompat.FluidResource resource = AppliedEnergisticsCompat.fluidResourceForStack(
+                    blockEntity, sample);
+            return resource.isEmpty() ? LongFluidResource.EMPTY
+                    : new LongFluidResource(resource.stack(), resource.amount());
+        }
+        if (blockEntity instanceof SkyRSInterfaceBlockEntity) {
+            RefinedStorageCompat.FluidResource resource = RefinedStorageCompat.fluidResourceForStack(blockEntity,
+                    sample);
+            return resource.isEmpty() ? LongFluidResource.EMPTY
+                    : new LongFluidResource(resource.stack(), resource.amount());
+        }
+        return LongFluidResource.EMPTY;
     }
 
     private static SourceSearchResult nextFluidTank(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
@@ -1171,6 +1405,110 @@ public final class SkyNetworkTicker {
         return new MoveResult(false, operations);
     }
 
+    private static MoveResult tryMoveLongFluid(CachedEndpoint sourceEndpoint, LongFluidEndpoint sourceLongEndpoint,
+            FluidStack simulated, long available, List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0 || simulated.isEmpty() || available <= 0L) {
+            return new MoveResult(false, 0);
+        }
+        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        FluidStackKey simulatedKey = FluidStackKey.of(simulated);
+        targetLoop:
+        for (int groupStart = 0; groupStart < targets.size();) {
+            int groupEnd = priorityGroupEnd(targets, groupStart);
+            int groupSize = groupEnd - groupStart;
+            int groupCursor = Math.floorMod(targetCursor, groupSize);
+            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
+                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
+                        groupOffset);
+                if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    redstoneBlocked = true;
+                    continue;
+                }
+                if (!targetEndpoint.canTryFluids(gameTime)
+                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())
+                        || targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) {
+                    continue;
+                }
+                if (operations >= targetAttemptBudget) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                operations++;
+                if (!targetEndpoint.node().allowsFluid(targetEndpoint.direction(), simulated)) {
+                    targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
+                    continue;
+                }
+                LongFluidEndpoint targetLongEndpoint = longFluidEndpoint(targetEndpoint);
+                if (targetLongEndpoint != null) {
+                    long moved = moveLongFluidStack(sourceEndpoint, sourceLongEndpoint, simulated, available,
+                            targetEndpoint, targetLongEndpoint, skyContainerTransferLimit);
+                    if (moved > 0L) {
+                        targetEndpoint.recordFluidSuccess();
+                        return new MoveResult(true, operations);
+                    }
+                    if (moved < 0L) {
+                        sourceEndpoint.recordFluidFailure(gameTime);
+                        return new MoveResult(false, operations);
+                    }
+                    targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
+                    continue;
+                }
+                if (tryMoveLongFluidToHandler(sourceEndpoint, sourceLongEndpoint, simulated, available,
+                        targetEndpoint, targetEndpoint.fluidHandler(gameTime), simulatedKey, gameTime)) {
+                    targetEndpoint.recordFluidSuccess();
+                    return new MoveResult(true, operations);
+                }
+            }
+            groupStart = groupEnd;
+        }
+        if (!redstoneBlocked && !budgetExhausted) {
+            sourceEndpoint.recordFluidFailure(gameTime);
+        }
+        return new MoveResult(false, operations);
+    }
+
+    private static boolean tryMoveLongFluidToHandler(CachedEndpoint sourceEndpoint,
+            LongFluidEndpoint sourceLongEndpoint, FluidStack simulated, long available, CachedEndpoint targetEndpoint,
+            IFluidHandler target, FluidStackKey simulatedKey, long gameTime) {
+        if (target == null || simulated.isEmpty() || available <= 0L) {
+            return false;
+        }
+        int requested = (int) Math.min(available, Integer.MAX_VALUE);
+        if (requested <= 0) {
+            return false;
+        }
+        FluidStack offer = copyWithAmount(simulated, requested);
+        int accepted = target.fill(offer.copy(), IFluidHandler.FluidAction.SIMULATE);
+        if (accepted <= 0) {
+            targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
+            return false;
+        }
+        long extractedAmount = sourceLongEndpoint.extract(-1, offer, accepted, false);
+        if (extractedAmount <= 0L) {
+            sourceEndpoint.recordFluidFailure(gameTime);
+            return false;
+        }
+        FluidStack extracted = copyWithAmount(offer, (int) Math.min(extractedAmount, Integer.MAX_VALUE));
+        int inserted = target.fill(extracted.copy(), IFluidHandler.FluidAction.EXECUTE);
+        if (inserted < extracted.getAmount()) {
+            FluidStack rollback = copyWithAmount(extracted, extracted.getAmount() - inserted);
+            long rolledBack = sourceLongEndpoint.insert(rollback, rollback.getAmount(), false);
+            if (rolledBack < rollback.getAmount()) {
+                SkyLogistics.LOGGER.warn(
+                        "Fluid rollback failed after simulated target fill changed during long fluid transfer. Source node {} face {}, target node {} face {}, drained {}, inserted {}, rollback remainder {} mB",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback.getAmount() - rolledBack);
+            }
+        }
+        return true;
+    }
+
     private static LongFluidEndpoint longFluidEndpoint(CachedEndpoint endpoint) {
         BlockEntity blockEntity = endpoint.targetBlockEntity();
         if (blockEntity instanceof FluidVaultBlockEntity vault) {
@@ -1178,6 +1516,16 @@ public final class SkyNetworkTicker {
         }
         if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
             return new DimensionFluidLongEndpoint(blockEntity);
+        }
+        if (blockEntity instanceof SkyMEInterfaceBlockEntity
+                && AppliedEnergisticsCompat.isLoaded()
+                && SkyLogisticsConfig.allowAe2FluidTransfer()) {
+            return new Ae2FluidLongEndpoint(blockEntity);
+        }
+        if (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && RefinedStorageCompat.isLoaded()
+                && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()) {
+            return new RefinedStorageFluidLongEndpoint(blockEntity);
         }
         return null;
     }
@@ -1210,6 +1558,39 @@ public final class SkyNetworkTicker {
                         sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
                         targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceTank, extracted,
                         inserted, rollback - rolledBack);
+            }
+        }
+        return inserted;
+    }
+
+    private static long moveLongFluidStack(CachedEndpoint sourceEndpoint, LongFluidEndpoint sourceEndpointLong,
+            FluidStack stack, long available, CachedEndpoint targetEndpoint, LongFluidEndpoint targetEndpointLong,
+            long maxAmount) {
+        if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
+            return 0L;
+        }
+        long requested = Math.min(maxAmount, available);
+        if (requested <= 0L || stack.isEmpty()) {
+            return 0L;
+        }
+        long accepted = targetEndpointLong.insert(stack, requested, true);
+        if (accepted <= 0L) {
+            return 0L;
+        }
+        long extracted = sourceEndpointLong.extract(-1, stack, accepted, false);
+        if (extracted <= 0L) {
+            return -1L;
+        }
+        long inserted = targetEndpointLong.insert(stack, extracted, false);
+        if (inserted < extracted) {
+            long rollback = extracted - inserted;
+            long rolledBack = sourceEndpointLong.insert(stack, rollback, false);
+            if (rolledBack < rollback) {
+                SkyLogistics.LOGGER.warn(
+                        "Fluid rollback failed after simulated long fluid insertion changed during transfer. Source node {} face {}, target node {} face {}, extracted {}, inserted {}, rollback remainder {} mB",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                        rollback - rolledBack);
             }
         }
         return inserted;
@@ -1281,6 +1662,52 @@ public final class SkyNetworkTicker {
         public boolean sameStorage(LongFluidEndpoint other) {
             return other instanceof DimensionFluidLongEndpoint endpoint
                     && sameDimensionNetwork(blockEntity, endpoint.blockEntity);
+        }
+    }
+
+    private record Ae2FluidLongEndpoint(BlockEntity blockEntity) implements LongFluidEndpoint {
+        @Override
+        public LongFluidResource resourceInTank(int tank) {
+            return LongFluidResource.EMPTY;
+        }
+
+        @Override
+        public long insert(FluidStack stack, long amount, boolean simulate) {
+            return AppliedEnergisticsCompat.insertFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int tank, FluidStack stack, long amount, boolean simulate) {
+            return AppliedEnergisticsCompat.extractFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongFluidEndpoint other) {
+            return other instanceof Ae2FluidLongEndpoint endpoint
+                    && AppliedEnergisticsCompat.sameNetwork(blockEntity, endpoint.blockEntity);
+        }
+    }
+
+    private record RefinedStorageFluidLongEndpoint(BlockEntity blockEntity) implements LongFluidEndpoint {
+        @Override
+        public LongFluidResource resourceInTank(int tank) {
+            return LongFluidResource.EMPTY;
+        }
+
+        @Override
+        public long insert(FluidStack stack, long amount, boolean simulate) {
+            return RefinedStorageCompat.insertFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public long extract(int tank, FluidStack stack, long amount, boolean simulate) {
+            return RefinedStorageCompat.extractFluid(blockEntity, stack, amount, simulate);
+        }
+
+        @Override
+        public boolean sameStorage(LongFluidEndpoint other) {
+            return other instanceof RefinedStorageFluidLongEndpoint endpoint
+                    && RefinedStorageCompat.sameNetwork(blockEntity, endpoint.blockEntity);
         }
     }
 
@@ -1945,6 +2372,12 @@ public final class SkyNetworkTicker {
 
     private record DimensionWhitelistCandidates(boolean hasWhitelist, List<ItemStack> samples,
                                                 List<TagKey<Item>> tags) {
+    }
+
+    private record ExternalItemWhitelistCandidates(boolean hasWhitelist, List<ItemStack> samples) {
+    }
+
+    private record ExternalFluidWhitelistCandidates(boolean hasWhitelist, List<FluidStack> samples) {
     }
 
     private record DimensionDirectResult(boolean moved, int operations, boolean scanFallback,

@@ -579,6 +579,17 @@ public class FilterListItem extends Item {
             return mode == Mode.LIST && fluidEntries.length > 0;
         }
 
+        public List<FluidStack> fluidSamples() {
+            if (fluidEntries.length == 0) {
+                return List.of();
+            }
+            List<FluidStack> samples = new ArrayList<>(fluidEntries.length);
+            for (FluidEntry entry : fluidEntries) {
+                samples.add(entry.stack().copy());
+            }
+            return samples;
+        }
+
         private enum Mode {
             ALLOW_ALL,
             LIST
