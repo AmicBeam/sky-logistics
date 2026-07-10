@@ -1,0 +1,41 @@
+common/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_3e270f3a6ea882 26,30,34
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_a9e5dcdaa9ee66 54,74-77,291-295
+versions/1.20.1/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_b8ae0594cb546e 118,173
+versions/1.20.1/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_a23ec92a0d18cf 118,173
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_4b734ee226cc72 53,73-76,290-294
+versions/1.21.1/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_0c1bada1c7250f 118,173
+versions/1.21.1/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_987a0c66d43d15 118,173
+versions/26.1.2/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_abb0acea2f889c 53,72-75,283-287
+versions/26.1.2/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_bfa97c73ddd360 26,30,34
+versions/26.1.2/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_cbf6b9648d3d09 118,173
+versions/26.1.2/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_4c9fe844beee45 118,173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "26452bd3fa7d979fcf0fd18b0cdc03b2c3b2a027",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
