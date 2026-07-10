@@ -1,5 +1,7 @@
 package com.skylogistics.network;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.curios.CuriosCompat;
@@ -143,10 +145,21 @@ public final class SkyNecklaceTicker {
 
     private static ActiveNecklaceDetail activeDetail(ServerPlayer player, SkyNecklaceItem.NecklaceMode mode,
             int priority) {
-        return new ActiveNecklaceDetail(player.getGameProfile().getName(),
+        GameProfile profile = player.getGameProfile();
+        Property texture = firstTexture(profile);
+        return new ActiveNecklaceDetail(profile.getId(), profile.getName(),
+                texture == null ? "" : texture.getValue(),
+                texture != null && texture.hasSignature() ? texture.getSignature() : "",
                 player.level().dimension().location().toString(), player.blockPosition().immutable(),
                 mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT,
                 priority);
+    }
+
+    private static Property firstTexture(GameProfile profile) {
+        for (Property property : profile.getProperties().get("textures")) {
+            return property;
+        }
+        return null;
     }
 
     private static FilterListItem.CompiledFilter itemWhitelist(ItemStack necklace) {
@@ -469,8 +482,9 @@ public final class SkyNecklaceTicker {
     private record HandlerSlot(IItemHandler handler, int slot) {
     }
 
-    public record ActiveNecklaceDetail(String playerName, String dimension, BlockPos pos, NodeFaceMode mode,
-                                       int priority) {
+    public record ActiveNecklaceDetail(UUID profileId, String playerName, String profileTexture,
+                                       String profileTextureSignature, String dimension, BlockPos pos,
+                                       NodeFaceMode mode, int priority) {
     }
 
     private static final class PlayerMainInventoryHandler implements IItemHandler {

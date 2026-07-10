@@ -1,5 +1,10 @@
 package com.skylogistics.client;
 
+import com.google.common.collect.HashMultimap;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
@@ -21,6 +26,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
@@ -28,6 +34,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.block.Block;
 import org.lwjgl.glfw.GLFW;
 
@@ -422,7 +430,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private ItemStack createTargetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return ModItems.SKY_NECKLACE.get().getDefaultInstance();
+            return SkyLogisticsConfig.renderConfiguratorPlayerHeads()
+                    ? playerHeadIcon(entry)
+                    : ModItems.SKY_NECKLACE.get().getDefaultInstance();
         }
         Identifier id = Identifier.tryParse(entry.targetBlockId());
         if (id == null) {
@@ -450,6 +460,24 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
         return SKY_NECKLACE_ID.equals(entry.targetBlockId());
+    }
+
+    private ItemStack playerHeadIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        String playerName = entry.displayName();
+        if (!playerName.isBlank()) {
+            HashMultimap<String, Property> profileProperties = HashMultimap.create();
+            if (!entry.profileTexture().isBlank()) {
+                Property texture = entry.profileTextureSignature().isBlank()
+                        ? new Property("textures", entry.profileTexture())
+                        : new Property("textures", entry.profileTexture(), entry.profileTextureSignature());
+                profileProperties.put("textures", texture);
+            }
+            PropertyMap properties = new PropertyMap(profileProperties);
+            icon.set(DataComponents.PROFILE,
+                    ResolvableProfile.createResolved(new GameProfile(entry.profileId(), playerName, properties)));
+        }
+        return icon;
     }
 
     private int modeColor(NodeFaceMode mode) {

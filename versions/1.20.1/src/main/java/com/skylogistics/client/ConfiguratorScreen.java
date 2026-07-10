@@ -1,5 +1,6 @@
 package com.skylogistics.client;
 
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
@@ -21,12 +22,15 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.lwjgl.glfw.GLFW;
@@ -428,7 +432,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private ItemStack createTargetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return ModItems.SKY_NECKLACE.get().getDefaultInstance();
+            return SkyLogisticsConfig.renderConfiguratorPlayerHeads()
+                    ? playerHeadIcon(entry)
+                    : ModItems.SKY_NECKLACE.get().getDefaultInstance();
         }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
@@ -456,6 +462,32 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
         return SKY_NECKLACE_ID.equals(entry.targetBlockId());
+    }
+
+    private ItemStack playerHeadIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        ItemStack icon = Items.PLAYER_HEAD.getDefaultInstance();
+        String playerName = entry.displayName();
+        if (!playerName.isBlank()) {
+            CompoundTag owner = new CompoundTag();
+            if (entry.profileId() != null) {
+                owner.putUUID("Id", entry.profileId());
+            }
+            owner.putString("Name", playerName);
+            if (!entry.profileTexture().isBlank()) {
+                CompoundTag properties = new CompoundTag();
+                ListTag textures = new ListTag();
+                CompoundTag texture = new CompoundTag();
+                texture.putString("Value", entry.profileTexture());
+                if (!entry.profileTextureSignature().isBlank()) {
+                    texture.putString("Signature", entry.profileTextureSignature());
+                }
+                textures.add(texture);
+                properties.put("textures", textures);
+                owner.put("Properties", properties);
+            }
+            icon.getOrCreateTag().put("SkullOwner", owner);
+        }
+        return icon;
     }
 
     private int modeColor(NodeFaceMode mode) {

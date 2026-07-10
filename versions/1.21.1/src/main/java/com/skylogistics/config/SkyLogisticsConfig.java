@@ -5,11 +5,17 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class SkyLogisticsConfig {
     public static final ModConfigSpec SERVER_SPEC;
     public static final Server SERVER;
+    public static final ModConfigSpec CLIENT_SPEC;
+    public static final Client CLIENT;
 
     static {
-        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
-        SERVER = new Server(builder);
-        SERVER_SPEC = builder.build();
+        ModConfigSpec.Builder serverBuilder = new ModConfigSpec.Builder();
+        SERVER = new Server(serverBuilder);
+        SERVER_SPEC = serverBuilder.build();
+
+        ModConfigSpec.Builder clientBuilder = new ModConfigSpec.Builder();
+        CLIENT = new Client(clientBuilder);
+        CLIENT_SPEC = clientBuilder.build();
     }
 
     public static int maxVaultTypes() {
@@ -146,6 +152,10 @@ public final class SkyLogisticsConfig {
 
     public static int eulogiaCrystalChargeSeconds() {
         return SERVER.eulogiaCrystalChargeSeconds.get();
+    }
+
+    public static boolean renderConfiguratorPlayerHeads() {
+        return CLIENT.renderConfiguratorPlayerHeads.get();
     }
 
     public static final class Server {
@@ -323,6 +333,18 @@ public final class SkyLogisticsConfig {
                 return transferRetryThirdTicks.get();
             }
             return transferRetryMaxTicks.get();
+        }
+    }
+
+    public static final class Client {
+        public final ModConfigSpec.BooleanValue renderConfiguratorPlayerHeads;
+
+        private Client(ModConfigSpec.Builder builder) {
+            builder.push("gui");
+            renderConfiguratorPlayerHeads = builder
+                    .comment("Whether the configurator line details render active Sky Necklaces as player heads.")
+                    .define("renderConfiguratorPlayerHeads", true);
+            builder.pop();
         }
     }
 
