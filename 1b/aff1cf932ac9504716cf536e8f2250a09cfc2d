@@ -1,0 +1,47 @@
+common/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_754167694821ac 9,180-182,216-218,642,644-645,647-655
+versions/1.20.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_19cf06542dbaa9 321-330
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_638a62871aee2d 54,281-285
+versions/1.20.1/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_e4e6bbe8d69be9 118,173
+versions/1.20.1/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_229cbba26c51b9 118,173
+versions/1.21.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_c883f22bbf97ee 323-332
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_a7c20448971cc3 53,280-284
+versions/1.21.1/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_484fc96f3f8120 118,173
+versions/1.21.1/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_bdc211cc33a187 118,173
+versions/26.1.2/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_555c74d322c4d2 338-347
+versions/26.1.2/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_c5606a7093be6c 53,273-277
+versions/26.1.2/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_76b50fcba3725e 9,180-182,216-218,642,644-653,655-656
+versions/26.1.2/src/main/resources/assets/skylogistics/lang/en_us.json
+  s_71b9755ed09cae::t_b819ee3bfe3e8a 118,173
+versions/26.1.2/src/main/resources/assets/skylogistics/lang/zh_cn.json
+  s_71b9755ed09cae::t_3d5d584ca8e36c 118,173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "1baff1cf932ac9504716cf536e8f2250a09cfc2d",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
