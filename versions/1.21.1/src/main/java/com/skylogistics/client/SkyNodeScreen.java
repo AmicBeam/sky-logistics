@@ -50,7 +50,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
     private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private static final int MORE_BUTTON_X = 162;
-    private static final int TAG_FILTER_WARNING_Y = 145;
+    private static final int EXTERNAL_EXTRACT_HINT_Y = SkyNodeMenu.UPGRADE_ROW_Y + 23;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -70,8 +70,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = menu.isSingleEndpoint() ? 265 - SkyNodeMenu.SINGLE_ENDPOINT_VERTICAL_SHIFT : 265;
-        inventoryLabelY = menu.screenY(169);
+        imageHeight = menu.isSingleEndpoint()
+                ? SkyNodeMenu.PANEL_HEIGHT - SkyNodeMenu.SINGLE_ENDPOINT_VERTICAL_SHIFT
+                : SkyNodeMenu.PANEL_HEIGHT;
+        inventoryLabelY = menu.screenY(SkyNodeMenu.PLAYER_INVENTORY_LABEL_Y);
     }
 
     @Override
@@ -277,11 +279,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             graphics.drawCenteredString(font, Component.literal(String.valueOf(node.getPriority(face))),
                     PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.TEXT);
-            if (node.hasTagFaceFilterRestriction(face)) {
-                graphics.drawString(font, Component.translatable(
-                        "screen.skylogistics.sky_node.no_tag_filters_external_extract"),
-                        14, menu.screenY(TAG_FILTER_WARNING_Y), 0xFFFF9A8A, false);
-            }
         } else {
             graphics.drawString(font, Component.translatable("screen.skylogistics.resources"),
                     14, menu.screenY(106), ConfigPanel.MUTED, false);
@@ -290,6 +287,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.upgrade_slots"),
                 14, menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y) + 5, ConfigPanel.MUTED, false);
+        if (node.hasTagFaceFilterRestriction(face)) {
+            graphics.drawString(font, Component.translatable(
+                    "screen.skylogistics.sky_node.needs_whitelist_external_extract"),
+                    14, menu.screenY(EXTERNAL_EXTRACT_HINT_Y), 0xFFFF9A8A, false);
+        }
     }
 
     @Override
