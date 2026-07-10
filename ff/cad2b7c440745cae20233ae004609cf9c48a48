@@ -1,0 +1,47 @@
+versions/1.20.1/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsApiBridge.java
+  s_71b9755ed09cae::t_690e9128e0bc06 90-162
+versions/1.20.1/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_172910daec495c 11,16,60-146,257-272
+versions/1.20.1/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageApiBridge.java
+  s_71b9755ed09cae::t_26f3b04835b70b 35-128,210-215
+versions/1.20.1/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_9442f9d0ef6799 6,8,48-138,146-161
+versions/1.20.1/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_71b9755ed09cae::t_dd9b2e580b6277 576-586
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_71b9755ed09cae::t_f700599565ff31 6,8,11,18,259-261,326-407,562-567,622,636,654,662,665,899-908,1076-1121,1124-1126,1189-1270,1410-1513,1522-1531,1568-1600,1670-1715,2471-2476
+versions/1.21.1/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_abf8b385a7832f 69-144,768-783
+versions/1.21.1/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_5ce1bceab28c2f 50-129,209-234,347-362
+versions/1.21.1/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_71b9755ed09cae::t_d02c7d2cde05c6 576-586
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_71b9755ed09cae::t_a62398200840c7 6,8,11,18,257-259,324-405,560-565,620,634,652,660,663,897-906,1074-1119,1122-1124,1187-1268,1408-1511,1520-1529,1566-1598,1668-1713,2377-2382
+versions/26.1.2/src/main/java/com/skylogistics/compat/ae2/AppliedEnergisticsCompat.java
+  s_71b9755ed09cae::t_bd683ccbb4b158 73-148,776-791
+versions/26.1.2/src/main/java/com/skylogistics/compat/refinedstorage/RefinedStorageCompat.java
+  s_71b9755ed09cae::t_9aa9112e99dc6e 50-129,209-234,347-362
+versions/26.1.2/src/main/java/com/skylogistics/item/FilterListItem.java
+  s_71b9755ed09cae::t_f5a84cd2d79c13 582-592
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNetworkTicker.java
+  s_71b9755ed09cae::t_33c5338863560e 6,8,11,18,257-259,324-405,560-565,620,634,652,660,663,897-906,1074-1119,1122-1124,1187-1268,1408-1511,1520-1529,1566-1598,1668-1713,2377-2382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ffcad2b7c440745cae20233ae004609cf9c48a48",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
