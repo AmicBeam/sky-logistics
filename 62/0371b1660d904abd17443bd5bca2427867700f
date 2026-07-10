@@ -1,0 +1,53 @@
+common/src/main/java/com/skylogistics/menu/ConfiguratorMenu.java
+  s_b005629b6cf485::t_901de147d46490 296-298,305-307
+versions/1.20.1/src/main/java/com/skylogistics/SkyLogistics.java
+  s_b005629b6cf485::t_d0e2d404506041 65
+versions/1.20.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_59e2be424398d2 3,25-26,33,435-437,467-492
+versions/1.20.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_49389ffa156b3f 8-9,12-18,161-164,347-358
+versions/1.20.1/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_e5392ca2243642 19,22-28,43-48,69-71,73-74
+versions/1.20.1/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_b005629b6cf485::t_d0048d196ffc4a 3-4,148-152,158-164,485-487
+versions/1.21.1/src/main/java/com/skylogistics/SkyLogistics.java
+  s_b005629b6cf485::t_d2e4d114f53903 67
+versions/1.21.1/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_662fe262119700 3-5,19,28,36-37,438-440,470-486
+versions/1.21.1/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_7288c829d3ea39 8-9,12-18,157-160,339-350
+versions/1.21.1/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_af683dc79cd7a7 24,27-33,48-53,74-76,78-79
+versions/1.21.1/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_b005629b6cf485::t_0108b358722d1e 3-4,145-149,155-161,482-484
+versions/26.1.2/src/main/java/com/skylogistics/SkyLogistics.java
+  s_b005629b6cf485::t_7f77af42134946 75
+versions/26.1.2/src/main/java/com/skylogistics/client/ConfiguratorScreen.java
+  s_b005629b6cf485::t_3d24854b85af4c 3-7,29,37-38,433-435,465-482
+versions/26.1.2/src/main/java/com/skylogistics/config/SkyLogisticsConfig.java
+  s_b005629b6cf485::t_bb935c70943b1d 8-9,12-18,157-160,339-350
+versions/26.1.2/src/main/java/com/skylogistics/menu/ConfiguratorMenu.java
+  s_b005629b6cf485::t_ff6ea12149e8a0 297-299,306-308
+versions/26.1.2/src/main/java/com/skylogistics/network/ConfiguratorLineDetailsPacket.java
+  s_b005629b6cf485::t_f69afe4d8c2172 24,27-33,48-53,74-76,78-79
+versions/26.1.2/src/main/java/com/skylogistics/network/SkyNecklaceTicker.java
+  s_b005629b6cf485::t_3f30f51f7d63f3 3-4,145-149,155-161,482-484
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "620371b1660d904abd17443bd5bca2427867700f",
+  "prompts": {},
+  "sessions": {
+    "s_b005629b6cf485": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f387d-e9ed-7d02-b684-4588b61e7ce5",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
