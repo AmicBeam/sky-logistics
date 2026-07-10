@@ -1,0 +1,25 @@
+versions/1.20.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_33024035ffd60e 14,317-348,392,898,1171,1182,1244,1602
+versions/1.21.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_ab697b357fdf56 14,319-350,394,896,1169,1180,1242,1600
+versions/26.1.2/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_acc398d0096f81 14,334-365,409,912,1185,1196,1258,1631
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ebc3d020457d7a555159ea10d344e229252e4cfb",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
