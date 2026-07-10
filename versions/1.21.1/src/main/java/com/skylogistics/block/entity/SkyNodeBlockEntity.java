@@ -11,6 +11,7 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
@@ -315,6 +316,38 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return stack.isEmpty() || (slot >= 0 && slot < FACE_FILTER_SLOTS && isFaceFilterItem(stack));
     }
 
+    public boolean canAcceptFaceFilter(Direction direction, int slot, ItemStack stack) {
+        if (!canAcceptFaceFilter(slot, stack)) {
+            return false;
+        }
+        return stack.isEmpty() || !isExternalNetworkItemExtractionFace(direction)
+                || !TagFilterListItem.isTagFilterList(stack);
+    }
+
+    private boolean isExternalNetworkItemExtractionFace(Direction direction) {
+        return getFaceMode(direction) == NodeFaceMode.INPUT
+                && isItemsEnabled(direction)
+                && (this instanceof SkyMEInterfaceBlockEntity || this instanceof SkyRSInterfaceBlockEntity);
+    }
+
+    private boolean discardInvalidFaceFilters(Direction direction) {
+        NonNullList<ItemStack> filters = faceFilters.get(direction);
+        if (filters == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (int slot = 0; slot < filters.size(); slot++) {
+            ItemStack filter = filters.get(slot);
+            if (filter.isEmpty() || canAcceptFaceFilter(direction, slot, filter)) {
+                continue;
+            }
+            filters.set(slot, ItemStack.EMPTY);
+            markFaceFilterDirty(direction, slot);
+            changed = true;
+        }
+        return changed;
+    }
+
     public void setUpgrade(int slot, ItemStack stack) {
         if (slot < 0 || slot >= upgrades.size()) {
             return;
@@ -358,7 +391,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     }
 
     public void setFaceFilter(Direction direction, int slot, ItemStack stack) {
-        if (!canAcceptFaceFilter(slot, stack)) {
+        if (!canAcceptFaceFilter(direction, slot, stack)) {
             stack = ItemStack.EMPTY;
         }
         NonNullList<ItemStack> filters = faceFilters.get(direction);
@@ -860,7 +893,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean changed = false;
         for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
             ItemStack stack = face.filter(slot);
-            if (!canAcceptFaceFilter(slot, stack)) {
+            if (!canAcceptFaceFilter(direction, slot, stack)) {
                 stack = ItemStack.EMPTY;
             }
             ItemStack copy = stack.copy();
@@ -1133,6 +1166,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         this.itemsEnabled = itemsEnabled;
         for (Direction direction : Direction.values()) {
             faceItemsEnabled.put(direction, itemsEnabled);
+            discardInvalidFaceFilters(direction);
         }
         markTopologyChanged();
     }
@@ -1143,6 +1177,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         faceItemsEnabled.put(direction, itemsEnabled);
         this.itemsEnabled = allFacesEnabled(faceItemsEnabled);
+        discardInvalidFaceFilters(direction);
         markTopologyChanged();
     }
 
@@ -1204,6 +1239,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         } else if (faceMode == NodeFaceMode.OUTPUT) {
             mode = NodeMode.OUTPUT;
         }
+        discardInvalidFaceFilters(direction);
         markTopologyChanged();
     }
 
@@ -1561,7 +1597,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     private void setFaceFilterDirect(Direction direction, int slot, ItemStack stack) {
         NonNullList<ItemStack> filters = faceFilters.get(direction);
-        if (filters == null || slot < 0 || slot >= filters.size() || !canAcceptFaceFilter(slot, stack)) {
+        if (filters == null || slot < 0 || slot >= filters.size() || !canAcceptFaceFilter(direction, slot, stack)) {
             return;
         }
         ItemStack copy = stack.copy();
