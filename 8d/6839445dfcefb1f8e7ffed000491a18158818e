@@ -1,0 +1,33 @@
+common/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_36c3a2cf84eb22 26,30,34
+versions/1.20.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_c3ebaf8c0bce5e 333-348
+versions/1.20.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_fd996bd081f972 5,55,71,293-296,330-332,400-447
+versions/1.21.1/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_9ff1af5fbc9b13 335-350
+versions/1.21.1/src/main/java/com/skylogistics/client/SkyNodeScreen.java
+  s_71b9755ed09cae::t_83da5baa7d949a 5,54,70,292-295,329-331,399-446
+versions/26.1.2/src/main/java/com/skylogistics/block/entity/SkyNodeBlockEntity.java
+  s_71b9755ed09cae::t_f434a4a7c256e3 350-365
+versions/26.1.2/src/main/java/com/skylogistics/menu/SkyNodeMenu.java
+  s_71b9755ed09cae::t_3d8e9c71649406 26,30,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8d6839445dfcefb1f8e7ffed000491a18158818e",
+  "prompts": {},
+  "sessions": {
+    "s_71b9755ed09cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4708-dd19-78b0-bd6b-1e6f6c34a16b",
+        "model": "unknown"
+      },
+      "human_author": "AmicBeam <1425257712@qq.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
