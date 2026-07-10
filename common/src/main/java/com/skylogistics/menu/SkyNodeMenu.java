@@ -6,6 +6,7 @@ import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -176,8 +177,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             int slot = slotId - SkyNodeBlockEntity.UPGRADE_SLOTS;
             ItemStack carried = getCarried();
             if (carried.isEmpty() || SkyNodeBlockEntity.isFaceFilterItem(carried)) {
-                faceFilterContainer.setGhost(slot, carried);
-                broadcastChanges();
+                if (faceFilterContainer.setGhost(slot, carried)) {
+                    broadcastChanges();
+                }
             }
             return;
         }
@@ -211,8 +213,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else if (SkyNodeBlockEntity.isFaceFilterItem(original)) {
-            faceFilterContainer.setGhost(0, original);
-            broadcastChanges();
+            if (faceFilterContainer.setGhost(0, original)) {
+                broadcastChanges();
+            }
             return ItemStack.EMPTY;
         } else {
             return ItemStack.EMPTY;
@@ -636,11 +639,20 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             setGhost(slot, stack);
         }
 
-        private void setGhost(int slot, ItemStack stack) {
+        private boolean setGhost(int slot, ItemStack stack) {
             SkyNodeBlockEntity node = node();
-            if (node != null) {
-                node.setFaceFilter(menu.selectedFace(), slot, stack);
+            if (node == null) {
+                return false;
             }
+            Direction face = menu.selectedFace();
+            if (node.rejectsTagFaceFilter(face, stack)) {
+                player.displayClientMessage(Component.translatable(
+                        "message.skylogistics.sky_node.tag_filter_external_extract").withStyle(ChatFormatting.RED),
+                        true);
+                return false;
+            }
+            node.setFaceFilter(face, slot, stack);
+            return true;
         }
 
         @Override
