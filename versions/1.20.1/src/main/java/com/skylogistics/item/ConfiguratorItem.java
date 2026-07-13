@@ -45,6 +45,7 @@ public class ConfiguratorItem extends Item {
     private static final String MODE = "Mode";
     private static final String REDSTONE = "Redstone";
     private static final String PRIORITY = "Priority";
+    private static final String SLOT_LIMIT = "SlotLimit";
     private static final String FILTERS = "Filters";
     private static final String SLOT = "Slot";
     private static final String STACK = "Stack";
@@ -167,10 +168,16 @@ public class ConfiguratorItem extends Item {
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.face",
                 Component.translatable(config.placement().redstoneControl().translationKey()),
-                config.placement().priority()).withStyle(ChatFormatting.GRAY));
+                config.placement().priority(), slotLimitDisplay(config.slotLimit())).withStyle(ChatFormatting.GRAY));
         if (isPasteMode(stack)) {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.paste_mode").withStyle(ChatFormatting.GOLD));
         }
+    }
+
+    private static Component slotLimitDisplay(int slotLimit) {
+        return slotLimit == SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
+                : Component.literal(String.valueOf(slotLimit));
     }
 
     public static ToolConfig readOrCreate(ItemStack stack) {
@@ -308,12 +315,6 @@ public class ConfiguratorItem extends Item {
         rememberLineBindings(tag, lines);
         int index = currentLineIndex(tag, lines);
         if (lines.size() <= 1) {
-            LineEntry line = createLine(tag, linePrefix(player), List.of());
-            lines.clear();
-            lines.add(line);
-            writeLineList(tag, lines, 0);
-            config = config.withLine(line.id(), line.name());
-            writeConfig(stack, config);
             return config;
         }
         lines.remove(index);
@@ -698,14 +699,15 @@ public class ConfiguratorItem extends Item {
 
     public record FaceConfig(NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,
                              boolean autoDetectResources, RedstoneControl redstoneControl, int priority,
-                             List<ItemStack> filters) {
+                             int slotLimit, List<ItemStack> filters) {
         private static final FaceConfig DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                false, RedstoneControl.IGNORE, 0, emptyFaceFilters());
+                false, RedstoneControl.IGNORE, 0, SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED, emptyFaceFilters());
         private static final FaceConfig PLACEMENT_DEFAULT = new FaceConfig(NodeFaceMode.OUTPUT, true, true, true,
-                true, RedstoneControl.IGNORE, 0, emptyFaceFilters());
+                true, RedstoneControl.IGNORE, 0, SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED, emptyFaceFilters());
 
         public FaceConfig {
             priority = Math.max(-99, Math.min(99, priority));
+            slotLimit = SkyNodeBlockEntity.clampItemSlotLimit(slotLimit);
             filters = List.copyOf(copyFaceFilters(filters));
         }
 
@@ -718,6 +720,7 @@ public class ConfiguratorItem extends Item {
             tag.putBoolean(AUTO_RESOURCES, autoDetectResources);
             tag.putString(REDSTONE, redstoneControl.name());
             tag.putInt(PRIORITY, priority);
+            tag.putInt(SLOT_LIMIT, slotLimit);
             ListTag filterTags = new ListTag();
             for (int slot = 0; slot < filters.size(); slot++) {
                 ItemStack filter = filters.get(slot);
@@ -756,6 +759,7 @@ public class ConfiguratorItem extends Item {
                     tag.contains(AUTO_RESOURCES) ? tag.getBoolean(AUTO_RESOURCES) : false,
                     tag.contains(REDSTONE) ? RedstoneControl.byName(tag.getString(REDSTONE)) : fallback.redstoneControl(),
                     tag.contains(PRIORITY) ? tag.getInt(PRIORITY) : fallback.priority(),
+                    tag.contains(SLOT_LIMIT) ? tag.getInt(SLOT_LIMIT) : fallback.slotLimit(),
                     filters);
         }
 
@@ -765,33 +769,36 @@ public class ConfiguratorItem extends Item {
 
         public FaceConfig withItemsEnabled(boolean enabled) {
             if (autoDetectResources) {
-                return new FaceConfig(mode, enabled, false, false, false, redstoneControl, priority, filters);
+                return new FaceConfig(mode, enabled, false, false, false, redstoneControl, priority, slotLimit, filters);
             }
-            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, false, redstoneControl, priority, filters);
+            return new FaceConfig(mode, enabled, fluidsEnabled, energyEnabled, false, redstoneControl, priority,
+                    slotLimit, filters);
         }
 
         public FaceConfig withFluidsEnabled(boolean enabled) {
             if (autoDetectResources) {
-                return new FaceConfig(mode, false, enabled, false, false, redstoneControl, priority, filters);
+                return new FaceConfig(mode, false, enabled, false, false, redstoneControl, priority, slotLimit, filters);
             }
-            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, false, redstoneControl, priority, filters);
+            return new FaceConfig(mode, itemsEnabled, enabled, energyEnabled, false, redstoneControl, priority,
+                    slotLimit, filters);
         }
 
         public FaceConfig withEnergyEnabled(boolean enabled) {
             if (autoDetectResources) {
-                return new FaceConfig(mode, false, false, enabled, false, redstoneControl, priority, filters);
+                return new FaceConfig(mode, false, false, enabled, false, redstoneControl, priority, slotLimit, filters);
             }
-            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, false, redstoneControl, priority, filters);
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, enabled, false, redstoneControl, priority,
+                    slotLimit, filters);
         }
 
         public FaceConfig withAutoDetectResources() {
             return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, true, redstoneControl, priority,
-                    filters);
+                    slotLimit, filters);
         }
 
         public FaceConfig withRedstoneControl(RedstoneControl control) {
             return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources, control,
-                    priority, filters);
+                    priority, slotLimit, filters);
         }
 
         public FaceConfig cycleRedstoneControl() {
@@ -800,7 +807,12 @@ public class ConfiguratorItem extends Item {
 
         public FaceConfig adjustPriority(int delta) {
             return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources, redstoneControl,
-                    priority + delta, filters);
+                    priority + delta, slotLimit, filters);
+        }
+
+        public FaceConfig adjustSlotLimit(int delta) {
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources, redstoneControl,
+                    priority, slotLimit + delta, filters);
         }
     }
 
@@ -820,7 +832,8 @@ public class ConfiguratorItem extends Item {
                 }
                 faces.put(direction, new FaceConfig(node.getFaceMode(direction), node.isItemsEnabled(direction),
                         node.isFluidsEnabled(direction), node.isEnergyEnabled(direction),
-                        false, node.getRedstoneControl(direction), node.getPriority(direction), filters));
+                        false, node.getRedstoneControl(direction), node.getPriority(direction),
+                        node.getItemSlotLimit(direction), filters));
             }
             return new ToolConfig(node.getLineId(), node.getLineName(),
                     faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT), faces, true,
@@ -845,6 +858,10 @@ public class ConfiguratorItem extends Item {
 
         public boolean autoDetectResources() {
             return placement.autoDetectResources();
+        }
+
+        public int slotLimit() {
+            return placement.slotLimit();
         }
 
         public FaceConfig face(Direction direction) {
@@ -886,6 +903,10 @@ public class ConfiguratorItem extends Item {
 
         public ToolConfig adjustPriority(int delta) {
             return withPlacement(placement.adjustPriority(delta));
+        }
+
+        public ToolConfig adjustSlotLimit(int delta) {
+            return withPlacement(placement.adjustSlotLimit(delta));
         }
     }
 }

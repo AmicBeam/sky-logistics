@@ -87,6 +87,79 @@ final class AppliedEnergisticsApiBridge {
         return new FluidHandler(host);
     }
 
+    static AppliedEnergisticsCompat.ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return AppliedEnergisticsCompat.ItemResource.EMPTY;
+        }
+        MEStorage storage = storage(host);
+        AEItemKey key = AEItemKey.of(stack);
+        long amount = extractKey(host, storage, key, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return AppliedEnergisticsCompat.ItemResource.EMPTY;
+        }
+        ItemStack display = key.toStack((int) Math.min(amount, key.getMaxStackSize()));
+        return display.isEmpty()
+                ? AppliedEnergisticsCompat.ItemResource.EMPTY
+                : new AppliedEnergisticsCompat.ItemResource(display, amount);
+    }
+
+    static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        long inserted = insertKey(host, storage(host), AEItemKey.of(stack), amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        long extracted = extractKey(host, storage(host), AEItemKey.of(stack), amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    static AppliedEnergisticsCompat.FluidResource fluidResourceForStack(BlockEntity host, FluidStack stack) {
+        if (stack.isEmpty()) {
+            return AppliedEnergisticsCompat.FluidResource.EMPTY;
+        }
+        MEStorage storage = storage(host);
+        AEFluidKey key = AEFluidKey.of(stack);
+        long amount = extractKey(host, storage, key, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return AppliedEnergisticsCompat.FluidResource.EMPTY;
+        }
+        FluidStack display = key.toStack((int) Math.min(amount, Integer.MAX_VALUE));
+        return display.isEmpty()
+                ? AppliedEnergisticsCompat.FluidResource.EMPTY
+                : new AppliedEnergisticsCompat.FluidResource(display, amount);
+    }
+
+    static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        long inserted = insertKey(host, storage(host), AEFluidKey.of(stack), amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        long extracted = extractKey(host, storage(host), AEFluidKey.of(stack), amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    static boolean sameNetwork(BlockEntity first, BlockEntity second) {
+        if (first == second) {
+            return true;
+        }
+        IGrid firstGrid = grid(first);
+        IGrid secondGrid = grid(second);
+        return firstGrid != null && firstGrid == secondGrid;
+    }
+
     static IEnergyStorage createEnergyHandler(BlockEntity host) {
         return new EnergyHandler(host, appFluxEnergyKey());
     }

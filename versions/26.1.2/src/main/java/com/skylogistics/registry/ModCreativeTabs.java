@@ -32,7 +32,9 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
-                        ManualCompat.createManualStack().ifPresent(output::accept);
+                        if (ManualCompat.isLoaded()) {
+                            output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
+                        }
                         output.accept(ModItems.CELESTIAL_STONE.get());
                         output.accept(ModItems.CELESTIAL_STONE_SLAB.get());
                         output.accept(ModItems.CELESTIAL_STONE_STAIRS.get());

@@ -35,6 +35,10 @@ public final class MenuAction {
     public static final int NECKLACE_PRIORITY_DOWN_FAST = 38;
     public static final int NECKLACE_PRIORITY_UP_FAST = 39;
     public static final int TOGGLE_AUTO_RESOURCES = 40;
+    public static final int CONFIG_SLOT_LIMIT_DOWN = 41;
+    public static final int CONFIG_SLOT_LIMIT_UP = 42;
+    public static final int CONFIG_SLOT_LIMIT_DOWN_FAST = 43;
+    public static final int CONFIG_SLOT_LIMIT_UP_FAST = 44;
     public static final int FACE_NONE_BASE = 100;
     public static final int FACE_EXTRACT_BASE = 110;
     public static final int FACE_INSERT_BASE = 120;
@@ -44,6 +48,10 @@ public final class MenuAction {
     public static final int FACE_SELECT_BASE = 170;
     public static final int FACE_PRIORITY_DOWN_FAST_BASE = 180;
     public static final int FACE_PRIORITY_UP_FAST_BASE = 190;
+    public static final int FACE_SLOT_LIMIT_DOWN_BASE = 200;
+    public static final int FACE_SLOT_LIMIT_UP_BASE = 210;
+    public static final int FACE_SLOT_LIMIT_DOWN_FAST_BASE = 220;
+    public static final int FACE_SLOT_LIMIT_UP_FAST_BASE = 230;
 
     private MenuAction() {
     }
@@ -82,6 +90,22 @@ public final class MenuAction {
 
     public static int faceSelect(net.minecraft.core.Direction direction) {
         return FACE_SELECT_BASE + direction.ordinal();
+    }
+
+    public static int faceSlotLimitDown(net.minecraft.core.Direction direction) {
+        return FACE_SLOT_LIMIT_DOWN_BASE + direction.ordinal();
+    }
+
+    public static int faceSlotLimitUp(net.minecraft.core.Direction direction) {
+        return FACE_SLOT_LIMIT_UP_BASE + direction.ordinal();
+    }
+
+    public static int faceSlotLimitDownFast(net.minecraft.core.Direction direction) {
+        return FACE_SLOT_LIMIT_DOWN_FAST_BASE + direction.ordinal();
+    }
+
+    public static int faceSlotLimitUpFast(net.minecraft.core.Direction direction) {
+        return FACE_SLOT_LIMIT_UP_FAST_BASE + direction.ordinal();
     }
 
 }

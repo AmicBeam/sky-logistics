@@ -55,4 +55,18 @@ public class OfferingTableBlockEntity extends SingleSlotDisplayBlockEntity {
             }
         }
     }
+
+    @Override
+    protected boolean isDisplaySlotLocked() {
+        if (level == null) {
+            return false;
+        }
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockEntity blockEntity = level.getBlockEntity(worldPosition.relative(direction));
+            if (blockEntity instanceof OfferingAltarBlockEntity altar && altar.hasActiveRecipe()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

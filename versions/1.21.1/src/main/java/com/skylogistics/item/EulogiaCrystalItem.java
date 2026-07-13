@@ -4,6 +4,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.util.StackData;
 import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,15 +30,13 @@ public class EulogiaCrystalItem extends Item {
     }
 
     public static boolean isCharged(ItemStack stack) {
-        CompoundTag tag = StackData.get(stack);
         return stack.getItem() instanceof EulogiaCrystalItem
-                && tag != null
-                && tag.getInt(DAMAGE_TAG) >= CHARGED_DAMAGE_VALUE;
+                && chargeDamage(stack) >= CHARGED_DAMAGE_VALUE;
     }
 
     public static ItemStack chargedStack(Item item) {
         ItemStack stack = new ItemStack(item);
-        StackData.update(stack, tag -> tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE));
+        setCharged(stack, StackData.getOrEmpty(stack));
         return stack;
     }
 
@@ -49,9 +48,7 @@ public class EulogiaCrystalItem extends Item {
         int chargeSeconds = storedChargeSeconds(tag) + 1;
         int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
         if (chargeSeconds >= requiredSeconds) {
-            tag.remove(CHARGE_SECONDS_TAG);
-            tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
-            StackData.set(stack, tag);
+            setCharged(stack, tag);
             return true;
         }
         tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
@@ -79,9 +76,39 @@ public class EulogiaCrystalItem extends Item {
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
     }
 
+    private static int chargeDamage(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage != null && damage >= CHARGED_DAMAGE_VALUE) {
+            return damage;
+        }
+        CompoundTag tag = StackData.get(stack);
+        return tag == null ? 0 : tag.getInt(DAMAGE_TAG);
+    }
+
+    private static void setCharged(ItemStack stack, CompoundTag tag) {
+        tag.remove(CHARGE_SECONDS_TAG);
+        tag.remove(DAMAGE_TAG);
+        stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
+        StackData.set(stack, tag);
+    }
+
+    private static void ensureChargedDamageComponent(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage == null || damage < CHARGED_DAMAGE_VALUE) {
+            stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
+        }
+    }
+
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
-        if (level.isClientSide || !(entity instanceof Player player) || player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
+        if (level.isClientSide || !(entity instanceof Player player)) {
+            return;
+        }
+        if (isCharged(stack)) {
+            ensureChargedDamageComponent(stack);
+            return;
+        }
+        if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
             return;
         }
         if (level.getGameTime() % TICKS_PER_SECOND != 0L) {

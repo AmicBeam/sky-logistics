@@ -6,6 +6,7 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
+import com.skylogistics.item.SkyLogisticsManualItem;
 import com.skylogistics.item.SkyNodeBlockItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.item.TagFilterListItem;
@@ -65,6 +66,8 @@ public final class ModItems {
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(new Item.Properties()));
+    public static final RegistryObject<Item> SKY_LOGISTICS_MANUAL = ITEMS.register("sky_logistics_manual",
+            () -> new SkyLogisticsManualItem(new Item.Properties().stacksTo(1)));
 
     private ModItems() {
     }

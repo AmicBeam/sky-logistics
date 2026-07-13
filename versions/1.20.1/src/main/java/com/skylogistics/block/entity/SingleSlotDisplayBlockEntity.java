@@ -26,6 +26,22 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         }
 
         @Override
+        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            if (isDisplaySlotLocked()) {
+                return stack;
+            }
+            return super.insertItem(slot, stack, simulate);
+        }
+
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (isDisplaySlotLocked()) {
+                return ItemStack.EMPTY;
+            }
+            return super.extractItem(slot, amount, simulate);
+        }
+
+        @Override
         protected void onContentsChanged(int slot) {
             markSlotChanged();
         }
@@ -78,7 +94,9 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     }
 
     public boolean extractToPlayer(Player player, InteractionHand hand) {
-        ItemStack stored = items.extractItem(0, 64, false);
+        ItemStack stored = isDisplaySlotLocked() && canPlayerExtractDisplayWhileLocked(player)
+                ? extractDisplayedItemInternal(64)
+                : items.extractItem(0, 64, false);
         if (stored.isEmpty()) {
             return false;
         }
@@ -94,7 +112,18 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     }
 
     public ItemStack removeDisplayedItem() {
-        return items.extractItem(0, 64, false);
+        return extractDisplayedItemInternal(64);
+    }
+
+    private ItemStack extractDisplayedItemInternal(int amount) {
+        ItemStack stack = items.getStackInSlot(0);
+        if (stack.isEmpty() || amount <= 0) {
+            return ItemStack.EMPTY;
+        }
+        int extracted = Math.min(amount, stack.getCount());
+        ItemStack result = stack.split(extracted);
+        items.setStackInSlot(0, stack.isEmpty() ? ItemStack.EMPTY : stack);
+        return result;
     }
 
     @Override
@@ -144,5 +173,13 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     }
 
     protected void onStoredItemChanged() {
+    }
+
+    protected boolean isDisplaySlotLocked() {
+        return false;
+    }
+
+    protected boolean canPlayerExtractDisplayWhileLocked(Player player) {
+        return false;
     }
 }

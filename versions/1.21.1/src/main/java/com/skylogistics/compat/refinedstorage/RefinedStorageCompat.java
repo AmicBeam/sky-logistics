@@ -2,6 +2,7 @@ package com.skylogistics.compat.refinedstorage;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
+import com.skylogistics.config.SkyLogisticsConfig;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,11 +38,93 @@ public final class RefinedStorageCompat {
     }
 
     public static IItemHandler createItemHandler(BlockEntity host) {
-        return isLoaded() ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageItemTransfer()
+                ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
     public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()
+                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
+    }
+
+    public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageItemTransfer() || stack.isEmpty()) {
+            return ItemResource.EMPTY;
+        }
+        Object storage = storage(host);
+        Object resource = itemResource(stack);
+        long amount = extractResource(storage, resource, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return ItemResource.EMPTY;
+        }
+        ItemStack display = itemStack(new ResourceEntry(resource, amount));
+        return display.isEmpty() ? ItemResource.EMPTY : new ItemResource(display, amount);
+    }
+
+    public static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageItemTransfer() || stack.isEmpty()
+                || amount <= 0L) {
+            return 0L;
+        }
+        Object resource = itemResource(stack);
+        long inserted = insertResource(storage(host), resource, amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    public static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageItemTransfer() || stack.isEmpty()
+                || amount <= 0L) {
+            return 0L;
+        }
+        Object resource = itemResource(stack);
+        long extracted = extractResource(storage(host), resource, amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    public static FluidResource fluidResourceForStack(BlockEntity host, FluidStack stack) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageFluidTransfer() || stack.isEmpty()) {
+            return FluidResource.EMPTY;
+        }
+        Object storage = storage(host);
+        Object resource = fluidResource(stack);
+        long amount = extractResource(storage, resource, Long.MAX_VALUE, true);
+        if (amount <= 0L) {
+            return FluidResource.EMPTY;
+        }
+        FluidStack display = fluidStack(new ResourceEntry(resource, amount));
+        return display.isEmpty() ? FluidResource.EMPTY : new FluidResource(display, amount);
+    }
+
+    public static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageFluidTransfer() || stack.isEmpty()
+                || amount <= 0L) {
+            return 0L;
+        }
+        Object resource = fluidResource(stack);
+        long inserted = insertResource(storage(host), resource, amount, simulate);
+        return Math.min(inserted, amount);
+    }
+
+    public static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageFluidTransfer() || stack.isEmpty()
+                || amount <= 0L) {
+            return 0L;
+        }
+        Object resource = fluidResource(stack);
+        long extracted = extractResource(storage(host), resource, amount, simulate);
+        return Math.min(extracted, amount);
+    }
+
+    public static boolean sameNetwork(BlockEntity first, BlockEntity second) {
+        if (first == second) {
+            return true;
+        }
+        if (!isLoaded() || first == null || second == null) {
+            return false;
+        }
+        Object firstNetwork = network(first);
+        Object secondNetwork = network(second);
+        return firstNetwork != null && firstNetwork == secondNetwork;
     }
 
     private static Object storage(BlockEntity host) {
@@ -121,6 +204,32 @@ public final class RefinedStorageCompat {
 
     private static Object actor() throws ReflectiveOperationException {
         return Class.forName(ACTOR).getField("EMPTY").get(null);
+    }
+
+    private static long insertResource(Object storage, Object resource, long amount, boolean simulate) {
+        if (storage == null || resource == null || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            Object inserted = Reflect.invoke(storage, "insert", resource, amount, action(simulate), actor());
+            return inserted instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    private static long extractResource(Object storage, Object resource, long amount, boolean simulate) {
+        if (storage == null || resource == null || amount <= 0L) {
+            return 0L;
+        }
+        try {
+            Object extracted = Reflect.invoke(storage, "extract", resource, amount, action(simulate), actor());
+            return extracted instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
     }
 
     private static List<ResourceEntry> entries(Object storage, String resourceClassName) {
@@ -232,6 +341,22 @@ public final class RefinedStorageCompat {
             warned = true;
             SkyLogistics.LOGGER.warn("Refined Storage compat is disabled because the loaded RS API is not compatible.",
                     error);
+        }
+    }
+
+    public record ItemResource(ItemStack stack, long amount) {
+        public static final ItemResource EMPTY = new ItemResource(ItemStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
+        }
+    }
+
+    public record FluidResource(FluidStack stack, long amount) {
+        public static final FluidResource EMPTY = new FluidResource(FluidStack.EMPTY, 0L);
+
+        public boolean isEmpty() {
+            return stack.isEmpty() || amount <= 0L;
         }
     }
 

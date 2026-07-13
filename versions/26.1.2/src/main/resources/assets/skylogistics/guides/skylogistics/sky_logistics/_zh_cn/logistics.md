@@ -17,13 +17,12 @@ item_ids:
 
 节点不会生成管线。服务器会把同一线路上的抽取面和插入面配对，只搬运目标实际能接收的资源；目标拒收时不会先从来源里扣掉资源。
 
-## 节点
+继续阅读：
 
-<ItemLink id="sky_node" /> 的每一面都可以独立设置为禁用、抽取、插入或仅连接。线路可以同时处理物品、流体和能量，节点还支持优先级和红石控制。
+- [节点与管道端点](logistics_nodes.md)
+- [容器与过滤](logistics_vaults_filters.md)
+- [配置器与升级](logistics_configurator_upgrades.md)
 
-## 仓储
-
-<ItemLink id="item_vault" /> 和 <ItemLink id="fluid_vault" /> 是紧凑的存储端点，适合作为高吞吐机器与无线线路之间的缓冲。
 
 ## 外部网络
 

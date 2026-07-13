@@ -19,7 +19,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 public class SkyNecklaceItem extends Item {
-    public static final int MIN_INSERT_SLOTS = 1;
+    public static final int MIN_INSERT_SLOTS = 0;
     public static final int MAX_INSERT_SLOTS = 36;
     public static final int MIN_PRIORITY = -99;
     public static final int MAX_PRIORITY = 99;
@@ -70,7 +70,7 @@ public class SkyNecklaceItem extends Item {
                     FilterListItem.countItemRules(filter)).withStyle(ChatFormatting.GRAY));
         }
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.insert_slots",
-                insertSlots(stack)).withStyle(ChatFormatting.GRAY));
+                insertSlotsDisplay(stack)).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.priority",
                 priority(stack)).withStyle(ChatFormatting.GRAY));
         if (!filter.isEmpty()) {
@@ -96,6 +96,13 @@ public class SkyNecklaceItem extends Item {
             return MIN_INSERT_SLOTS;
         }
         return clampInsertSlots(tag.getInt(INSERT_SLOTS));
+    }
+
+    public static Component insertSlotsDisplay(ItemStack stack) {
+        int slots = insertSlots(stack);
+        return slots == MIN_INSERT_SLOTS
+                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
+                : Component.literal(String.valueOf(slots));
     }
 
     public static void adjustInsertSlots(ItemStack stack, int delta) {

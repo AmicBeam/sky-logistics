@@ -10,7 +10,7 @@ import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 
 public final class FluidVaultJadeProvider extends BaseSkyLogisticsJadeProvider
-        implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
+        implements IBlockComponentProvider {
     public static final FluidVaultJadeProvider INSTANCE = new FluidVaultJadeProvider();
     private static final String DATA = "SkyLogisticsFluidVault";
 
@@ -32,18 +32,27 @@ public final class FluidVaultJadeProvider extends BaseSkyLogisticsJadeProvider
                 data.getIntOr("TypeLimit", 0), data.getStringOr("Total", "")));
     }
 
-    @Override
-    public void appendServerData(CompoundTag data, BlockAccessor accessor) {
-        if (accessor.getBlockEntity() instanceof FluidVaultBlockEntity vault) {
-            data.put(DATA, writeVaultData(vault));
-        }
-    }
-
     private static CompoundTag writeVaultData(FluidVaultBlockEntity vault) {
         CompoundTag data = new CompoundTag();
         data.putInt("UsedTypes", vault.getUsedTypes());
         data.putInt("TypeLimit", vault.getTypeLimit());
         data.putString("Total", compact(vault.getTotalAmount()));
         return data;
+    }
+
+    public static final class DataProvider extends BaseSkyLogisticsJadeProvider
+            implements IServerDataProvider<BlockAccessor> {
+        public static final DataProvider INSTANCE = new DataProvider();
+
+        private DataProvider() {
+            super("fluid_vault");
+        }
+
+        @Override
+        public void appendServerData(CompoundTag data, BlockAccessor accessor) {
+            if (accessor.getBlockEntity() instanceof FluidVaultBlockEntity vault) {
+                data.put(DATA, writeVaultData(vault));
+            }
+        }
     }
 }

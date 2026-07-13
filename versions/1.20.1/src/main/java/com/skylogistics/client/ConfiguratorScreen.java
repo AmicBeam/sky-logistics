@@ -1,14 +1,18 @@
 package com.skylogistics.client;
 
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
@@ -47,22 +51,32 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_VISIBLE_ROWS = DETAIL_HEIGHT / DETAIL_ROW_HEIGHT;
     private static final int DETAIL_ICON_X = DETAIL_X + 5;
     private static final int DETAIL_TEXT_X = DETAIL_X + 25;
-    private static final int CONTROL_START_X = 58;
+    private static final int CONTROL_START_X = 48;
     private static final int CONTROL_STEP_X = 44;
     private static final int RESOURCE_BUTTON_WIDTH = 42;
+    private static final int CONTROL_LEFT_WIDTH = 76;
     private static final int PRIORITY_ROW_Y = 218;
     private static final int PRIORITY_DOWN_X = CONTROL_START_X;
-    private static final int PRIORITY_VALUE_X = 84;
-    private static final int PRIORITY_VALUE_WIDTH = 52;
-    private static final int PRIORITY_UP_X = 136;
+    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + 22;
+    private static final int PRIORITY_VALUE_WIDTH = 34;
+    private static final int PRIORITY_UP_X = 104;
+    private static final int SLOT_LIMIT_ROW_Y = 192;
+    private static final int SLOT_LIMIT_LABEL_X = 138;
+    private static final int SLOT_LIMIT_DOWN_X = 172;
+    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + 20;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
+    private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
+    private final List<SlotLimitButton> slotLimitButtons = new ArrayList<>();
     private RedstoneButton redstoneButton;
     private EditBox lineNameEdit;
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private UUID detailLine;
+    private List<ConfiguratorLineDetailsPacket.Entry> detailEntries = List.of();
+    private final Map<ConfiguratorLineDetailsPacket.Entry, ItemStack> detailIconCache = new HashMap<>();
     private int detailScroll;
 
     public ConfiguratorScreen(ConfiguratorMenu menu, Inventory inventory, Component title) {
@@ -78,6 +92,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         lineButtons.clear();
         typeButtons.clear();
         priorityButtons.clear();
+        slotLimitButtons.clear();
         addLineButton(leftPos + 116, topPos + 29, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
         addLineButton(leftPos + 141, topPos + 29, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
         addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
@@ -96,6 +111,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 166, ResourceType.ENERGY);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 166, ResourceType.AUTO);
         redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + CONTROL_START_X, topPos + 192));
+        addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + SLOT_LIMIT_ROW_Y, -1, Component.literal("-"));
+        addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + SLOT_LIMIT_ROW_Y, 1, Component.literal("+"));
         addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + PRIORITY_ROW_Y, -1, Component.literal("-"));
         addPriorityButton(leftPos + PRIORITY_UP_X, topPos + PRIORITY_ROW_Y, 1, Component.literal("+"));
     }
@@ -118,6 +135,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addRenderableWidget(button);
     }
 
+    private void addSlotLimitButton(int x, int y, int delta, Component message) {
+        SlotLimitButton button = new SlotLimitButton(x, y, delta, message);
+        slotLimitButtons.add(button);
+        addRenderableWidget(button);
+    }
+
     @Override
     protected void containerTick() {
         super.containerTick();
@@ -127,6 +150,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (!Objects.equals(detailLine, currentLine)) {
             detailLine = currentLine;
             detailScroll = 0;
+            detailIconCache.clear();
         }
         detailScroll = Mth.clamp(detailScroll, 0, maxDetailScroll(currentLine));
         int index = menu.getLineIndex();
@@ -139,6 +163,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             button.active = config() != null;
         }
         for (PriorityButton button : priorityButtons) {
+            button.active = config() != null;
+        }
+        for (SlotLimitButton button : slotLimitButtons) {
             button.active = config() != null;
         }
         if (redstoneButton != null) {
@@ -193,6 +220,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 14, 172, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                 14, 198, ConfigPanel.MUTED, false);
+        graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
+                SLOT_LIMIT_LABEL_X, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.MUTED, false);
+        graphics.drawCenteredString(font, slotLimitDisplay(config.slotLimit()),
+                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.TEXT);
         graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
                 14, 224, ConfigPanel.MUTED, false);
         graphics.drawCenteredString(font, Component.literal(String.valueOf(config.placement().priority())),
@@ -294,7 +325,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
-        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
         graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces"),
                 DETAIL_X, DETAIL_Y - 11, ConfigPanel.MUTED, false);
         if (entries.size() > DETAIL_VISIBLE_ROWS) {
@@ -340,7 +371,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private int maxDetailScroll(UUID lineId) {
-        int size = ClientConfiguratorLineDetails.entries(lineId).size();
+        int size = lineDetailEntries(lineId).size();
         return Math.max(0, size - DETAIL_VISIBLE_ROWS);
     }
 
@@ -372,7 +403,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         if (config == null) {
             return null;
         }
-        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(config.lineId());
+        List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
         for (int row = 0; row < DETAIL_VISIBLE_ROWS; row++) {
             int index = detailScroll + row;
             if (index >= entries.size()) {
@@ -396,8 +427,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ItemStack targetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
+        return detailIconCache.computeIfAbsent(entry, this::createTargetIcon);
+    }
+
+    private ItemStack createTargetIcon(ConfiguratorLineDetailsPacket.Entry entry) {
         if (isSkyNecklaceEntry(entry)) {
-            return playerHeadIcon(entry);
+            return SkyLogisticsConfig.renderConfiguratorPlayerHeads()
+                    ? playerHeadIcon(entry)
+                    : ModItems.SKY_NECKLACE.get().getDefaultInstance();
         }
         ResourceLocation id = ResourceLocation.tryParse(entry.targetBlockId());
         if (id == null) {
@@ -412,6 +449,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         Item item = ForgeRegistries.ITEMS.getValue(id);
         return item == null ? ItemStack.EMPTY : item.getDefaultInstance();
+    }
+
+    private List<ConfiguratorLineDetailsPacket.Entry> lineDetailEntries(UUID lineId) {
+        List<ConfiguratorLineDetailsPacket.Entry> entries = ClientConfiguratorLineDetails.entries(lineId);
+        if (entries != detailEntries) {
+            detailEntries = entries;
+            detailIconCache.clear();
+        }
+        return entries;
     }
 
     private boolean isSkyNecklaceEntry(ConfiguratorLineDetailsPacket.Entry entry) {
@@ -488,6 +534,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             case MenuAction.CONFIG_REDSTONE -> config.cycleRedstoneControl();
             case MenuAction.CONFIG_PRIORITY_DOWN -> config.adjustPriority(-1);
             case MenuAction.CONFIG_PRIORITY_UP -> config.adjustPriority(1);
+            case MenuAction.CONFIG_SLOT_LIMIT_DOWN -> config.adjustSlotLimit(-1);
+            case MenuAction.CONFIG_SLOT_LIMIT_UP -> config.adjustSlotLimit(1);
+            case MenuAction.CONFIG_SLOT_LIMIT_DOWN_FAST -> config.adjustSlotLimit(-10);
+            case MenuAction.CONFIG_SLOT_LIMIT_UP_FAST -> config.adjustSlotLimit(10);
             default -> null;
         };
         if (updated == null) {
@@ -514,6 +564,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfigPanel.drawBox(graphics, x, y, width, height, fill, border);
     }
 
+    private Component slotLimitDisplay(int slotLimit) {
+        return slotLimit == com.skylogistics.block.entity.SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
+                : Component.literal(String.valueOf(slotLimit));
+    }
+
     private final class LineButton extends AbstractButton {
         private final int action;
 
@@ -526,7 +582,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             active = switch (action) {
                 case MenuAction.LINE_FIRST, MenuAction.LINE_PREVIOUS -> count > 1 && index > 0;
                 case MenuAction.LINE_LAST -> count > 1 && index < count - 1;
-                case MenuAction.LINE_REMOVE_CURRENT -> count > 0 && canRemoveCurrentLine();
+                case MenuAction.LINE_REMOVE_CURRENT -> count > 1 && canRemoveCurrentLine();
                 default -> true;
             };
         }
@@ -555,7 +611,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private final class RedstoneButton extends AbstractButton {
         private RedstoneButton(int x, int y) {
-            super(x, y, 96, 20, Component.translatable("screen.skylogistics.redstone"));
+            super(x, y, CONTROL_LEFT_WIDTH, 20, Component.translatable("screen.skylogistics.redstone"));
         }
 
         @Override
@@ -595,6 +651,38 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 int action = delta < 0
                         ? (fast ? MenuAction.CONFIG_PRIORITY_DOWN_FAST : MenuAction.CONFIG_PRIORITY_DOWN)
                         : (fast ? MenuAction.CONFIG_PRIORITY_UP_FAST : MenuAction.CONFIG_PRIORITY_UP);
+                ModNetworking.sendMenuAction(action);
+            }
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private final class SlotLimitButton extends AbstractButton {
+        private final int delta;
+
+        private SlotLimitButton(int x, int y, int delta, Component message) {
+            super(x, y, 22, 20, message);
+            this.delta = delta;
+        }
+
+        @Override
+        public void onPress() {
+            if (active) {
+                boolean fast = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+                int action = delta < 0
+                        ? (fast ? MenuAction.CONFIG_SLOT_LIMIT_DOWN_FAST : MenuAction.CONFIG_SLOT_LIMIT_DOWN)
+                        : (fast ? MenuAction.CONFIG_SLOT_LIMIT_UP_FAST : MenuAction.CONFIG_SLOT_LIMIT_UP);
                 ModNetworking.sendMenuAction(action);
             }
         }

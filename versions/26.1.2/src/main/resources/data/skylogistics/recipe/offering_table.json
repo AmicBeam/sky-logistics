@@ -9,6 +9,7 @@
     "S": "skylogistics:celestial_stone"
   },
   "result": {
-    "id": "skylogistics:offering_table"
+    "id": "skylogistics:offering_table",
+    "count": 4
   }
 }

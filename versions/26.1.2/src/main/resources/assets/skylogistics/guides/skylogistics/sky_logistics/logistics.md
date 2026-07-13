@@ -17,13 +17,12 @@ item_ids:
 
 Nodes do not create pipes. The server pairs extract faces with insert faces that share a line id, then moves only what the target can accept. Failed targets do not consume resources first.
 
-## Nodes
+Read more:
 
-Each face of a <ItemLink id="sky_node" /> can be disabled, extract, insert, or link-only. A line can carry items, fluids, and energy, and each node has priority and redstone controls.
+- [Nodes and Pipe Endpoints](logistics_nodes.md)
+- [Vaults and Filters](logistics_vaults_filters.md)
+- [Configurator and Upgrades](logistics_configurator_upgrades.md)
 
-## Vaults
-
-<ItemLink id="item_vault" /> and <ItemLink id="fluid_vault" /> are compact storage endpoints. They are useful as buffers between high volume machines and wireless lines.
 
 ## External Networks
 

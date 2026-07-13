@@ -2,6 +2,7 @@ package com.skylogistics.client;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.network.ModNetworking;
@@ -37,14 +38,20 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FIRST_DETAIL_ROW_Y = 100;
     private static final int SECOND_DETAIL_ROW_Y = 126;
     private static final int DETAIL_LABEL_OFFSET_Y = 6;
-    private static final int ADVANCED_CONTROL_X = 62;
-    private static final int ADVANCED_CONTROL_WIDTH = 86;
+    private static final int ADVANCED_CONTROL_X = 48;
+    private static final int ADVANCED_CONTROL_WIDTH = 76;
+    private static final int ADVANCED_RIGHT_LABEL_X = 138;
     private static final int PRIORITY_BUTTON_WIDTH = 20;
     private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
-    private static final int PRIORITY_UP_X = 128;
+    private static final int PRIORITY_UP_X = 104;
     private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
     private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
+    private static final int SLOT_LIMIT_DOWN_X = SkyNodeMenu.FACE_FILTER_SLOT_X;
+    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + PRIORITY_BUTTON_WIDTH;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
+    private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
     private static final int MORE_BUTTON_X = 162;
+    private static final int EXTERNAL_EXTRACT_HINT_Y = SkyNodeMenu.UPGRADE_ROW_Y + 20;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -60,11 +67,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private boolean advancedPanel;
+    private Direction tagFilterRejectedFace;
+    private int tagFilterRejectedSlot = -1;
+    private ItemStack tagFilterRejectedPrevious = ItemStack.EMPTY;
 
     public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 254,
-                menu.isSingleEndpoint() ? 265 - SkyNodeMenu.SINGLE_ENDPOINT_VERTICAL_SHIFT : 265);
-        inventoryLabelY = menu.screenY(169);
+                menu.isSingleEndpoint()
+                        ? SkyNodeMenu.PANEL_HEIGHT - SkyNodeMenu.SINGLE_ENDPOINT_VERTICAL_SHIFT
+                        : SkyNodeMenu.PANEL_HEIGHT);
+        inventoryLabelY = menu.screenY(SkyNodeMenu.PLAYER_INVENTORY_LABEL_Y);
     }
 
     @Override
@@ -119,6 +131,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 moreWidth);
         addRenderableWidget(moreButton);
         addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y)));
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+                -1, Component.literal("-")));
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+                1, Component.literal("+")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
                 -1, Component.literal("-")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
@@ -209,6 +225,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (localEnergyEnabled != null && node.isEnergyEnabled(selectedFace) == localEnergyEnabled) {
             localEnergyEnabled = null;
         }
+        if (shouldClearTagFilterWarning(node)) {
+            clearTagFilterWarning();
+        }
     }
 
     @Override
@@ -244,10 +263,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (advancedPanel) {
             graphics.text(font, Component.translatable("screen.skylogistics.redstone"),
                     14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
+            graphics.text(font, Component.translatable("screen.skylogistics.slot_limit"),
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ConfigPanel.MUTED, false);
+            graphics.centeredText(font, slotLimitDisplay(node.getItemSlotLimit(face)),
+                    SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
+                    menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.TEXT);
             graphics.text(font, Component.translatable(node.usesSingleEndpoint()
                             ? "screen.skylogistics.filter_slot"
                             : "screen.skylogistics.face_filters"),
-                    SkyNodeMenu.FACE_FILTER_SLOT_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
+                    ADVANCED_RIGHT_LABEL_X, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.MUTED, false);
             graphics.text(font, Component.translatable("screen.skylogistics.priority"),
                     14, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
@@ -262,6 +287,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         graphics.text(font, Component.translatable("screen.skylogistics.upgrade_slots"),
                 14, menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y) + 5, ConfigPanel.MUTED, false);
+        Component externalExtractHint = externalExtractHint(node, face);
+        if (externalExtractHint != null) {
+            graphics.text(font, externalExtractHint, 14, menu.screenY(EXTERNAL_EXTRACT_HINT_Y),
+                    0xFFFF9A8A, false);
+        }
     }
 
     @Override
@@ -296,6 +326,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             lineNameEdit.setFocused(false);
             setFocused(null);
         }
+        updateTagFilterWarningFromClick(mouseX, mouseY, event.hasShiftDown());
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -361,6 +392,95 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             }
         }
         return null;
+    }
+
+    private Component externalExtractHint(SkyNodeBlockEntity node, Direction face) {
+        if (!node.hasTagFaceFilterRestriction(face)) {
+            return null;
+        }
+        if (tagFilterRejectedFace == face) {
+            return Component.translatable("message.skylogistics.sky_node.tag_filter_external_extract");
+        }
+        return node.hasValidItemWhitelistFaceFilter(face)
+                ? null
+                : Component.translatable("screen.skylogistics.sky_node.needs_whitelist_external_extract");
+    }
+
+    private void updateTagFilterWarningFromClick(double mouseX, double mouseY, boolean shiftDown) {
+        SkyNodeBlockEntity node = node();
+        if (node == null || !node.hasTagFaceFilterRestriction(selectedFace)) {
+            return;
+        }
+        Slot slot = slotAt(mouseX, mouseY);
+        if (slot == null) {
+            return;
+        }
+        ItemStack attempted = ItemStack.EMPTY;
+        int targetSlot = faceFilterMenuSlot(slot);
+        if (targetSlot >= 0) {
+            attempted = menu.getCarried();
+            if (!attempted.isEmpty() && !SkyNodeBlockEntity.isFaceFilterItem(attempted)) {
+                return;
+            }
+        } else if (advancedPanel && shiftDown && SkyNodeBlockEntity.isFaceFilterItem(slot.getItem())) {
+            targetSlot = 0;
+            attempted = slot.getItem();
+        } else {
+            return;
+        }
+        refreshTagFilterWarning(node, selectedFace, targetSlot, attempted);
+    }
+
+    private void refreshTagFilterWarning(SkyNodeBlockEntity node, Direction face, int slot, ItemStack attempted) {
+        if (TagFilterListItem.isTagFilterList(attempted)) {
+            tagFilterRejectedFace = face;
+            tagFilterRejectedSlot = slot;
+            tagFilterRejectedPrevious = node.getFaceFilter(face, slot).copy();
+        } else {
+            clearTagFilterWarning();
+        }
+    }
+
+    private boolean shouldClearTagFilterWarning(SkyNodeBlockEntity node) {
+        if (tagFilterRejectedFace == null) {
+            return false;
+        }
+        if (!node.hasTagFaceFilterRestriction(tagFilterRejectedFace)
+                || node.hasValidItemWhitelistFaceFilter(tagFilterRejectedFace)) {
+            return true;
+        }
+        if (tagFilterRejectedSlot < 0 || tagFilterRejectedSlot >= SkyNodeBlockEntity.FACE_FILTER_SLOTS) {
+            return false;
+        }
+        return !ItemStack.matches(node.getFaceFilter(tagFilterRejectedFace, tagFilterRejectedSlot),
+                tagFilterRejectedPrevious);
+    }
+
+    private void clearTagFilterWarning() {
+        tagFilterRejectedFace = null;
+        tagFilterRejectedSlot = -1;
+        tagFilterRejectedPrevious = ItemStack.EMPTY;
+    }
+
+    private Slot slotAt(double mouseX, double mouseY) {
+        for (Slot slot : menu.slots) {
+            if (slot.isActive() && mouseX >= leftPos + slot.x - 1 && mouseX < leftPos + slot.x + 17
+                    && mouseY >= topPos + slot.y - 1 && mouseY < topPos + slot.y + 17) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    private int faceFilterMenuSlot(Slot slot) {
+        int start = SkyNodeBlockEntity.UPGRADE_SLOTS;
+        int end = start + SkyNodeBlockEntity.FACE_FILTER_SLOTS;
+        for (int index = start; index < end && index < menu.slots.size(); index++) {
+            if (menu.slots.get(index) == slot) {
+                return index - start;
+            }
+        }
+        return -1;
     }
 
     private void renderMenuSlotBackgrounds(GuiGraphicsExtractor graphics) {
@@ -439,6 +559,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return localEnergyEnabled == null ? node.isEnergyEnabled(selectedFace) : localEnergyEnabled;
     }
 
+    private Component slotLimitDisplay(int slotLimit) {
+        return slotLimit == SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
+                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
+                : Component.literal(String.valueOf(slotLimit));
+    }
+
     private SkyNodeBlockEntity node() {
         if (Minecraft.getInstance().level == null) {
             return null;
@@ -506,7 +632,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             active = switch (action) {
                 case MenuAction.LINE_FIRST, MenuAction.LINE_PREVIOUS -> count > 1 && index > 0;
                 case MenuAction.LINE_LAST -> count > 1 && index < count - 1;
-                case MenuAction.LINE_REMOVE_CURRENT -> count > 0;
+                case MenuAction.LINE_REMOVE_CURRENT -> count > 1;
                 default -> true;
             };
         }
@@ -661,6 +787,28 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                                 : MenuAction.facePriorityDown(selectedFace))
                         : (fast ? MenuAction.facePriorityUpFast(selectedFace)
                                 : MenuAction.facePriorityUp(selectedFace));
+                ModNetworking.sendMenuAction(action);
+            }
+        }
+    }
+
+    private final class SlotLimitButton extends AdvancedButton {
+        private final int delta;
+
+        private SlotLimitButton(int x, int y, int delta, Component message) {
+            super(x, y, PRIORITY_BUTTON_WIDTH, 18, message);
+            this.delta = delta;
+        }
+
+        @Override
+        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+            if (active) {
+                boolean fast = input.hasShiftDown();
+                int action = delta < 0
+                        ? (fast ? MenuAction.faceSlotLimitDownFast(selectedFace)
+                                : MenuAction.faceSlotLimitDown(selectedFace))
+                        : (fast ? MenuAction.faceSlotLimitUpFast(selectedFace)
+                                : MenuAction.faceSlotLimitUp(selectedFace));
                 ModNetworking.sendMenuAction(action);
             }
         }

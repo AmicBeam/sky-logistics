@@ -357,9 +357,6 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private void markContentsChanged() {
         syncVersion++;
         setChanged();
-        if (level instanceof ServerLevel) {
-            syncToViewingPlayers();
-        }
     }
 
     private void markMetadataChanged() {

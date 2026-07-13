@@ -11,6 +11,7 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
@@ -50,6 +51,8 @@ import net.minecraftforge.items.IItemHandler;
 public class SkyNodeBlockEntity extends BlockEntity {
     public static final int UPGRADE_SLOTS = 2;
     public static final int FACE_FILTER_SLOTS = 1;
+    public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
+    public static final int MAX_ITEM_SLOT_LIMIT = 999;
     private static final String LINE_ID_TAG = "LineId";
     private static final String LINES_TAG = "Lines";
     private static final String LINE_INDEX_TAG = "LineIndex";
@@ -69,6 +72,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, RedstoneControl> redstoneControls = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> priorities = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, Integer> itemSlotLimits = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceItemsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceFluidsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceEnergyEnabled = new EnumMap<>(Direction.class);
@@ -98,6 +102,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
+            itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
             faceItemsEnabled.put(direction, true);
             faceFluidsEnabled.put(direction, true);
             faceEnergyEnabled.put(direction, true);
@@ -309,6 +314,62 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return stack.isEmpty() || (slot >= 0 && slot < FACE_FILTER_SLOTS && isFaceFilterItem(stack));
     }
 
+    public boolean canAcceptFaceFilter(Direction direction, int slot, ItemStack stack) {
+        if (!canAcceptFaceFilter(slot, stack)) {
+            return false;
+        }
+        return !rejectsTagFaceFilter(direction, stack);
+    }
+
+    public boolean rejectsTagFaceFilter(Direction direction, ItemStack stack) {
+        return !stack.isEmpty() && hasTagFaceFilterRestriction(direction)
+                && TagFilterListItem.isTagFilterList(stack);
+    }
+
+    public boolean hasTagFaceFilterRestriction(Direction direction) {
+        return isExternalNetworkItemExtractionFace(direction);
+    }
+
+    public boolean hasValidItemWhitelistFaceFilter(Direction direction) {
+        NonNullList<ItemStack> filters = faceFilters.get(direction);
+        if (filters == null) {
+            return false;
+        }
+        for (ItemStack filter : filters) {
+            if (!filter.isEmpty()
+                    && !TagFilterListItem.isTagFilterList(filter)
+                    && FilterListItem.isWhitelist(filter)
+                    && FilterListItem.countItemRules(filter) > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isExternalNetworkItemExtractionFace(Direction direction) {
+        return getFaceMode(direction) == NodeFaceMode.INPUT
+                && isItemsEnabled(direction)
+                && (this instanceof SkyMEInterfaceBlockEntity || this instanceof SkyRSInterfaceBlockEntity);
+    }
+
+    private boolean discardInvalidFaceFilters(Direction direction) {
+        NonNullList<ItemStack> filters = faceFilters.get(direction);
+        if (filters == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (int slot = 0; slot < filters.size(); slot++) {
+            ItemStack filter = filters.get(slot);
+            if (filter.isEmpty() || canAcceptFaceFilter(direction, slot, filter)) {
+                continue;
+            }
+            filters.set(slot, ItemStack.EMPTY);
+            markFaceFilterDirty(direction, slot);
+            changed = true;
+        }
+        return changed;
+    }
+
     public void setUpgrade(int slot, ItemStack stack) {
         if (slot < 0 || slot >= upgrades.size()) {
             return;
@@ -332,19 +393,27 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (level == null || level.isClientSide) {
             return;
         }
+        List<ItemStack> drops = new ArrayList<>();
+        removeUpgrades(drops);
+        for (ItemStack upgrade : drops) {
+            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
+                    worldPosition.getZ() + 0.5D, upgrade);
+        }
+    }
+
+    public void removeUpgrades(List<ItemStack> drops) {
         for (int slot = 0; slot < upgrades.size(); slot++) {
             ItemStack upgrade = upgrades.get(slot);
             if (upgrade.isEmpty()) {
                 continue;
             }
-            Containers.dropItemStack(level, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
-                    worldPosition.getZ() + 0.5D, upgrade.copy());
+            drops.add(upgrade.copy());
             upgrades.set(slot, ItemStack.EMPTY);
         }
     }
 
     public void setFaceFilter(Direction direction, int slot, ItemStack stack) {
-        if (!canAcceptFaceFilter(slot, stack)) {
+        if (!canAcceptFaceFilter(direction, slot, stack)) {
             stack = ItemStack.EMPTY;
         }
         NonNullList<ItemStack> filters = faceFilters.get(direction);
@@ -485,19 +554,23 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean endpointItems = isItemsEnabled(endpoint);
         boolean endpointFluids = isFluidsEnabled(endpoint);
         boolean endpointEnergy = energyAllowed && isEnergyEnabled(endpoint);
+        int endpointSlotLimit = getItemSlotLimit(endpoint);
         for (Direction direction : Direction.values()) {
             NodeFaceMode newMode = direction == endpoint ? endpointMode : NodeFaceMode.NONE;
             boolean newItems = direction == endpoint && endpointItems;
             boolean newFluids = direction == endpoint && endpointFluids;
             boolean newEnergy = direction == endpoint && endpointEnergy;
+            int newSlotLimit = direction == endpoint ? endpointSlotLimit : ITEM_SLOT_LIMIT_UNLIMITED;
             changed |= getFaceMode(direction) != newMode;
             changed |= isItemsEnabled(direction) != newItems;
             changed |= isFluidsEnabled(direction) != newFluids;
             changed |= isEnergyEnabled(direction) != newEnergy;
+            changed |= getItemSlotLimit(direction) != newSlotLimit;
             faceModes.put(direction, newMode);
             faceItemsEnabled.put(direction, newItems);
             faceFluidsEnabled.put(direction, newFluids);
             faceEnergyEnabled.put(direction, newEnergy);
+            itemSlotLimits.put(direction, newSlotLimit);
         }
         itemsEnabled = endpointItems;
         fluidsEnabled = endpointFluids;
@@ -526,6 +599,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     public int getPriority(Direction direction) {
         return priorities.getOrDefault(direction, 0);
+    }
+
+    public int getItemSlotLimit(Direction direction) {
+        return itemSlotLimits.getOrDefault(direction, ITEM_SLOT_LIMIT_UNLIMITED);
     }
 
     public boolean isFaceRedstoneAllowed(Direction direction) {
@@ -612,6 +689,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
         if (getPriority(direction) != face.priority()) {
             priorities.put(direction, face.priority());
             priorityChanged = true;
+        }
+        if (getItemSlotLimit(direction) != face.slotLimit()) {
+            itemSlotLimits.put(direction, face.slotLimit());
+            runtimeChanged = true;
         }
         if (config.hasCopiedFaces() && applyFaceFilters(direction, face)) {
             runtimeChanged = true;
@@ -748,6 +829,10 @@ public class SkyNodeBlockEntity extends BlockEntity {
                 priorities.put(direction, face.priority());
                 priorityChanged = true;
             }
+            if (getItemSlotLimit(direction) != face.slotLimit()) {
+                itemSlotLimits.put(direction, face.slotLimit());
+                runtimeChanged = true;
+            }
             if (applyFaceFilters(direction, face)) {
                 runtimeChanged = true;
             }
@@ -834,7 +919,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         boolean changed = false;
         for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
             ItemStack stack = face.filter(slot);
-            if (!canAcceptFaceFilter(slot, stack)) {
+            if (!canAcceptFaceFilter(direction, slot, stack)) {
                 stack = ItemStack.EMPTY;
             }
             ItemStack copy = stack.copy();
@@ -958,14 +1043,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     public void removeCurrentLine(Player player) {
         ensureLineList();
         if (lines.size() <= 1) {
-            lines.clear();
-            lineNames.clear();
-            lineAssignedNames.clear();
-            String newLineName = nextLineName(ConfiguratorItem.linePrefix(player), -1);
-            lines.add(ConfiguratorItem.lineIdForName(newLineName));
-            lineNames.add(newLineName);
-            lineAssignedNames.add(newLineName);
-            selectLine(0);
             return;
         }
         lines.remove(lineIndex);
@@ -1115,6 +1192,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         this.itemsEnabled = itemsEnabled;
         for (Direction direction : Direction.values()) {
             faceItemsEnabled.put(direction, itemsEnabled);
+            discardInvalidFaceFilters(direction);
         }
         markTopologyChanged();
     }
@@ -1125,6 +1203,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         faceItemsEnabled.put(direction, itemsEnabled);
         this.itemsEnabled = allFacesEnabled(faceItemsEnabled);
+        discardInvalidFaceFilters(direction);
         markTopologyChanged();
     }
 
@@ -1186,6 +1265,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
         } else if (faceMode == NodeFaceMode.OUTPUT) {
             mode = NodeMode.OUTPUT;
         }
+        discardInvalidFaceFilters(direction);
         markTopologyChanged();
     }
 
@@ -1201,6 +1281,19 @@ public class SkyNodeBlockEntity extends BlockEntity {
         }
         priorities.put(direction, priority);
         markPriorityChanged();
+    }
+
+    public void adjustItemSlotLimit(Direction direction, int delta) {
+        setItemSlotLimit(direction, getItemSlotLimit(direction) + delta);
+    }
+
+    public void setItemSlotLimit(Direction direction, int limit) {
+        int clamped = clampItemSlotLimit(limit);
+        if (getItemSlotLimit(direction) == clamped) {
+            return;
+        }
+        itemSlotLimits.put(direction, clamped);
+        markRuntimeChanged();
     }
 
     @Override
@@ -1245,6 +1338,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             CompoundTag settings = new CompoundTag();
             settings.putString("Redstone", getRedstoneControl(direction).name());
             settings.putInt("Priority", getPriority(direction));
+            settings.putInt("SlotLimit", getItemSlotLimit(direction));
             settings.putBoolean("ItemsEnabled", isItemsEnabled(direction));
             settings.putBoolean("FluidsEnabled", isFluidsEnabled(direction));
             settings.putBoolean("EnergyEnabled", isEnergyEnabled(direction));
@@ -1353,6 +1447,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
+            itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
             faceItemsEnabled.put(direction, itemsEnabled);
             faceFluidsEnabled.put(direction, fluidsEnabled);
             faceEnergyEnabled.put(direction, energyEnabled);
@@ -1375,6 +1470,9 @@ public class SkyNodeBlockEntity extends BlockEntity {
                 CompoundTag settings = faceSettings.getCompound(direction.getSerializedName());
                 redstoneControls.put(direction, RedstoneControl.byName(settings.getString("Redstone")));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getInt("Priority"))));
+                if (settings.contains("SlotLimit")) {
+                    itemSlotLimits.put(direction, clampItemSlotLimit(settings.getInt("SlotLimit")));
+                }
                 if (settings.contains("ItemsEnabled")) {
                     faceItemsEnabled.put(direction, settings.getBoolean("ItemsEnabled"));
                 }
@@ -1525,7 +1623,7 @@ public class SkyNodeBlockEntity extends BlockEntity {
 
     private void setFaceFilterDirect(Direction direction, int slot, ItemStack stack) {
         NonNullList<ItemStack> filters = faceFilters.get(direction);
-        if (filters == null || slot < 0 || slot >= filters.size() || !canAcceptFaceFilter(slot, stack)) {
+        if (filters == null || slot < 0 || slot >= filters.size() || !canAcceptFaceFilter(direction, slot, stack)) {
             return;
         }
         ItemStack copy = stack.copy();
@@ -1570,6 +1668,13 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
         }
         return true;
+    }
+
+    public static int clampItemSlotLimit(int limit) {
+        if (limit <= ITEM_SLOT_LIMIT_UNLIMITED) {
+            return ITEM_SLOT_LIMIT_UNLIMITED;
+        }
+        return Math.min(SkyLogisticsConfig.maxItemSlotLimit(), limit);
     }
 
     private boolean isPoweredCached() {

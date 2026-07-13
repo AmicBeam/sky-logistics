@@ -12,14 +12,15 @@ import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.types.IRecipeType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
-public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
+public class SkyOfferingCategory implements IRecipeCategory<RecipeHolder<OfferingRecipe>> {
     private static final int WIDTH = 136;
     private static final int HEIGHT = 64;
     private static final int MAIN_X = 58;
@@ -50,8 +51,8 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public RecipeType<OfferingRecipe> getRecipeType() {
-        return SkyLogisticsJeiPlugin.SKY_OFFERING;
+    public IRecipeType<RecipeHolder<OfferingRecipe>> getRecipeType() {
+        return SkyLogisticsJeiPlugin.skyOfferingType();
     }
 
     @Override
@@ -75,7 +76,8 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, OfferingRecipe recipe, IFocusGroup focuses) {
+    public void setRecipe(IRecipeLayoutBuilder builder, RecipeHolder<OfferingRecipe> recipeHolder, IFocusGroup focuses) {
+        OfferingRecipe recipe = recipeHolder.value();
         addInputSlot(builder, MAIN_X, MAIN_Y, recipe.main());
 
         int offeringCount = recipe.offerings().size();
@@ -84,13 +86,14 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
                     recipe.offerings().get(i));
         }
 
-        builder.addOutputSlot(OUTPUT_X + ITEM_OFFSET, OUTPUT_Y + ITEM_OFFSET)
-                .addItemStack(recipe.result());
+        builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X + ITEM_OFFSET, OUTPUT_Y + ITEM_OFFSET)
+                .add(recipe.result());
     }
 
     @Override
-    public void draw(OfferingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor guiGraphics, double mouseX,
-            double mouseY) {
+    public void draw(RecipeHolder<OfferingRecipe> recipeHolder, IRecipeSlotsView recipeSlotsView,
+            GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY) {
+        OfferingRecipe recipe = recipeHolder.value();
         drawPanel(guiGraphics);
         drawRitual(guiGraphics, recipe.offerings().size());
         drawInputSlot(guiGraphics, MAIN_X, MAIN_Y);

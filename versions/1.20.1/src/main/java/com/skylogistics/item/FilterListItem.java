@@ -547,8 +547,41 @@ public class FilterListItem extends Item {
             return entries.length > 0 || tagEntries.length > 0;
         }
 
+        public List<ItemStack> itemSamples() {
+            if (entries.length == 0) {
+                return List.of();
+            }
+            List<ItemStack> samples = new ArrayList<>(entries.length);
+            for (Entry entry : entries) {
+                samples.add(entry.stack().copy());
+            }
+            return samples;
+        }
+
+        public List<TagKey<Item>> itemTags() {
+            if (tagEntries.length == 0) {
+                return List.of();
+            }
+            List<TagKey<Item>> tags = new ArrayList<>(tagEntries.length);
+            for (TagKey<Item> tag : tagEntries) {
+                tags.add(tag);
+            }
+            return tags;
+        }
+
         public boolean hasFluidRules() {
             return mode == Mode.LIST && fluidEntries.length > 0;
+        }
+
+        public List<FluidStack> fluidSamples() {
+            if (fluidEntries.length == 0) {
+                return List.of();
+            }
+            List<FluidStack> samples = new ArrayList<>(fluidEntries.length);
+            for (FluidEntry entry : fluidEntries) {
+                samples.add(entry.stack().copy());
+            }
+            return samples;
         }
 
         private enum Mode {

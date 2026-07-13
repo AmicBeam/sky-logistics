@@ -6,6 +6,7 @@ import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -22,13 +23,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class SkyNodeMenu extends AbstractContainerMenu {
+    public static final int PANEL_HEIGHT = 271;
     public static final int UPGRADE_ROW_Y = 153;
-    public static final int FACE_FILTER_SLOT_X = 176;
+    public static final int FACE_FILTER_SLOT_X = 172;
     public static final int FACE_FILTER_ROW_Y = 126;
+    public static final int PLAYER_INVENTORY_LABEL_Y = 10_000;
     public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 44;
     private static final int UPGRADE_SLOT_X = 78;
     private static final int PLAYER_INVENTORY_X = 46;
-    private static final int PLAYER_INVENTORY_Y = 179;
+    private static final int PLAYER_INVENTORY_Y = 185;
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
@@ -176,8 +179,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             int slot = slotId - SkyNodeBlockEntity.UPGRADE_SLOTS;
             ItemStack carried = getCarried();
             if (carried.isEmpty() || SkyNodeBlockEntity.isFaceFilterItem(carried)) {
-                faceFilterContainer.setGhost(slot, carried);
-                broadcastChanges();
+                if (faceFilterContainer.setGhost(slot, carried)) {
+                    broadcastChanges();
+                }
             }
             return;
         }
@@ -211,8 +215,9 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else if (SkyNodeBlockEntity.isFaceFilterItem(original)) {
-            faceFilterContainer.setGhost(0, original);
-            broadcastChanges();
+            if (faceFilterContainer.setGhost(0, original)) {
+                broadcastChanges();
+            }
             return ItemStack.EMPTY;
         } else {
             return ItemStack.EMPTY;
@@ -297,6 +302,42 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return;
             }
             node.adjustPriority(face, 10);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_DOWN_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, -1);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_UP_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, 1);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_DOWN_FAST_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, -10);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_SLOT_LIMIT_UP_FAST_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.adjustItemSlotLimit(face, 10);
             broadcastChanges();
             return;
         }
@@ -600,11 +641,21 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             setGhost(slot, stack);
         }
 
-        private void setGhost(int slot, ItemStack stack) {
+        private boolean setGhost(int slot, ItemStack stack) {
             SkyNodeBlockEntity node = node();
-            if (node != null) {
-                node.setFaceFilter(menu.selectedFace(), slot, stack);
+            if (node == null) {
+                return false;
             }
+            Direction face = menu.selectedFace();
+            if (node.rejectsTagFaceFilter(face, stack)) {
+                if (player instanceof ServerPlayer serverPlayer) {
+                    serverPlayer.sendOverlayMessage(Component.translatable(
+                            "message.skylogistics.sky_node.tag_filter_external_extract").withStyle(ChatFormatting.RED));
+                }
+                return false;
+            }
+            node.setFaceFilter(face, slot, stack);
+            return true;
         }
 
         @Override

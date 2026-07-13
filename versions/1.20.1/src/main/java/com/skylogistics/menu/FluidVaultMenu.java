@@ -18,9 +18,12 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultMenu extends AbstractContainerMenu {
+    private static final int SNAPSHOT_SYNC_INTERVAL_TICKS = 5;
+
     private final BlockPos pos;
     private final Inventory inventory;
     private long lastSyncedVaultVersion = Long.MIN_VALUE;
+    private long lastSnapshotSyncTime = Long.MIN_VALUE;
 
     public FluidVaultMenu(int containerId, Inventory inventory, BlockPos pos) {
         super(ModMenus.FLUID_VAULT.get(), containerId);
@@ -179,12 +182,18 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (vault == null || vault.getSyncVersion() == lastSyncedVaultVersion) {
             return;
         }
+        long gameTime = serverPlayer.level().getGameTime();
+        if (lastSnapshotSyncTime != Long.MIN_VALUE
+                && gameTime - lastSnapshotSyncTime < SNAPSHOT_SYNC_INTERVAL_TICKS) {
+            return;
+        }
         vault.syncTo(serverPlayer);
         noteVaultSnapshotSynced(vault.getSyncVersion());
     }
 
     public void noteVaultSnapshotSynced(long version) {
         lastSyncedVaultVersion = version;
+        lastSnapshotSyncTime = inventory.player.level().getGameTime();
     }
 
     private static final class ViewedFluidSource implements IFluidHandler {

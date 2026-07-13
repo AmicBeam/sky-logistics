@@ -31,7 +31,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender, 2 Ender Pearls, and 2 Chora Nectar on offering tables. Duration is 240 ticks. It only needs to be installed on the extracting node."
+      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. Duration is 240 ticks. It only needs to be installed on the extracting node."
     }
   ]
 }

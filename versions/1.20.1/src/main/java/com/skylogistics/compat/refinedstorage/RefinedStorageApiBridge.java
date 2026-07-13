@@ -32,6 +32,100 @@ final class RefinedStorageApiBridge {
         return new FluidHandler(host);
     }
 
+    static RefinedStorageCompat.ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return RefinedStorageCompat.ItemResource.EMPTY;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return RefinedStorageCompat.ItemResource.EMPTY;
+        }
+        ItemStack request = ItemHandlerHelper.copyStackWithSize(stack, 1);
+        ItemStack extracted = network.extractItem(request, Integer.MAX_VALUE, Action.SIMULATE);
+        return extracted.isEmpty()
+                ? RefinedStorageCompat.ItemResource.EMPTY
+                : new RefinedStorageCompat.ItemResource(displayItem(extracted), extracted.getCount());
+    }
+
+    static long insertItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return 0L;
+        }
+        int requested = (int) Math.min(amount, Integer.MAX_VALUE);
+        ItemStack remainder = network.insertItem(stack, requested, action(simulate));
+        return requested - remainder.getCount();
+    }
+
+    static long extractItem(BlockEntity host, ItemStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return 0L;
+        }
+        int requested = (int) Math.min(amount, Integer.MAX_VALUE);
+        ItemStack request = ItemHandlerHelper.copyStackWithSize(stack, 1);
+        ItemStack extracted = network.extractItem(request, requested, action(simulate));
+        return extracted.getCount();
+    }
+
+    static RefinedStorageCompat.FluidResource fluidResourceForStack(BlockEntity host, FluidStack stack) {
+        if (stack.isEmpty()) {
+            return RefinedStorageCompat.FluidResource.EMPTY;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return RefinedStorageCompat.FluidResource.EMPTY;
+        }
+        FluidStack request = copyWithAmount(stack, 1);
+        FluidStack extracted = network.extractFluid(request, Integer.MAX_VALUE, Action.SIMULATE);
+        return extracted.isEmpty()
+                ? RefinedStorageCompat.FluidResource.EMPTY
+                : new RefinedStorageCompat.FluidResource(displayFluid(extracted), extracted.getAmount());
+    }
+
+    static long insertFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return 0L;
+        }
+        int requested = (int) Math.min(amount, Integer.MAX_VALUE);
+        FluidStack request = copyWithAmount(stack, requested);
+        FluidStack remainder = network.insertFluid(request, requested, action(simulate));
+        return requested - remainder.getAmount();
+    }
+
+    static long extractFluid(BlockEntity host, FluidStack stack, long amount, boolean simulate) {
+        if (stack.isEmpty() || amount <= 0L) {
+            return 0L;
+        }
+        INetwork network = network(host);
+        if (network == null) {
+            return 0L;
+        }
+        int requested = (int) Math.min(amount, Integer.MAX_VALUE);
+        FluidStack request = copyWithAmount(stack, 1);
+        FluidStack extracted = network.extractFluid(request, requested, action(simulate));
+        return extracted.getAmount();
+    }
+
+    static boolean sameNetwork(BlockEntity first, BlockEntity second) {
+        if (first == second) {
+            return true;
+        }
+        INetwork firstNetwork = network(first);
+        INetwork secondNetwork = network(second);
+        return firstNetwork != null && firstNetwork == secondNetwork;
+    }
+
     private static INetwork network(BlockEntity host) {
         Level level = host.getLevel();
         if (level == null || level.isClientSide) {
@@ -110,6 +204,12 @@ final class RefinedStorageApiBridge {
     private static FluidStack displayFluid(FluidStack stack) {
         FluidStack copy = stack.copy();
         copy.setAmount(Math.min(stack.getAmount(), Integer.MAX_VALUE));
+        return copy;
+    }
+
+    private static FluidStack copyWithAmount(FluidStack stack, int amount) {
+        FluidStack copy = stack.copy();
+        copy.setAmount(amount);
         return copy;
     }
 

@@ -17,9 +17,9 @@ import snownee.jade.api.WailaPlugin;
 public class SkyLogisticsJadePlugin implements IWailaPlugin {
     @Override
     public void register(IWailaCommonRegistration registration) {
-        registration.registerBlockDataProvider(SkyNodeJadeProvider.INSTANCE, SkyNodeBlockEntity.class);
-        registration.registerBlockDataProvider(ItemVaultJadeProvider.INSTANCE, ItemVaultBlockEntity.class);
-        registration.registerBlockDataProvider(FluidVaultJadeProvider.INSTANCE, FluidVaultBlockEntity.class);
+        registration.registerBlockDataProvider(SkyNodeJadeProvider.DataProvider.INSTANCE, SkyNodeBlockEntity.class);
+        registration.registerBlockDataProvider(ItemVaultJadeProvider.DataProvider.INSTANCE, ItemVaultBlockEntity.class);
+        registration.registerBlockDataProvider(FluidVaultJadeProvider.DataProvider.INSTANCE, FluidVaultBlockEntity.class);
     }
 
     @Override

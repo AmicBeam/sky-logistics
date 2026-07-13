@@ -13,9 +13,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class ItemVaultMenu extends AbstractContainerMenu {
+    private static final int SNAPSHOT_SYNC_INTERVAL_TICKS = 5;
+
     private final BlockPos pos;
     private final Inventory inventory;
     private long lastSyncedVaultVersion = Long.MIN_VALUE;
+    private long lastSnapshotSyncTime = Long.MIN_VALUE;
 
     public ItemVaultMenu(int containerId, Inventory inventory, BlockPos pos) {
         super(ModMenus.ITEM_VAULT.get(), containerId);
@@ -168,11 +171,17 @@ public class ItemVaultMenu extends AbstractContainerMenu {
         if (vault == null || vault.getSyncVersion() == lastSyncedVaultVersion) {
             return;
         }
+        long gameTime = serverPlayer.level().getGameTime();
+        if (lastSnapshotSyncTime != Long.MIN_VALUE
+                && gameTime - lastSnapshotSyncTime < SNAPSHOT_SYNC_INTERVAL_TICKS) {
+            return;
+        }
         vault.syncTo(serverPlayer);
         noteVaultSnapshotSynced(vault.getSyncVersion());
     }
 
     public void noteVaultSnapshotSynced(long version) {
         lastSyncedVaultVersion = version;
+        lastSnapshotSyncTime = inventory.player.level().getGameTime();
     }
 }

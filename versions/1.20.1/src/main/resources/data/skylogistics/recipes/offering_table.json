@@ -11,6 +11,7 @@
     }
   },
   "result": {
-    "item": "skylogistics:offering_table"
+    "item": "skylogistics:offering_table",
+    "count": 4
   }
 }

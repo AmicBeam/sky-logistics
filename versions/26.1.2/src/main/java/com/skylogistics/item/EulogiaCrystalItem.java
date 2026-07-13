@@ -37,10 +37,8 @@ public class EulogiaCrystalItem extends Item {
     }
 
     public static boolean isCharged(ItemStack stack) {
-        CompoundTag tag = StackData.get(stack);
         return stack.getItem() instanceof EulogiaCrystalItem
-                && tag != null
-                && tag.getIntOr(DAMAGE_TAG, 0) >= CHARGED_DAMAGE_VALUE;
+                && chargeDamage(stack) >= CHARGED_DAMAGE_VALUE;
     }
 
     public static ItemStack chargedStack(Item item) {
@@ -85,13 +83,22 @@ public class EulogiaCrystalItem extends Item {
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
     }
 
+    private static int chargeDamage(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage != null && damage >= CHARGED_DAMAGE_VALUE) {
+            return damage;
+        }
+        CompoundTag tag = StackData.get(stack);
+        return tag == null ? 0 : tag.getIntOr(DAMAGE_TAG, 0);
+    }
+
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
         if (!(entity instanceof Player player)) {
             return;
         }
         if (isCharged(stack)) {
-            ensureChargedModel(stack);
+            ensureChargedComponents(stack);
             return;
         }
         if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
@@ -109,8 +116,17 @@ public class EulogiaCrystalItem extends Item {
 
     private static void setCharged(ItemStack stack, CompoundTag tag) {
         tag.remove(CHARGE_SECONDS_TAG);
-        tag.putInt(DAMAGE_TAG, CHARGED_DAMAGE_VALUE);
+        tag.remove(DAMAGE_TAG);
+        stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
         StackData.set(stack, tag);
+        ensureChargedComponents(stack);
+    }
+
+    private static void ensureChargedComponents(ItemStack stack) {
+        Integer damage = stack.get(DataComponents.DAMAGE);
+        if (damage == null || damage < CHARGED_DAMAGE_VALUE) {
+            stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
+        }
         ensureChargedModel(stack);
     }
 
