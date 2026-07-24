@@ -45,9 +45,22 @@
 单屏落地图：
 
 - [配置器现有布局优化](gui-mockups/configurator-dashboard.png)
+- [配置器宽屏工作台改版样例](gui-mockups/configurator-workbench-concept.png)
 - [物流节点现有布局优化](gui-mockups/node-face-config.png)
 - [过滤升级现有布局优化](gui-mockups/filter-upgrade-modes.png)
 - [库存终端现有布局优化](gui-mockups/vault-terminal.png)
+
+### 配置器宽屏工作台样例
+
+这一版允许完全抛弃当前纵向表单，目标不是“把按钮重新排漂亮”，而是把配置器变成适合持续运维线路的工作台：
+
+![Sky Configurator workbench concept](gui-mockups/configurator-workbench-concept.png)
+
+- 左栏是线路导航，并保留在线、闲置、警告和设备规模等可扫描状态。
+- 中栏是设备表，默认把异常设备置顶，同时展示目标、连接面、资源类型、最近吞吐和运行状态。
+- 右栏是所选设备的检查器；六面、模式、资源、红石、优先级和槽位限制不再占用全局空间。
+- 搜索、仅异常视图、定位节点和批量应用都围绕“快速发现问题并连续修改”设计。
+- 该样例是目标信息架构，不受当前 `254 x 244` 布局和现有按钮数量限制。
 
 ## 调研结论
 
