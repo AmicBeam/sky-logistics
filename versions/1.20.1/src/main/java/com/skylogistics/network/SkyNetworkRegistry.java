@@ -705,9 +705,9 @@ public final class SkyNetworkRegistry {
                 }
                 BlockState state = current.getBlockState();
                 for (Direction direction : Direction.values()) {
+                    BlockPos neighbor = currentPos.relative(direction);
                     if (state.getValue(SimplePipeBlock.connectionProperty(direction))
-                            == com.skylogistics.util.SimplePipeConnection.PIPE) {
-                        BlockPos neighbor = currentPos.relative(direction);
+                            && simplePipeAt(loadedNodes, neighbor) != null) {
                         if (rebuilt.contains(neighbor)) {
                             continue;
                         }
@@ -721,9 +721,7 @@ public final class SkyNetworkRegistry {
                                 }
                             }
                         }
-                        if (simplePipeAt(loadedNodes, neighbor) != null) {
-                            pending.addLast(neighbor);
-                        }
+                        pending.addLast(neighbor);
                     }
                 }
             }
@@ -763,8 +761,7 @@ public final class SkyNetworkRegistry {
             }
             BlockState state = level.getBlockState(member);
             for (Direction direction : Direction.values()) {
-                if (state.getValue(SimplePipeBlock.connectionProperty(direction))
-                        != com.skylogistics.util.SimplePipeConnection.PIPE) {
+                if (!state.getValue(SimplePipeBlock.connectionProperty(direction))) {
                     continue;
                 }
                 BlockPos neighborPos = member.relative(direction);
@@ -776,11 +773,9 @@ public final class SkyNetworkRegistry {
                         com.skylogistics.util.SimplePipeConnection.PIPE);
                 neighbor.setSideDisconnected(direction.getOpposite(), true,
                         com.skylogistics.util.SimplePipeConnection.PIPE);
-                state = state.setValue(SimplePipeBlock.connectionProperty(direction),
-                        com.skylogistics.util.SimplePipeConnection.NONE);
+                state = state.setValue(SimplePipeBlock.connectionProperty(direction), false);
                 BlockState neighborState = level.getBlockState(neighborPos).setValue(
-                        SimplePipeBlock.connectionProperty(direction.getOpposite()),
-                        com.skylogistics.util.SimplePipeConnection.NONE);
+                        SimplePipeBlock.connectionProperty(direction.getOpposite()), false);
                 level.setBlock(neighborPos, neighborState, Block.UPDATE_ALL);
             }
             if (state != level.getBlockState(member)) {

@@ -1,17 +1,17 @@
 {
   "multipart": [
     {"apply":{"model":"skylogistics:block/simple_energy_pipe_core"}},
-    {"when":{"OR":[{"north":"pipe"},{"north":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part"}},
-    {"when":{"OR":[{"south":"pipe"},{"south":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":180}},
-    {"when":{"OR":[{"west":"pipe"},{"west":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":270}},
-    {"when":{"OR":[{"east":"pipe"},{"east":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":90}},
-    {"when":{"OR":[{"up":"pipe"},{"up":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","x":270}},
-    {"when":{"OR":[{"down":"pipe"},{"down":"insert"}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","x":90}},
-    {"when":{"north":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract"}},
-    {"when":{"south":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":180}},
-    {"when":{"west":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":270}},
-    {"when":{"east":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":90}},
-    {"when":{"up":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","x":270}},
-    {"when":{"down":"extract"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","x":90}}
+    {"when":{"AND":[{"connected_north":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"down"},{"extract_side":"up"},{"extract_side":"south"},{"extract_side":"west"},{"extract_side":"east"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part"}},
+    {"when":{"AND":[{"connected_south":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"down"},{"extract_side":"up"},{"extract_side":"north"},{"extract_side":"west"},{"extract_side":"east"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":180}},
+    {"when":{"AND":[{"connected_west":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"down"},{"extract_side":"up"},{"extract_side":"north"},{"extract_side":"south"},{"extract_side":"east"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":270}},
+    {"when":{"AND":[{"connected_east":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"down"},{"extract_side":"up"},{"extract_side":"north"},{"extract_side":"south"},{"extract_side":"west"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","y":90}},
+    {"when":{"AND":[{"connected_up":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"down"},{"extract_side":"north"},{"extract_side":"south"},{"extract_side":"west"},{"extract_side":"east"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","x":270}},
+    {"when":{"AND":[{"connected_down":"true"},{"OR":[{"extract_side":"none"},{"extract_side":"up"},{"extract_side":"north"},{"extract_side":"south"},{"extract_side":"west"},{"extract_side":"east"}]}]},"apply":{"model":"skylogistics:block/simple_energy_pipe_part","x":90}},
+    {"when":{"extract_side":"north"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract"}},
+    {"when":{"extract_side":"south"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":180}},
+    {"when":{"extract_side":"west"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":270}},
+    {"when":{"extract_side":"east"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","y":90}},
+    {"when":{"extract_side":"up"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","x":270}},
+    {"when":{"extract_side":"down"},"apply":{"model":"skylogistics:block/simple_energy_pipe_extract","x":90}}
   ]
 }

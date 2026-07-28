@@ -96,10 +96,10 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     public NodeFaceMode getFaceMode(Direction direction) {
         BlockState state = getBlockState();
-        if (!(state.getBlock() instanceof SimplePipeBlock)) {
+        if (!(state.getBlock() instanceof SimplePipeBlock) || level == null) {
             return NodeFaceMode.NONE;
         }
-        return switch (state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+        return switch (SimplePipeBlock.connectionFromState(level, worldPosition, state, direction)) {
             case EXTRACT -> NodeFaceMode.INPUT;
             case INSERT -> NodeFaceMode.OUTPUT;
             default -> NodeFaceMode.NONE;
