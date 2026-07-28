@@ -282,7 +282,8 @@ public final class SkyNetworkTicker {
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
-        int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
+        int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
         for (int i = 0; i < slotChecks && operations < budget; i++) {
             SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                     firstTriedSlot, secondTriedSlot, budget - operations);
@@ -568,7 +569,8 @@ public final class SkyNetworkTicker {
         if (budget <= 0 || simulated.isEmpty() || available <= 0L) {
             return new MoveResult(false, 0);
         }
-        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        long skyContainerTransferLimit = sourceEndpoint.node()
+                .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -639,8 +641,8 @@ public final class SkyNetworkTicker {
         if (target == null || isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
             return false;
         }
-        int requested = (int) Math.min(Math.min(available, SkyLogisticsConfig.nodeItemTransferLimit()),
-                Integer.MAX_VALUE);
+        int requested = (int) Math.min(Math.min(available, sourceEndpoint.node()
+                .limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit())), Integer.MAX_VALUE);
         if (requested <= 0) {
             return false;
         }
@@ -778,7 +780,8 @@ public final class SkyNetworkTicker {
             return new MoveResult(false, 0);
         }
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
-        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        long skyContainerTransferLimit = sourceEndpoint.node()
+                .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1161,7 +1164,10 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordFluidTankMiss(tank, gameTime);
                 continue;
             }
-            FluidStack simulated = source.drain(copyWithAmount(inTank, Integer.MAX_VALUE), IFluidHandler.FluidAction.SIMULATE);
+            int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                    sourceNode.limitFluidTransfer(Integer.MAX_VALUE));
+            FluidStack simulated = source.drain(copyWithAmount(inTank, transferLimit),
+                    IFluidHandler.FluidAction.SIMULATE);
             if (simulated.isEmpty()) {
                 sourceEndpoint.recordFluidTankMiss(tank, gameTime);
                 continue;
@@ -1317,7 +1323,8 @@ public final class SkyNetworkTicker {
             return new MoveResult(false, 0);
         }
         LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
-        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        long skyContainerTransferLimit = sourceEndpoint.node()
+                .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1412,7 +1419,8 @@ public final class SkyNetworkTicker {
         if (budget <= 0 || simulated.isEmpty() || available <= 0L) {
             return new MoveResult(false, 0);
         }
-        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        long skyContainerTransferLimit = sourceEndpoint.node()
+                .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
@@ -1480,7 +1488,8 @@ public final class SkyNetworkTicker {
         if (target == null || simulated.isEmpty() || available <= 0L) {
             return false;
         }
-        int requested = (int) Math.min(available, Integer.MAX_VALUE);
+        int requested = (int) Math.min(Math.min(available,
+                sourceEndpoint.node().limitFluidTransfer(Integer.MAX_VALUE)), Integer.MAX_VALUE);
         if (requested <= 0) {
             return false;
         }
@@ -1909,7 +1918,9 @@ public final class SkyNetworkTicker {
         if (source == null) {
             return 0;
         }
-        int simulated = source.extractEnergy(SkyLogisticsConfig.nodeEnergyTransferLimit(), true);
+        int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
+        int simulated = source.extractEnergy(transferLimit, true);
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordEnergyFailure(gameTime);
@@ -1929,7 +1940,8 @@ public final class SkyNetworkTicker {
             return new MoveResult(false, 0);
         }
         LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
-        long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
+        long skyContainerTransferLimit = sourceEndpoint.node()
+                .limitEnergyTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
         int targetCursor = sourceEndpoint.node().nextTargetCursor();
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;

@@ -208,6 +208,30 @@ public class SkyNodeBlockEntity extends BlockEntity {
         return hasSpeedUpgrade() ? 2 : 1;
     }
 
+    public long limitItemTransfer(long amount) {
+        return amount;
+    }
+
+    public long limitFluidTransfer(long amount) {
+        return amount;
+    }
+
+    public long limitEnergyTransfer(long amount) {
+        return amount;
+    }
+
+    public boolean supportsChemicalEndpoint(Direction direction) {
+        return true;
+    }
+
+    public boolean supportsManaEndpoint(Direction direction) {
+        return true;
+    }
+
+    public boolean supportsSourceEndpoint(Direction direction) {
+        return true;
+    }
+
     public ItemStack getFilterList() {
         return getFaceFilter(getTargetDirection(), 0);
     }

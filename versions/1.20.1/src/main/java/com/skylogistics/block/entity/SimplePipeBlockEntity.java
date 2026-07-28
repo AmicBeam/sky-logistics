@@ -3,13 +3,11 @@ package com.skylogistics.block.entity;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -22,22 +20,13 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
-public class SimplePipeBlockEntity extends BlockEntity {
-    private int targetCursor;
+public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
+    private UUID networkLineId;
 
     public SimplePipeBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SIMPLE_PIPE.get(), pos, state);
-    }
-
-    public static void serverTick(Level level, BlockPos pos, BlockState state, SimplePipeBlockEntity pipeEntity) {
-        if (!(state.getBlock() instanceof SimplePipeBlock pipe) || !pipe.enabled()) {
-            return;
-        }
-        for (Direction direction : Direction.values()) {
-            if (state.getValue(SimplePipeBlock.connectionProperty(direction)) == SimplePipeConnection.EXTRACT) {
-                pipeEntity.transferFrom(level, pos, pipe, direction);
-            }
-        }
+        networkLineId = UUID.nameUUIDFromBytes(
+                ("skylogistics:unassigned_simple_pipe:" + pos.asLong()).getBytes(StandardCharsets.UTF_8));
     }
 
     public static boolean hasCapability(Level level, BlockPos pos, Direction side, SimplePipeType type) {
@@ -56,192 +45,117 @@ public class SimplePipeBlockEntity extends BlockEntity {
         };
     }
 
-    private void transferFrom(Level level, BlockPos pipePos, SimplePipeBlock pipe, Direction sourceDirection) {
-        BlockPos sourcePos = pipePos.relative(sourceDirection);
-        Direction sourceSide = sourceDirection.getOpposite();
-        List<Endpoint> targets = discoverTargets(level, pipePos, pipe, sourcePos);
-        if (targets.isEmpty()) {
-            return;
+    public SimplePipeType pipeType() {
+        return getBlockState().getBlock() instanceof SimplePipeBlock pipe ? pipe.pipeType() : SimplePipeType.ITEM;
+    }
+
+    public void assignNetworkLineId(UUID lineId) {
+        networkLineId = lineId;
+    }
+
+    @Override
+    public UUID getLineId() {
+        return networkLineId;
+    }
+
+    @Override
+    public NodeFaceMode getFaceMode(Direction direction) {
+        BlockState state = getBlockState();
+        if (!(state.getBlock() instanceof SimplePipeBlock)) {
+            return NodeFaceMode.NONE;
         }
-        boolean moved = switch (pipe.pipeType()) {
-            case ITEM -> moveItem(level, sourcePos, sourceSide, targets,
-                    SkyLogisticsConfig.simpleItemPipeTransferRate());
-            case FLUID -> moveFluid(level, sourcePos, sourceSide, targets,
-                    SkyLogisticsConfig.simpleFluidPipeTransferRate());
-            case ENERGY -> moveEnergy(level, sourcePos, sourceSide, targets,
-                    SkyLogisticsConfig.simpleEnergyPipeTransferRate());
+        return switch (state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+            case EXTRACT -> NodeFaceMode.INPUT;
+            case INSERT -> NodeFaceMode.OUTPUT;
+            default -> NodeFaceMode.NONE;
         };
-        if (moved) {
-            targetCursor++;
-            setChanged();
-        }
     }
 
-    private List<Endpoint> discoverTargets(Level level, BlockPos origin, SimplePipeBlock pipe, BlockPos sourcePos) {
-        ArrayDeque<BlockPos> pending = new ArrayDeque<>();
-        Set<BlockPos> visited = new HashSet<>();
-        List<Endpoint> targets = new ArrayList<>();
-        pending.add(origin);
-        while (!pending.isEmpty()) {
-            BlockPos current = pending.removeFirst();
-            if (!visited.add(current) || !level.hasChunkAt(current)) {
-                continue;
-            }
-            BlockState state = level.getBlockState(current);
-            if (!(state.getBlock() instanceof SimplePipeBlock currentPipe)
-                    || currentPipe.pipeType() != pipe.pipeType()) {
-                continue;
-            }
-            for (Direction direction : Direction.values()) {
-                SimplePipeConnection connection = state.getValue(SimplePipeBlock.connectionProperty(direction));
-                if (connection == SimplePipeConnection.PIPE) {
-                    BlockPos next = current.relative(direction);
-                    if (!visited.contains(next)) {
-                        pending.addLast(next);
-                    }
-                } else if (connection == SimplePipeConnection.INSERT) {
-                    BlockPos targetPos = current.relative(direction);
-                    if (!targetPos.equals(sourcePos)) {
-                        targets.add(new Endpoint(targetPos, direction.getOpposite()));
-                    }
-                }
-            }
-        }
-        return targets;
+    @Override
+    public boolean isItemsEnabled(Direction direction) {
+        return enabled() && pipeType() == SimplePipeType.ITEM && getFaceMode(direction) != NodeFaceMode.NONE;
     }
 
-    private boolean moveItem(Level level, BlockPos sourcePos, Direction sourceSide, List<Endpoint> targets,
-            int limit) {
-        IItemHandler source = itemHandler(level, sourcePos, sourceSide);
-        if (source == null) {
-            return false;
-        }
-        for (int sourceSlot = 0; sourceSlot < source.getSlots(); sourceSlot++) {
-            ItemStack offered = source.extractItem(sourceSlot, limit, true);
-            if (offered.isEmpty()) {
-                continue;
-            }
-            for (int offset = 0; offset < targets.size(); offset++) {
-                Endpoint endpoint = targets.get(Math.floorMod(targetCursor + offset, targets.size()));
-                IItemHandler target = itemHandler(level, endpoint.pos(), endpoint.side());
-                if (target == null) {
-                    continue;
-                }
-                for (int targetSlot = 0; targetSlot < target.getSlots(); targetSlot++) {
-                    ItemStack remainder = target.insertItem(targetSlot, offered.copy(), true);
-                    int accepted = offered.getCount() - remainder.getCount();
-                    if (accepted <= 0) {
-                        continue;
-                    }
-                    ItemStack extracted = source.extractItem(sourceSlot, accepted, false);
-                    if (extracted.isEmpty()) {
-                        return false;
-                    }
-                    ItemStack notInserted = target.insertItem(targetSlot, extracted, false);
-                    if (!notInserted.isEmpty()) {
-                        source.insertItem(sourceSlot, notInserted, false);
-                    }
-                    return notInserted.getCount() < extracted.getCount();
-                }
-            }
-        }
+    @Override
+    public boolean isFluidsEnabled(Direction direction) {
+        return enabled() && pipeType() == SimplePipeType.FLUID && getFaceMode(direction) != NodeFaceMode.NONE;
+    }
+
+    @Override
+    public boolean isEnergyEnabled(Direction direction) {
+        return enabled() && pipeType() == SimplePipeType.ENERGY && getFaceMode(direction) != NodeFaceMode.NONE;
+    }
+
+    @Override
+    public int getOperationRate() {
+        return 1;
+    }
+
+    @Override
+    public boolean hasDimensionUpgrade() {
         return false;
     }
 
-    private boolean moveFluid(Level level, BlockPos sourcePos, Direction sourceSide, List<Endpoint> targets,
-            int limit) {
-        IFluidHandler source = fluidHandler(level, sourcePos, sourceSide);
-        if (source == null) {
-            return false;
-        }
-        for (int tank = 0; tank < source.getTanks(); tank++) {
-            FluidStack stored = source.getFluidInTank(tank);
-            if (stored.isEmpty()) {
-                continue;
-            }
-            FluidStack request = stored.copy();
-            request.setAmount(Math.min(limit, stored.getAmount()));
-            FluidStack offered = source.drain(request, IFluidHandler.FluidAction.SIMULATE);
-            if (offered.isEmpty()) {
-                continue;
-            }
-            for (int offset = 0; offset < targets.size(); offset++) {
-                Endpoint endpoint = targets.get(Math.floorMod(targetCursor + offset, targets.size()));
-                IFluidHandler target = fluidHandler(level, endpoint.pos(), endpoint.side());
-                if (target == null) {
-                    continue;
-                }
-                int accepted = target.fill(offered.copy(), IFluidHandler.FluidAction.SIMULATE);
-                if (accepted <= 0) {
-                    continue;
-                }
-                FluidStack drained = source.drain(copyWithAmount(offered, accepted),
-                        IFluidHandler.FluidAction.EXECUTE);
-                if (drained.isEmpty()) {
-                    return false;
-                }
-                int inserted = target.fill(drained.copy(), IFluidHandler.FluidAction.EXECUTE);
-                if (inserted < drained.getAmount()) {
-                    source.fill(copyWithAmount(drained, drained.getAmount() - inserted),
-                            IFluidHandler.FluidAction.EXECUTE);
-                }
-                return inserted > 0;
-            }
-        }
+    @Override
+    public boolean isFaceRedstoneAllowed(Direction direction) {
+        return true;
+    }
+
+    @Override
+    public int getPriority(Direction direction) {
+        return 0;
+    }
+
+    @Override
+    public int getItemSlotLimit(Direction direction) {
+        return ITEM_SLOT_LIMIT_UNLIMITED;
+    }
+
+    @Override
+    public boolean allowsItem(Direction direction, ItemStack stack) {
+        return true;
+    }
+
+    @Override
+    public boolean allowsFluid(Direction direction, FluidStack stack) {
+        return true;
+    }
+
+    @Override
+    public long limitItemTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleItemPipeTransferRate());
+    }
+
+    @Override
+    public long limitFluidTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleFluidPipeTransferRate());
+    }
+
+    @Override
+    public long limitEnergyTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleEnergyPipeTransferRate());
+    }
+
+    @Override
+    public boolean supportsChemicalEndpoint(Direction direction) {
         return false;
     }
 
-    private boolean moveEnergy(Level level, BlockPos sourcePos, Direction sourceSide, List<Endpoint> targets,
-            int limit) {
-        IEnergyStorage source = energyHandler(level, sourcePos, sourceSide);
-        if (source == null) {
-            return false;
-        }
-        int offered = source.extractEnergy(limit, true);
-        if (offered <= 0) {
-            return false;
-        }
-        for (int offset = 0; offset < targets.size(); offset++) {
-            Endpoint endpoint = targets.get(Math.floorMod(targetCursor + offset, targets.size()));
-            IEnergyStorage target = energyHandler(level, endpoint.pos(), endpoint.side());
-            if (target == null) {
-                continue;
-            }
-            int accepted = target.receiveEnergy(offered, true);
-            if (accepted <= 0) {
-                continue;
-            }
-            int extracted = source.extractEnergy(accepted, false);
-            int inserted = target.receiveEnergy(extracted, false);
-            if (inserted < extracted) {
-                source.receiveEnergy(extracted - inserted, false);
-            }
-            return inserted > 0;
-        }
+    @Override
+    public boolean supportsManaEndpoint(Direction direction) {
         return false;
     }
 
-    private static IItemHandler itemHandler(Level level, BlockPos pos, Direction side) {
-        BlockEntity entity = level.getBlockEntity(pos);
-        return entity == null ? null : entity.getCapability(ForgeCapabilities.ITEM_HANDLER, side).orElse(null);
+    @Override
+    public boolean supportsSourceEndpoint(Direction direction) {
+        return false;
     }
 
-    private static IFluidHandler fluidHandler(Level level, BlockPos pos, Direction side) {
-        BlockEntity entity = level.getBlockEntity(pos);
-        return entity == null ? null : entity.getCapability(ForgeCapabilities.FLUID_HANDLER, side).orElse(null);
-    }
-
-    private static IEnergyStorage energyHandler(Level level, BlockPos pos, Direction side) {
-        BlockEntity entity = level.getBlockEntity(pos);
-        return entity == null ? null : entity.getCapability(ForgeCapabilities.ENERGY, side).orElse(null);
-    }
-
-    private static FluidStack copyWithAmount(FluidStack stack, int amount) {
-        FluidStack copy = stack.copy();
-        copy.setAmount(amount);
-        return copy;
-    }
-
-    private record Endpoint(BlockPos pos, Direction side) {
+    private boolean enabled() {
+        return switch (pipeType()) {
+            case ITEM -> SkyLogisticsConfig.enableSimpleItemPipe();
+            case FLUID -> SkyLogisticsConfig.enableSimpleFluidPipe();
+            case ENERGY -> SkyLogisticsConfig.enableSimpleEnergyPipe();
+        };
     }
 }

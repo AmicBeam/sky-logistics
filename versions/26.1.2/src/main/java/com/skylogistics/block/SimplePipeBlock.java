@@ -3,6 +3,7 @@ package com.skylogistics.block;
 import com.mojang.serialization.MapCodec;
 import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.InteractionResults;
 import com.skylogistics.util.SimplePipeConnection;
@@ -25,6 +26,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
@@ -105,8 +107,12 @@ public class SimplePipeBlock extends BaseEntityBlock {
         }
         SimplePipeConnection existing = state.getValue(connectionProperty(direction));
         SimplePipeConnection containerDefault = existing.isContainer() ? existing : SimplePipeConnection.INSERT;
-        return state.setValue(connectionProperty(direction),
+        BlockState updated = state.setValue(connectionProperty(direction),
                 connectionAt(actualLevel, pos, direction, containerDefault));
+        if (!updated.equals(state) && actualLevel instanceof ServerLevel serverLevel) {
+            SkyNetworkRegistry.markTopologyDirty(serverLevel);
+        }
+        return updated;
     }
 
     private SimplePipeConnection connectionAt(Level level, BlockPos pos, Direction direction,
@@ -139,6 +145,9 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 : SimplePipeConnection.EXTRACT;
         if (!level.isClientSide()) {
             level.setBlock(pos, state.setValue(connectionProperty(direction), next), Block.UPDATE_ALL);
+            if (level instanceof ServerLevel serverLevel) {
+                SkyNetworkRegistry.markTopologyDirty(serverLevel);
+            }
             player.sendSystemMessage(Component.translatable("message.skylogistics.simple_pipe.mode",
                     Component.translatable("message.skylogistics.simple_pipe." + next.getSerializedName())));
         }
@@ -186,8 +195,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
             BlockEntityType<T> type) {
-        return level.isClientSide() ? null
-                : createTickerHelper(type, ModBlockEntities.SIMPLE_PIPE.get(), SimplePipeBlockEntity::serverTick);
+        return null;
     }
 
     @Override

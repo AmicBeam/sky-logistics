@@ -1,6 +1,8 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SimplePipeBlockEntity;
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
@@ -16,6 +18,7 @@ import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.StackData;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
@@ -35,6 +39,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -384,6 +389,7 @@ public final class SkyNetworkRegistry {
         }
         index.lines.clear();
         index.lineByNode.clear();
+        Map<BlockPos, SkyNodeBlockEntity> loadedNodes = new HashMap<>();
         Iterator<BlockPos> iterator = index.nodes.iterator();
         while (iterator.hasNext()) {
             BlockPos pos = iterator.next();
@@ -395,6 +401,12 @@ public final class SkyNetworkRegistry {
                 iterator.remove();
                 continue;
             }
+            loadedNodes.put(pos, node);
+        }
+        assignSimplePipeLineIds(level, loadedNodes);
+        for (Map.Entry<BlockPos, SkyNodeBlockEntity> entry : loadedNodes.entrySet()) {
+            BlockPos pos = entry.getKey();
+            SkyNodeBlockEntity node = entry.getValue();
             LineIndex line = index.lines.computeIfAbsent(node.getLineId(), lineId -> {
                 LineIndex created = new LineIndex(lineId);
                 created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
@@ -416,6 +428,61 @@ public final class SkyNetworkRegistry {
             line.rebuildPriorityOutputs();
         }
         index.dirty = false;
+    }
+
+    private static void assignSimplePipeLineIds(ServerLevel level, Map<BlockPos, SkyNodeBlockEntity> loadedNodes) {
+        Set<BlockPos> visited = new HashSet<>();
+        ArrayDeque<BlockPos> pending = new ArrayDeque<>();
+        List<SimplePipeBlockEntity> component = new ArrayList<>();
+        for (Map.Entry<BlockPos, SkyNodeBlockEntity> entry : loadedNodes.entrySet()) {
+            if (!(entry.getValue() instanceof SimplePipeBlockEntity first) || visited.contains(entry.getKey())) {
+                continue;
+            }
+            pending.clear();
+            component.clear();
+            pending.add(entry.getKey());
+            BlockPos root = entry.getKey();
+            while (!pending.isEmpty()) {
+                BlockPos currentPos = pending.removeFirst();
+                if (!visited.add(currentPos)) {
+                    continue;
+                }
+                SkyNodeBlockEntity currentNode = loadedNodes.get(currentPos);
+                if (!(currentNode instanceof SimplePipeBlockEntity current)
+                        || current.pipeType() != first.pipeType()) {
+                    continue;
+                }
+                component.add(current);
+                if (comparePositions(currentPos, root) < 0) {
+                    root = currentPos;
+                }
+                BlockState state = current.getBlockState();
+                for (Direction direction : Direction.values()) {
+                    if (state.getValue(SimplePipeBlock.connectionProperty(direction))
+                            == com.skylogistics.util.SimplePipeConnection.PIPE) {
+                        BlockPos neighbor = currentPos.relative(direction);
+                        if (!visited.contains(neighbor)) {
+                            pending.addLast(neighbor);
+                        }
+                    }
+                }
+            }
+            String seed = "skylogistics:simple_pipe:" + level.dimension().identifier() + ":"
+                    + first.pipeType().name() + ":" + root.getX() + ":" + root.getY() + ":" + root.getZ();
+            UUID lineId = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+            for (SimplePipeBlockEntity pipe : component) {
+                pipe.assignNetworkLineId(lineId);
+            }
+        }
+    }
+
+    private static int comparePositions(BlockPos left, BlockPos right) {
+        int x = Integer.compare(left.getX(), right.getX());
+        if (x != 0) {
+            return x;
+        }
+        int y = Integer.compare(left.getY(), right.getY());
+        return y != 0 ? y : Integer.compare(left.getZ(), right.getZ());
     }
 
     private static void rebuildRuntimeCaches(MinecraftServer server) {
@@ -966,7 +1033,8 @@ public final class SkyNetworkRegistry {
         }
 
         public ChemicalHandlerBridge chemicalHandler(long gameTime) {
-            if (!canTryChemicals(gameTime) || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
+            if (!node.supportsChemicalEndpoint(direction) || !canTryChemicals(gameTime)
+                    || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
                 return null;
             }
             ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
@@ -1020,7 +1088,8 @@ public final class SkyNetworkRegistry {
         }
 
         public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!canTryMana(gameTime) || !SkyLogisticsConfig.allowEnergyManaTransfer()
+            if (!node.supportsManaEndpoint(direction) || !canTryMana(gameTime)
+                    || !SkyLogisticsConfig.allowEnergyManaTransfer()
                     || !BotaniaCompat.isLoaded()) {
                 return null;
             }
@@ -1051,7 +1120,8 @@ public final class SkyNetworkRegistry {
         }
 
         public SourceHandlerBridge sourceHandler(long gameTime) {
-            if (!canTrySource(gameTime) || !SkyLogisticsConfig.allowEnergySourceTransfer()
+            if (!node.supportsSourceEndpoint(direction) || !canTrySource(gameTime)
+                    || !SkyLogisticsConfig.allowEnergySourceTransfer()
                     || !ArsNouveauCompat.isLoaded()) {
                 return null;
             }
