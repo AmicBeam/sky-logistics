@@ -1,1 +1,106 @@
-{"parent":"minecraft:item/generated","textures":{"layer0":"skylogistics:item/sky_wrench"}}
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "display": {
+    "gui": {
+      "rotation": [25, 225, -35],
+      "translation": [0, 0, 0],
+      "scale": [0.9, 0.9, 0.9]
+    },
+    "ground": {
+      "translation": [0, 3, 0],
+      "scale": [0.5, 0.5, 0.5]
+    },
+    "fixed": {
+      "rotation": [0, 180, -45],
+      "scale": [0.75, 0.75, 0.75]
+    },
+    "thirdperson_righthand": {
+      "rotation": [0, 90, -35],
+      "translation": [0, 3, 1],
+      "scale": [0.65, 0.65, 0.65]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [0, 270, 35],
+      "translation": [0, 3, 1],
+      "scale": [0.65, 0.65, 0.65]
+    },
+    "firstperson_righthand": {
+      "rotation": [0, 90, -35],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.68, 0.68, 0.68]
+    },
+    "firstperson_lefthand": {
+      "rotation": [0, 270, 35],
+      "translation": [1.13, 3.2, 1.13],
+      "scale": [0.68, 0.68, 0.68]
+    }
+  },
+  "textures": {
+    "body": "skylogistics:block/celestial_stone",
+    "accent": "skylogistics:block/simple_fluid_pipe",
+    "particle": "skylogistics:block/celestial_stone"
+  },
+  "elements": [
+    {
+      "from": [7, 2, 7],
+      "to": [9, 11, 9],
+      "faces": {
+        "down": {"texture": "#accent"},
+        "up": {"texture": "#accent"},
+        "north": {"texture": "#body"},
+        "south": {"texture": "#body"},
+        "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    },
+    {
+      "from": [6, 1, 6],
+      "to": [10, 3, 10],
+      "faces": {
+        "down": {"texture": "#body"},
+        "up": {"texture": "#accent"},
+        "north": {"texture": "#body"},
+        "south": {"texture": "#body"},
+        "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    },
+    {
+      "from": [5, 10, 6],
+      "to": [11, 13, 10],
+      "faces": {
+        "down": {"texture": "#body"},
+        "up": {"texture": "#accent"},
+        "north": {"texture": "#body"},
+        "south": {"texture": "#body"},
+        "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    },
+    {
+      "from": [4, 12, 6],
+      "to": [6, 16, 10],
+      "faces": {
+        "down": {"texture": "#body"},
+        "up": {"texture": "#accent"},
+        "north": {"texture": "#body"},
+        "south": {"texture": "#body"},
+        "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    },
+    {
+      "from": [10, 12, 6],
+      "to": [12, 16, 10],
+      "faces": {
+        "down": {"texture": "#body"},
+        "up": {"texture": "#accent"},
+        "north": {"texture": "#body"},
+        "south": {"texture": "#body"},
+        "west": {"texture": "#body"},
+        "east": {"texture": "#body"}
+      }
+    }
+  ]
+}

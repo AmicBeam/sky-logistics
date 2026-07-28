@@ -1,1 +1,6 @@
-{"parent":"skylogistics:block/simple_fluid_pipe_inventory"}
+{
+  "parent": "skylogistics:item/simple_pipe_inventory_geometry",
+  "textures": {
+    "pipe": "skylogistics:block/simple_fluid_pipe"
+  }
+}
