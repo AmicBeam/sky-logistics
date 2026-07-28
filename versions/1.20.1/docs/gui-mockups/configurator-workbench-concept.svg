@@ -1,41 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="244" viewBox="0 -5 960 610">
   <defs>
     <linearGradient id="world" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#102635"/>
-      <stop offset=".55" stop-color="#183947"/>
-      <stop offset="1" stop-color="#071118"/>
+      <stop offset="0" stop-color="#111416"/>
+      <stop offset=".55" stop-color="#090b0c"/>
+      <stop offset="1" stop-color="#030405"/>
     </linearGradient>
     <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#10222b" stop-opacity=".98"/>
-      <stop offset="1" stop-color="#09161c" stop-opacity=".99"/>
+      <stop offset="0" stop-color="#191c1e"/>
+      <stop offset=".18" stop-color="#0c0e0f"/>
+      <stop offset="1" stop-color="#060708"/>
     </linearGradient>
     <linearGradient id="active" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#17434d"/>
-      <stop offset="1" stop-color="#102d36"/>
+      <stop offset="0" stop-color="#174651"/>
+      <stop offset="1" stop-color="#0e2930"/>
+    </linearGradient>
+    <linearGradient id="buttonBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24282a"/>
+      <stop offset=".14" stop-color="#171a1c"/>
+      <stop offset="1" stop-color="#0b0d0e"/>
+    </linearGradient>
+    <linearGradient id="buttonActive" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d5a67"/>
+      <stop offset=".2" stop-color="#17434d"/>
+      <stop offset="1" stop-color="#102b32"/>
+    </linearGradient>
+    <linearGradient id="contentBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101315"/>
+      <stop offset="1" stop-color="#080a0b"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity=".62"/>
     </filter>
     <style>
-      text { font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; fill: #d8e7ea; }
+      text { font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; fill: #d8dcde; }
       .title { font-size: 18px; font-weight: 600; fill: #ffe58a; }
-      .heading { font-size: 13px; font-weight: 600; fill: #eaf4f5; }
-      .body { font-size: 12px; fill: #c9dade; }
-      .small { font-size: 10px; fill: #88a6ac; }
-      .tiny { font-size: 9px; fill: #78949a; }
+      .heading { font-size: 13px; font-weight: 600; fill: #edf0f1; }
+      .body { font-size: 12px; fill: #d1d5d7; }
+      .small { font-size: 10px; fill: #9ca4a8; }
+      .tiny { font-size: 9px; fill: #858d91; }
       .cyan { fill: #70e3ed; }
       .gold { fill: #ffd46e; }
       .orange { fill: #ffb46c; }
-      .muted { fill: #718b91; }
-      .button { fill: #132a33; stroke: #35636e; stroke-width: 1; }
-      .button-active { fill: #17414b; stroke: #67dce6; stroke-width: 1; }
-      .content { fill: #09171d; stroke: #234751; stroke-width: 1; }
-      .rule { stroke: #244650; stroke-width: 1; }
+      .muted { fill: #747d81; }
+      .button { fill: url(#buttonBg); stroke: #596267; stroke-width: 1.5; }
+      .button-active { fill: url(#buttonActive); stroke: #69e4ee; stroke-width: 1.5; }
+      .content { fill: url(#contentBg); stroke: #424a4e; stroke-width: 1.5; }
+      .rule { stroke: #383f42; stroke-width: 1; }
     </style>
   </defs>
 
   <!-- Dimmed Minecraft world -->
-  <rect width="960" height="600" fill="url(#world)"/>
+  <rect x="0" y="-5" width="960" height="610" fill="url(#world)"/>
   <g opacity=".2" shape-rendering="crispEdges">
     <rect x="0" y="405" width="960" height="195" fill="#1b382c"/>
     <rect x="0" y="470" width="270" height="130" fill="#294b38"/>
@@ -45,16 +60,16 @@
     <rect x="455" y="90" width="7" height="370" fill="#6ce0eb"/>
     <rect x="462" y="90" width="3" height="370" fill="#d8ffff"/>
   </g>
-  <rect width="960" height="600" fill="#02080c" opacity=".42"/>
+  <rect x="0" y="-5" width="960" height="610" fill="#010203" opacity=".58"/>
 
   <!-- Main screen -->
   <g filter="url(#shadow)">
-    <rect x="52" y="34" width="856" height="522" rx="4" fill="url(#panel)" stroke="#5bd2de" stroke-width="2"/>
-    <rect x="53" y="35" width="854" height="3" fill="#8ceaf1"/>
+    <rect x="52" y="34" width="856" height="522" rx="4" fill="url(#panel)" stroke="#7b858a" stroke-width="2"/>
+    <rect x="53" y="35" width="854" height="3" fill="#bac0c2"/>
   </g>
 
   <!-- Header: title only -->
-  <rect x="52" y="34" width="856" height="52" fill="#0e2028"/>
+  <rect x="52" y="34" width="856" height="52" fill="#0b0d0e"/>
   <line x1="52" y1="86" x2="908" y2="86" class="rule"/>
   <g transform="translate(72 49)">
     <path d="M0 12 L10 0 L20 12 L15 12 L15 21 L5 21 L5 12 Z" fill="#5ed1dd"/>
@@ -68,7 +83,7 @@
   <g transform="translate(70 101)">
     <rect width="820" height="84" rx="2" class="content"/>
     <text x="16" y="23" class="small">当前线路</text>
-    <rect x="84" y="9" width="244" height="30" rx="2" fill="#0a181f" stroke="#386671"/>
+    <rect x="84" y="9" width="244" height="30" rx="2" fill="#0b0d0e" stroke="#515c61"/>
     <circle cx="100" cy="24" r="4" fill="#68dda1"/>
     <text x="112" y="29" class="heading">主网络</text>
     <text x="344" y="28" class="small">线路序号</text>
@@ -91,11 +106,11 @@
     <!-- Existing line monitor values -->
     <line x1="16" y1="50" x2="804" y2="50" class="rule"/>
     <g transform="translate(16 60)">
-      <rect width="116" height="17" rx="8" fill="#102a32"/>
+      <rect width="116" height="17" rx="8" fill="#171b1d"/>
       <text x="12" y="12" class="tiny">节点</text><text x="92" y="12" text-anchor="end" class="small cyan">5</text>
-      <rect x="124" width="116" height="17" rx="8" fill="#102a32"/>
+      <rect x="124" width="116" height="17" rx="8" fill="#171b1d"/>
       <text x="136" y="12" class="tiny">抽取</text><text x="216" y="12" text-anchor="end" class="small orange">2</text>
-      <rect x="248" width="116" height="17" rx="8" fill="#102a32"/>
+      <rect x="248" width="116" height="17" rx="8" fill="#171b1d"/>
       <text x="260" y="12" class="tiny">存入</text><text x="340" y="12" text-anchor="end" class="small cyan">3</text>
       <text x="788" y="12" text-anchor="end" class="tiny">线路名可直接编辑</text>
     </g>
@@ -107,7 +122,7 @@
     <text x="16" y="25" class="heading">线路连接面</text>
     <text x="532" y="25" text-anchor="end" class="small">1–5 / 8</text>
 
-    <rect x="12" y="39" width="516" height="26" fill="#10242c"/>
+    <rect x="12" y="39" width="516" height="26" fill="#171a1c"/>
     <text x="54" y="56" class="tiny">连接目标</text>
     <text x="246" y="56" class="tiny">模式</text>
     <text x="314" y="56" class="tiny">资源</text>
@@ -115,9 +130,9 @@
     <text x="442" y="56" class="tiny">红石</text>
 
     <g transform="translate(12 65)">
-      <rect width="516" height="49" fill="#0d1c23"/>
+      <rect width="516" height="49" fill="#0d0f10"/>
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
-      <rect x="28" y="9" width="32" height="32" fill="#203841" stroke="#4a727b"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 18 h18 v17 h-18z M38 14 h12 v6 h-12z" fill="#b77d47"/>
       <text x="70" y="21" class="body">木箱</text>
       <text x="70" y="38" class="small">128,64,32 · 主世界</text>
@@ -128,9 +143,9 @@
     </g>
 
     <g transform="translate(12 114)">
-      <rect width="516" height="49" fill="#10222a"/>
+      <rect width="516" height="49" fill="#151719"/>
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
-      <rect x="28" y="9" width="32" height="32" fill="#203841" stroke="#4a727b"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 15 h18 v21 h-18z M38 19 h12 M38 24 h12 M38 29 h12" stroke="#79a4dd" fill="none"/>
       <text x="70" y="21" class="body">富集仓</text>
       <text x="70" y="38" class="small">131,64,32 · 主世界</text>
@@ -141,9 +156,9 @@
     </g>
 
     <g transform="translate(12 163)">
-      <rect width="516" height="49" fill="#0d1c23"/>
+      <rect width="516" height="49" fill="#0d0f10"/>
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
-      <rect x="28" y="9" width="32" height="32" fill="#203841" stroke="#4a727b"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 14 h18 v22 h-18z M39 18 h10 v14 h-10z" stroke="#65a5b1" fill="none"/>
       <text x="70" y="21" class="body">物品库</text>
       <text x="70" y="38" class="small">133,64,34 · 主世界</text>
@@ -154,9 +169,9 @@
     </g>
 
     <g transform="translate(12 212)">
-      <rect width="516" height="49" fill="#10222a"/>
+      <rect width="516" height="49" fill="#151719"/>
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
-      <rect x="28" y="9" width="32" height="32" fill="#203841" stroke="#4a727b"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M44 12 l-9 15 h8 l-3 11 l13-18 h-8 l4-8z" fill="#f0cd5c"/>
       <text x="70" y="21" class="body">能量接口</text>
       <text x="70" y="38" class="small">131,65,32 · 主世界</text>
@@ -167,9 +182,9 @@
     </g>
 
     <g transform="translate(12 261)">
-      <rect width="516" height="49" fill="#0d1c23"/>
+      <rect width="516" height="49" fill="#0d0f10"/>
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
-      <rect x="28" y="9" width="32" height="32" fill="#203841" stroke="#4a727b"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <circle cx="44" cy="20" r="7" fill="#c28d67"/>
       <path d="M32 36 q12-14 24 0" fill="#56778c"/>
       <text x="70" y="21" class="body">玩家 / River</text>
@@ -181,7 +196,7 @@
     </g>
 
     <!-- Existing scrolling behavior represented by a scrollbar -->
-    <rect x="532" y="66" width="4" height="244" fill="#132c34"/>
+    <rect x="532" y="66" width="4" height="244" fill="#191d1f"/>
     <rect x="532" y="66" width="4" height="122" fill="#67dbe5"/>
     <text x="16" y="328" class="tiny">滚轮查看更多连接面 · 悬停图标查看目标名称</text>
   </g>
