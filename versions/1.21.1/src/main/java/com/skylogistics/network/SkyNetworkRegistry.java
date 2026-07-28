@@ -38,6 +38,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.item.ItemStack;
@@ -570,6 +571,7 @@ public final class SkyNetworkRegistry {
                 }
             }
             candidates.addAll(pending);
+            disconnectOverflowPipeEdges(level, pipes, component);
             String seed = "skylogistics:simple_pipe:" + level.dimension().location() + ":"
                     + first.pipeType().name() + ":" + root.getX() + ":" + root.getY() + ":" + root.getZ();
             UUID lineId = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
@@ -583,6 +585,42 @@ public final class SkyNetworkRegistry {
             UUID lineId = index.pipeLineByPos.get(entry.getKey());
             if (lineId != null) {
                 entry.getValue().assignNetworkLineId(lineId);
+            }
+        }
+    }
+
+    private static void disconnectOverflowPipeEdges(ServerLevel level,
+            Map<BlockPos, SimplePipeBlockEntity> pipes, List<BlockPos> component) {
+        Set<BlockPos> members = new HashSet<>(component);
+        for (BlockPos member : component) {
+            SimplePipeBlockEntity pipe = pipes.get(member);
+            if (pipe == null) {
+                continue;
+            }
+            BlockState state = level.getBlockState(member);
+            for (Direction direction : Direction.values()) {
+                if (state.getValue(SimplePipeBlock.connectionProperty(direction))
+                        != com.skylogistics.util.SimplePipeConnection.PIPE) {
+                    continue;
+                }
+                BlockPos neighborPos = member.relative(direction);
+                SimplePipeBlockEntity neighbor = pipes.get(neighborPos);
+                if (neighbor == null || neighbor.pipeType() != pipe.pipeType() || members.contains(neighborPos)) {
+                    continue;
+                }
+                pipe.setSideDisconnected(direction, true,
+                        com.skylogistics.util.SimplePipeConnection.PIPE);
+                neighbor.setSideDisconnected(direction.getOpposite(), true,
+                        com.skylogistics.util.SimplePipeConnection.PIPE);
+                state = state.setValue(SimplePipeBlock.connectionProperty(direction),
+                        com.skylogistics.util.SimplePipeConnection.NONE);
+                BlockState neighborState = level.getBlockState(neighborPos).setValue(
+                        SimplePipeBlock.connectionProperty(direction.getOpposite()),
+                        com.skylogistics.util.SimplePipeConnection.NONE);
+                level.setBlock(neighborPos, neighborState, Block.UPDATE_ALL);
+            }
+            if (state != level.getBlockState(member)) {
+                level.setBlock(member, state, Block.UPDATE_ALL);
             }
         }
     }

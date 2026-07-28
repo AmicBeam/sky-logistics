@@ -276,7 +276,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum FE moved by each extracting simple energy pipe per tick.")
                     .defineInRange("simpleEnergyPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
-                    .comment("Maximum connected blocks in one simple pipe line. Larger runs are split into independent internal lines to bound topology rebuild cost.")
+                    .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")

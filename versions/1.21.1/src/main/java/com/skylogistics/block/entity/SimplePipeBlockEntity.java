@@ -4,11 +4,14 @@ import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
+import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,7 +22,11 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
 public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
+    private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
+    private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
     private UUID networkLineId;
+    private int disconnectedSides;
+    private int rememberedExtractSides;
 
     public SimplePipeBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SIMPLE_PIPE.get(), pos, state);
@@ -51,6 +58,36 @@ public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
 
     public void assignNetworkLineId(UUID lineId) {
         networkLineId = lineId;
+    }
+
+    public boolean isSideDisconnected(Direction direction) {
+        return (disconnectedSides & sideMask(direction)) != 0;
+    }
+
+    public SimplePipeConnection rememberedContainerConnection(Direction direction) {
+        return (rememberedExtractSides & sideMask(direction)) != 0
+                ? SimplePipeConnection.EXTRACT
+                : SimplePipeConnection.INSERT;
+    }
+
+    public void setSideDisconnected(Direction direction, boolean disconnected,
+            SimplePipeConnection previousConnection) {
+        int mask = sideMask(direction);
+        if (disconnected) {
+            disconnectedSides |= mask;
+            if (previousConnection == SimplePipeConnection.EXTRACT) {
+                rememberedExtractSides |= mask;
+            } else {
+                rememberedExtractSides &= ~mask;
+            }
+        } else {
+            disconnectedSides &= ~mask;
+        }
+        setChanged();
+    }
+
+    private static int sideMask(Direction direction) {
+        return 1 << direction.ordinal();
     }
 
     @Override
@@ -149,6 +186,20 @@ public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
     @Override
     public boolean supportsSourceEndpoint(Direction direction) {
         return false;
+    }
+
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.putInt(DISCONNECTED_SIDES_TAG, disconnectedSides);
+        tag.putInt(REMEMBERED_EXTRACT_SIDES_TAG, rememberedExtractSides);
+    }
+
+    @Override
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        disconnectedSides = tag.getInt(DISCONNECTED_SIDES_TAG);
+        rememberedExtractSides = tag.getInt(REMEMBERED_EXTRACT_SIDES_TAG);
     }
 
     private boolean enabled() {

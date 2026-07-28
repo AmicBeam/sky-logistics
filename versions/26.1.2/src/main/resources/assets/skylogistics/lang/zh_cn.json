@@ -220,6 +220,9 @@
   "block.skylogistics.simple_energy_pipe": "天穹简易能量管道",
   "item.skylogistics.sky_wrench": "天穹扳手",
   "message.skylogistics.simple_pipe.mode": "管道端口已设为%s",
+  "message.skylogistics.simple_pipe.connection_limit": "管道线路已达到连接上限（%s），相邻管道未连接",
   "message.skylogistics.simple_pipe.insert": "存入",
-  "message.skylogistics.simple_pipe.extract": "抽取"
+  "message.skylogistics.simple_pipe.extract": "抽取",
+  "message.skylogistics.simple_pipe.disconnected": "管道连接已断开",
+  "message.skylogistics.simple_pipe.reconnected": "管道连接已恢复"
 }
