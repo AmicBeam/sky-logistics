@@ -110,7 +110,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         BlockState updated = state.setValue(connectionProperty(direction),
                 connectionAt(actualLevel, pos, direction, containerDefault));
         if (!updated.equals(state) && actualLevel instanceof ServerLevel serverLevel) {
-            SkyNetworkRegistry.markTopologyDirty(serverLevel);
+            SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
         }
         return updated;
     }
@@ -146,7 +146,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (!level.isClientSide()) {
             level.setBlock(pos, state.setValue(connectionProperty(direction), next), Block.UPDATE_ALL);
             if (level instanceof ServerLevel serverLevel) {
-                SkyNetworkRegistry.markTopologyDirty(serverLevel);
+                SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
             }
             player.sendSystemMessage(Component.translatable("message.skylogistics.simple_pipe.mode",
                     Component.translatable("message.skylogistics.simple_pipe." + next.getSerializedName())));
