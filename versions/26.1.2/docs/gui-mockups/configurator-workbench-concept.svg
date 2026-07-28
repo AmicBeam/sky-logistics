@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="384" height="244" viewBox="0 -5 960 610">
+  <!-- The 4x PNG keeps geometry as nearest-neighbor 4x and redraws text from
+       Minecraft 1.20.1's official Unihex glyph source at framebuffer scale. -->
   <defs>
     <linearGradient id="world" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#111416"/>
@@ -75,8 +77,8 @@
     <path d="M0 12 L10 0 L20 12 L15 12 L15 21 L5 21 L5 12 Z" fill="#5ed1dd"/>
     <rect x="8" y="11" width="4" height="10" fill="#ffe278"/>
   </g>
-  <text x="104" y="61" class="title">天穹配置器</text>
-  <text x="104" y="77" class="small">线路连接与放置配置</text>
+  <text x="104" y="58" class="title">天穹配置器</text>
+  <text x="104" y="80" class="small">线路连接与放置配置</text>
   <text x="884" y="65" text-anchor="end" class="small">所有修改即时生效</text>
 
   <!-- Current line bar -->
@@ -123,10 +125,10 @@
     <text x="532" y="25" text-anchor="end" class="small">1–5 / 8</text>
 
     <rect x="12" y="39" width="516" height="26" fill="#171a1c"/>
-    <text x="54" y="56" class="tiny">连接目标</text>
+    <text x="54" y="56" class="tiny">目标</text>
     <text x="246" y="56" class="tiny">模式</text>
     <text x="314" y="56" class="tiny">资源</text>
-    <text x="374" y="56" class="tiny">优先级</text>
+    <text x="374" y="56" class="tiny">优先</text>
     <text x="442" y="56" class="tiny">红石</text>
 
     <g transform="translate(12 65)">
@@ -134,8 +136,8 @@
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
       <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 18 h18 v17 h-18z M38 14 h12 v6 h-12z" fill="#b77d47"/>
-      <text x="70" y="21" class="body">木箱</text>
-      <text x="70" y="38" class="small">128,64,32 · 主世界</text>
+      <text x="70" y="17" class="body">木箱</text>
+      <text x="70" y="43" class="small">128,64,32 · 主世界</text>
       <text x="246" y="29" class="small orange">抽取</text>
       <text x="314" y="29" class="small">物－－</text>
       <text x="386" y="29" text-anchor="middle" class="small">P0</text>
@@ -147,8 +149,8 @@
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
       <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 15 h18 v21 h-18z M38 19 h12 M38 24 h12 M38 29 h12" stroke="#79a4dd" fill="none"/>
-      <text x="70" y="21" class="body">富集仓</text>
-      <text x="70" y="38" class="small">131,64,32 · 主世界</text>
+      <text x="70" y="17" class="body">富集仓</text>
+      <text x="70" y="43" class="small">131,64,32 · 主世界</text>
       <text x="246" y="29" class="small cyan">存入</text>
       <text x="314" y="29" class="small">物流－</text>
       <text x="386" y="29" text-anchor="middle" class="small">P5</text>
@@ -160,8 +162,8 @@
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
       <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M35 14 h18 v22 h-18z M39 18 h10 v14 h-10z" stroke="#65a5b1" fill="none"/>
-      <text x="70" y="21" class="body">物品库</text>
-      <text x="70" y="38" class="small">133,64,34 · 主世界</text>
+      <text x="70" y="17" class="body">物品库</text>
+      <text x="70" y="43" class="small">133,64,34 · 主世界</text>
       <text x="246" y="29" class="small cyan">存入</text>
       <text x="314" y="29" class="small">物流－</text>
       <text x="386" y="29" text-anchor="middle" class="small">P0</text>
@@ -173,8 +175,8 @@
       <circle cx="14" cy="24" r="4" fill="#67dda0"/>
       <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <path d="M44 12 l-9 15 h8 l-3 11 l13-18 h-8 l4-8z" fill="#f0cd5c"/>
-      <text x="70" y="21" class="body">能量接口</text>
-      <text x="70" y="38" class="small">131,65,32 · 主世界</text>
+      <text x="70" y="17" class="body">能量接口</text>
+      <text x="70" y="43" class="small">131,65,32 · 主世界</text>
       <text x="246" y="29" class="small orange">抽取</text>
       <text x="314" y="29" class="small">－－电</text>
       <text x="386" y="29" text-anchor="middle" class="small">P2</text>
@@ -187,8 +189,8 @@
       <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
       <circle cx="44" cy="20" r="7" fill="#c28d67"/>
       <path d="M32 36 q12-14 24 0" fill="#56778c"/>
-      <text x="70" y="21" class="body">玩家 / River</text>
-      <text x="70" y="38" class="small">项链连接 · 主世界</text>
+      <text x="70" y="17" class="body">玩家 / River</text>
+      <text x="70" y="43" class="small">项链连接 · 主世界</text>
       <text x="246" y="29" class="small cyan">存入</text>
       <text x="314" y="29" class="small">物－－</text>
       <text x="386" y="29" text-anchor="middle" class="small">P0</text>
