@@ -42,6 +42,18 @@ public final class SkyLogisticsConfig {
         return SERVER.nodeEnergyTransferLimit.get();
     }
 
+    public static boolean enableSimpleItemPipe() {
+        return SERVER.enableSimpleItemPipe.get();
+    }
+
+    public static boolean enableSimpleFluidPipe() {
+        return SERVER.enableSimpleFluidPipe.get();
+    }
+
+    public static boolean enableSimpleEnergyPipe() {
+        return SERVER.enableSimpleEnergyPipe.get();
+    }
+
     public static int serverOpsPerTick() {
         return SERVER.serverOpsPerTick.get();
     }
@@ -201,6 +213,9 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsSourceTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
+        public final ForgeConfigSpec.BooleanValue enableSimpleItemPipe;
+        public final ForgeConfigSpec.BooleanValue enableSimpleFluidPipe;
+        public final ForgeConfigSpec.BooleanValue enableSimpleEnergyPipe;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -222,6 +237,15 @@ public final class SkyLogisticsConfig {
             nodeEnergyTransferLimit = builder
                     .comment("Maximum energy moved by a logistics node per energy transfer operation.")
                     .defineInRange("nodeEnergyTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
+            enableSimpleItemPipe = builder
+                    .comment("Whether simple item pipes connect to inventories and transfer items.")
+                    .define("enableSimpleItemPipe", true);
+            enableSimpleFluidPipe = builder
+                    .comment("Whether simple fluid pipes connect to tanks and transfer fluids.")
+                    .define("enableSimpleFluidPipe", true);
+            enableSimpleEnergyPipe = builder
+                    .comment("Whether simple energy pipes connect to FE storages and transfer energy.")
+                    .define("enableSimpleEnergyPipe", true);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);

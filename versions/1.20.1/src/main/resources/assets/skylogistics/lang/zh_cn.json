@@ -214,5 +214,12 @@
   "jei.skylogistics.sky_offering": "天穹供奉",
   "jei.skylogistics.sky_offering.duration": "%s tick",
   "patchouli.skylogistics.book.name": "天穹物流手册",
-  "patchouli.skylogistics.book.landing": "从第一块天穹石开始，搭建高空祭坛、制作柯拉甘露，再用节点把物品、流体和能量送到需要的地方。"
+  "patchouli.skylogistics.book.landing": "从第一块天穹石开始，搭建高空祭坛、制作柯拉甘露，再用节点把物品、流体和能量送到需要的地方。",
+  "block.skylogistics.simple_item_pipe": "天穹简易物品管道",
+  "block.skylogistics.simple_fluid_pipe": "天穹简易流体管道",
+  "block.skylogistics.simple_energy_pipe": "天穹简易能量管道",
+  "item.skylogistics.sky_wrench": "天穹扳手",
+  "message.skylogistics.simple_pipe.mode": "管道端口已设为%s",
+  "message.skylogistics.simple_pipe.insert": "存入",
+  "message.skylogistics.simple_pipe.extract": "抽取"
 }

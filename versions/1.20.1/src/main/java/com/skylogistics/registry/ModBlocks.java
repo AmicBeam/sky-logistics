@@ -9,8 +9,10 @@ import com.skylogistics.block.OfferingAltarBlock;
 import com.skylogistics.block.OfferingTableBlock;
 import com.skylogistics.block.SkyDimensionInterfaceBlock;
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
+import com.skylogistics.util.SimplePipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -63,6 +65,10 @@ public final class ModBlocks {
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
+    public static final RegistryObject<Block> SIMPLE_ITEM_PIPE = simplePipe("simple_item_pipe", SimplePipeType.ITEM);
+    public static final RegistryObject<Block> SIMPLE_FLUID_PIPE = simplePipe("simple_fluid_pipe", SimplePipeType.FLUID);
+    public static final RegistryObject<Block> SIMPLE_ENERGY_PIPE = simplePipe("simple_energy_pipe", SimplePipeType.ENERGY);
+
     public static final RegistryObject<Block> CELESTIAL_STONE = BLOCKS.register("celestial_stone",
             () -> new Block(celestialStoneProperties()));
 
@@ -109,5 +115,13 @@ public final class ModBlocks {
                 .mapColor(MapColor.COLOR_LIGHT_BLUE)
                 .strength(2.0F, 7.0F)
                 .sound(SoundType.AMETHYST);
+    }
+
+    private static RegistryObject<Block> simplePipe(String name, SimplePipeType type) {
+        return BLOCKS.register(name, () -> new SimplePipeBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BLUE)
+                .strength(1.5F, 7.0F)
+                .noOcclusion()
+                .sound(SoundType.AMETHYST), type));
     }
 }

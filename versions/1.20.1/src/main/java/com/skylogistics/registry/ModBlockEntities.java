@@ -9,6 +9,7 @@ import com.skylogistics.block.entity.SkyDimensionInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
+import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -42,6 +43,12 @@ public final class ModBlockEntities {
 
     public static final RegistryObject<BlockEntityType<SkyNodeBlockEntity>> SKY_NODE = BLOCK_ENTITIES.register("sky_node",
             () -> BlockEntityType.Builder.of(SkyNodeBlockEntity::new, ModBlocks.SKY_NODE.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<SimplePipeBlockEntity>> SIMPLE_PIPE =
+            BLOCK_ENTITIES.register("simple_pipe",
+                    () -> BlockEntityType.Builder.of(SimplePipeBlockEntity::new,
+                            ModBlocks.SIMPLE_ITEM_PIPE.get(), ModBlocks.SIMPLE_FLUID_PIPE.get(),
+                            ModBlocks.SIMPLE_ENERGY_PIPE.get()).build(null));
 
     public static final RegistryObject<BlockEntityType<OfferingAltarBlockEntity>> OFFERING_ALTAR =
             BLOCK_ENTITIES.register("offering_altar",

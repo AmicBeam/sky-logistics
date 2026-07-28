@@ -33,6 +33,12 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.SKY_DIMENSION_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SIMPLE_ITEM_PIPE = ITEMS.register("simple_item_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_ITEM_PIPE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SIMPLE_FLUID_PIPE = ITEMS.register("simple_fluid_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_FLUID_PIPE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SIMPLE_ENERGY_PIPE = ITEMS.register("simple_energy_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_ENERGY_PIPE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
@@ -50,6 +56,8 @@ public final class ModItems {
 
     public static final RegistryObject<Item> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> SKY_WRENCH = ITEMS.register("sky_wrench",
+            () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> FILTER_LIST = ITEMS.register("filter_list",
             () -> new FilterListItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> TAG_FILTER_LIST = ITEMS.register("tag_filter_list",

@@ -214,5 +214,12 @@
   "jei.skylogistics.sky_offering": "Sky Offering",
   "jei.skylogistics.sky_offering.duration": "%s ticks",
   "patchouli.skylogistics.book.name": "Sky Logistics Manual",
-  "patchouli.skylogistics.book.landing": "Celestial storage, wireless logistics, and offerings under the high sky."
+  "patchouli.skylogistics.book.landing": "Celestial storage, wireless logistics, and offerings under the high sky.",
+  "block.skylogistics.simple_item_pipe": "Simple Celestial Item Pipe",
+  "block.skylogistics.simple_fluid_pipe": "Simple Celestial Fluid Pipe",
+  "block.skylogistics.simple_energy_pipe": "Simple Celestial Energy Pipe",
+  "item.skylogistics.sky_wrench": "Celestial Wrench",
+  "message.skylogistics.simple_pipe.mode": "Pipe port set to %s",
+  "message.skylogistics.simple_pipe.insert": "insert",
+  "message.skylogistics.simple_pipe.extract": "extract"
 }

@@ -1,0 +1,32 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "#pipe"
+  },
+  "elements": [
+    {
+      "from": [6, 6, 2],
+      "to": [10, 10, 5],
+      "faces": {
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#pipe"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
+      }
+    },
+    {
+      "from": [3, 3, 0],
+      "to": [13, 13, 2],
+      "faces": {
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#pipe"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
+      }
+    }
+  ]
+}

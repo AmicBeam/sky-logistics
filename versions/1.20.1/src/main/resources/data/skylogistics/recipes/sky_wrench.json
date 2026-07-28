@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["I I", " C ", " I "],
+  "key": {
+    "C": {"item": "skylogistics:celestial_stone"},
+    "I": {"item": "minecraft:iron_ingot"}
+  },
+  "result": {"item": "skylogistics:sky_wrench"}
+}

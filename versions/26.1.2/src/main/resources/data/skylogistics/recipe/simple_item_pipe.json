@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","pattern":["CCC","IHI","CCC"],"key":{"C":"skylogistics:celestial_stone","I":"minecraft:iron_ingot","H":"minecraft:chest"},"result":{"id":"skylogistics:simple_item_pipe","count":8}}

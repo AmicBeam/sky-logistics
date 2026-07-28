@@ -10,6 +10,8 @@ import com.skylogistics.block.SkyDimensionInterfaceBlock;
 import com.skylogistics.block.SkyMEInterfaceBlock;
 import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.block.SkyRSInterfaceBlock;
+import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.util.SimplePipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -41,6 +43,13 @@ public final class ModBlocks {
                     .strength(1.5F, 7.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
+
+    public static final DeferredHolder<Block, SimplePipeBlock> SIMPLE_ITEM_PIPE =
+            simplePipe("simple_item_pipe", SimplePipeType.ITEM);
+    public static final DeferredHolder<Block, SimplePipeBlock> SIMPLE_FLUID_PIPE =
+            simplePipe("simple_fluid_pipe", SimplePipeType.FLUID);
+    public static final DeferredHolder<Block, SimplePipeBlock> SIMPLE_ENERGY_PIPE =
+            simplePipe("simple_energy_pipe", SimplePipeType.ENERGY);
 
     public static final DeferredHolder<Block, SkyMEInterfaceBlock> SKY_ME_INTERFACE = BLOCKS.register("sky_me_interface",
             () -> new SkyMEInterfaceBlock(interfaceProperties("sky_me_interface", MapColor.COLOR_BLUE)));
@@ -107,5 +116,12 @@ public final class ModBlocks {
                 .strength(2.5F, 7.0F)
                 .noOcclusion()
                 .sound(SoundType.AMETHYST);
+    }
+
+    private static DeferredHolder<Block, SimplePipeBlock> simplePipe(String name, SimplePipeType type) {
+        return BLOCKS.register(name, () -> new SimplePipeBlock(blockProperties(name, MapColor.COLOR_BLUE)
+                .strength(1.5F, 7.0F)
+                .noOcclusion()
+                .sound(SoundType.AMETHYST), type));
     }
 }
