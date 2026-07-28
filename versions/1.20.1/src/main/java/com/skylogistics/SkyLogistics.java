@@ -76,11 +76,26 @@ public class SkyLogistics {
         if (tryDismantleWithWrench(event)) {
             return;
         }
+        if (forceSneakingPipeWrenchInteraction(event)) {
+            return;
+        }
         if (event.getHand() == InteractionHand.MAIN_HAND
                 && isNodeOrSimplePipe(event.getItemStack())) {
             event.setUseBlock(Event.Result.DENY);
             event.setUseItem(Event.Result.ALLOW);
         }
+    }
+
+    private static boolean forceSneakingPipeWrenchInteraction(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getHand() != InteractionHand.MAIN_HAND
+                || !event.getEntity().isShiftKeyDown()
+                || !isWrench(event.getItemStack())
+                || !(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof SimplePipeBlock)) {
+            return false;
+        }
+        event.setUseBlock(Event.Result.ALLOW);
+        event.setUseItem(Event.Result.DENY);
+        return true;
     }
 
     private static boolean isNodeOrSimplePipe(ItemStack stack) {
