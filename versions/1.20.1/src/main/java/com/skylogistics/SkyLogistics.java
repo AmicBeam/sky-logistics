@@ -1,5 +1,6 @@
 package com.skylogistics;
 
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -98,6 +99,7 @@ public class SkyLogistics {
                 || player.isSpectator()
                 || !player.mayBuild()
                 || !isWrench(event.getItemStack())
+                || state.getBlock() instanceof SimplePipeBlock
                 || !isSkyLogisticsBlock(state)) {
             return false;
         }
