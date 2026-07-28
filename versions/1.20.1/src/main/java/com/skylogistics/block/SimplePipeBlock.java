@@ -55,7 +55,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
             new ResourceLocation("forge", "tools/wrench"));
     private static final TagKey<Item> COMMON_WRENCHES = TagKey.create(Registries.ITEM,
             new ResourceLocation("c", "tools/wrench"));
-    private static final VoxelShape CORE = Block.box(5.0D, 5.0D, 5.0D, 11.0D, 11.0D, 11.0D);
+    private static final VoxelShape CORE = Block.box(6.0D, 6.0D, 6.0D, 10.0D, 10.0D, 10.0D);
     private static final VoxelShape[] NORMAL_ARMS = makeArmShapes(false);
     private static final VoxelShape[] EXTRACT_ARMS = makeArmShapes(true);
     private final SimplePipeType pipeType;
@@ -495,13 +495,27 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private static VoxelShape[] makeArmShapes(boolean extract) {
         VoxelShape[] result = new VoxelShape[Direction.values().length];
         for (Direction direction : Direction.values()) {
-            VoxelShape shape = orientedBox(direction, 6.0D, 6.0D, 0.0D, 10.0D, 10.0D, 5.0D);
             if (extract) {
-                shape = Shapes.or(shape, orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 13.0D, 2.0D));
+                VoxelShape shape = orientedBox(direction, 4.5D, 4.5D, 0.0D, 11.5D, 11.5D, 2.0D);
+                shape = Shapes.or(shape, orientedBox(direction, 5.5D, 5.5D, 2.0D, 10.5D, 10.5D, 6.0D));
+                shape = addAccentRails(shape, direction, 4.5D, 11.5D, 0.0D, 2.0D);
+                shape = addAccentRails(shape, direction, 5.5D, 10.5D, 2.0D, 6.0D);
+                result[direction.ordinal()] = addAccentRails(shape, direction, 6.0D, 10.0D, 6.0D, 8.0D);
+            } else {
+                VoxelShape shape = orientedBox(direction, 6.0D, 6.0D, 0.0D, 10.0D, 10.0D, 6.0D);
+                result[direction.ordinal()] = addAccentRails(shape, direction, 6.0D, 10.0D, 0.0D, 8.0D);
             }
-            result[direction.ordinal()] = shape;
         }
         return result;
+    }
+
+    private static VoxelShape addAccentRails(VoxelShape shape, Direction direction,
+            double minCross, double maxCross, double minZ, double maxZ) {
+        return Shapes.or(shape,
+                orientedBox(direction, 7.5D, maxCross, minZ, 8.5D, maxCross + 0.0625D, maxZ),
+                orientedBox(direction, 7.5D, minCross - 0.0625D, minZ, 8.5D, minCross, maxZ),
+                orientedBox(direction, minCross - 0.0625D, 7.5D, minZ, minCross, 8.5D, maxZ),
+                orientedBox(direction, maxCross, 7.5D, minZ, maxCross + 0.0625D, 8.5D, maxZ));
     }
 
     private static VoxelShape orientedBox(Direction direction, double minX, double minY, double minZ,
