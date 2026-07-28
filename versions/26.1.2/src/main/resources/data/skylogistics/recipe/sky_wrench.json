@@ -1,1 +1,1 @@
-{"type":"minecraft:crafting_shaped","pattern":["I I"," C "," I "],"key":{"C":"skylogistics:celestial_stone","I":"minecraft:iron_ingot"},"result":{"id":"skylogistics:sky_wrench"}}
+{"type":"minecraft:crafting_shaped","pattern":["L L"," A "," G "],"key":{"A":"minecraft:amethyst_shard","G":"minecraft:glass","L":"minecraft:lapis_lazuli"},"result":{"id":"skylogistics:sky_wrench"}}
