@@ -21,7 +21,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
-public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
+public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
     private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
     private UUID networkLineId;

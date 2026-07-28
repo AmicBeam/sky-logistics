@@ -50,10 +50,9 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
-public class SkyNodeBlockEntity extends BlockEntity {
+public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public static final int UPGRADE_SLOTS = 2;
     public static final int FACE_FILTER_SLOTS = 1;
-    public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
     public static final int MAX_ITEM_SLOT_LIMIT = 999;
     private static final String LINE_ID_TAG = "LineId";
     private static final String LINES_TAG = "Lines";
@@ -85,9 +84,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     private boolean fluidsEnabled = true;
     private boolean energyEnabled = true;
     private final NonNullList<ItemStack> upgrades = NonNullList.withSize(UPGRADE_SLOTS, ItemStack.EMPTY);
-    private int itemCursor;
-    private int fluidCursor;
-    private int targetCursor;
     private long redstoneCacheTick = Long.MIN_VALUE;
     private boolean redstonePoweredCache;
 
@@ -125,17 +121,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
     public void onLoad() {
         super.onLoad();
         updateVisualState();
-        if (level instanceof ServerLevel serverLevel) {
-            SkyNetworkRegistry.register(serverLevel, worldPosition);
-        }
-    }
-
-    @Override
-    public void setRemoved() {
-        if (level instanceof ServerLevel serverLevel) {
-            SkyNetworkRegistry.unregister(serverLevel, worldPosition);
-        }
-        super.setRemoved();
     }
 
     public UUID getLineId() {
@@ -651,30 +636,6 @@ public class SkyNodeBlockEntity extends BlockEntity {
             }
         }
         return connected;
-    }
-
-    public int nextItemStart(int slots) {
-        if (slots <= 0) {
-            return 0;
-        }
-        int start = Math.floorMod(itemCursor, slots);
-        itemCursor = (start + 1) % slots;
-        return start;
-    }
-
-    public int nextFluidStart(int tanks) {
-        if (tanks <= 0) {
-            return 0;
-        }
-        int start = Math.floorMod(fluidCursor, tanks);
-        fluidCursor = (start + 1) % tanks;
-        return start;
-    }
-
-    public int nextTargetCursor() {
-        int start = targetCursor;
-        targetCursor = targetCursor == Integer.MAX_VALUE ? 0 : targetCursor + 1;
-        return start;
     }
 
     public void applyPlacementToolConfig(ConfiguratorItem.ToolConfig config, boolean includeMode) {

@@ -109,13 +109,13 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (level.isClientSide) {
             return;
         }
-        PlacementConnections pipeConnections = placementPipeConnections(level, pos);
-        if (pipeConnections.rejected().isEmpty()
+        Set<Direction> rejectedDirections = rejectedPlacementDirections(level, pos, state);
+        if (rejectedDirections.isEmpty()
                 || !(level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity)) {
             return;
         }
         BlockState placedState = level.getBlockState(pos);
-        for (Direction direction : pipeConnections.rejected()) {
+        for (Direction direction : rejectedDirections) {
             BlockPos neighborPos = pos.relative(direction);
             BlockState neighborState = level.getBlockState(neighborPos);
             if (!(neighborState.getBlock() instanceof SimplePipeBlock neighborPipe)
@@ -172,6 +172,10 @@ public class SimplePipeBlock extends BaseEntityBlock {
     }
 
     private PlacementConnections placementPipeConnections(Level level, BlockPos pos) {
+        PlacementConnections indexed = indexedPlacementPipeConnections(level, pos);
+        if (indexed != null) {
+            return indexed;
+        }
         int maxConnected = SkyLogisticsConfig.simplePipeMaxConnectedBlocks();
         EnumSet<Direction> allowed = EnumSet.noneOf(Direction.class);
         EnumSet<Direction> rejected = EnumSet.noneOf(Direction.class);
@@ -205,6 +209,58 @@ public class SimplePipeBlock extends BaseEntityBlock {
             allowed.add(direction);
         }
         return new PlacementConnections(allowed, rejected);
+    }
+
+    private PlacementConnections indexedPlacementPipeConnections(Level level, BlockPos pos) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return null;
+        }
+        int maxConnected = SkyLogisticsConfig.simplePipeMaxConnectedBlocks();
+        int connected = 1;
+        Set<java.util.UUID> acceptedLines = new HashSet<>();
+        EnumSet<Direction> allowed = EnumSet.noneOf(Direction.class);
+        EnumSet<Direction> rejected = EnumSet.noneOf(Direction.class);
+        for (Direction direction : Direction.values()) {
+            BlockPos neighborPos = pos.relative(direction);
+            BlockState neighborState = level.getBlockState(neighborPos);
+            if (!(neighborState.getBlock() instanceof SimplePipeBlock pipe) || pipe.pipeType != pipeType) {
+                continue;
+            }
+            if (level.getBlockEntity(neighborPos) instanceof SimplePipeBlockEntity neighborEntity
+                    && neighborEntity.isSideDisconnected(direction.getOpposite())) {
+                continue;
+            }
+            SkyNetworkRegistry.PipeLineInfo info =
+                    SkyNetworkRegistry.simplePipeLineInfo(serverLevel, neighborPos, pipeType);
+            if (info == null) {
+                return null;
+            }
+            if (acceptedLines.contains(info.lineId())) {
+                allowed.add(direction);
+            } else if (connected + info.size() <= maxConnected) {
+                acceptedLines.add(info.lineId());
+                connected += info.size();
+                allowed.add(direction);
+            } else {
+                rejected.add(direction);
+            }
+        }
+        return new PlacementConnections(allowed, rejected);
+    }
+
+    private Set<Direction> rejectedPlacementDirections(Level level, BlockPos pos, BlockState placedState) {
+        EnumSet<Direction> rejected = EnumSet.noneOf(Direction.class);
+        for (Direction direction : Direction.values()) {
+            BlockPos neighborPos = pos.relative(direction);
+            BlockState neighborState = level.getBlockState(neighborPos);
+            if (neighborState.getBlock() instanceof SimplePipeBlock pipe && pipe.pipeType == pipeType
+                    && placedState.getValue(connectionProperty(direction)) == SimplePipeConnection.NONE
+                    && (!(level.getBlockEntity(neighborPos) instanceof SimplePipeBlockEntity neighborEntity)
+                            || !neighborEntity.isSideDisconnected(direction.getOpposite()))) {
+                rejected.add(direction);
+            }
+        }
+        return rejected;
     }
 
     private Set<BlockPos> collectConnectedPipeComponent(Level level, BlockPos start, BlockPos excluded,

@@ -21,7 +21,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
-public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
+public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
     private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
     private UUID networkLineId;

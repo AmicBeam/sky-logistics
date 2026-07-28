@@ -11,8 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,7 +20,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
-public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
+public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
     private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
     private UUID networkLineId;
@@ -202,17 +200,17 @@ public class SimplePipeBlockEntity extends SkyNodeBlockEntity {
     }
 
     @Override
-    protected void saveNodeData(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveNodeData(tag, registries);
-        tag.putInt(DISCONNECTED_SIDES_TAG, disconnectedSides);
-        tag.putInt(REMEMBERED_EXTRACT_SIDES_TAG, rememberedExtractSides);
+    protected void saveAdditional(net.minecraft.world.level.storage.ValueOutput output) {
+        super.saveAdditional(output);
+        output.putInt(DISCONNECTED_SIDES_TAG, disconnectedSides);
+        output.putInt(REMEMBERED_EXTRACT_SIDES_TAG, rememberedExtractSides);
     }
 
     @Override
-    protected void loadNodeData(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadNodeData(tag, registries);
-        disconnectedSides = tag.getIntOr(DISCONNECTED_SIDES_TAG, 0);
-        rememberedExtractSides = tag.getIntOr(REMEMBERED_EXTRACT_SIDES_TAG, 0);
+    protected void loadAdditional(net.minecraft.world.level.storage.ValueInput input) {
+        super.loadAdditional(input);
+        disconnectedSides = input.getIntOr(DISCONNECTED_SIDES_TAG, 0);
+        rememberedExtractSides = input.getIntOr(REMEMBERED_EXTRACT_SIDES_TAG, 0);
     }
 
     private boolean enabled() {
