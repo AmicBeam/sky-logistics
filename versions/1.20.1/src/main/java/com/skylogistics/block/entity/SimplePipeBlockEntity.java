@@ -1,6 +1,7 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
@@ -63,9 +64,12 @@ public class SimplePipeBlockEntity extends BlockEntity {
             return;
         }
         boolean moved = switch (pipe.pipeType()) {
-            case ITEM -> moveItem(level, sourcePos, sourceSide, targets, pipe.pipeType().transferRate());
-            case FLUID -> moveFluid(level, sourcePos, sourceSide, targets, pipe.pipeType().transferRate());
-            case ENERGY -> moveEnergy(level, sourcePos, sourceSide, targets, pipe.pipeType().transferRate());
+            case ITEM -> moveItem(level, sourcePos, sourceSide, targets,
+                    SkyLogisticsConfig.simpleItemPipeTransferRate());
+            case FLUID -> moveFluid(level, sourcePos, sourceSide, targets,
+                    SkyLogisticsConfig.simpleFluidPipeTransferRate());
+            case ENERGY -> moveEnergy(level, sourcePos, sourceSide, targets,
+                    SkyLogisticsConfig.simpleEnergyPipeTransferRate());
         };
         if (moved) {
             targetCursor++;

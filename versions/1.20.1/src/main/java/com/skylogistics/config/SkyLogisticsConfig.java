@@ -54,6 +54,18 @@ public final class SkyLogisticsConfig {
         return SERVER.enableSimpleEnergyPipe.get();
     }
 
+    public static int simpleItemPipeTransferRate() {
+        return SERVER.simpleItemPipeTransferRate.get();
+    }
+
+    public static int simpleFluidPipeTransferRate() {
+        return SERVER.simpleFluidPipeTransferRate.get();
+    }
+
+    public static int simpleEnergyPipeTransferRate() {
+        return SERVER.simpleEnergyPipeTransferRate.get();
+    }
+
     public static int serverOpsPerTick() {
         return SERVER.serverOpsPerTick.get();
     }
@@ -216,6 +228,9 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableSimpleItemPipe;
         public final ForgeConfigSpec.BooleanValue enableSimpleFluidPipe;
         public final ForgeConfigSpec.BooleanValue enableSimpleEnergyPipe;
+        public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleEnergyPipeTransferRate;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -246,6 +261,15 @@ public final class SkyLogisticsConfig {
             enableSimpleEnergyPipe = builder
                     .comment("Whether simple energy pipes connect to FE storages and transfer energy.")
                     .define("enableSimpleEnergyPipe", true);
+            simpleItemPipeTransferRate = builder
+                    .comment("Maximum items moved by each extracting simple item pipe per tick. A transfer still uses at most one source slot and one target slot.")
+                    .defineInRange("simpleItemPipeTransferRate", 64, 1, Integer.MAX_VALUE);
+            simpleFluidPipeTransferRate = builder
+                    .comment("Maximum fluid amount in mB moved by each extracting simple fluid pipe per tick.")
+                    .defineInRange("simpleFluidPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleEnergyPipeTransferRate = builder
+                    .comment("Maximum FE moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleEnergyPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
