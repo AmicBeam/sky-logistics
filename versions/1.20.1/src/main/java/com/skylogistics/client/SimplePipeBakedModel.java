@@ -65,7 +65,12 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         if (mask == 0) {
             return base;
         }
-        ArrayList<BakedQuad> combined = new ArrayList<>(base);
+        ArrayList<BakedQuad> combined = new ArrayList<>(base.size());
+        for (BakedQuad quad : base) {
+            if (!isCoveredEndpoint(quad, state, mask)) {
+                combined.add(quad);
+            }
+        }
         for (Direction direction : Direction.values()) {
             if ((mask & (1 << direction.ordinal())) != 0
                     && state.getValue(SimplePipeBlock.connectionProperty(direction))) {
@@ -73,6 +78,47 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
             }
         }
         return combined;
+    }
+
+    private static boolean isCoveredEndpoint(BakedQuad quad, BlockState state, int extractMask) {
+        Direction direction = quad.getDirection();
+        return (extractMask & (1 << direction.ordinal())) != 0
+                && state.getValue(SimplePipeBlock.connectionProperty(direction))
+                && isEndpointQuad(quad, direction);
+    }
+
+    private static boolean isEndpointQuad(BakedQuad quad, Direction direction) {
+        int[] vertices = quad.getVertices();
+        int stride = vertices.length / 4;
+        for (int vertex = 0; vertex < 4; vertex++) {
+            int offset = vertex * stride;
+            float x = Float.intBitsToFloat(vertices[offset]);
+            float y = Float.intBitsToFloat(vertices[offset + 1]);
+            float z = Float.intBitsToFloat(vertices[offset + 2]);
+            float boundary = direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE ? 0.0F : 1.0F;
+            float axis = axisCoordinate(direction.getAxis(), x, y, z);
+            if (Math.abs(axis - boundary) > 0.0001F
+                    || !insideEndpoint(direction.getAxis(), x, y, z)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
+        float minimum = 5.0F / 16.0F - 0.0001F;
+        float maximum = 11.0F / 16.0F + 0.0001F;
+        return (axis == Direction.Axis.X || x >= minimum && x <= maximum)
+                && (axis == Direction.Axis.Y || y >= minimum && y <= maximum)
+                && (axis == Direction.Axis.Z || z >= minimum && z <= maximum);
+    }
+
+    private static float axisCoordinate(Direction.Axis axis, float x, float y, float z) {
+        return switch (axis) {
+            case X -> x;
+            case Y -> y;
+            case Z -> z;
+        };
     }
 
     private static BakedQuad rotateQuad(BakedQuad quad, Direction target) {
