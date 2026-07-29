@@ -5,26 +5,39 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.SimplePipeConnection;
+import com.skylogistics.util.SimplePipeModelData;
 import com.skylogistics.util.SimplePipeType;
 import com.skylogistics.util.TransferCompat;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.model.data.ModelData;
 
 public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
-    private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
-    private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
+    private static final String PIPE_SIDES_TAG = "PipeSides";
+    private static final String LEGACY_DISCONNECTED_SIDES_TAG = "DisconnectedSides";
+    private static final String LEGACY_REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
+    private static final int SIDE_MASK = 0x3F;
+    private static final int EXTRACT_SHIFT = 6;
+    private static final int REMEMBERED_SHIFT = 12;
     private UUID networkLineId;
     private int disconnectedSides;
+    private int extractSides;
     private int rememberedExtractSides;
 
     public SimplePipeBlockEntity(BlockPos pos, BlockState state) {
@@ -75,6 +88,25 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         return (disconnectedSides & sideMask(direction)) != 0;
     }
 
+    public boolean isExtracting(Direction direction) {
+        return (extractSides & sideMask(direction)) != 0;
+    }
+
+    public void setExtracting(Direction direction, boolean extracting) {
+        int mask = sideMask(direction);
+        int updated = extracting ? extractSides | mask : extractSides & ~mask;
+        if (updated == extractSides) {
+            return;
+        }
+        extractSides = updated;
+        setChanged();
+        requestModelDataUpdate();
+        if (level != null && !level.isClientSide()) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+        }
+    }
+
     public SimplePipeConnection rememberedContainerConnection(Direction direction) {
         return (rememberedExtractSides & sideMask(direction)) != 0
                 ? SimplePipeConnection.EXTRACT
@@ -91,10 +123,15 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
             } else {
                 rememberedExtractSides &= ~mask;
             }
+            extractSides &= ~mask;
         } else {
             disconnectedSides &= ~mask;
+            if (previousConnection == SimplePipeConnection.EXTRACT) {
+                extractSides |= mask;
+            }
         }
         setChanged();
+        requestModelDataUpdate();
     }
 
     private static int sideMask(Direction direction) {
@@ -202,15 +239,45 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     protected void saveAdditional(net.minecraft.world.level.storage.ValueOutput output) {
         super.saveAdditional(output);
-        output.putInt(DISCONNECTED_SIDES_TAG, disconnectedSides);
-        output.putInt(REMEMBERED_EXTRACT_SIDES_TAG, rememberedExtractSides);
+        int packed = (disconnectedSides & SIDE_MASK)
+                | ((extractSides & SIDE_MASK) << EXTRACT_SHIFT)
+                | ((rememberedExtractSides & SIDE_MASK) << REMEMBERED_SHIFT);
+        if (packed != 0) {
+            output.putInt(PIPE_SIDES_TAG, packed);
+        }
     }
 
     @Override
     protected void loadAdditional(net.minecraft.world.level.storage.ValueInput input) {
         super.loadAdditional(input);
-        disconnectedSides = input.getIntOr(DISCONNECTED_SIDES_TAG, 0);
-        rememberedExtractSides = input.getIntOr(REMEMBERED_EXTRACT_SIDES_TAG, 0);
+        if (input.getInt(PIPE_SIDES_TAG).isPresent()) {
+            int packed = input.getIntOr(PIPE_SIDES_TAG, 0);
+            disconnectedSides = packed & SIDE_MASK;
+            extractSides = (packed >>> EXTRACT_SHIFT) & SIDE_MASK;
+            rememberedExtractSides = (packed >>> REMEMBERED_SHIFT) & SIDE_MASK;
+        } else {
+            disconnectedSides = input.getIntOr(LEGACY_DISCONNECTED_SIDES_TAG, 0) & SIDE_MASK;
+            extractSides = 0;
+            rememberedExtractSides = input.getIntOr(LEGACY_REMEMBERED_EXTRACT_SIDES_TAG, 0) & SIDE_MASK;
+        }
+        requestModelDataUpdate();
+    }
+
+    @Override
+    public ModelData getModelData() {
+        return extractSides == 0
+                ? ModelData.EMPTY
+                : ModelData.of(SimplePipeModelData.EXTRACT_SIDES, extractSides);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return saveWithoutMetadata(registries);
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     private boolean enabled() {

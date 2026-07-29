@@ -5,16 +5,22 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.SimplePipeConnection;
+import com.skylogistics.util.SimplePipeModelData;
 import com.skylogistics.util.SimplePipeType;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.client.model.data.ModelData;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidStack;
@@ -22,10 +28,15 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
 public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
-    private static final String DISCONNECTED_SIDES_TAG = "DisconnectedSides";
-    private static final String REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
+    private static final String PIPE_SIDES_TAG = "PipeSides";
+    private static final String LEGACY_DISCONNECTED_SIDES_TAG = "DisconnectedSides";
+    private static final String LEGACY_REMEMBERED_EXTRACT_SIDES_TAG = "RememberedExtractSides";
+    private static final int SIDE_MASK = 0x3F;
+    private static final int EXTRACT_SHIFT = 6;
+    private static final int REMEMBERED_SHIFT = 12;
     private UUID networkLineId;
     private int disconnectedSides;
+    private int extractSides;
     private int rememberedExtractSides;
 
     public SimplePipeBlockEntity(BlockPos pos, BlockState state) {
@@ -62,6 +73,25 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         return (disconnectedSides & sideMask(direction)) != 0;
     }
 
+    public boolean isExtracting(Direction direction) {
+        return (extractSides & sideMask(direction)) != 0;
+    }
+
+    public void setExtracting(Direction direction, boolean extracting) {
+        int mask = sideMask(direction);
+        int updated = extracting ? extractSides | mask : extractSides & ~mask;
+        if (updated == extractSides) {
+            return;
+        }
+        extractSides = updated;
+        setChanged();
+        requestModelDataUpdate();
+        if (level != null && !level.isClientSide) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+        }
+    }
+
     public SimplePipeConnection rememberedContainerConnection(Direction direction) {
         return (rememberedExtractSides & sideMask(direction)) != 0
                 ? SimplePipeConnection.EXTRACT
@@ -78,10 +108,15 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
             } else {
                 rememberedExtractSides &= ~mask;
             }
+            extractSides &= ~mask;
         } else {
             disconnectedSides &= ~mask;
+            if (previousConnection == SimplePipeConnection.EXTRACT) {
+                extractSides |= mask;
+            }
         }
         setChanged();
+        requestModelDataUpdate();
     }
 
     private static int sideMask(Direction direction) {
@@ -189,15 +224,45 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        tag.putInt(DISCONNECTED_SIDES_TAG, disconnectedSides);
-        tag.putInt(REMEMBERED_EXTRACT_SIDES_TAG, rememberedExtractSides);
+        int packed = (disconnectedSides & SIDE_MASK)
+                | ((extractSides & SIDE_MASK) << EXTRACT_SHIFT)
+                | ((rememberedExtractSides & SIDE_MASK) << REMEMBERED_SHIFT);
+        if (packed != 0) {
+            tag.putInt(PIPE_SIDES_TAG, packed);
+        }
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        disconnectedSides = tag.getInt(DISCONNECTED_SIDES_TAG);
-        rememberedExtractSides = tag.getInt(REMEMBERED_EXTRACT_SIDES_TAG);
+        if (tag.contains(PIPE_SIDES_TAG)) {
+            int packed = tag.getInt(PIPE_SIDES_TAG);
+            disconnectedSides = packed & SIDE_MASK;
+            extractSides = (packed >>> EXTRACT_SHIFT) & SIDE_MASK;
+            rememberedExtractSides = (packed >>> REMEMBERED_SHIFT) & SIDE_MASK;
+        } else {
+            disconnectedSides = tag.getInt(LEGACY_DISCONNECTED_SIDES_TAG) & SIDE_MASK;
+            extractSides = 0;
+            rememberedExtractSides = tag.getInt(LEGACY_REMEMBERED_EXTRACT_SIDES_TAG) & SIDE_MASK;
+        }
+        requestModelDataUpdate();
+    }
+
+    @Override
+    public ModelData getModelData() {
+        return extractSides == 0
+                ? ModelData.EMPTY
+                : ModelData.builder().with(SimplePipeModelData.EXTRACT_SIDES, extractSides).build();
+    }
+
+    @Override
+    public CompoundTag getUpdateTag() {
+        return saveWithoutMetadata();
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     private boolean enabled() {

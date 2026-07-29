@@ -7,7 +7,6 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.InteractionResults;
 import com.skylogistics.util.SimplePipeConnection;
-import com.skylogistics.util.SimplePipeExtractSide;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
@@ -42,7 +41,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -57,8 +55,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
             Direction.SOUTH, BooleanProperty.create("connected_south"),
             Direction.WEST, BooleanProperty.create("connected_west"),
             Direction.EAST, BooleanProperty.create("connected_east"));
-    public static final EnumProperty<SimplePipeExtractSide> EXTRACT_SIDE =
-            EnumProperty.create("extract_side", SimplePipeExtractSide.class);
+    private static final ThreadLocal<PlacementExtraction> PLACEMENT_EXTRACTION = new ThreadLocal<>();
     private static final TagKey<Item> FORGE_WRENCHES = TagKey.create(Registries.ITEM,
             Identifier.fromNamespaceAndPath("forge", "tools/wrench"));
     private static final TagKey<Item> COMMON_WRENCHES = TagKey.create(Registries.ITEM,
@@ -77,7 +74,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         for (BooleanProperty property : CONNECTION_BY_DIRECTION.values()) {
             state = state.setValue(property, false);
         }
-        registerDefaultState(state.setValue(EXTRACT_SIDE, SimplePipeExtractSide.NONE));
+        registerDefaultState(state);
     }
 
     @Override
@@ -100,7 +97,11 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 context.getLevel(), context.getClickedPos());
         Direction placementTarget = context.getClickedFace().getOpposite();
         boolean extractTarget = context.getPlayer() != null && context.getPlayer().isShiftKeyDown();
-        SimplePipeExtractSide extractSide = SimplePipeExtractSide.NONE;
+        if (extractTarget) {
+            PLACEMENT_EXTRACTION.set(new PlacementExtraction(context.getClickedPos(), placementTarget));
+        } else {
+            PLACEMENT_EXTRACTION.remove();
+        }
         for (Direction direction : Direction.values()) {
             BlockState neighbor = context.getLevel().getBlockState(context.getClickedPos().relative(direction));
             SimplePipeConnection connection;
@@ -115,16 +116,20 @@ public class SimplePipeBlock extends BaseEntityBlock {
                                 : SimplePipeConnection.INSERT);
             }
             state = state.setValue(connectionProperty(direction), connection != SimplePipeConnection.NONE);
-            if (connection == SimplePipeConnection.EXTRACT) {
-                extractSide = SimplePipeExtractSide.of(direction);
-            }
         }
-        return state.setValue(EXTRACT_SIDE, extractSide);
+        return state;
     }
 
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
+        PlacementExtraction placementExtraction = PLACEMENT_EXTRACTION.get();
+        PLACEMENT_EXTRACTION.remove();
+        if (placementExtraction != null && placementExtraction.pos().equals(pos)
+                && level.getBlockEntity(pos) instanceof SimplePipeBlockEntity placedPipe
+                && state.getValue(connectionProperty(placementExtraction.direction()))) {
+            placedPipe.setExtracting(placementExtraction.direction(), true);
+        }
         if (level.isClientSide()) {
             return;
         }
@@ -171,8 +176,12 @@ public class SimplePipeBlock extends BaseEntityBlock {
         }
         SimplePipeConnection existing = connectionFromState(actualLevel, pos, state, direction);
         SimplePipeConnection containerDefault = existing.isContainer() ? existing : SimplePipeConnection.INSERT;
-        BlockState updated = withConnection(state, direction,
-                connectionAt(actualLevel, pos, direction, containerDefault));
+        SimplePipeConnection next = connectionAt(actualLevel, pos, direction, containerDefault);
+        if (!next.isContainer()
+                && actualLevel.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity) {
+            pipeEntity.setExtracting(direction, false);
+        }
+        BlockState updated = withConnection(state, direction, next);
         if (!updated.equals(state) && actualLevel instanceof ServerLevel serverLevel) {
             SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
         }
@@ -330,7 +339,10 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 ? SimplePipeConnection.INSERT
                 : SimplePipeConnection.EXTRACT;
         if (!level.isClientSide()) {
-            level.setBlock(pos, withConnection(state, direction, next), Block.UPDATE_ALL);
+            if (!(level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity)) {
+                return InteractionResult.PASS;
+            }
+            pipeEntity.setExtracting(direction, next == SimplePipeConnection.EXTRACT);
             if (level instanceof ServerLevel serverLevel) {
                 SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
             }
@@ -468,7 +480,6 @@ public class SimplePipeBlock extends BaseEntityBlock {
         for (BooleanProperty property : CONNECTION_BY_DIRECTION.values()) {
             builder.add(property);
         }
-        builder.add(EXTRACT_SIDE);
     }
 
     @Override
@@ -494,7 +505,8 @@ public class SimplePipeBlock extends BaseEntityBlock {
             if (!state.getValue(connectionProperty(direction))) {
                 continue;
             }
-            if (state.getValue(EXTRACT_SIDE).matches(direction)) {
+            if (level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity
+                    && pipeEntity.isExtracting(direction)) {
                 shape = Shapes.or(shape, EXTRACT_ARMS[direction.ordinal()]);
             } else {
                 shape = Shapes.or(shape, NORMAL_ARMS[direction.ordinal()]);
@@ -505,15 +517,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
 
     private static BlockState withConnection(BlockState state, Direction direction,
             SimplePipeConnection connection) {
-        BlockState updated = state.setValue(connectionProperty(direction), connection != SimplePipeConnection.NONE);
-        SimplePipeExtractSide extractSide = updated.getValue(EXTRACT_SIDE);
-        if (connection == SimplePipeConnection.EXTRACT) {
-            return updated.setValue(EXTRACT_SIDE, SimplePipeExtractSide.of(direction));
-        }
-        if (extractSide.matches(direction)) {
-            return updated.setValue(EXTRACT_SIDE, SimplePipeExtractSide.NONE);
-        }
-        return updated;
+        return state.setValue(connectionProperty(direction), connection != SimplePipeConnection.NONE);
     }
 
     public static SimplePipeConnection connectionFromState(Level level, BlockPos pos, BlockState state,
@@ -527,9 +531,13 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 && pipe.pipeType == self.pipeType) {
             return SimplePipeConnection.PIPE;
         }
-        return state.getValue(EXTRACT_SIDE).matches(direction)
+        return level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity
+                && pipeEntity.isExtracting(direction)
                 ? SimplePipeConnection.EXTRACT
                 : SimplePipeConnection.INSERT;
+    }
+
+    private record PlacementExtraction(BlockPos pos, Direction direction) {
     }
 
     @Override

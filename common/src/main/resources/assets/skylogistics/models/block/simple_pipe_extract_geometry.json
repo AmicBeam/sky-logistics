@@ -5,27 +5,51 @@
   },
   "elements": [
     {
-      "from": [5, 5, 2],
-      "to": [11, 11, 5],
+      "from": [4, 4, 0],
+      "to": [12, 5, 2],
       "faces": {
-        "down": {"uv": [0, 0, 16, 16], "texture": "#pipe", "rotation": 90},
-        "up": {"uv": [0, 0, 16, 16], "texture": "#pipe", "rotation": 90},
-        "north": {"uv": [0, 0, 16, 16], "texture": "#joint"},
-        "south": {"uv": [0, 0, 16, 16], "texture": "#joint"},
-        "west": {"uv": [0, 0, 16, 16], "texture": "#pipe"},
-        "east": {"uv": [0, 0, 16, 16], "texture": "#pipe"}
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#joint"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
       }
     },
     {
-      "from": [4, 4, 0],
+      "from": [4, 11, 0],
       "to": [12, 12, 2],
       "faces": {
-        "down": {"uv": [0, 0, 16, 16], "texture": "#pipe", "rotation": 90},
-        "up": {"uv": [0, 0, 16, 16], "texture": "#pipe", "rotation": 90},
-        "north": {"uv": [0, 0, 16, 16], "texture": "#joint"},
-        "south": {"uv": [0, 0, 16, 16], "texture": "#joint"},
-        "west": {"uv": [0, 0, 16, 16], "texture": "#pipe"},
-        "east": {"uv": [0, 0, 16, 16], "texture": "#pipe"}
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#joint"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
+      }
+    },
+    {
+      "from": [4, 5, 0],
+      "to": [5, 11, 2],
+      "faces": {
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#joint"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
+      }
+    },
+    {
+      "from": [11, 5, 0],
+      "to": [12, 11, 2],
+      "faces": {
+        "down": {"texture": "#pipe"},
+        "up": {"texture": "#pipe"},
+        "north": {"texture": "#joint"},
+        "south": {"texture": "#pipe"},
+        "west": {"texture": "#pipe"},
+        "east": {"texture": "#pipe"}
       }
     }
   ]
