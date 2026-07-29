@@ -66,6 +66,18 @@ public final class SkyLogisticsConfig {
         return SERVER.simpleEnergyPipeTransferRate.get();
     }
 
+    public static int simpleChemicalPipeTransferRate() {
+        return SERVER.simpleChemicalPipeTransferRate.get();
+    }
+
+    public static int simpleManaPipeTransferRate() {
+        return SERVER.simpleManaPipeTransferRate.get();
+    }
+
+    public static int simpleSourcePipeTransferRate() {
+        return SERVER.simpleSourcePipeTransferRate.get();
+    }
+
     public static int simplePipeMaxConnectedBlocks() {
         return SERVER.simplePipeMaxConnectedBlocks.get();
     }
@@ -235,6 +247,9 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleEnergyPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleChemicalPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleManaPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ForgeConfigSpec.IntValue simplePipeMaxConnectedBlocks;
 
         private Server(ForgeConfigSpec.Builder builder) {
@@ -275,6 +290,15 @@ public final class SkyLogisticsConfig {
             simpleEnergyPipeTransferRate = builder
                     .comment("Maximum FE moved by each extracting simple energy pipe per tick.")
                     .defineInRange("simpleEnergyPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+            simpleChemicalPipeTransferRate = builder
+                    .comment("Maximum Mekanism chemical amount moved by each extracting simple fluid pipe per tick.")
+                    .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleManaPipeTransferRate = builder
+                    .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleManaPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+            simpleSourcePipeTransferRate = builder
+                    .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);

@@ -221,6 +221,21 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     @Override
+    public long limitChemicalTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleChemicalPipeTransferRate());
+    }
+
+    @Override
+    public long limitManaTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleManaPipeTransferRate());
+    }
+
+    @Override
+    public long limitSourceTransfer(long amount) {
+        return Math.min(amount, SkyLogisticsConfig.simpleSourcePipeTransferRate());
+    }
+
+    @Override
     public boolean supportsChemicalEndpoint(Direction direction) {
         return enabled() && pipeType() == SimplePipeType.FLUID && level != null
                 && MekanismCompat.chemicalHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;

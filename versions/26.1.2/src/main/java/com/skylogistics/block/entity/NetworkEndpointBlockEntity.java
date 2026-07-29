@@ -72,6 +72,9 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public long limitItemTransfer(long amount) { return amount; }
     public long limitFluidTransfer(long amount) { return amount; }
     public long limitEnergyTransfer(long amount) { return amount; }
+    public long limitChemicalTransfer(long amount) { return amount; }
+    public long limitManaTransfer(long amount) { return amount; }
+    public long limitSourceTransfer(long amount) { return amount; }
     public boolean supportsChemicalEndpoint(Direction direction) { return false; }
     public boolean supportsManaEndpoint(Direction direction) { return false; }
     public boolean supportsSourceEndpoint(Direction direction) { return false; }

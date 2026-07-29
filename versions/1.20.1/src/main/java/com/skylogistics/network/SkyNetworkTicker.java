@@ -1810,7 +1810,7 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
-            long transferLimit = sourceNode.limitFluidTransfer(Long.MAX_VALUE);
+            long transferLimit = sourceNode.limitChemicalTransfer(Long.MAX_VALUE);
             ChemicalStackView simulated = source.extractChemical(tank, transferLimit, true);
             if (simulated.isEmpty()) {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
@@ -2140,7 +2140,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
-                sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
+                sourceEndpoint.node().limitManaTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
         int simulated = source.extractMana(transferLimit, true);
         int operations = 1;
         if (simulated <= 0) {
@@ -2325,7 +2325,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
-                sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
+                sourceEndpoint.node().limitSourceTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
         int simulated = source.extractSource(transferLimit, true);
         int operations = 1;
         if (simulated <= 0) {
