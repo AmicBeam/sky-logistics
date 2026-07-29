@@ -548,9 +548,13 @@ public class SimplePipeBlock extends BaseEntityBlock {
         VoxelShape[] result = new VoxelShape[Direction.values().length];
         for (Direction direction : Direction.values()) {
             if (extract) {
-                VoxelShape shape = orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 13.0D, 2.0D);
-                result[direction.ordinal()] = Shapes.or(shape,
-                        orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 4.0D));
+                VoxelShape shape = orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 4.0D);
+                shape = Shapes.or(shape,
+                        orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 5.0D, 2.0D),
+                        orientedBox(direction, 3.0D, 11.0D, 0.0D, 13.0D, 13.0D, 2.0D),
+                        orientedBox(direction, 3.0D, 5.0D, 0.0D, 5.0D, 11.0D, 2.0D),
+                        orientedBox(direction, 11.0D, 5.0D, 0.0D, 13.0D, 11.0D, 2.0D));
+                result[direction.ordinal()] = shape;
             } else {
                 result[direction.ordinal()] =
                         orientedBox(direction, 5.0D, 5.0D, 0.0D, 11.0D, 11.0D, 4.0D);
