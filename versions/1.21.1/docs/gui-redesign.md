@@ -45,9 +45,18 @@
 单屏落地图：
 
 - [配置器现有布局优化](gui-mockups/configurator-dashboard.png)
+- [配置器 AE2 / Mekanism 参考升级（GUI Scale 4）](gui-mockups/configurator-ae2-mek-upgrade-final-4x.png)
 - [物流节点现有布局优化](gui-mockups/node-face-config.png)
 - [过滤升级现有布局优化](gui-mockups/filter-upgrade-modes.png)
 - [库存终端现有布局优化](gui-mockups/vault-terminal.png)
+
+### AE2 / Mekanism 参考升级
+
+![Sky Configurator AE2 and Mekanism inspired upgrade](gui-mockups/configurator-ae2-mek-upgrade-final-4x.png)
+
+- 只从 AE2 借鉴紧凑网格与分区节奏，从 Mekanism 借鉴暗色内屏和模块化控件；颜色、图标仍来自天穹现有素材。
+- 顶部工具带、状态条、连接面主列表和右侧检查器严格覆盖当前功能，不加入搜索、保存、重置或新设置。
+- 无文字背景为 `384 x 244`，以最近邻放大到 `1536 x 976`；中文在同尺寸透明层单独渲染，避免 GUI Scale 4 下模糊。
 
 ## 调研结论
 
