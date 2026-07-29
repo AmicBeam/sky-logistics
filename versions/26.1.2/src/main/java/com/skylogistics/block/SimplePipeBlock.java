@@ -60,7 +60,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
             Identifier.fromNamespaceAndPath("forge", "tools/wrench"));
     private static final TagKey<Item> COMMON_WRENCHES = TagKey.create(Registries.ITEM,
             Identifier.fromNamespaceAndPath("c", "tools/wrench"));
-    private static final VoxelShape CORE = Block.box(5.0D, 5.0D, 5.0D, 11.0D, 11.0D, 11.0D);
+    private static final VoxelShape CORE = Block.box(4.0D, 4.0D, 4.0D, 12.0D, 12.0D, 12.0D);
     private static final VoxelShape[] NORMAL_ARMS = makeArmShapes(false);
     private static final VoxelShape[] EXTRACT_ARMS = makeArmShapes(true);
     private final SimplePipeType pipeType;
@@ -550,12 +550,12 @@ public class SimplePipeBlock extends BaseEntityBlock {
         VoxelShape[] result = new VoxelShape[Direction.values().length];
         for (Direction direction : Direction.values()) {
             if (extract) {
-                VoxelShape shape = orientedBox(direction, 4.0D, 4.0D, 0.0D, 12.0D, 12.0D, 2.0D);
+                VoxelShape shape = orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 13.0D, 2.0D);
                 result[direction.ordinal()] = Shapes.or(shape,
-                        orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 5.0D));
+                        orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 4.0D));
             } else {
                 result[direction.ordinal()] =
-                        orientedBox(direction, 5.0D, 5.0D, 0.0D, 11.0D, 11.0D, 5.0D);
+                        orientedBox(direction, 5.0D, 5.0D, 0.0D, 11.0D, 11.0D, 4.0D);
             }
         }
         return result;
