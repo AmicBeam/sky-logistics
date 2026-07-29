@@ -3,7 +3,7 @@ navigation:
   title: 祭坛与供奉
   icon: offering_altar
   parent: index.md
-  position: 1
+  position: 2
 item_ids:
   - skylogistics:offering_altar
   - skylogistics:offering_table

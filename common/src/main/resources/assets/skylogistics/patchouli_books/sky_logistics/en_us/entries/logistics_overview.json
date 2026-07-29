@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Sky Logistics is not a block-by-block pipe network. Players place Sky Logistics Nodes, and the server directly pairs extract faces with insert faces that share a line ID. Lines have no hidden buffer; if the target cannot accept resources, the source is not extracted first."
+      "text": "Sky Logistics Nodes provide wireless transport: the server directly pairs extract faces with insert faces that share a line ID. For a wired network laid out block by block, use the simple pipes introduced in the first chapter."
     },
     {
       "type": "patchouli:text",

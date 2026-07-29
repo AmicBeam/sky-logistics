@@ -9,7 +9,7 @@ item_ids:
 
 # Sky Logistics Manual
 
-Sky Logistics is not a block-by-block pipe network. Players place Sky Logistics Nodes, and the server directly pairs extract faces with insert faces that share a line ID. Lines have no hidden buffer; if the target cannot accept resources, the source is not extracted first.
+Sky Logistics supports both wired simple pipes and wireless logistics nodes. Simple pipes connect adjacent machines block by block, while nodes directly pair extract and insert faces that share a line ID. Neither system extracts resources first when the target cannot accept them.
 
 <ItemGrid>
   <ItemIcon id="configurator" />
@@ -25,6 +25,7 @@ Typical setup: create a line with the configurator, place one node beside a sour
 
 ## Topics
 
+- [Simple Pipes](simple_pipes.md): build wired item, fluid, and energy lines and configure endpoints with the Sky Wrench.
 - [Sky Offerings](offerings.md): charge crystals, build offering circles, and make Chora Nectar.
 - [Logistics Network](logistics.md): connect nodes, vaults, filters, and external networks.
 - [Tools and Upgrades](tools.md): configure lines, copy settings, and extend throughput or dimensions.
