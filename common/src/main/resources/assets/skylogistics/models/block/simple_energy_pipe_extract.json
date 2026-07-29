@@ -1,1 +1,1 @@
-{"parent":"skylogistics:block/simple_pipe_extract_geometry","textures":{"pipe":"skylogistics:block/simple_energy_pipe","extract":"skylogistics:block/simple_energy_pipe_extract","rim":"skylogistics:block/simple_pipe_extract_rim","rim_side":"skylogistics:block/simple_pipe_extract_rim_side"}}
+{"parent":"skylogistics:block/simple_pipe_extract_geometry","textures":{"pipe":"skylogistics:block/simple_energy_pipe","extract":"skylogistics:block/simple_energy_pipe_extract","rim":"skylogistics:block/simple_pipe_extract_rim","rim_side":"skylogistics:block/sky_node"}}
