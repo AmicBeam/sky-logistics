@@ -204,15 +204,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
-        return true;
+        return hasChemicalHandler(getTargetPos(direction), getAccessSide(direction));
     }
 
     public boolean supportsManaEndpoint(Direction direction) {
-        return true;
+        return hasManaHandler(getTargetPos(direction), getAccessSide(direction));
     }
 
     public boolean supportsSourceEndpoint(Direction direction) {
-        return true;
+        return hasSourceHandler(getTargetPos(direction), getAccessSide(direction));
     }
 
     public ItemStack getFilterList() {
@@ -1528,7 +1528,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (level != null) {
             if (level instanceof ServerLevel serverLevel) {
                 switch (changeKind) {
-                    case TOPOLOGY -> SkyNetworkRegistry.markTopologyDirty(serverLevel);
+                    case TOPOLOGY -> SkyNetworkRegistry.markTopologyDirty(serverLevel, worldPosition);
                     case PRIORITY -> SkyNetworkRegistry.markPriorityDirty(serverLevel, worldPosition);
                     case RUNTIME -> SkyNetworkRegistry.markRuntimeDirty(serverLevel, worldPosition);
                 }

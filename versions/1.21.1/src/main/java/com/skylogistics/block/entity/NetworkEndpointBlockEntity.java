@@ -72,9 +72,9 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public long limitItemTransfer(long amount) { return amount; }
     public long limitFluidTransfer(long amount) { return amount; }
     public long limitEnergyTransfer(long amount) { return amount; }
-    public boolean supportsChemicalEndpoint(Direction direction) { return true; }
-    public boolean supportsManaEndpoint(Direction direction) { return true; }
-    public boolean supportsSourceEndpoint(Direction direction) { return true; }
+    public boolean supportsChemicalEndpoint(Direction direction) { return false; }
+    public boolean supportsManaEndpoint(Direction direction) { return false; }
+    public boolean supportsSourceEndpoint(Direction direction) { return false; }
 
     public int nextItemStart(int slots) {
         if (slots <= 0) return 0;

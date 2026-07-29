@@ -55,6 +55,7 @@ public final class SkyNetworkTicker {
         int serverOpsPerTick = SkyLogisticsConfig.serverOpsPerTick();
         int lineOpsPerTick = SkyLogisticsConfig.lineOpsPerTick();
         int operations = 0;
+        int endpointVisits = 0;
         ReadyLines lines = SkyNetworkRegistry.readyLines(server, gameTime);
         for (int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
             LineIndex line = lines.get(lineIndex);
@@ -67,12 +68,27 @@ public final class SkyNetworkTicker {
             List<CachedEndpoint> globalFluidOutputs = null;
             List<CachedEndpoint> globalChemicalOutputs = null;
             List<CachedEndpoint> globalEnergyOutputs = null;
+            List<CachedEndpoint> globalManaOutputs = null;
+            List<CachedEndpoint> globalSourceOutputs = null;
             boolean lineBudgetExhausted = false;
+            boolean endpointVisitBudgetExhausted = false;
+            int lineEndpointVisits = 0;
             int inputCount = line.inputCount();
             for (int inputIndex = 0; inputIndex < inputCount; inputIndex++) {
+                if (endpointVisits >= serverOpsPerTick) {
+                    line.advanceInputCursor(lineEndpointVisits);
+                    return;
+                }
+                if (lineEndpointVisits >= lineOpsPerTick) {
+                    endpointVisitBudgetExhausted = true;
+                    lineBudgetExhausted = true;
+                    break;
+                }
                 CachedEndpoint input = line.inputAt(inputIndex);
+                endpointVisits++;
+                lineEndpointVisits++;
                 if (operations >= serverOpsPerTick) {
-                    line.advanceInputCursor();
+                    line.advanceInputCursor(lineEndpointVisits);
                     return;
                 }
                 int lineOperations = operations - lineOperationsBefore;
@@ -105,7 +121,7 @@ public final class SkyNetworkTicker {
                     }
                 }
                 if (operations >= serverOpsPerTick) {
-                    line.advanceInputCursor();
+                    line.advanceInputCursor(lineEndpointVisits);
                     return;
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -127,7 +143,7 @@ public final class SkyNetworkTicker {
                     }
                 }
                 if (operations >= serverOpsPerTick) {
-                    line.advanceInputCursor();
+                    line.advanceInputCursor(lineEndpointVisits);
                     return;
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -137,6 +153,7 @@ public final class SkyNetworkTicker {
                 }
                 if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && node.isFluidsEnabled(input.direction())
+                        && input.supportsChemical()
                         && input.canTryChemicals(gameTime)) {
                     if (dimensionUpgrade && globalChemicalOutputs == null) {
                         globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
@@ -151,7 +168,7 @@ public final class SkyNetworkTicker {
                     }
                 }
                 if (operations >= serverOpsPerTick) {
-                    line.advanceInputCursor();
+                    line.advanceInputCursor(lineEndpointVisits);
                     return;
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -159,45 +176,60 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction())
-                        && (input.canTryEnergy(gameTime)
-                        || (canTransferMana() && input.canTryMana(gameTime))
-                        || (canTransferSource() && input.canTrySource(gameTime)))) {
+                if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
                     }
                     List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityEnergyOutputs(),
                             globalEnergyOutputs);
                     if (targets.isEmpty()) {
-                        if (input.canTryEnergy(gameTime)) {
-                            input.recordEnergyFailure(gameTime);
-                        }
-                        if (canTransferMana() && input.canTryMana(gameTime)) {
-                            input.recordManaFailure(gameTime);
-                        }
-                        if (canTransferSource() && input.canTrySource(gameTime)) {
-                            input.recordSourceFailure(gameTime);
-                        }
+                        input.recordEnergyFailure(gameTime);
                     } else {
-                        int resourceBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
-                        if (input.canTryEnergy(gameTime)) {
-                            int used = transferEnergy(input, targets, resourceBudget, gameTime);
-                            operations += used;
-                            resourceBudget -= used;
-                        }
-                        if (canTransferMana() && resourceBudget > 0 && input.canTryMana(gameTime)) {
-                            int used = transferMana(input, targets, resourceBudget, gameTime);
-                            operations += used;
-                            resourceBudget -= used;
-                        }
-                        if (canTransferSource() && resourceBudget > 0 && input.canTrySource(gameTime)) {
-                            operations += transferSource(input, targets, resourceBudget, gameTime);
-                        }
+                        operations += transferEnergy(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
+                }
+                remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
+                if (remainingLineBudget <= 0) {
+                    lineBudgetExhausted = true;
+                    break;
+                }
+                if (node.isEnergyEnabled(input.direction()) && input.supportsMana()
+                        && canTransferMana() && input.canTryMana(gameTime)) {
+                    if (dimensionUpgrade && globalManaOutputs == null) {
+                        globalManaOutputs = SkyNetworkRegistry.globalManaOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.priorityManaOutputs(),
+                            globalManaOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordManaFailure(gameTime);
+                    } else {
+                        operations += transferMana(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
+                }
+                remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
+                if (remainingLineBudget <= 0) {
+                    lineBudgetExhausted = true;
+                    break;
+                }
+                if (node.isEnergyEnabled(input.direction()) && input.supportsSource()
+                        && canTransferSource() && input.canTrySource(gameTime)) {
+                    if (dimensionUpgrade && globalSourceOutputs == null) {
+                        globalSourceOutputs = SkyNetworkRegistry.globalSourceOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.prioritySourceOutputs(),
+                            globalSourceOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordSourceFailure(gameTime);
+                    } else {
+                        operations += transferSource(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake);
             }
-            line.advanceInputCursor();
+            line.advanceInputCursor(endpointVisitBudgetExhausted ? lineEndpointVisits : 1);
             if (operations > lineOperationsBefore) {
                 line.wakeNow();
             } else if (lineBudgetExhausted) {
@@ -231,16 +263,17 @@ public final class SkyNetworkTicker {
         }
         if (node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
+            if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+                    && input.supportsChemical()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
         if (node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
-            if (canTransferMana()) {
+            if (canTransferMana() && input.supportsMana()) {
                 nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
             }
-            if (canTransferSource()) {
+            if (canTransferSource() && input.supportsSource()) {
                 nextWake = Math.min(nextWake, input.nextSourceWake(gameTime));
             }
         }
@@ -1777,7 +1810,8 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
-            ChemicalStackView simulated = source.extractChemical(tank, Long.MAX_VALUE, true);
+            long transferLimit = sourceNode.limitFluidTransfer(Long.MAX_VALUE);
+            ChemicalStackView simulated = source.extractChemical(tank, transferLimit, true);
             if (simulated.isEmpty()) {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
@@ -2105,7 +2139,9 @@ public final class SkyNetworkTicker {
         if (source == null) {
             return 0;
         }
-        int simulated = source.extractMana(SkyLogisticsConfig.nodeEnergyTransferLimit(), true);
+        int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
+        int simulated = source.extractMana(transferLimit, true);
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordManaFailure(gameTime);
@@ -2288,7 +2324,9 @@ public final class SkyNetworkTicker {
         if (source == null) {
             return 0;
         }
-        int simulated = source.extractSource(SkyLogisticsConfig.nodeEnergyTransferLimit(), true);
+        int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
+        int simulated = source.extractSource(transferLimit, true);
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordSourceFailure(gameTime);

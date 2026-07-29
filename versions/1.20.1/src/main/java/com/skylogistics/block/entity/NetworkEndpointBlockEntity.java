@@ -141,15 +141,15 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
-        return true;
+        return false;
     }
 
     public boolean supportsManaEndpoint(Direction direction) {
-        return true;
+        return false;
     }
 
     public boolean supportsSourceEndpoint(Direction direction) {
-        return true;
+        return false;
     }
 
     public int nextItemStart(int slots) {

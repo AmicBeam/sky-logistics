@@ -1,6 +1,9 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
@@ -54,10 +57,19 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
             case ITEM -> target.getCapability(ForgeCapabilities.ITEM_HANDLER, side)
                     .map(handler -> handler.getSlots() > 0).orElse(false);
             case FLUID -> target.getCapability(ForgeCapabilities.FLUID_HANDLER, side)
-                    .map(handler -> handler.getTanks() > 0).orElse(false);
+                    .map(handler -> handler.getTanks() > 0).orElse(false)
+                    || SkyLogisticsConfig.allowFluidChemicalTransfer()
+                    && MekanismCompat.isLoaded()
+                    && MekanismCompat.chemicalHandler(level, pos, side) != null;
             case ENERGY -> target.getCapability(ForgeCapabilities.ENERGY, side)
                     .map(storage -> storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive())
-                    .orElse(false);
+                    .orElse(false)
+                    || SkyLogisticsConfig.allowEnergyManaTransfer()
+                    && BotaniaCompat.isLoaded()
+                    && BotaniaCompat.manaHandler(level, pos, side) != null
+                    || SkyLogisticsConfig.allowEnergySourceTransfer()
+                    && ArsNouveauCompat.isLoaded()
+                    && ArsNouveauCompat.sourceHandler(level, pos, side) != null;
         };
     }
 
@@ -208,17 +220,20 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
 
     @Override
     public boolean supportsChemicalEndpoint(Direction direction) {
-        return false;
+        return enabled() && pipeType() == SimplePipeType.FLUID && level != null
+                && MekanismCompat.chemicalHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
     public boolean supportsManaEndpoint(Direction direction) {
-        return false;
+        return enabled() && pipeType() == SimplePipeType.ENERGY && level != null
+                && BotaniaCompat.manaHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
     public boolean supportsSourceEndpoint(Direction direction) {
-        return false;
+        return enabled() && pipeType() == SimplePipeType.ENERGY && level != null
+                && ArsNouveauCompat.sourceHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
