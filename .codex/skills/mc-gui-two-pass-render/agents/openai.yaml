@@ -1,0 +1,4 @@
+interface:
+  display_name: "Minecraft GUI Two-Pass Renderer"
+  short_description: "Render and validate pixel-perfect Minecraft GUI mockups"
+  default_prompt: "Use $mc-gui-two-pass-render to create a Minecraft GUI mockup with 4x geometry and framebuffer-rendered text."
