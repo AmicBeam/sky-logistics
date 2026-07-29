@@ -29,10 +29,21 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
   - The node GUI owns transfer rate, a filter-list slot and the player inventory below it.
   - The model is smaller than a full block and shows a larger connector ring in extract mode.
   - Server tick dispatcher transfers items, fluids and energy wirelessly between matching extract/insert faces on the same line.
-  - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
+  - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Botania mana and Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
   - A dimension upgrade on an extract node lets it send to matching insert faces on the same line in other dimensions.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.
+
+- `Simple Celestial Pipes and Sky Wrench` / `天穹简易管道与天穹扳手`
+  - Item, fluid and energy pipes are separate blocks with their own blue/orange, blue/deep-blue and blue/red models.
+  - Placement inherits the logistics node controls: normal placement prefers insert mode and sneak placement prefers extract mode.
+  - Pipes automatically connect to compatible adjacent containers and neighboring pipes of the same type. Connected pipes form a bounded local line.
+  - Use any item in the wrench tag, including the Sky Wrench, on a machine-facing endpoint to switch between insert and extract. Sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use a wider model.
+  - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
+  - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
+  - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
+  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 1,024; a connection that would exceed it stays disconnected.
+  - Their recipes do not require Sky Crystals.
 
 - `Starlit Nectar` / `星辉甘露`
   - Core sky material, no longer only a capacity item.
@@ -98,7 +109,7 @@ env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/j
   ./gradlew --no-daemon build
 ```
 
-The verified output jar is `build/libs/skylogistics-0.2.0+1.21.1.jar`.
+The verified output jar is `build/libs/skylogistics-0.3.0+1.21.1.jar`.
 
 This branch uses NeoForge ModDev, Java 21 toolchains, Parchment `1.21-2024.11.10`, and NeoForge `21.1.169`. Runtime metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml`.
 

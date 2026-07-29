@@ -2,11 +2,12 @@
 
 **Read this in other languages: [简体中文](README_CN.md)**
 
-Celestial wireless logistics for Minecraft. Sky Logistics moves items, fluids, and energy through named wireless lines, adds large aggregate vaults, and provides sky-themed tools for configuring networks, filters, portable transfer, and high-altitude offering recipes.
+Celestial logistics for Minecraft. Sky Logistics moves items, fluids, energy, and supported third-party resources through named wireless lines or lightweight local pipe runs, adds large aggregate vaults, and provides sky-themed tools for configuring networks, filters, portable transfer, and high-altitude offering recipes.
 
 ## Features
 
 - **Wireless by design**: connect machines, vaults, and interfaces through named logistics lines instead of pipe runs. Items, fluids, and energy use the same line model, with optional cross-dimensional transfer.
+- **Simple local pipes**: item, fluid, and energy pipes automatically connect to nearby compatible containers. Connected pipes form bounded local lines and use the same transfer engine as logistics nodes without adding GUIs or hidden buffers.
 - **High throughput**: normal nodes process 1 stack/t and speed upgrades raise that to 2 stacks/t. Item and energy transfers use a 2.1B-class default per-operation cap, while direct Sky Logistics vault-to-vault transfers use a 9e18-class default cap.
 - **Server-friendly performance**: transfer work is scheduled with operation budgets, ready-line queues, hot slot tracking, capability caches, and endpoint backoff so large networks stay responsive without constantly scanning the world.
 - **Fast placement and setup**: node placement switches mode based on sneaking, and the Sky Configurator handles line management, copy/paste configuration, and offhand placement presets.
@@ -41,6 +42,11 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
   - AE2 19+ (optional)
   - Refined Storage 2+ (optional)
   - Beyond Dimensions 0.7.6+ (optional)
+- **NeoForge (Minecraft 26.1.2)**: use `versions/26.1.2`
+  - Minecraft 26.1.2
+  - NeoForge 26.1.2.71+
+  - Java 25
+  - Jade, JEI, Mekanism, Botania, Ars Nouveau, AE2, Refined Storage, and Beyond Dimensions integrations are optional and enabled only when compatible APIs are present
 
 ## Installation
 
@@ -54,25 +60,29 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 2. Build a Sky Offering Altar setup with Offering Tables to make Chora Nectar and other offering-based components
 3. Place Celestial Item Vaults or Celestial Fluid Vaults as aggregate storage endpoints
 4. Place Sky Logistics Nodes against machines, vaults, or interfaces; normal placement creates insert mode, sneak placement creates extract mode
-5. Use the Sky Configurator to create/select lines, rename them, copy node settings, paste settings, and preset newly placed nodes from the offhand
-6. Add Sky Filter Lists, Speed Upgrades, and Dimension Upgrades to nodes when needed
-7. Use a Sky Necklace with a whitelist filter list for portable extraction/insertion between player inventory and a logistics line
+5. For short local routes, place Simple Item, Fluid, or Energy Pipes. They inherit the node placement controls, automatically connect to compatible adjacent containers, and join neighboring pipes of the same type.
+6. Right-click a machine-facing endpoint with the Sky Wrench to switch between insert and extract; sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use the wider connector model.
+7. Use the Sky Configurator to create/select lines, rename them, copy node settings, paste settings, and preset newly placed nodes from the offhand
+8. Add Sky Filter Lists, Speed Upgrades, and Dimension Upgrades to nodes when needed
+9. Use a Sky Necklace with a whitelist filter list for portable extraction/insertion between player inventory and a logistics line
 
 ## Notes
 
-- Sky Logistics is not a block-by-block pipe network. It directly pairs loaded extract faces with loaded insert faces on the same line.
+- Wireless logistics nodes directly pair loaded extract faces with loaded insert faces on the same named line. Simple pipes provide a separate block-by-block local option and form bounded lines only with adjacent pipes of the same type.
 - Lines have no hidden item/fluid/energy buffer. If a target cannot accept a resource, the source is not extracted first.
+- Simple pipes have no GUI and are always active when enabled. Their local lines reuse the logistics-node transfer engine with additional per-resource rate limits.
 - Mekanism chemicals use fluid-enabled faces. Botania mana and Ars Nouveau Source use energy-enabled faces, but they are moved only to matching resource handlers and are not converted to FE.
 - Line ids are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks.
 - Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
+- Simple pipe limits are configurable independently through `simpleItemPipeTransferRate`, `simpleFluidPipeTransferRate`, `simpleEnergyPipeTransferRate`, `simpleChemicalPipeTransferRate`, `simpleManaPipeTransferRate`, and `simpleSourcePipeTransferRate`. `simplePipeMaxConnectedBlocks` controls the maximum size of one connected pipe line.
 - Patchouli support is data-only and appears when Patchouli is installed.
 - Optional mod integrations are enabled only when the matching mod and compatible version/API are present.
 
 ## Build
 
-Build both versions from the repository root:
+Build all three supported versions from the repository root:
 
 ```bash
 ./scripts/build_all_versions.sh
@@ -85,6 +95,9 @@ cd versions/1.21.1
 ./gradlew --no-daemon clean build
 
 cd ../1.20.1
+./gradlew --no-daemon clean build
+
+cd ../26.1.2
 ./gradlew --no-daemon clean build
 ```
 

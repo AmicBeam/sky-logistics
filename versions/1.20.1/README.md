@@ -34,6 +34,17 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.
 
+- `Simple Celestial Pipes and Sky Wrench` / `天穹简易管道与天穹扳手`
+  - Item, fluid and energy pipes are separate blocks with their own blue/orange, blue/deep-blue and blue/red models.
+  - Placement inherits the logistics node controls: normal placement prefers insert mode and sneak placement prefers extract mode.
+  - Pipes automatically connect to compatible adjacent containers and neighboring pipes of the same type. Connected pipes form a bounded local line.
+  - Use any item in the wrench tag, including the Sky Wrench, on a machine-facing endpoint to switch between insert and extract. Sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use a wider model.
+  - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
+  - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
+  - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
+  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 1,024; a connection that would exceed it stays disconnected.
+  - Their recipes do not require Sky Crystals.
+
 - `Starlit Nectar` / `星辉甘露`
   - Core sky material, no longer only a capacity item.
   - Right-click a Celestial Item Vault or Fluid Vault to increase its type limit by 1.
@@ -101,7 +112,7 @@ env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-17-aarch64-os_x/jdk
   clean build
 ```
 
-`javac` source compilation passes against the local Forge mapped jar. Full Gradle build also passes with `--offline` when `skylogistics.offlineRepo` points at a local Maven-style repository containing cached Forge dependency jars. The produced public test jar is `build/libs/skylogistics-0.2.0+1.20.1.jar`.
+`javac` source compilation passes against the local Forge mapped jar. Full Gradle build also passes with `--offline` when `skylogistics.offlineRepo` points at a local Maven-style repository containing cached Forge dependency jars. The produced public test jar is `build/libs/skylogistics-0.3.0+1.20.1.jar`.
 
 Jade support is optional and lives under `src/jade/java`. To include it in a local build, provide a real Jade 1.20.1 11.x API/mod jar with `-Dskylogistics.jadeApiJar=/path/to/Jade-1.20.1-Forge-11.x.x.jar`. Do not use the old minimal `/private/tmp/jade-api.jar` stub: it lacks `snownee.jade.api.Accessor`, compiles an incompatible `IServerDataProvider` bridge, and causes Jade data requests to fail at runtime.
 
