@@ -26,7 +26,9 @@ Simple pipes provide a wired alternative to wireless logistics nodes. Item, flui
 
 Place normally to make the container on the clicked side an insert endpoint. Sneak-place to make that side extract instead. Other usable adjacent containers are connected automatically in insert mode.
 
-Right-click a machine endpoint with the Sky Wrench to switch it between extract and insert. An extract endpoint is shown with a wider collar. Sneak-right-click a pipe connection to disconnect or reconnect that side.
+Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to use the common dismantle behavior and return its drops to your inventory.
+
+Right-click a machine-facing endpoint with the Sky Configurator to switch it between extract and insert without opening the configurator screen. An extract endpoint is shown with a wider collar.
 
 ## Default Throughput
 

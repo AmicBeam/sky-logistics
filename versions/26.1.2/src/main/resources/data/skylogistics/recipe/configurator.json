@@ -8,7 +8,7 @@
   "key": {
     "A": "minecraft:amethyst_shard",
     "S": "minecraft:stick",
-    "C": "skylogistics:celestial_stone"
+    "C": "minecraft:glass"
   },
   "result": {
     "id": "skylogistics:configurator"

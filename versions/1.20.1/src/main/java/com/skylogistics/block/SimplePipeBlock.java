@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
@@ -317,19 +318,26 @@ public class SimplePipeBlock extends BaseEntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
         ItemStack held = player.getItemInHand(hand);
-        if (!held.is(FORGE_WRENCHES) && !held.is(COMMON_WRENCHES)) {
+        boolean wrench = held.is(FORGE_WRENCHES) || held.is(COMMON_WRENCHES);
+        if (wrench && player.isShiftKeyDown()) {
             return InteractionResult.PASS;
         }
-        boolean toggleConnection = player.isShiftKeyDown();
-        Direction direction = targetedDirection(state, level, pos, hit, toggleConnection);
-        if (direction == null) {
-            return InteractionResult.PASS;
-        }
-        if (toggleConnection) {
+        if (wrench) {
+            Direction direction = targetedDirection(state, level, pos, hit, true);
+            if (direction == null) {
+                return InteractionResult.PASS;
+            }
             if (!level.isClientSide && !toggleDisconnected(level, pos, state, direction, player)) {
                 return InteractionResult.PASS;
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        if (!held.is(ModItems.CONFIGURATOR.get())) {
+            return InteractionResult.PASS;
+        }
+        Direction direction = targetedDirection(state, level, pos, hit, false);
+        if (direction == null) {
+            return InteractionResult.PASS;
         }
         SimplePipeConnection current = connectionFromState(level, pos, state, direction);
         if (!current.isContainer()) {

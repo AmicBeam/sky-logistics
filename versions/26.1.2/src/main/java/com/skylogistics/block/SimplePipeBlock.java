@@ -5,6 +5,7 @@ import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.InteractionResults;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
@@ -317,19 +318,26 @@ public class SimplePipeBlock extends BaseEntityBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!stack.is(FORGE_WRENCHES) && !stack.is(COMMON_WRENCHES)) {
+        boolean wrench = stack.is(FORGE_WRENCHES) || stack.is(COMMON_WRENCHES);
+        if (wrench && player.isShiftKeyDown()) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
-        boolean toggleConnection = player.isShiftKeyDown();
-        Direction direction = targetedDirection(state, level, pos, hit, toggleConnection);
-        if (direction == null) {
-            return InteractionResult.PASS;
-        }
-        if (toggleConnection) {
+        if (wrench) {
+            Direction direction = targetedDirection(state, level, pos, hit, true);
+            if (direction == null) {
+                return InteractionResult.PASS;
+            }
             if (!level.isClientSide() && !toggleDisconnected(level, pos, state, direction, player)) {
                 return InteractionResult.PASS;
             }
             return InteractionResults.sidedSuccess(level.isClientSide());
+        }
+        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
+        Direction direction = targetedDirection(state, level, pos, hit, false);
+        if (direction == null) {
+            return InteractionResult.PASS;
         }
         SimplePipeConnection current = connectionFromState(level, pos, state, direction);
         if (!current.isContainer()) {

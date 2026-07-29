@@ -30,7 +30,11 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_wrench",
-      "text": "Right-click a machine endpoint with the Sky Wrench to switch between extract and insert. Extract endpoints use a wider collar. Sneak-right-click a pipe connection to disconnect or reconnect that side."
+      "text": "Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to use the common dismantle behavior and return its drops to your inventory."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Right-click a machine-facing endpoint with the Sky Configurator to switch it between extract and insert without opening the configurator screen. Extract endpoints use a wider collar."
     },
     {
       "type": "patchouli:text",

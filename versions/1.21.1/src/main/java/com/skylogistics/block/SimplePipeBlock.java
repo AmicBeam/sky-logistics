@@ -5,6 +5,7 @@ import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
@@ -315,19 +316,26 @@ public class SimplePipeBlock extends BaseEntityBlock {
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!stack.is(FORGE_WRENCHES) && !stack.is(COMMON_WRENCHES)) {
+        boolean wrench = stack.is(FORGE_WRENCHES) || stack.is(COMMON_WRENCHES);
+        if (wrench && player.isShiftKeyDown()) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-        boolean toggleConnection = player.isShiftKeyDown();
-        Direction direction = targetedDirection(state, level, pos, hit, toggleConnection);
-        if (direction == null) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        }
-        if (toggleConnection) {
+        if (wrench) {
+            Direction direction = targetedDirection(state, level, pos, hit, true);
+            if (direction == null) {
+                return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            }
             if (!level.isClientSide && !toggleDisconnected(level, pos, state, direction, player)) {
                 return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
             }
             return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
+        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        Direction direction = targetedDirection(state, level, pos, hit, false);
+        if (direction == null) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
         SimplePipeConnection current = connectionFromState(level, pos, state, direction);
         if (!current.isContainer()) {
