@@ -22,7 +22,7 @@
     },
     {
       "ingredient": {
-        "item": "refinedstorage:fluid_interface"
+        "tag": "refinedstorage:disk_interfaces"
       }
     },
     {

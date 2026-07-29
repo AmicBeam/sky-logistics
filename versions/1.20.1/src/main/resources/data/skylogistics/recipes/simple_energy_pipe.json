@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["GAG", "LRL", "GAG"],
+  "key": {
+    "G": {"item": "minecraft:glass"},
+    "A": {"item": "minecraft:amethyst_shard"},
+    "L": {"item": "minecraft:lapis_lazuli"},
+    "R": {"item": "minecraft:redstone_block"}
+  },
+  "result": {"item": "skylogistics:simple_energy_pipe", "count": 8}
+}

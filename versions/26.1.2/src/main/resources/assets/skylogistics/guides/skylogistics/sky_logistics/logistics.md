@@ -3,7 +3,7 @@ navigation:
   title: Logistics
   icon: sky_node
   parent: index.md
-  position: 2
+  position: 3
 item_ids:
   - skylogistics:sky_node
   - skylogistics:item_vault
@@ -15,7 +15,7 @@ item_ids:
 
 # Logistics Network
 
-Nodes do not create pipes. The server pairs extract faces with insert faces that share a line id, then moves only what the target can accept. Failed targets do not consume resources first.
+Logistics nodes provide wireless transport. The server pairs extract faces with insert faces that share a line id, then moves only what the target can accept. Failed targets do not consume resources first. For a block-by-block wired network, see [Simple Pipes](simple_pipes.md).
 
 Read more:
 

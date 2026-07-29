@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["L L", " A ", " G "],
+  "key": {
+    "A": {"item": "minecraft:amethyst_shard"},
+    "G": {"item": "minecraft:glass"},
+    "L": {"item": "minecraft:lapis_lazuli"}
+  },
+  "result": {"item": "skylogistics:sky_wrench"}
+}

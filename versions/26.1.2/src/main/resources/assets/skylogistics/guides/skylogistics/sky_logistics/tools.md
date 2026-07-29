@@ -3,7 +3,7 @@ navigation:
   title: Tools and Upgrades
   icon: configurator
   parent: index.md
-  position: 3
+  position: 4
 item_ids:
   - skylogistics:configurator
   - skylogistics:filter_list

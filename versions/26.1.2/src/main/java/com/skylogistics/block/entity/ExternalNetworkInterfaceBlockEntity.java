@@ -99,6 +99,21 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     @Override
+    public boolean supportsChemicalEndpoint(Direction direction) {
+        return getEndpointChemicalHandler(direction, 0L) != null;
+    }
+
+    @Override
+    public boolean supportsManaEndpoint(Direction direction) {
+        return getEndpointManaHandler(direction, 0L) != null;
+    }
+
+    @Override
+    public boolean supportsSourceEndpoint(Direction direction) {
+        return getEndpointSourceHandler(direction, 0L) != null;
+    }
+
+    @Override
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
         if (direction == ENDPOINT_DIRECTION) {
             super.setFaceMode(direction, faceMode);

@@ -1,0 +1,6 @@
+{
+  "name": "Simple Pipes",
+  "description": "Connect adjacent machines with item, fluid, and energy pipes, then configure endpoints with the Sky Wrench.",
+  "icon": "skylogistics:simple_item_pipe",
+  "sortnum": 0
+}

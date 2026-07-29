@@ -9,6 +9,7 @@ import com.skylogistics.block.entity.SkyDimensionInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
+import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -27,6 +28,12 @@ public final class ModBlockEntities {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyNodeBlockEntity>> SKY_NODE = BLOCK_ENTITIES.register("sky_node",
             () -> new BlockEntityType<>(SkyNodeBlockEntity::new, java.util.Set.of(ModBlocks.SKY_NODE.get())));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SimplePipeBlockEntity>> SIMPLE_PIPE =
+            BLOCK_ENTITIES.register("simple_pipe",
+                    () -> new BlockEntityType<>(SimplePipeBlockEntity::new,
+                            java.util.Set.of(ModBlocks.SIMPLE_ITEM_PIPE.get(), ModBlocks.SIMPLE_FLUID_PIPE.get(),
+                                    ModBlocks.SIMPLE_ENERGY_PIPE.get())));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SkyMEInterfaceBlockEntity>> SKY_ME_INTERFACE =
             BLOCK_ENTITIES.register("sky_me_interface",

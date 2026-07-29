@@ -42,6 +42,46 @@ public final class SkyLogisticsConfig {
         return SERVER.nodeEnergyTransferLimit.get();
     }
 
+    public static boolean enableSimpleItemPipe() {
+        return SERVER.enableSimpleItemPipe.get();
+    }
+
+    public static boolean enableSimpleFluidPipe() {
+        return SERVER.enableSimpleFluidPipe.get();
+    }
+
+    public static boolean enableSimpleEnergyPipe() {
+        return SERVER.enableSimpleEnergyPipe.get();
+    }
+
+    public static int simpleItemPipeTransferRate() {
+        return SERVER.simpleItemPipeTransferRate.get();
+    }
+
+    public static int simpleFluidPipeTransferRate() {
+        return SERVER.simpleFluidPipeTransferRate.get();
+    }
+
+    public static int simpleEnergyPipeTransferRate() {
+        return SERVER.simpleEnergyPipeTransferRate.get();
+    }
+
+    public static int simpleChemicalPipeTransferRate() {
+        return SERVER.simpleChemicalPipeTransferRate.get();
+    }
+
+    public static int simpleManaPipeTransferRate() {
+        return SERVER.simpleManaPipeTransferRate.get();
+    }
+
+    public static int simpleSourcePipeTransferRate() {
+        return SERVER.simpleSourcePipeTransferRate.get();
+    }
+
+    public static int simplePipeMaxConnectedBlocks() {
+        return SERVER.simplePipeMaxConnectedBlocks.get();
+    }
+
     public static int serverOpsPerTick() {
         return SERVER.serverOpsPerTick.get();
     }
@@ -201,6 +241,16 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue allowBeyondDimensionsSourceTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2AppliedBotanicsManaTransfer;
         public final ForgeConfigSpec.BooleanValue allowAe2ArsEnergistiqueSourceTransfer;
+        public final ForgeConfigSpec.BooleanValue enableSimpleItemPipe;
+        public final ForgeConfigSpec.BooleanValue enableSimpleFluidPipe;
+        public final ForgeConfigSpec.BooleanValue enableSimpleEnergyPipe;
+        public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleEnergyPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleChemicalPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleManaPipeTransferRate;
+        public final ForgeConfigSpec.IntValue simpleSourcePipeTransferRate;
+        public final ForgeConfigSpec.IntValue simplePipeMaxConnectedBlocks;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -222,6 +272,36 @@ public final class SkyLogisticsConfig {
             nodeEnergyTransferLimit = builder
                     .comment("Maximum energy moved by a logistics node per energy transfer operation.")
                     .defineInRange("nodeEnergyTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
+            enableSimpleItemPipe = builder
+                    .comment("Whether simple item pipes connect to inventories and transfer items.")
+                    .define("enableSimpleItemPipe", true);
+            enableSimpleFluidPipe = builder
+                    .comment("Whether simple fluid pipes connect to tanks and transfer fluids.")
+                    .define("enableSimpleFluidPipe", true);
+            enableSimpleEnergyPipe = builder
+                    .comment("Whether simple energy pipes connect to FE storages and transfer energy.")
+                    .define("enableSimpleEnergyPipe", true);
+            simpleItemPipeTransferRate = builder
+                    .comment("Maximum items moved by each extracting simple item pipe per tick. A transfer still uses at most one source slot and one target slot.")
+                    .defineInRange("simpleItemPipeTransferRate", 64, 1, Integer.MAX_VALUE);
+            simpleFluidPipeTransferRate = builder
+                    .comment("Maximum fluid amount in mB moved by each extracting simple fluid pipe per tick.")
+                    .defineInRange("simpleFluidPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleEnergyPipeTransferRate = builder
+                    .comment("Maximum FE moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleEnergyPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+            simpleChemicalPipeTransferRate = builder
+                    .comment("Maximum Mekanism chemical amount moved by each extracting simple fluid pipe per tick.")
+                    .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleManaPipeTransferRate = builder
+                    .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleManaPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+            simpleSourcePipeTransferRate = builder
+                    .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.")
+                    .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+            simplePipeMaxConnectedBlocks = builder
+                    .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
+                    .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);

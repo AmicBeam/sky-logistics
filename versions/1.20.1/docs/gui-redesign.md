@@ -45,9 +45,32 @@
 单屏落地图：
 
 - [配置器现有布局优化](gui-mockups/configurator-dashboard.png)
+- [配置器宽屏工作台改版样例](gui-mockups/configurator-workbench-concept.png)
+- [配置器 AE2 / Mekanism 参考升级（GUI Scale 4）](gui-mockups/configurator-ae2-mek-upgrade-final-4x.png)
 - [物流节点现有布局优化](gui-mockups/node-face-config.png)
 - [过滤升级现有布局优化](gui-mockups/filter-upgrade-modes.png)
 - [库存终端现有布局优化](gui-mockups/vault-terminal.png)
+
+### 配置器宽屏工作台样例
+
+这一版允许完全抛弃当前纵向表单，但严格保持现有功能集合不变，只重设信息层级、空间分配和控件分组：
+
+![Sky Configurator workbench concept](gui-mockups/configurator-workbench-concept.png)
+
+- 顶部保留线路名、线路序号、首条/上一条/下一条或新建/末条/删除，以及节点、抽取、存入统计。
+- 左侧只展示现有“线路连接面”数据：目标图标、名称、坐标、维度、模式、资源短标、优先级和红石状态。
+- 右侧只放现有放置配置：物品、流体、能量、自动检测、红石、槽数和优先级。
+- 不新增搜索、筛选、状态诊断、设备选择、定位、批量应用、吞吐监控或确认按钮。
+- 同名 SVG 与基准 PNG 固定为 `384 x 244` 个 GUI 逻辑像素；[GUI Scale 4 预览](gui-mockups/configurator-workbench-concept-4x.png)为 `1536 x 976` 个屏幕像素，文字、边框、图标与背景均按 Minecraft 规则逐像素硬放大。
+- 目标是让现有功能更易读、更少跳视线，同时不受当前 `254 x 244` 纵向堆叠布局限制。
+
+### AE2 / Mekanism 参考升级
+
+![Sky Configurator AE2 and Mekanism inspired upgrade](gui-mockups/configurator-ae2-mek-upgrade-final-4x.png)
+
+- 只从 AE2 借鉴紧凑网格与分区节奏，从 Mekanism 借鉴暗色内屏和模块化控件；颜色、图标仍来自天穹现有素材。
+- 顶部工具带、状态条、连接面主列表和右侧检查器严格覆盖当前功能，不加入搜索、保存、重置或新设置。
+- 无文字背景为 `384 x 244`，以最近邻放大到 `1536 x 976`；中文在同尺寸透明层单独渲染，避免 GUI Scale 4 下模糊。
 
 ## 调研结论
 

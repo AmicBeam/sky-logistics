@@ -9,10 +9,15 @@ import com.skylogistics.registry.ModMenus;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ModelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -39,5 +44,39 @@ public final class ClientModEvents {
                     new ResourceLocation(SkyLogistics.MOD_ID, "charged"),
                     (stack, level, entity, seed) -> EulogiaCrystalItem.isCharged(stack) ? 1.0F : 0.0F);
         });
+    }
+
+    @SubscribeEvent
+    public static void registerAdditionalModels(ModelEvent.RegisterAdditional event) {
+        event.register(extractModel("simple_item_pipe"));
+        event.register(extractModel("simple_fluid_pipe"));
+        event.register(extractModel("simple_energy_pipe"));
+    }
+
+    @SubscribeEvent
+    public static void modifyBakedModels(ModelEvent.ModifyBakingResult event) {
+        wrapPipeModels(event, ModBlocks.SIMPLE_ITEM_PIPE.get(), "simple_item_pipe");
+        wrapPipeModels(event, ModBlocks.SIMPLE_FLUID_PIPE.get(), "simple_fluid_pipe");
+        wrapPipeModels(event, ModBlocks.SIMPLE_ENERGY_PIPE.get(), "simple_energy_pipe");
+    }
+
+    private static void wrapPipeModels(ModelEvent.ModifyBakingResult event, Block block, String name) {
+        BakedModel extractModel = event.getModels().get(extractModel(name));
+        if (extractModel == null) {
+            return;
+        }
+        var extractQuads = SimplePipeBakedModel.rotatedExtractQuads(extractModel);
+        for (var state : block.getStateDefinition().getPossibleStates()) {
+            ModelResourceLocation location = BlockModelShaper.stateToModelLocation(state);
+            BakedModel original = event.getModels().get(location);
+            if (original != null) {
+                event.getModels().put(location, new SimplePipeBakedModel(original, extractQuads));
+            }
+        }
+    }
+
+    private static ModelResourceLocation extractModel(String name) {
+        return new ModelResourceLocation(
+                new ResourceLocation(SkyLogistics.MOD_ID, "block/" + name + "_extract"), "standalone");
     }
 }

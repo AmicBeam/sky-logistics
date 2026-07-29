@@ -1,5 +1,6 @@
 package com.skylogistics;
 
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -75,11 +76,33 @@ public class SkyLogistics {
         if (tryDismantleWithWrench(event)) {
             return;
         }
+        if (forceSneakingPipeWrenchInteraction(event)) {
+            return;
+        }
         if (event.getHand() == InteractionHand.MAIN_HAND
-                && event.getItemStack().is(ModItems.SKY_NODE.get())) {
+                && isNodeOrSimplePipe(event.getItemStack())) {
             event.setUseBlock(Event.Result.DENY);
             event.setUseItem(Event.Result.ALLOW);
         }
+    }
+
+    private static boolean forceSneakingPipeWrenchInteraction(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getHand() != InteractionHand.MAIN_HAND
+                || !event.getEntity().isShiftKeyDown()
+                || !isWrench(event.getItemStack())
+                || !(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof SimplePipeBlock)) {
+            return false;
+        }
+        event.setUseBlock(Event.Result.ALLOW);
+        event.setUseItem(Event.Result.DENY);
+        return true;
+    }
+
+    private static boolean isNodeOrSimplePipe(ItemStack stack) {
+        return stack.is(ModItems.SKY_NODE.get())
+                || stack.is(ModItems.SIMPLE_ITEM_PIPE.get())
+                || stack.is(ModItems.SIMPLE_FLUID_PIPE.get())
+                || stack.is(ModItems.SIMPLE_ENERGY_PIPE.get());
     }
 
     private boolean tryDismantleWithWrench(PlayerInteractEvent.RightClickBlock event) {
@@ -91,6 +114,7 @@ public class SkyLogistics {
                 || player.isSpectator()
                 || !player.mayBuild()
                 || !isWrench(event.getItemStack())
+                || state.getBlock() instanceof SimplePipeBlock
                 || !isSkyLogisticsBlock(state)) {
             return false;
         }

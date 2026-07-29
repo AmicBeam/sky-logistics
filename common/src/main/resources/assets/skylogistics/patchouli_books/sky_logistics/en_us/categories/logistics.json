@@ -1,5 +1,6 @@
 {
   "name": "Logistics",
   "description": "Wireless lines, nodes, configurators, upgrades, filters, and vaults.",
-  "icon": "skylogistics:sky_node"
+  "icon": "skylogistics:sky_node",
+  "sortnum": 1
 }

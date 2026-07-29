@@ -3,7 +3,7 @@ navigation:
   title: 物流网络
   icon: sky_node
   parent: index.md
-  position: 2
+  position: 3
 item_ids:
   - skylogistics:sky_node
   - skylogistics:item_vault
@@ -15,7 +15,7 @@ item_ids:
 
 # 物流网络
 
-节点不会生成管线。服务器会把同一线路上的抽取面和插入面配对，只搬运目标实际能接收的资源；目标拒收时不会先从来源里扣掉资源。
+物流节点提供无线运输。服务器会把同一线路上的抽取面和插入面配对，只搬运目标实际能接收的资源；目标拒收时不会先从来源里扣掉资源。若需要逐格铺设的有线网络，请参阅[简易管道](simple_pipes.md)。
 
 继续阅读：
 

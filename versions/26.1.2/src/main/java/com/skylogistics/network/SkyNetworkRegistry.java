@@ -1,6 +1,9 @@
 package com.skylogistics.network;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SimplePipeBlockEntity;
+import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
@@ -13,9 +16,11 @@ import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.SimplePipeType;
 import com.skylogistics.util.StackData;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
@@ -34,7 +41,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -74,6 +83,8 @@ public final class SkyNetworkRegistry {
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_FLUID_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_CHEMICAL_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ENERGY_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_MANA_OUTPUTS = new HashMap<>();
+    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_SOURCE_OUTPUTS = new HashMap<>();
     private static boolean runtimeCachesDirty = true;
     private static boolean globalOutputsDirty = true;
     private static boolean activeLineSnapshotDirty = true;
@@ -85,16 +96,33 @@ public final class SkyNetworkRegistry {
     public static synchronized void register(ServerLevel level, BlockPos pos) {
         DimensionIndex index = DIMENSIONS.computeIfAbsent(level.dimension(), ignored -> new DimensionIndex());
         index.nodes.add(pos.immutable());
-        markTopologyDirty(index);
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof NetworkEndpointBlockEntity endpoint) {
+            index.loadedEndpoints.put(pos.immutable(), endpoint);
+        }
+        if (blockEntity instanceof SimplePipeBlockEntity) {
+            markPipeTopologyDirty(index, pos);
+        } else {
+            markNodeTopologyDirty(index, pos);
+        }
     }
 
     public static synchronized void unregister(ServerLevel level, BlockPos pos) {
         DimensionIndex index = DIMENSIONS.get(level.dimension());
         if (index != null) {
+            boolean pipe = index.pipeLineByPos.containsKey(pos)
+                    || level.getBlockEntity(pos) instanceof SimplePipeBlockEntity;
+            if (pipe) {
+                markPipeTopologyDirty(index, pos);
+            } else {
+                markNodeTopologyDirty(index, pos);
+            }
             index.nodes.remove(pos);
-            markTopologyDirty(index);
+            index.loadedEndpoints.remove(pos);
             if (index.nodes.isEmpty()) {
                 DIMENSIONS.remove(level.dimension());
+                runtimeCachesDirty = true;
+                globalOutputsDirty = true;
             }
         }
     }
@@ -108,6 +136,31 @@ public final class SkyNetworkRegistry {
         if (index != null) {
             markTopologyDirty(index);
         }
+    }
+
+    public static synchronized void markTopologyDirty(ServerLevel level, BlockPos pos) {
+        DimensionIndex index = DIMENSIONS.get(level.dimension());
+        if (index != null) {
+            markNodeTopologyDirty(index, pos);
+        }
+    }
+
+    public static synchronized void markPipeTopologyDirty(ServerLevel level, BlockPos pos) {
+        DimensionIndex index = DIMENSIONS.get(level.dimension());
+        if (index != null) {
+            markPipeTopologyDirty(index, pos);
+        }
+    }
+
+    public static synchronized PipeLineInfo simplePipeLineInfo(
+            ServerLevel level, BlockPos pos, SimplePipeType pipeType) {
+        DimensionIndex index = DIMENSIONS.get(level.dimension());
+        if (index == null || index.dirty) return null;
+        SimplePipeBlockEntity pipe = simplePipeAt(index.loadedEndpoints, pos);
+        if (pipe == null || pipe.pipeType() != pipeType) return null;
+        UUID lineId = index.pipeLineByPos.get(pos);
+        Set<BlockPos> members = lineId == null ? null : index.pipeMembers.get(lineId);
+        return members == null ? null : new PipeLineInfo(lineId, members.size());
     }
 
     public static synchronized void markRuntimeDirty(ServerLevel level, BlockPos pos) {
@@ -127,13 +180,13 @@ public final class SkyNetworkRegistry {
     }
 
     public static synchronized ReadyLines readyLines(MinecraftServer server, long gameTime) {
-        boolean topologyChanged = rebuildDirty(server);
-        if (topologyChanged || runtimeCachesDirty) {
+        rebuildDirty(server);
+        if (runtimeCachesDirty) {
             rebuildRuntimeCaches(server);
             runtimeCachesDirty = false;
             globalOutputsDirty = true;
         }
-        if (topologyChanged || globalOutputsDirty) {
+        if (globalOutputsDirty) {
             rebuildGlobalOutputs(server);
             globalOutputsDirty = false;
         }
@@ -158,6 +211,16 @@ public final class SkyNetworkRegistry {
 
     public static synchronized List<CachedEndpoint> globalEnergyOutputs(UUID lineId) {
         List<CachedEndpoint> outputs = GLOBAL_ENERGY_OUTPUTS.get(lineId);
+        return outputs == null ? List.of() : outputs;
+    }
+
+    public static synchronized List<CachedEndpoint> globalManaOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_MANA_OUTPUTS.get(lineId);
+        return outputs == null ? List.of() : outputs;
+    }
+
+    public static synchronized List<CachedEndpoint> globalSourceOutputs(UUID lineId) {
+        List<CachedEndpoint> outputs = GLOBAL_SOURCE_OUTPUTS.get(lineId);
         return outputs == null ? List.of() : outputs;
     }
 
@@ -313,7 +376,7 @@ public final class SkyNetworkRegistry {
             if (details.size() >= limit) {
                 return;
             }
-            SkyNodeBlockEntity node = endpoint.node();
+            NetworkEndpointBlockEntity node = endpoint.node();
             Direction direction = endpoint.direction();
             NodeFaceMode faceMode = node.getFaceMode(direction);
             if (faceMode == NodeFaceMode.NONE || !level.isLoaded(node.getBlockPos())) {
@@ -365,6 +428,8 @@ public final class SkyNetworkRegistry {
         GLOBAL_FLUID_OUTPUTS.clear();
         GLOBAL_CHEMICAL_OUTPUTS.clear();
         GLOBAL_ENERGY_OUTPUTS.clear();
+        GLOBAL_MANA_OUTPUTS.clear();
+        GLOBAL_SOURCE_OUTPUTS.clear();
         runtimeCachesDirty = true;
         globalOutputsDirty = true;
         activeLineSnapshotDirty = true;
@@ -372,18 +437,70 @@ public final class SkyNetworkRegistry {
     }
 
     private static void markTopologyDirty(DimensionIndex index) {
+        index.fullRebuild = true;
         index.dirty = true;
         runtimeCachesDirty = true;
         globalOutputsDirty = true;
     }
 
+    private static void markNodeTopologyDirty(DimensionIndex index, BlockPos pos) {
+        BlockPos immutablePos = pos.immutable();
+        index.dirtyNodePositions.add(immutablePos);
+        LineIndex oldLine = index.lineByNode.get(pos);
+        if (oldLine != null) {
+            index.dirtyNodeLines.add(oldLine.lineId());
+        }
+        NetworkEndpointBlockEntity endpoint = index.loadedEndpoints.get(pos);
+        if (endpoint != null) {
+            index.dirtyNodeLines.add(endpoint.getLineId());
+        }
+        index.dirty = true;
+    }
+
+    private static void markPipeTopologyDirty(DimensionIndex index, BlockPos pos) {
+        if (index.rebuildingPipes) return;
+        index.dirtyPipePositions.add(pos.immutable());
+        UUID currentLine = index.pipeLineByPos.get(pos);
+        if (currentLine != null) {
+            index.dirtyPipeLines.add(currentLine);
+        }
+        for (Direction direction : Direction.values()) {
+            BlockPos neighbor = pos.relative(direction);
+            index.dirtyPipePositions.add(neighbor.immutable());
+            UUID neighborLine = index.pipeLineByPos.get(neighbor);
+            if (neighborLine != null) {
+                index.dirtyPipeLines.add(neighborLine);
+            }
+        }
+        index.dirty = true;
+    }
+
     private static void rebuild(ServerLevel level, DimensionIndex index) {
+        if (!index.fullRebuild) {
+            if (!index.dirtyPipePositions.isEmpty() || !index.dirtyPipeLines.isEmpty()) {
+                rebuildPipeTopology(level, index);
+            }
+            if (!index.dirtyNodePositions.isEmpty() || !index.dirtyNodeLines.isEmpty()) {
+                rebuildNodeTopology(index);
+            }
+            index.dirty = false;
+            return;
+        }
         Map<UUID, Long> retryAfterByLine = new HashMap<>();
+        Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
         for (LineIndex line : index.lines.values()) {
             retryAfterByLine.put(line.lineId(), line.retryAfter);
+            for (CachedEndpoint endpoint : line.inputs()) {
+                reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+            }
+            for (CachedEndpoint endpoint : line.outputs()) {
+                reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+            }
         }
         index.lines.clear();
         index.lineByNode.clear();
+        index.lineMembers.clear();
+        Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes = index.loadedEndpoints;
         Iterator<BlockPos> iterator = index.nodes.iterator();
         while (iterator.hasNext()) {
             BlockPos pos = iterator.next();
@@ -391,10 +508,22 @@ public final class SkyNetworkRegistry {
                 continue;
             }
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+            if (!(blockEntity instanceof NetworkEndpointBlockEntity node)) {
                 iterator.remove();
+                loadedNodes.remove(pos);
                 continue;
             }
+            loadedNodes.put(pos, node);
+        }
+        index.rebuildingPipes = true;
+        try {
+            assignSimplePipeLineIds(level, index, loadedNodes);
+        } finally {
+            index.rebuildingPipes = false;
+        }
+        for (Map.Entry<BlockPos, NetworkEndpointBlockEntity> entry : loadedNodes.entrySet()) {
+            BlockPos pos = entry.getKey();
+            NetworkEndpointBlockEntity node = entry.getValue();
             LineIndex line = index.lines.computeIfAbsent(node.getLineId(), lineId -> {
                 LineIndex created = new LineIndex(lineId);
                 created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
@@ -402,12 +531,14 @@ public final class SkyNetworkRegistry {
             });
             line.nodeCount++;
             index.lineByNode.put(pos, line);
+            index.lineMembers.computeIfAbsent(node.getLineId(), ignored -> new HashSet<>()).add(pos);
             for (Direction direction : Direction.values()) {
                 NodeFaceMode faceMode = node.getFaceMode(direction);
-                CachedEndpoint endpoint = new CachedEndpoint(node, direction);
                 if (faceMode == NodeFaceMode.INPUT) {
+                    CachedEndpoint endpoint = reusableEndpoint(reusableEndpoints, node, direction);
                     line.addInput(endpoint);
                 } else if (faceMode == NodeFaceMode.OUTPUT) {
+                    CachedEndpoint endpoint = reusableEndpoint(reusableEndpoints, node, direction);
                     line.addOutput(endpoint);
                 }
             }
@@ -415,7 +546,348 @@ public final class SkyNetworkRegistry {
         for (LineIndex line : index.lines.values()) {
             line.rebuildPriorityOutputs();
         }
+        index.dirtyNodePositions.clear();
+        index.dirtyNodeLines.clear();
+        index.fullRebuild = false;
         index.dirty = false;
+    }
+
+    private static CachedEndpoint reusableEndpoint(Map<EndpointKey, CachedEndpoint> reusableEndpoints,
+            NetworkEndpointBlockEntity node, Direction direction) {
+        CachedEndpoint endpoint = reusableEndpoints.remove(new EndpointKey(node.getBlockPos(), direction));
+        return endpoint != null && endpoint.node() == node ? endpoint : new CachedEndpoint(node, direction);
+    }
+
+    private static void rebuildNodeTopology(DimensionIndex index) {
+        Set<UUID> oldLineIds = new HashSet<>(index.dirtyNodeLines);
+        for (BlockPos pos : index.dirtyNodePositions) {
+            LineIndex oldLine = index.lineByNode.get(pos);
+            if (oldLine != null) oldLineIds.add(oldLine.lineId());
+            NetworkEndpointBlockEntity endpoint = index.loadedEndpoints.get(pos);
+            if (endpoint != null) oldLineIds.add(endpoint.getLineId());
+        }
+        Set<BlockPos> affectedPositions = new HashSet<>(index.dirtyNodePositions);
+        Map<UUID, Long> retryAfterByLine = new HashMap<>();
+        Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
+        for (UUID lineId : oldLineIds) {
+            Set<BlockPos> members = index.lineMembers.remove(lineId);
+            if (members != null) affectedPositions.addAll(members);
+            LineIndex oldLine = index.lines.remove(lineId);
+            if (oldLine == null) continue;
+            retryAfterByLine.put(lineId, oldLine.retryAfter);
+            detachRuntimeLine(oldLine);
+            for (CachedEndpoint endpoint : oldLine.inputs()) {
+                if (!index.dirtyNodePositions.contains(endpoint.node().getBlockPos())) {
+                    reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+                }
+            }
+            for (CachedEndpoint endpoint : oldLine.outputs()) {
+                if (!index.dirtyNodePositions.contains(endpoint.node().getBlockPos())) {
+                    reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+                }
+            }
+        }
+        for (BlockPos pos : affectedPositions) index.lineByNode.remove(pos);
+        Map<UUID, Set<BlockPos>> rebuiltMembers = new HashMap<>();
+        for (BlockPos pos : affectedPositions) {
+            NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
+            if (node == null || node instanceof SimplePipeBlockEntity) continue;
+            rebuiltMembers.computeIfAbsent(node.getLineId(), ignored -> new HashSet<>()).add(pos);
+        }
+        Set<UUID> changedLineIds = new HashSet<>(oldLineIds);
+        changedLineIds.addAll(rebuiltMembers.keySet());
+        for (Map.Entry<UUID, Set<BlockPos>> entry : rebuiltMembers.entrySet()) {
+            UUID lineId = entry.getKey();
+            LineIndex line = new LineIndex(lineId);
+            line.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
+            for (BlockPos pos : entry.getValue()) {
+                NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
+                if (node == null) continue;
+                line.nodeCount++;
+                index.lineByNode.put(pos, line);
+                for (Direction direction : Direction.values()) {
+                    NodeFaceMode faceMode = node.getFaceMode(direction);
+                    if (faceMode == NodeFaceMode.INPUT) {
+                        line.addInput(reusableEndpoint(reusableEndpoints, node, direction));
+                    } else if (faceMode == NodeFaceMode.OUTPUT) {
+                        line.addOutput(reusableEndpoint(reusableEndpoints, node, direction));
+                    }
+                }
+            }
+            line.rebuildPriorityOutputs();
+            index.lineMembers.put(lineId, entry.getValue());
+            index.lines.put(lineId, line);
+            attachRuntimeLine(line);
+        }
+        index.dirtyNodePositions.clear();
+        index.dirtyNodeLines.clear();
+        refreshGlobalLineIds(changedLineIds);
+    }
+
+    private static void rebuildPipeTopology(ServerLevel level, DimensionIndex index) {
+        int configuredMax = SkyLogisticsConfig.simplePipeMaxConnectedBlocks();
+        if (index.pipeMaxConnected != configuredMax) {
+            index.dirtyPipeLines.addAll(index.pipeMembers.keySet());
+            for (Set<BlockPos> members : index.pipeMembers.values()) {
+                index.dirtyPipePositions.addAll(members);
+            }
+        }
+        Set<UUID> oldLineIds = new HashSet<>(index.dirtyPipeLines);
+        for (BlockPos pos : index.dirtyPipePositions) {
+            UUID lineId = index.pipeLineByPos.get(pos);
+            if (lineId != null) oldLineIds.add(lineId);
+        }
+        Set<BlockPos> affectedPositions = new HashSet<>(index.dirtyPipePositions);
+        Map<UUID, Long> retryAfterByLine = new HashMap<>();
+        Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
+        for (UUID lineId : oldLineIds) {
+            index.lineMembers.remove(lineId);
+            Set<BlockPos> members = index.pipeMembers.get(lineId);
+            if (members != null) affectedPositions.addAll(members);
+            LineIndex oldLine = index.lines.remove(lineId);
+            if (oldLine == null) continue;
+            retryAfterByLine.put(lineId, oldLine.retryAfter);
+            detachRuntimeLine(oldLine);
+            for (CachedEndpoint endpoint : oldLine.inputs()) {
+                if (!index.dirtyPipePositions.contains(endpoint.node().getBlockPos())) {
+                    reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+                }
+            }
+            for (CachedEndpoint endpoint : oldLine.outputs()) {
+                if (!index.dirtyPipePositions.contains(endpoint.node().getBlockPos())) {
+                    reusableEndpoints.put(new EndpointKey(endpoint.node().getBlockPos(), endpoint.direction()), endpoint);
+                }
+            }
+        }
+        for (BlockPos pos : affectedPositions) index.lineByNode.remove(pos);
+        index.rebuildingPipes = true;
+        try {
+            assignSimplePipeLineIds(level, index, index.loadedEndpoints);
+        } finally {
+            index.rebuildingPipes = false;
+        }
+        Set<UUID> changedLineIds = new HashSet<>(oldLineIds);
+        for (BlockPos pos : affectedPositions) {
+            UUID lineId = index.pipeLineByPos.get(pos);
+            if (lineId != null) changedLineIds.add(lineId);
+        }
+        for (UUID lineId : changedLineIds) {
+            Set<BlockPos> members = index.pipeMembers.get(lineId);
+            if (members == null) continue;
+            LineIndex line = new LineIndex(lineId);
+            line.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
+            for (BlockPos pos : members) {
+                NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
+                if (node == null) continue;
+                line.nodeCount++;
+                index.lineByNode.put(pos, line);
+                for (Direction direction : Direction.values()) {
+                    NodeFaceMode faceMode = node.getFaceMode(direction);
+                    if (faceMode == NodeFaceMode.INPUT) {
+                        line.addInput(reusableEndpoint(reusableEndpoints, node, direction));
+                    } else if (faceMode == NodeFaceMode.OUTPUT) {
+                        line.addOutput(reusableEndpoint(reusableEndpoints, node, direction));
+                    }
+                }
+            }
+            line.rebuildPriorityOutputs();
+            index.lineMembers.put(lineId, new HashSet<>(members));
+            index.lines.put(lineId, line);
+            attachRuntimeLine(line);
+        }
+        refreshGlobalLineIds(changedLineIds);
+    }
+
+    private static void detachRuntimeLine(LineIndex line) {
+        if (ACTIVE_LINES.remove(line)) activeLineSnapshotDirty = true;
+        removeScheduledWake(line);
+    }
+
+    private static void attachRuntimeLine(LineIndex line) {
+        if (!line.hasProcessableInputs()) return;
+        if (line.retryAfter <= 0L) {
+            if (ACTIVE_LINES.add(line)) activeLineSnapshotDirty = true;
+        } else {
+            scheduleWake(line, line.retryAfter);
+        }
+    }
+
+    private static void refreshGlobalLineIds(Set<UUID> lineIds) {
+        for (UUID lineId : lineIds) {
+            GLOBAL_ITEM_OUTPUTS.remove(lineId);
+            GLOBAL_FLUID_OUTPUTS.remove(lineId);
+            GLOBAL_CHEMICAL_OUTPUTS.remove(lineId);
+            GLOBAL_ENERGY_OUTPUTS.remove(lineId);
+            GLOBAL_MANA_OUTPUTS.remove(lineId);
+            GLOBAL_SOURCE_OUTPUTS.remove(lineId);
+            for (DimensionIndex dimension : DIMENSIONS.values()) {
+                LineIndex line = dimension.lines.get(lineId);
+                if (line == null) continue;
+                addGlobalOutputs(GLOBAL_ITEM_OUTPUTS, lineId, line.priorityItemOutputs());
+                addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, lineId, line.priorityFluidOutputs());
+                addGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS, lineId, line.priorityChemicalOutputs());
+                addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, lineId, line.priorityEnergyOutputs());
+                addGlobalOutputs(GLOBAL_MANA_OUTPUTS, lineId, line.priorityManaOutputs());
+                addGlobalOutputs(GLOBAL_SOURCE_OUTPUTS, lineId, line.prioritySourceOutputs());
+            }
+            sortGlobalOutput(GLOBAL_ITEM_OUTPUTS, lineId);
+            sortGlobalOutput(GLOBAL_FLUID_OUTPUTS, lineId);
+            sortGlobalOutput(GLOBAL_CHEMICAL_OUTPUTS, lineId);
+            sortGlobalOutput(GLOBAL_ENERGY_OUTPUTS, lineId);
+            sortGlobalOutput(GLOBAL_MANA_OUTPUTS, lineId);
+            sortGlobalOutput(GLOBAL_SOURCE_OUTPUTS, lineId);
+        }
+    }
+
+    private static void sortGlobalOutput(Map<UUID, List<CachedEndpoint>> outputs, UUID lineId) {
+        List<CachedEndpoint> endpoints = outputs.get(lineId);
+        if (endpoints != null) sortByPriority(endpoints);
+    }
+
+    private static void assignSimplePipeLineIds(ServerLevel level, DimensionIndex index,
+            Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes) {
+        int maxConnected = SkyLogisticsConfig.simplePipeMaxConnectedBlocks();
+        if (index.pipeMaxConnected != maxConnected) {
+            index.dirtyPipeLines.addAll(index.pipeMembers.keySet());
+            for (Set<BlockPos> members : index.pipeMembers.values()) {
+                index.dirtyPipePositions.addAll(members);
+            }
+            index.pipeMaxConnected = maxConnected;
+        }
+        TreeSet<BlockPos> candidates = new TreeSet<>(SkyNetworkRegistry::comparePositions);
+        candidates.addAll(index.dirtyPipePositions);
+        Set<UUID> linesToRemove = new HashSet<>(index.dirtyPipeLines);
+        for (BlockPos pos : index.dirtyPipePositions) {
+            UUID lineId = index.pipeLineByPos.get(pos);
+            if (lineId != null) {
+                linesToRemove.add(lineId);
+            }
+        }
+        for (UUID lineId : linesToRemove) {
+            Set<BlockPos> members = index.pipeMembers.remove(lineId);
+            if (members != null) {
+                candidates.addAll(members);
+                for (BlockPos member : members) {
+                    index.pipeLineByPos.remove(member);
+                }
+            }
+        }
+        index.dirtyPipeLines.clear();
+        index.dirtyPipePositions.clear();
+
+        Set<BlockPos> rebuilt = new HashSet<>();
+        ArrayDeque<BlockPos> pending = new ArrayDeque<>();
+        while (!candidates.isEmpty()) {
+            BlockPos start = candidates.pollFirst();
+            SimplePipeBlockEntity first = simplePipeAt(loadedNodes, start);
+            if (first == null || rebuilt.contains(start) || index.pipeLineByPos.containsKey(start)) {
+                continue;
+            }
+            pending.clear();
+            List<BlockPos> component = new ArrayList<>(Math.min(maxConnected, 64));
+            pending.add(start);
+            BlockPos root = start;
+            while (!pending.isEmpty() && component.size() < maxConnected) {
+                BlockPos currentPos = pending.removeFirst();
+                if (!rebuilt.add(currentPos)) {
+                    continue;
+                }
+                SimplePipeBlockEntity current = simplePipeAt(loadedNodes, currentPos);
+                if (current == null || current.pipeType() != first.pipeType()) {
+                    continue;
+                }
+                component.add(currentPos);
+                if (comparePositions(currentPos, root) < 0) {
+                    root = currentPos;
+                }
+                BlockState state = current.getBlockState();
+                for (Direction direction : Direction.values()) {
+                    BlockPos neighbor = currentPos.relative(direction);
+                    if (state.getValue(SimplePipeBlock.connectionProperty(direction))
+                            && simplePipeAt(loadedNodes, neighbor) != null) {
+                        if (rebuilt.contains(neighbor)) {
+                            continue;
+                        }
+                        UUID existingLine = index.pipeLineByPos.get(neighbor);
+                        if (existingLine != null) {
+                            Set<BlockPos> absorbed = index.pipeMembers.remove(existingLine);
+                            if (absorbed != null) {
+                                for (BlockPos member : absorbed) {
+                                    index.pipeLineByPos.remove(member);
+                                    candidates.add(member);
+                                }
+                            }
+                        }
+                        pending.addLast(neighbor);
+                    }
+                }
+            }
+            candidates.addAll(pending);
+            disconnectOverflowPipeEdges(level, loadedNodes, component);
+            String seed = "skylogistics:simple_pipe:" + level.dimension().identifier() + ":"
+                    + first.pipeType().name() + ":" + root.getX() + ":" + root.getY() + ":" + root.getZ();
+            UUID lineId = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+            Set<BlockPos> members = new HashSet<>(component);
+            index.pipeMembers.put(lineId, members);
+            for (BlockPos member : members) {
+                index.pipeLineByPos.put(member, lineId);
+            }
+        }
+        for (BlockPos pos : rebuilt) {
+            SimplePipeBlockEntity pipe = simplePipeAt(loadedNodes, pos);
+            UUID lineId = index.pipeLineByPos.get(pos);
+            if (pipe != null && lineId != null) {
+                pipe.assignNetworkLineId(lineId);
+            }
+        }
+    }
+
+    private static SimplePipeBlockEntity simplePipeAt(
+            Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes, BlockPos pos) {
+        NetworkEndpointBlockEntity endpoint = loadedNodes.get(pos);
+        return endpoint instanceof SimplePipeBlockEntity pipe ? pipe : null;
+    }
+
+    private static void disconnectOverflowPipeEdges(ServerLevel level,
+            Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes, List<BlockPos> component) {
+        Set<BlockPos> members = new HashSet<>(component);
+        for (BlockPos member : component) {
+            SimplePipeBlockEntity pipe = simplePipeAt(loadedNodes, member);
+            if (pipe == null) {
+                continue;
+            }
+            BlockState state = level.getBlockState(member);
+            for (Direction direction : Direction.values()) {
+                if (!state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+                    continue;
+                }
+                BlockPos neighborPos = member.relative(direction);
+                SimplePipeBlockEntity neighbor = simplePipeAt(loadedNodes, neighborPos);
+                if (neighbor == null || neighbor.pipeType() != pipe.pipeType() || members.contains(neighborPos)) {
+                    continue;
+                }
+                pipe.setSideDisconnected(direction, true,
+                        com.skylogistics.util.SimplePipeConnection.PIPE);
+                neighbor.setSideDisconnected(direction.getOpposite(), true,
+                        com.skylogistics.util.SimplePipeConnection.PIPE);
+                state = state.setValue(SimplePipeBlock.connectionProperty(direction), false);
+                BlockState neighborState = level.getBlockState(neighborPos).setValue(
+                        SimplePipeBlock.connectionProperty(direction.getOpposite()), false);
+                level.setBlock(neighborPos, neighborState, Block.UPDATE_ALL);
+            }
+            if (state != level.getBlockState(member)) {
+                level.setBlock(member, state, Block.UPDATE_ALL);
+            }
+        }
+    }
+
+    private static int comparePositions(BlockPos left, BlockPos right) {
+        int x = Integer.compare(left.getX(), right.getX());
+        if (x != 0) {
+            return x;
+        }
+        int y = Integer.compare(left.getY(), right.getY());
+        return y != 0 ? y : Integer.compare(left.getZ(), right.getZ());
     }
 
     private static void rebuildRuntimeCaches(MinecraftServer server) {
@@ -446,6 +918,8 @@ public final class SkyNetworkRegistry {
         GLOBAL_FLUID_OUTPUTS.clear();
         GLOBAL_CHEMICAL_OUTPUTS.clear();
         GLOBAL_ENERGY_OUTPUTS.clear();
+        GLOBAL_MANA_OUTPUTS.clear();
+        GLOBAL_SOURCE_OUTPUTS.clear();
         for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
             if (server.getLevel(entry.getKey()) == null) {
                 continue;
@@ -456,12 +930,16 @@ public final class SkyNetworkRegistry {
                 addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, line.lineId(), line.priorityFluidOutputs());
                 addGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS, line.lineId(), line.priorityChemicalOutputs());
                 addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, line.lineId(), line.priorityEnergyOutputs());
+                addGlobalOutputs(GLOBAL_MANA_OUTPUTS, line.lineId(), line.priorityManaOutputs());
+                addGlobalOutputs(GLOBAL_SOURCE_OUTPUTS, line.lineId(), line.prioritySourceOutputs());
             }
         }
         sortGlobalOutputs(GLOBAL_ITEM_OUTPUTS);
         sortGlobalOutputs(GLOBAL_FLUID_OUTPUTS);
         sortGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS);
         sortGlobalOutputs(GLOBAL_ENERGY_OUTPUTS);
+        sortGlobalOutputs(GLOBAL_MANA_OUTPUTS);
+        sortGlobalOutputs(GLOBAL_SOURCE_OUTPUTS);
     }
 
     private static void addGlobalOutputs(Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
@@ -565,12 +1043,29 @@ public final class SkyNetworkRegistry {
 
     private static final class DimensionIndex {
         private final Set<BlockPos> nodes = new HashSet<>();
+        private final Map<BlockPos, NetworkEndpointBlockEntity> loadedEndpoints = new HashMap<>();
         private final Map<UUID, LineIndex> lines = new HashMap<>();
         private final Map<BlockPos, LineIndex> lineByNode = new HashMap<>();
+        private final Map<UUID, Set<BlockPos>> lineMembers = new HashMap<>();
+        private final Map<BlockPos, UUID> pipeLineByPos = new HashMap<>();
+        private final Map<UUID, Set<BlockPos>> pipeMembers = new HashMap<>();
+        private final Set<BlockPos> dirtyPipePositions = new HashSet<>();
+        private final Set<UUID> dirtyPipeLines = new HashSet<>();
+        private final Set<BlockPos> dirtyNodePositions = new HashSet<>();
+        private final Set<UUID> dirtyNodeLines = new HashSet<>();
+        private int pipeMaxConnected = -1;
+        private boolean fullRebuild = true;
+        private boolean rebuildingPipes;
         private boolean dirty = true;
     }
 
+    private record EndpointKey(BlockPos pos, Direction direction) {
+    }
+
     public record LineStats(int nodes, int inputs, int outputs) {
+    }
+
+    public record PipeLineInfo(UUID lineId, int size) {
     }
 
     public record LineFaceDetail(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
@@ -626,15 +1121,21 @@ public final class SkyNetworkRegistry {
         private final List<CachedEndpoint> fluidInputs = new ArrayList<>();
         private final List<CachedEndpoint> chemicalInputs = new ArrayList<>();
         private final List<CachedEndpoint> energyInputs = new ArrayList<>();
+        private final List<CachedEndpoint> manaInputs = new ArrayList<>();
+        private final List<CachedEndpoint> sourceInputs = new ArrayList<>();
         private final List<CachedEndpoint> itemOutputs = new ArrayList<>();
         private final List<CachedEndpoint> fluidOutputs = new ArrayList<>();
         private final List<CachedEndpoint> chemicalOutputs = new ArrayList<>();
         private final List<CachedEndpoint> energyOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> manaOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> sourceOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityItemOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityFluidOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityChemicalOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityEnergyOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityManaOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> prioritySourceOutputs = new ArrayList<>();
         private long retryAfter;
         private int nodeCount;
         private int inputCursor;
@@ -664,8 +1165,12 @@ public final class SkyNetworkRegistry {
         }
 
         public void advanceInputCursor() {
+            advanceInputCursor(1);
+        }
+
+        public void advanceInputCursor(int amount) {
             if (!inputs.isEmpty()) {
-                inputCursor = (inputCursor + 1) % inputs.size();
+                inputCursor = Math.floorMod(inputCursor + Math.max(0, amount), inputs.size());
             }
         }
 
@@ -697,9 +1202,17 @@ public final class SkyNetworkRegistry {
             return priorityEnergyOutputs;
         }
 
+        public List<CachedEndpoint> priorityManaOutputs() {
+            return priorityManaOutputs;
+        }
+
+        public List<CachedEndpoint> prioritySourceOutputs() {
+            return prioritySourceOutputs;
+        }
+
         public boolean hasProcessableInputs() {
             return !itemInputs.isEmpty() || !fluidInputs.isEmpty() || !chemicalInputs.isEmpty()
-                    || !energyInputs.isEmpty();
+                    || !energyInputs.isEmpty() || !manaInputs.isEmpty() || !sourceInputs.isEmpty();
         }
 
         public boolean canProcess(long gameTime) {
@@ -716,12 +1229,14 @@ public final class SkyNetworkRegistry {
 
         private void addInput(CachedEndpoint endpoint) {
             inputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs, energyInputs);
+            addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs, energyInputs,
+                    manaInputs, sourceInputs);
         }
 
         private void addOutput(CachedEndpoint endpoint) {
             outputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, chemicalOutputs, energyOutputs);
+            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, chemicalOutputs, energyOutputs,
+                    manaOutputs, sourceOutputs);
         }
 
         private void rebuildPriorityOutputs() {
@@ -744,31 +1259,52 @@ public final class SkyNetworkRegistry {
             priorityEnergyOutputs.clear();
             priorityEnergyOutputs.addAll(energyOutputs);
             sortByPriority(priorityEnergyOutputs);
+
+            priorityManaOutputs.clear();
+            priorityManaOutputs.addAll(manaOutputs);
+            sortByPriority(priorityManaOutputs);
+
+            prioritySourceOutputs.clear();
+            prioritySourceOutputs.addAll(sourceOutputs);
+            sortByPriority(prioritySourceOutputs);
         }
 
         private static void addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
                 List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> chemicalEndpoints,
-                List<CachedEndpoint> energyEndpoints) {
-            SkyNodeBlockEntity node = endpoint.node();
+                List<CachedEndpoint> energyEndpoints, List<CachedEndpoint> manaEndpoints,
+                List<CachedEndpoint> sourceEndpoints) {
+            NetworkEndpointBlockEntity node = endpoint.node();
             Direction direction = endpoint.direction();
             if (node.isItemsEnabled(direction)) {
+                endpoint.enableItemCaching();
                 itemEndpoints.add(endpoint);
             }
             if (node.isFluidsEnabled(direction)) {
+                endpoint.enableFluidCaching();
                 fluidEndpoints.add(endpoint);
-                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+                        && endpoint.detectChemicalSupport(node, direction)) {
+                    endpoint.enableChemicalCaching();
                     chemicalEndpoints.add(endpoint);
                 }
             }
             if (node.isEnergyEnabled(direction)) {
                 energyEndpoints.add(endpoint);
+                if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()
+                        && endpoint.detectManaSupport(node, direction)) {
+                    manaEndpoints.add(endpoint);
+                }
+                if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()
+                        && endpoint.detectSourceSupport(node, direction)) {
+                    sourceEndpoints.add(endpoint);
+                }
             }
         }
 
     }
 
     public static final class CachedEndpoint {
-        private final SkyNodeBlockEntity node;
+        private final NetworkEndpointBlockEntity node;
         private final Direction direction;
         private final BlockPos targetPos;
         private final Direction accessSide;
@@ -799,61 +1335,136 @@ public final class SkyNetworkRegistry {
         private int itemSourceMisses;
         private int fluidSourceMisses;
         private int chemicalSourceMisses;
-        private final int[] preferredItemSlots = new int[SkyLogisticsConfig.preferredItemSlotCacheSize()];
-        private final int[] preferredItemSlotMisses = new int[preferredItemSlots.length];
+        private int[] preferredItemSlots;
+        private int[] preferredItemSlotMisses;
         private int preferredItemSlotCursor;
         private int preferredItemSlotWriteCursor;
         private int itemSlotDiscoveryRemaining;
         private int itemSlotDiscoveryDeferrals;
-        private final int[] emptyItemSlots = new int[EMPTY_ITEM_SLOT_CACHE_SIZE];
-        private final long[] emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
+        private int[] emptyItemSlots;
+        private long[] emptyItemSlotUntil;
         private int emptyItemSlotCursor;
-        private final int[] preferredFluidTanks = new int[PREFERRED_FLUID_TANK_CACHE_SIZE];
-        private final int[] preferredFluidTankMisses = new int[PREFERRED_FLUID_TANK_CACHE_SIZE];
+        private int[] preferredFluidTanks;
+        private int[] preferredFluidTankMisses;
         private int preferredFluidTankCursor;
         private int preferredFluidTankWriteCursor;
         private int fluidTankDiscoveryRemaining;
-        private final int[] emptyFluidTanks = new int[EMPTY_FLUID_TANK_CACHE_SIZE];
-        private final long[] emptyFluidTankUntil = new long[EMPTY_FLUID_TANK_CACHE_SIZE];
+        private int[] emptyFluidTanks;
+        private long[] emptyFluidTankUntil;
         private int emptyFluidTankCursor;
-        private final int[] preferredChemicalTanks = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
-        private final int[] preferredChemicalTankMisses = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
+        private int[] preferredChemicalTanks;
+        private int[] preferredChemicalTankMisses;
         private int preferredChemicalTankCursor;
         private int preferredChemicalTankWriteCursor;
         private int chemicalTankDiscoveryRemaining;
-        private final int[] emptyChemicalTanks = new int[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
-        private final long[] emptyChemicalTankUntil = new long[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
+        private int[] emptyChemicalTanks;
+        private long[] emptyChemicalTankUntil;
         private int emptyChemicalTankCursor;
-        private final ItemStack[] rejectedItems = new ItemStack[REJECTED_ITEM_CACHE_SIZE];
-        private final long[] rejectedItemUntil = new long[REJECTED_ITEM_CACHE_SIZE];
+        private ItemStack[] rejectedItems;
+        private long[] rejectedItemUntil;
         private int rejectedItemCursor;
-        private final ItemStackKey[] rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
-        private final long[] rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-        private final int[] rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+        private ItemStackKey[] rejectedItemAccepts;
+        private long[] rejectedItemAcceptUntil;
+        private int[] rejectedItemAcceptFailures;
         private int rejectedItemAcceptCursor;
-        private final FluidStackKey[] rejectedFluidAccepts = new FluidStackKey[REJECTED_ACCEPT_CACHE_SIZE];
-        private final long[] rejectedFluidAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-        private final int[] rejectedFluidAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+        private FluidStackKey[] rejectedFluidAccepts;
+        private long[] rejectedFluidAcceptUntil;
+        private int[] rejectedFluidAcceptFailures;
         private int rejectedFluidAcceptCursor;
-        private final ChemicalStackView[] rejectedChemicalAccepts = new ChemicalStackView[REJECTED_ACCEPT_CACHE_SIZE];
-        private final long[] rejectedChemicalAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-        private final int[] rejectedChemicalAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+        private ChemicalStackView[] rejectedChemicalAccepts;
+        private long[] rejectedChemicalAcceptUntil;
+        private int[] rejectedChemicalAcceptFailures;
         private int rejectedChemicalAcceptCursor;
+        private boolean chemicalSupported;
+        private boolean manaSupported;
+        private boolean sourceSupported;
+        private boolean chemicalSupportKnown;
+        private boolean manaSupportKnown;
+        private boolean sourceSupportKnown;
 
-        private CachedEndpoint(SkyNodeBlockEntity node, Direction direction) {
+        private CachedEndpoint(NetworkEndpointBlockEntity node, Direction direction) {
             this.node = node;
             this.direction = direction;
             this.targetPos = node.getTargetPos(direction);
             this.accessSide = node.getAccessSide(direction);
-            clearItemSlotCaches();
-            clearFluidTankCaches();
-            clearChemicalTankCaches();
-            for (int i = 0; i < rejectedItems.length; i++) {
-                rejectedItems[i] = ItemStack.EMPTY;
-            }
         }
 
-        public SkyNodeBlockEntity node() {
+        private void enableItemCaching() {
+            if (preferredItemSlots != null) return;
+            preferredItemSlots = new int[SkyLogisticsConfig.preferredItemSlotCacheSize()];
+            preferredItemSlotMisses = new int[preferredItemSlots.length];
+            emptyItemSlots = new int[EMPTY_ITEM_SLOT_CACHE_SIZE];
+            emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
+            rejectedItems = new ItemStack[REJECTED_ITEM_CACHE_SIZE];
+            rejectedItemUntil = new long[REJECTED_ITEM_CACHE_SIZE];
+            rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            clearItemSlotCaches();
+            for (int i = 0; i < rejectedItems.length; i++) rejectedItems[i] = ItemStack.EMPTY;
+        }
+
+        private void enableFluidCaching() {
+            if (preferredFluidTanks != null) return;
+            preferredFluidTanks = new int[PREFERRED_FLUID_TANK_CACHE_SIZE];
+            preferredFluidTankMisses = new int[PREFERRED_FLUID_TANK_CACHE_SIZE];
+            emptyFluidTanks = new int[EMPTY_FLUID_TANK_CACHE_SIZE];
+            emptyFluidTankUntil = new long[EMPTY_FLUID_TANK_CACHE_SIZE];
+            rejectedFluidAccepts = new FluidStackKey[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedFluidAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedFluidAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            clearFluidTankCaches();
+        }
+
+        private void enableChemicalCaching() {
+            if (preferredChemicalTanks != null) return;
+            preferredChemicalTanks = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
+            preferredChemicalTankMisses = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
+            emptyChemicalTanks = new int[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
+            emptyChemicalTankUntil = new long[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
+            rejectedChemicalAccepts = new ChemicalStackView[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedChemicalAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
+            rejectedChemicalAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            clearChemicalTankCaches();
+        }
+
+        private boolean detectChemicalSupport(NetworkEndpointBlockEntity node, Direction direction) {
+            if (!chemicalSupportKnown) {
+                chemicalSupported = node.supportsChemicalEndpoint(direction);
+                chemicalSupportKnown = true;
+            }
+            return chemicalSupported;
+        }
+
+        private boolean detectManaSupport(NetworkEndpointBlockEntity node, Direction direction) {
+            if (!manaSupportKnown) {
+                manaSupported = node.supportsManaEndpoint(direction);
+                manaSupportKnown = true;
+            }
+            return manaSupported;
+        }
+
+        private boolean detectSourceSupport(NetworkEndpointBlockEntity node, Direction direction) {
+            if (!sourceSupportKnown) {
+                sourceSupported = node.supportsSourceEndpoint(direction);
+                sourceSupportKnown = true;
+            }
+            return sourceSupported;
+        }
+
+        public boolean supportsChemical() {
+            return chemicalSupported;
+        }
+
+        public boolean supportsMana() {
+            return manaSupported;
+        }
+
+        public boolean supportsSource() {
+            return sourceSupported;
+        }
+
+        public NetworkEndpointBlockEntity node() {
             return node;
         }
 
@@ -966,7 +1577,8 @@ public final class SkyNetworkRegistry {
         }
 
         public ChemicalHandlerBridge chemicalHandler(long gameTime) {
-            if (!canTryChemicals(gameTime) || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
+            if (!node.supportsChemicalEndpoint(direction) || !canTryChemicals(gameTime)
+                    || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
                 return null;
             }
             ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
@@ -1020,7 +1632,8 @@ public final class SkyNetworkRegistry {
         }
 
         public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!canTryMana(gameTime) || !SkyLogisticsConfig.allowEnergyManaTransfer()
+            if (!node.supportsManaEndpoint(direction) || !canTryMana(gameTime)
+                    || !SkyLogisticsConfig.allowEnergyManaTransfer()
                     || !BotaniaCompat.isLoaded()) {
                 return null;
             }
@@ -1051,7 +1664,8 @@ public final class SkyNetworkRegistry {
         }
 
         public SourceHandlerBridge sourceHandler(long gameTime) {
-            if (!canTrySource(gameTime) || !SkyLogisticsConfig.allowEnergySourceTransfer()
+            if (!node.supportsSourceEndpoint(direction) || !canTrySource(gameTime)
+                    || !SkyLogisticsConfig.allowEnergySourceTransfer()
                     || !ArsNouveauCompat.isLoaded()) {
                 return null;
             }

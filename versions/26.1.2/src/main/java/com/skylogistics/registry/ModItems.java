@@ -28,6 +28,12 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), blockItemProperties("fluid_vault")));
     public static final DeferredHolder<Item, SkyNodeBlockItem> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), blockItemProperties("sky_node")));
+    public static final DeferredHolder<Item, BlockItem> SIMPLE_ITEM_PIPE = ITEMS.register("simple_item_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_ITEM_PIPE.get(), blockItemProperties("simple_item_pipe")));
+    public static final DeferredHolder<Item, BlockItem> SIMPLE_FLUID_PIPE = ITEMS.register("simple_fluid_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_FLUID_PIPE.get(), blockItemProperties("simple_fluid_pipe")));
+    public static final DeferredHolder<Item, BlockItem> SIMPLE_ENERGY_PIPE = ITEMS.register("simple_energy_pipe",
+            () -> new BlockItem(ModBlocks.SIMPLE_ENERGY_PIPE.get(), blockItemProperties("simple_energy_pipe")));
     public static final DeferredHolder<Item, BlockItem> SKY_ME_INTERFACE = ITEMS.register("sky_me_interface",
             () -> new BlockItem(ModBlocks.SKY_ME_INTERFACE.get(), blockItemProperties("sky_me_interface")));
     public static final DeferredHolder<Item, BlockItem> SKY_RS_INTERFACE = ITEMS.register("sky_rs_interface",
@@ -51,6 +57,8 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(itemProperties("configurator").stacksTo(1)));
+    public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
+            () -> new Item(itemProperties("sky_wrench").stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",
             () -> new FilterListItem(itemProperties("filter_list").stacksTo(1)));
     public static final DeferredHolder<Item, TagFilterListItem> TAG_FILTER_LIST = ITEMS.register("tag_filter_list",

@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="244" viewBox="0 -5 960 610">
+  <!-- The 4x PNG keeps geometry as nearest-neighbor 4x and redraws text from
+       Minecraft 1.20.1's official Unihex glyph source at framebuffer scale. -->
+  <defs>
+    <linearGradient id="world" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111416"/>
+      <stop offset=".55" stop-color="#090b0c"/>
+      <stop offset="1" stop-color="#030405"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#191c1e"/>
+      <stop offset=".18" stop-color="#0c0e0f"/>
+      <stop offset="1" stop-color="#060708"/>
+    </linearGradient>
+    <linearGradient id="active" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#174651"/>
+      <stop offset="1" stop-color="#0e2930"/>
+    </linearGradient>
+    <linearGradient id="buttonBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24282a"/>
+      <stop offset=".14" stop-color="#171a1c"/>
+      <stop offset="1" stop-color="#0b0d0e"/>
+    </linearGradient>
+    <linearGradient id="buttonActive" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d5a67"/>
+      <stop offset=".2" stop-color="#17434d"/>
+      <stop offset="1" stop-color="#102b32"/>
+    </linearGradient>
+    <linearGradient id="contentBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101315"/>
+      <stop offset="1" stop-color="#080a0b"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity=".62"/>
+    </filter>
+    <style>
+      text { font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; fill: #d8dcde; }
+      .title { font-size: 18px; font-weight: 600; fill: #ffe58a; }
+      .heading { font-size: 13px; font-weight: 600; fill: #edf0f1; }
+      .body { font-size: 12px; fill: #d1d5d7; }
+      .small { font-size: 10px; fill: #9ca4a8; }
+      .tiny { font-size: 9px; fill: #858d91; }
+      .cyan { fill: #70e3ed; }
+      .gold { fill: #ffd46e; }
+      .orange { fill: #ffb46c; }
+      .muted { fill: #747d81; }
+      .button { fill: url(#buttonBg); stroke: #596267; stroke-width: 1.5; }
+      .button-active { fill: url(#buttonActive); stroke: #69e4ee; stroke-width: 1.5; }
+      .content { fill: url(#contentBg); stroke: #424a4e; stroke-width: 1.5; }
+      .rule { stroke: #383f42; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <!-- Dimmed Minecraft world -->
+  <rect x="0" y="-5" width="960" height="610" fill="url(#world)"/>
+  <g opacity=".2" shape-rendering="crispEdges">
+    <rect x="0" y="405" width="960" height="195" fill="#1b382c"/>
+    <rect x="0" y="470" width="270" height="130" fill="#294b38"/>
+    <rect x="84" y="360" width="110" height="240" fill="#254433"/>
+    <rect x="720" y="390" width="240" height="210" fill="#21402f"/>
+    <rect x="805" y="318" width="88" height="282" fill="#2a4a38"/>
+    <rect x="455" y="90" width="7" height="370" fill="#6ce0eb"/>
+    <rect x="462" y="90" width="3" height="370" fill="#d8ffff"/>
+  </g>
+  <rect x="0" y="-5" width="960" height="610" fill="#010203" opacity=".58"/>
+
+  <!-- Main screen -->
+  <g filter="url(#shadow)">
+    <rect x="52" y="34" width="856" height="522" rx="4" fill="url(#panel)" stroke="#7b858a" stroke-width="2"/>
+    <rect x="53" y="35" width="854" height="3" fill="#bac0c2"/>
+  </g>
+
+  <!-- Header: title only -->
+  <rect x="52" y="34" width="856" height="52" fill="#0b0d0e"/>
+  <line x1="52" y1="86" x2="908" y2="86" class="rule"/>
+  <g transform="translate(72 49)">
+    <path d="M0 12 L10 0 L20 12 L15 12 L15 21 L5 21 L5 12 Z" fill="#5ed1dd"/>
+    <rect x="8" y="11" width="4" height="10" fill="#ffe278"/>
+  </g>
+  <text x="104" y="58" class="title">天穹配置器</text>
+  <text x="104" y="80" class="small">线路连接与放置配置</text>
+  <text x="884" y="65" text-anchor="end" class="small">所有修改即时生效</text>
+
+  <!-- Current line bar -->
+  <g transform="translate(70 101)">
+    <rect width="820" height="84" rx="2" class="content"/>
+    <text x="16" y="23" class="small">当前线路</text>
+    <rect x="84" y="9" width="244" height="30" rx="2" fill="#0b0d0e" stroke="#515c61"/>
+    <circle cx="100" cy="24" r="4" fill="#68dda1"/>
+    <text x="112" y="29" class="heading">主网络</text>
+    <text x="344" y="28" class="small">线路序号</text>
+    <text x="398" y="29" class="heading cyan">3 / 8</text>
+
+    <!-- Existing five line actions -->
+    <g transform="translate(500 9)">
+      <rect width="46" height="30" rx="2" class="button"/>
+      <text x="23" y="20" text-anchor="middle" class="body">|&lt;</text>
+      <rect x="52" width="46" height="30" rx="2" class="button"/>
+      <text x="75" y="20" text-anchor="middle" class="body">&lt;</text>
+      <rect x="104" width="54" height="30" rx="2" class="button-active"/>
+      <text x="131" y="20" text-anchor="middle" class="body cyan">&gt;+</text>
+      <rect x="164" width="46" height="30" rx="2" class="button"/>
+      <text x="187" y="20" text-anchor="middle" class="body">&gt;|</text>
+      <rect x="216" width="42" height="30" rx="2" class="button"/>
+      <text x="237" y="20" text-anchor="middle" class="body">×</text>
+    </g>
+
+    <!-- Existing line monitor values -->
+    <line x1="16" y1="50" x2="804" y2="50" class="rule"/>
+    <g transform="translate(16 60)">
+      <rect width="116" height="17" rx="8" fill="#171b1d"/>
+      <text x="12" y="12" class="tiny">节点</text><text x="92" y="12" text-anchor="end" class="small cyan">5</text>
+      <rect x="124" width="116" height="17" rx="8" fill="#171b1d"/>
+      <text x="136" y="12" class="tiny">抽取</text><text x="216" y="12" text-anchor="end" class="small orange">2</text>
+      <rect x="248" width="116" height="17" rx="8" fill="#171b1d"/>
+      <text x="260" y="12" class="tiny">存入</text><text x="340" y="12" text-anchor="end" class="small cyan">3</text>
+      <text x="788" y="12" text-anchor="end" class="tiny">线路名可直接编辑</text>
+    </g>
+  </g>
+
+  <!-- Left: existing line detail list, reorganized as a wide table -->
+  <g transform="translate(70 199)">
+    <rect width="548" height="339" rx="2" class="content"/>
+    <text x="16" y="25" class="heading">线路连接面</text>
+    <text x="532" y="25" text-anchor="end" class="small">1–5 / 8</text>
+
+    <rect x="12" y="39" width="516" height="26" fill="#171a1c"/>
+    <text x="54" y="56" class="tiny">目标</text>
+    <text x="246" y="56" class="tiny">模式</text>
+    <text x="314" y="56" class="tiny">资源</text>
+    <text x="374" y="56" class="tiny">优先</text>
+    <text x="442" y="56" class="tiny">红石</text>
+
+    <g transform="translate(12 65)">
+      <rect width="516" height="49" fill="#0d0f10"/>
+      <circle cx="14" cy="24" r="4" fill="#67dda0"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
+      <path d="M35 18 h18 v17 h-18z M38 14 h12 v6 h-12z" fill="#b77d47"/>
+      <text x="70" y="17" class="body">木箱</text>
+      <text x="70" y="43" class="small">128,64,32 · 主世界</text>
+      <text x="246" y="29" class="small orange">抽取</text>
+      <text x="314" y="29" class="small">物－－</text>
+      <text x="386" y="29" text-anchor="middle" class="small">P0</text>
+      <text x="442" y="29" class="small">忽略</text>
+    </g>
+
+    <g transform="translate(12 114)">
+      <rect width="516" height="49" fill="#151719"/>
+      <circle cx="14" cy="24" r="4" fill="#67dda0"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
+      <path d="M35 15 h18 v21 h-18z M38 19 h12 M38 24 h12 M38 29 h12" stroke="#79a4dd" fill="none"/>
+      <text x="70" y="17" class="body">富集仓</text>
+      <text x="70" y="43" class="small">131,64,32 · 主世界</text>
+      <text x="246" y="29" class="small cyan">存入</text>
+      <text x="314" y="29" class="small">物流－</text>
+      <text x="386" y="29" text-anchor="middle" class="small">P5</text>
+      <text x="442" y="29" class="small">高信号</text>
+    </g>
+
+    <g transform="translate(12 163)">
+      <rect width="516" height="49" fill="#0d0f10"/>
+      <circle cx="14" cy="24" r="4" fill="#67dda0"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
+      <path d="M35 14 h18 v22 h-18z M39 18 h10 v14 h-10z" stroke="#65a5b1" fill="none"/>
+      <text x="70" y="17" class="body">物品库</text>
+      <text x="70" y="43" class="small">133,64,34 · 主世界</text>
+      <text x="246" y="29" class="small cyan">存入</text>
+      <text x="314" y="29" class="small">物流－</text>
+      <text x="386" y="29" text-anchor="middle" class="small">P0</text>
+      <text x="442" y="29" class="small">低信号</text>
+    </g>
+
+    <g transform="translate(12 212)">
+      <rect width="516" height="49" fill="#151719"/>
+      <circle cx="14" cy="24" r="4" fill="#67dda0"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
+      <path d="M44 12 l-9 15 h8 l-3 11 l13-18 h-8 l4-8z" fill="#f0cd5c"/>
+      <text x="70" y="17" class="body">能量接口</text>
+      <text x="70" y="43" class="small">131,65,32 · 主世界</text>
+      <text x="246" y="29" class="small orange">抽取</text>
+      <text x="314" y="29" class="small">－－电</text>
+      <text x="386" y="29" text-anchor="middle" class="small">P2</text>
+      <text x="442" y="29" class="small">忽略</text>
+    </g>
+
+    <g transform="translate(12 261)">
+      <rect width="516" height="49" fill="#0d0f10"/>
+      <circle cx="14" cy="24" r="4" fill="#67dda0"/>
+      <rect x="28" y="9" width="32" height="32" fill="#202426" stroke="#56636a"/>
+      <circle cx="44" cy="20" r="7" fill="#c28d67"/>
+      <path d="M32 36 q12-14 24 0" fill="#56778c"/>
+      <text x="70" y="17" class="body">玩家 / River</text>
+      <text x="70" y="43" class="small">项链连接 · 主世界</text>
+      <text x="246" y="29" class="small cyan">存入</text>
+      <text x="314" y="29" class="small">物－－</text>
+      <text x="386" y="29" text-anchor="middle" class="small">P0</text>
+      <text x="442" y="29" class="small">忽略</text>
+    </g>
+
+    <!-- Existing scrolling behavior represented by a scrollbar -->
+    <rect x="532" y="66" width="4" height="244" fill="#191d1f"/>
+    <rect x="532" y="66" width="4" height="122" fill="#67dbe5"/>
+    <text x="16" y="328" class="tiny">滚轮查看更多连接面 · 悬停图标查看目标名称</text>
+  </g>
+
+  <!-- Right: only existing configuration controls -->
+  <g transform="translate(630 199)">
+    <rect width="260" height="339" rx="2" class="content"/>
+    <text x="16" y="25" class="heading">放置配置</text>
+    <text x="244" y="25" text-anchor="end" class="small">当前配置</text>
+    <line x1="16" y1="38" x2="244" y2="38" class="rule"/>
+
+    <text x="16" y="58" class="small">资源</text>
+    <g transform="translate(16 68)">
+      <rect width="108" height="34" rx="2" class="button-active"/>
+      <circle cx="17" cy="17" r="5" fill="#70e3ed"/>
+      <text x="31" y="22" class="body cyan">物品</text>
+      <rect x="120" width="108" height="34" rx="2" class="button-active"/>
+      <path d="M137 9 q-9 12 0 18 q9-6 0-18z" fill="#71a9e9"/>
+      <text x="151" y="22" class="body cyan">流体</text>
+      <rect y="42" width="108" height="34" rx="2" class="button"/>
+      <path d="M19 50 l-8 12 h7 l-3 8 l12-14 h-7 l4-6z" fill="#f0cd5c"/>
+      <text x="31" y="64" class="body">能量</text>
+      <rect x="120" y="42" width="108" height="34" rx="2" class="button"/>
+      <path d="M135 51 a11 11 0 1 0 11 11" fill="none" stroke="#85a6ac" stroke-width="1.5"/>
+      <path d="M145 49 v7 h-7" fill="none" stroke="#85a6ac" stroke-width="1.5"/>
+      <text x="151" y="64" class="body">自动检测</text>
+    </g>
+
+    <text x="16" y="164" class="small">红石</text>
+    <rect x="16" y="174" width="228" height="34" rx="2" class="button"/>
+    <circle cx="34" cy="191" r="5" fill="#a85c58"/>
+    <text x="48" y="196" class="body">忽略</text>
+    <text x="226" y="196" text-anchor="end" class="small">点击切换 ›</text>
+
+    <text x="16" y="230" class="small">槽数</text>
+    <g transform="translate(16 240)">
+      <rect width="42" height="34" rx="2" class="button"/><text x="21" y="22" text-anchor="middle" class="body">−</text>
+      <rect x="48" width="132" height="34" rx="2" fill="#0b1b22" stroke="#2c5059"/>
+      <text x="114" y="22" text-anchor="middle" class="body">不限制</text>
+      <rect x="186" width="42" height="34" rx="2" class="button"/><text x="207" y="22" text-anchor="middle" class="body">+</text>
+    </g>
+
+    <text x="16" y="296" class="small">优先级</text>
+    <g transform="translate(16 306)">
+      <rect width="42" height="26" rx="2" class="button"/><text x="21" y="18" text-anchor="middle" class="body">−</text>
+      <rect x="48" width="132" height="26" rx="2" fill="#0b1b22" stroke="#2c5059"/>
+      <text x="114" y="18" text-anchor="middle" class="body">0</text>
+      <rect x="186" width="42" height="26" rx="2" class="button"/><text x="207" y="18" text-anchor="middle" class="body">+</text>
+    </g>
+  </g>
+
+  <text x="480" y="578" text-anchor="middle" class="tiny">改版样例 · 功能与当前配置器一一对应 · 仅重设布局与视觉层级</text>
+</svg>
