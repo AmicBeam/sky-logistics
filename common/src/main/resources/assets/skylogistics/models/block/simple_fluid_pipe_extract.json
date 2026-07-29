@@ -1,1 +1,1 @@
-{"parent":"skylogistics:block/simple_pipe_extract_geometry","textures":{"pipe":"skylogistics:block/simple_fluid_pipe","joint":"skylogistics:block/simple_pipe_joint"}}
+{"parent":"skylogistics:block/simple_pipe_extract_geometry","textures":{"pipe":"skylogistics:block/simple_fluid_pipe","joint":"skylogistics:block/simple_fluid_pipe_joint"}}
