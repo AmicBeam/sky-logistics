@@ -39,7 +39,7 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
         int connectedExtractMask = connectedExtractMask(state, extractMask);
         if (connectedExtractMask != 0) {
             for (int index = firstOriginalPart; index < output.size(); index++) {
-                output.set(index, new EndpointFilteredPart(output.get(index), connectedExtractMask));
+                output.set(index, new ArmFilteredPart(output.get(index), connectedExtractMask));
             }
         }
         for (Direction direction : Direction.values()) {
@@ -104,23 +104,33 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
         return connected;
     }
 
-    private static boolean isEndpointQuad(BakedQuad quad, int extractMask) {
-        Direction direction = quad.direction();
-        if ((extractMask & sideMask(direction)) == 0) {
-            return false;
+    private static boolean isCoveredArm(BakedQuad quad, int extractMask) {
+        for (Direction direction : Direction.values()) {
+            if ((extractMask & sideMask(direction)) != 0 && isArmQuad(quad, direction)) {
+                return true;
+            }
         }
+        return false;
+    }
+
+    private static boolean isArmQuad(BakedQuad quad, Direction direction) {
         for (int vertex = 0; vertex < 4; vertex++) {
             float x = quad.position(vertex).x();
             float y = quad.position(vertex).y();
             float z = quad.position(vertex).z();
-            float boundary = direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE ? 0.0F : 1.0F;
             float coordinate = axisCoordinate(direction.getAxis(), x, y, z);
-            if (Math.abs(coordinate - boundary) > 0.0001F
+            if (!insideArmAxis(direction, coordinate)
                     || !insideEndpoint(direction.getAxis(), x, y, z)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private static boolean insideArmAxis(Direction direction, float coordinate) {
+        return direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE
+                ? coordinate >= -0.0001F && coordinate <= 4.0F / 16.0F + 0.0001F
+                : coordinate >= 12.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
     }
 
     private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
@@ -139,14 +149,14 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
         };
     }
 
-    private record EndpointFilteredPart(BlockStateModelPart original, int extractMask)
+    private record ArmFilteredPart(BlockStateModelPart original, int extractMask)
             implements BlockStateModelPart {
         @Override
         public List<BakedQuad> getQuads(Direction side) {
             List<BakedQuad> quads = original.getQuads(side);
             ArrayList<BakedQuad> filtered = new ArrayList<>(quads.size());
             for (BakedQuad quad : quads) {
-                if (!isEndpointQuad(quad, extractMask)) {
+                if (!isCoveredArm(quad, extractMask)) {
                     filtered.add(quad);
                 }
             }

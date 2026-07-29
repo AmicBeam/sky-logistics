@@ -63,7 +63,7 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         }
         ArrayList<BakedQuad> combined = new ArrayList<>(base.size());
         for (BakedQuad quad : base) {
-            if (!isCoveredEndpoint(quad, state, mask)) {
+            if (!isCoveredArm(quad, state, mask)) {
                 combined.add(quad);
             }
         }
@@ -76,14 +76,18 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         return combined;
     }
 
-    private static boolean isCoveredEndpoint(BakedQuad quad, BlockState state, int extractMask) {
-        Direction direction = quad.getDirection();
-        return (extractMask & (1 << direction.ordinal())) != 0
-                && state.getValue(SimplePipeBlock.connectionProperty(direction))
-                && isEndpointQuad(quad, direction);
+    private static boolean isCoveredArm(BakedQuad quad, BlockState state, int extractMask) {
+        for (Direction direction : Direction.values()) {
+            if ((extractMask & (1 << direction.ordinal())) != 0
+                    && state.getValue(SimplePipeBlock.connectionProperty(direction))
+                    && isArmQuad(quad, direction)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private static boolean isEndpointQuad(BakedQuad quad, Direction direction) {
+    private static boolean isArmQuad(BakedQuad quad, Direction direction) {
         int[] vertices = quad.getVertices();
         int stride = vertices.length / 4;
         for (int vertex = 0; vertex < 4; vertex++) {
@@ -91,14 +95,19 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
             float x = Float.intBitsToFloat(vertices[offset]);
             float y = Float.intBitsToFloat(vertices[offset + 1]);
             float z = Float.intBitsToFloat(vertices[offset + 2]);
-            float boundary = direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE ? 0.0F : 1.0F;
             float axis = axisCoordinate(direction.getAxis(), x, y, z);
-            if (Math.abs(axis - boundary) > 0.0001F
+            if (!insideArmAxis(direction, axis)
                     || !insideEndpoint(direction.getAxis(), x, y, z)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private static boolean insideArmAxis(Direction direction, float coordinate) {
+        return direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE
+                ? coordinate >= -0.0001F && coordinate <= 4.0F / 16.0F + 0.0001F
+                : coordinate >= 12.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
     }
 
     private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
