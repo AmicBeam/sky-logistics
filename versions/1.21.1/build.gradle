@@ -5,6 +5,8 @@ plugins {
     id 'net.neoforged.moddev' version '1.0.14'
 }
 
+apply from: file('../../gradle/version-consistency.gradle')
+
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
@@ -200,7 +202,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url = "file://${project.projectDir}/mcmodsrepo"
         }
     }
 }

@@ -44,7 +44,8 @@ public final class SkyNecklaceTicker {
 
     public static void onServerTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
-        if (server.overworld().getGameTime() % SkyLogisticsConfig.skyNecklaceTickInterval() != 0L) {
+        if (server.overworld() == null
+                || server.overworld().getGameTime() % SkyLogisticsConfig.skyNecklaceTickInterval() != 0L) {
             return;
         }
         process(server);

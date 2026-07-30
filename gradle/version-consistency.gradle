@@ -1,0 +1,95 @@
+import groovy.json.JsonSlurper
+
+def supportedVersions = ['1.20.1', '1.21.1', '26.1.2']
+def repositoryRoot = project.projectDir.toPath().resolve('../..').normalize().toFile()
+def versionRoot = { String version -> new File(repositoryRoot, "versions/${version}") }
+
+def registeredIds = { String version ->
+    def ids = [] as Set
+    fileTree(new File(versionRoot(version), 'src/main/java/com/skylogistics/registry')) {
+        include '*.java'
+    }.files.each { source ->
+        (source.getText('UTF-8') =~ /(?s)\.register\(\s*"([^"]+)"/).each { match ->
+            ids.add(match[1])
+        }
+    }
+    ids
+}
+
+def configKeys = { String version ->
+    def source = new File(versionRoot(version),
+            'src/main/java/com/skylogistics/config/SkyLogisticsConfig.java').getText('UTF-8')
+    def keys = [] as Set
+    (source =~ /(?s)\.define(?:InRange)?\(\s*"([^"]+)"/).each { match ->
+        keys.add(match[1])
+    }
+    keys
+}
+
+def recipeIds = { String version ->
+    def dataRoot = new File(versionRoot(version), 'src/main/resources/data/skylogistics')
+    def ids = [] as Set
+    ['recipe', 'recipes'].each { directory ->
+        fileTree(new File(dataRoot, directory)) {
+            include '**/*.json'
+        }.files.each { recipe ->
+            ids.add(new File(dataRoot, directory).toPath().relativize(recipe.toPath()).toString())
+        }
+    }
+    ids
+}
+
+def translationKeys = { String version, String language ->
+    def languageFile = new File(versionRoot(version),
+            "src/main/resources/assets/skylogistics/lang/${language}.json")
+    (new JsonSlurper().parse(languageFile) as Map).keySet() as Set
+}
+
+def assertSameKeys = { String label, Set expected, Set actual, String version ->
+    def missing = (expected - actual).sort()
+    def extra = (actual - expected).sort()
+    if (!missing.isEmpty() || !extra.isEmpty()) {
+        throw new GradleException(
+                "${label} differs in ${version}; missing=${missing}, extra=${extra}")
+    }
+}
+
+tasks.register('checkVersionConsistency') {
+    group = 'verification'
+    description = 'Checks gameplay-facing IDs and localization keys across supported versions.'
+
+    inputs.files(supportedVersions.collectMany { version ->
+        fileTree(new File(versionRoot(version), 'src/main')) {
+            include 'java/com/skylogistics/registry/*.java'
+            include 'java/com/skylogistics/config/SkyLogisticsConfig.java'
+            include 'resources/assets/skylogistics/lang/*.json'
+            include 'resources/data/skylogistics/recipe/**/*.json'
+            include 'resources/data/skylogistics/recipes/**/*.json'
+        }.files
+    })
+
+    doLast {
+        def baseline = supportedVersions.first()
+        def baselineRegistrations = registeredIds(baseline)
+        def baselineRecipes = recipeIds(baseline)
+        def versionSpecificConfigKeys = ['allowBeyondDimensionsManaTransfer'] as Set
+        def baselineConfig = configKeys(baseline) - versionSpecificConfigKeys
+        def baselineTranslations = translationKeys(baseline, 'en_us')
+
+        supportedVersions.each { version ->
+            assertSameKeys('Registry IDs', baselineRegistrations, registeredIds(version), version)
+            assertSameKeys('Recipe IDs', baselineRecipes, recipeIds(version), version)
+            assertSameKeys('Config keys', baselineConfig,
+                    configKeys(version) - versionSpecificConfigKeys, version)
+
+            def english = translationKeys(version, 'en_us')
+            def chinese = translationKeys(version, 'zh_cn')
+            assertSameKeys('English translation keys', baselineTranslations, english, version)
+            assertSameKeys('Chinese translation keys', baselineTranslations, chinese, version)
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('checkVersionConsistency')
+}

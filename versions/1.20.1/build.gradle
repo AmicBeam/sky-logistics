@@ -27,6 +27,7 @@ plugins {
 }
 
 apply plugin: 'net.minecraftforge.gradle'
+apply from: file('../../gradle/version-consistency.gradle')
 
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
@@ -283,7 +284,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url = "file://${project.projectDir}/mcmodsrepo"
         }
     }
 }

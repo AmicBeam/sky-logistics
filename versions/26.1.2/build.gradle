@@ -5,6 +5,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
+apply from: file('../../gradle/version-consistency.gradle')
+
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
@@ -53,6 +55,11 @@ neoForge {
         "${mod_id}" {
             sourceSet(sourceSets.main)
         }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods."${mod_id}"
     }
 }
 
@@ -132,6 +139,7 @@ sourceSets.main.java.srcDir 'src/jei/java'
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "net.neoforged:testframework:${neo_version}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "maven.modrinth:ae2:${ae2_version}"
     compileOnly "maven.modrinth:refined-storage:${refined_storage_version}"
@@ -195,7 +203,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url = "file://${project.projectDir}/mcmodsrepo"
         }
     }
 }
@@ -207,4 +215,5 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    maxHeapSize = '2G'
 }

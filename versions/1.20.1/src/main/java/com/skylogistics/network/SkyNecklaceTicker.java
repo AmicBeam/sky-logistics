@@ -47,7 +47,8 @@ public final class SkyNecklaceTicker {
             return;
         }
         MinecraftServer server = event.getServer();
-        if (server.overworld().getGameTime() % SkyLogisticsConfig.skyNecklaceTickInterval() != 0L) {
+        if (server.overworld() == null
+                || server.overworld().getGameTime() % SkyLogisticsConfig.skyNecklaceTickInterval() != 0L) {
             return;
         }
         process(server);

@@ -49,6 +49,9 @@ public final class SkyNetworkTicker {
     }
 
     private static void process(MinecraftServer server) {
+        if (server.overworld() == null) {
+            return;
+        }
         long gameTime = server.overworld().getGameTime();
         int serverOpsPerTick = SkyLogisticsConfig.serverOpsPerTick();
         int lineOpsPerTick = SkyLogisticsConfig.lineOpsPerTick();
