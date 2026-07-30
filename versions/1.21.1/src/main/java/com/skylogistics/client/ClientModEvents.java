@@ -8,8 +8,6 @@ import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
@@ -41,7 +39,6 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            ItemBlockRenderTypes.setRenderLayer(ModBlocks.CELESTIAL_GLASS.get(), RenderType.translucent());
             BlockEntityRenderers.register(ModBlockEntities.OFFERING_ALTAR.get(), SingleSlotDisplayRenderer::new);
             BlockEntityRenderers.register(ModBlockEntities.OFFERING_TABLE.get(), SingleSlotDisplayRenderer::new);
             ItemProperties.register(ModItems.EULOGIA_CRYSTAL.get(),

@@ -330,7 +330,7 @@ public class FilterListItem extends Item {
             if (tagKeys.isEmpty()) {
                 return CompiledFilter.ALLOW_ALL;
             }
-            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys.toArray(TagKey[]::new));
+            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys);
         }
         boolean whitelist = isWhitelist(filterList);
         List<ItemStack> filters = getFilters(filterList);
@@ -435,7 +435,7 @@ public class FilterListItem extends Item {
         private static final int HASH_LOOKUP_THRESHOLD = 5;
         private static final Entry[] NO_ENTRIES = new Entry[0];
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
-        private static final TagKey<Item>[] NO_TAG_ENTRIES = new TagKey[0];
+        private static final List<TagKey<Item>> NO_TAG_ENTRIES = List.of();
         public static final CompiledFilter ALLOW_ALL = new CompiledFilter(Mode.ALLOW_ALL, true, false, false,
                 NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, null, null);
 
@@ -445,12 +445,12 @@ public class FilterListItem extends Item {
         private final boolean matchDurability;
         private final Entry[] entries;
         private final FluidEntry[] fluidEntries;
-        private final TagKey<Item>[] tagEntries;
+        private final List<TagKey<Item>> tagEntries;
         private final Set<ItemFilterKey> itemKeys;
         private final Set<FluidStackKey> fluidKeys;
 
         private CompiledFilter(Mode mode, boolean whitelist, boolean matchNbt, boolean matchDurability,
-                Entry[] entries, FluidEntry[] fluidEntries, TagKey<Item>[] tagEntries, Set<ItemFilterKey> itemKeys,
+                Entry[] entries, FluidEntry[] fluidEntries, List<TagKey<Item>> tagEntries, Set<ItemFilterKey> itemKeys,
                 Set<FluidStackKey> fluidKeys) {
             this.mode = mode;
             this.whitelist = whitelist;
@@ -469,8 +469,9 @@ public class FilterListItem extends Item {
                     NO_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
         }
 
-        private static CompiledFilter tagList(boolean whitelist, TagKey<Item>[] tagEntries) {
-            return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES, tagEntries,
+        private static CompiledFilter tagList(boolean whitelist, List<TagKey<Item>> tagEntries) {
+            return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES,
+                    List.copyOf(tagEntries),
                     null, null);
         }
 
@@ -488,7 +489,7 @@ public class FilterListItem extends Item {
         }
 
         private boolean matchesList(ItemStack candidate) {
-            if (entries.length == 0 && tagEntries.length == 0) {
+            if (entries.length == 0 && tagEntries.isEmpty()) {
                 return true;
             }
             boolean matched = itemKeys == null
@@ -544,7 +545,7 @@ public class FilterListItem extends Item {
         }
 
         public boolean hasItemRules() {
-            return entries.length > 0 || tagEntries.length > 0;
+            return entries.length > 0 || !tagEntries.isEmpty();
         }
 
         public List<ItemStack> itemSamples() {
@@ -559,14 +560,7 @@ public class FilterListItem extends Item {
         }
 
         public List<TagKey<Item>> itemTags() {
-            if (tagEntries.length == 0) {
-                return List.of();
-            }
-            List<TagKey<Item>> tags = new ArrayList<>(tagEntries.length);
-            for (TagKey<Item> tag : tagEntries) {
-                tags.add(tag);
-            }
-            return tags;
+            return tagEntries;
         }
 
         public boolean hasFluidRules() {

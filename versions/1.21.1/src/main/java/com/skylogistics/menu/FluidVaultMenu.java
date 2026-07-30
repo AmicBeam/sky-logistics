@@ -226,7 +226,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
 
         @Override
         public FluidStack drain(FluidStack resource, FluidAction action) {
-            if (resource.isEmpty() || !resource.isFluidEqual(viewedFluid)) {
+            if (resource.isEmpty() || !FluidStack.isSameFluidSameComponents(resource, viewedFluid)) {
                 return FluidStack.EMPTY;
             }
             return vault.drainForPlayer(viewedFluid, resource.getAmount(), action);

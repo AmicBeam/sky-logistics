@@ -43,11 +43,9 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     private static final int GOLD = 0xFFFFE6A6;
     private static final int MUTED = 0xFFE0E5E7;
     private static final int INPUT_BORDER = 0xFFC8D0D2;
-    private final IDrawable background;
     private final IDrawable icon;
 
     public SkyOfferingCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableItemLike(ModItems.OFFERING_ALTAR.get());
     }
 
@@ -62,8 +60,13 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return HEIGHT;
     }
 
     @Override

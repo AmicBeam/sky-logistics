@@ -213,6 +213,9 @@ def beyondDimensionsCompatJar = beyondDimensionsCompatPath ? file(beyondDimensio
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "mekanism:Mekanism:${mekanism_version}"
     if (ae2CompatJar != null && ae2CompatJar.exists()) {
         compileOnly files(ae2CompatJar)
@@ -287,4 +290,9 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs.addAll('-Xlint:deprecation', '-Xlint:unchecked')
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }

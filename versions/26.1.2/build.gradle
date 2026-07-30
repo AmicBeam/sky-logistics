@@ -89,6 +89,10 @@ sourceSets {
     main {
         resources.srcDir '../../common/src/main/resources'
     }
+    test {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
+    }
 }
 
 def commonResourcesDir = file('../../common/src/main/resources').absolutePath
@@ -126,6 +130,9 @@ sourceSets.main.java.srcDir 'src/jade/java'
 sourceSets.main.java.srcDir 'src/jei/java'
 
 dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "maven.modrinth:ae2:${ae2_version}"
     compileOnly "maven.modrinth:refined-storage:${refined_storage_version}"
     compileOnly "maven.modrinth:beyonddimensions:${beyond_dimensions_version}"
@@ -196,4 +203,8 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll('-Xlint:deprecation', '-Xlint:unchecked')
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }

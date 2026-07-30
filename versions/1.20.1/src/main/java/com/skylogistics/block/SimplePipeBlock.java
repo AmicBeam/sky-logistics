@@ -151,6 +151,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
             LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
@@ -311,6 +312,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private record PlacementConnections(Set<Direction> allowed, Set<Direction> rejected) {
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
@@ -507,6 +509,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         return RenderShape.MODEL;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         int connectionMask = 0;
@@ -550,6 +553,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private record PlacementExtraction(BlockPos pos, Direction direction) {
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
             CollisionContext context) {

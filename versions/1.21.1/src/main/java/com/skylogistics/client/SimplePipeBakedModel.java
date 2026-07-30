@@ -30,7 +30,8 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     }
 
     static Map<Direction, List<BakedQuad>> rotatedExtractQuads(BakedModel northModel) {
-        List<BakedQuad> northQuads = northModel.getQuads(null, null, RandomSource.create(0L));
+        List<BakedQuad> northQuads =
+                northModel.getQuads(null, null, RandomSource.create(0L), ModelData.EMPTY, null);
         Map<Direction, List<BakedQuad>> result = new EnumMap<>(Direction.class);
         for (Direction direction : Direction.values()) {
             List<BakedQuad> rotated = new ArrayList<>(northQuads.size());
