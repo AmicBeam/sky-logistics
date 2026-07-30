@@ -49,6 +49,7 @@ public class TagFilterListItem extends Item {
         return com.skylogistics.util.InteractionResults.sidedSuccess(level.isClientSide());
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
             Consumer<Component> tooltip, TooltipFlag flag) {

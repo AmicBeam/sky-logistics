@@ -84,6 +84,7 @@ public class ChoraNectarItem extends Item {
         return InteractionResult.CONSUME;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         tooltip.accept(Component.translatable("tooltip.skylogistics.chora_nectar").withStyle(ChatFormatting.GRAY));

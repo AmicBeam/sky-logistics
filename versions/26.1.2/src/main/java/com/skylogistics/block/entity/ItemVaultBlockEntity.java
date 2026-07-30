@@ -6,6 +6,7 @@ import com.skylogistics.network.ItemVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NbtSize;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
@@ -35,7 +36,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public class ItemVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
@@ -45,7 +45,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private final List<Long> amounts = new ArrayList<>();
     private final LinkedHashMap<ItemStackKey, Long> clientStored = new LinkedHashMap<>();
     private final Set<UUID> viewers = new HashSet<>();
-    private final IItemHandler itemHandler = new VaultItemHandler();
+    private final ItemHandler itemHandler = new VaultItemHandler();
     private int typeLimit = 1;
     private int clientUsedTypes = -1;
     private long clientTotalAmount = -1L;
@@ -99,7 +99,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         return syncVersion;
     }
 
-    public IItemHandler itemHandler() {
+    public ItemHandler itemHandler() {
         return itemHandler;
     }
 
@@ -308,6 +308,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
@@ -659,7 +660,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
     public record StoredItem(ItemStack stack, long amount) {
     }
 
-    private final class VaultItemHandler implements IItemHandler {
+    private final class VaultItemHandler implements ItemHandler {
         @Override
         public int getSlots() {
             return getTypeLimit();

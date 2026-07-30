@@ -6,6 +6,7 @@ import com.skylogistics.network.FluidVaultSnapshotPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.FluidStackKey;
+import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.NbtSize;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,7 +35,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class FluidVaultBlockEntity extends BlockEntity {
     private static final int SNAPSHOT_ENTRY_LIMIT = 256;
@@ -43,7 +43,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
     private final LinkedHashMap<FluidStackKey, Long> stored = new LinkedHashMap<>();
     private final List<FluidStackKey> contentIndex = new ArrayList<>();
     private final Set<UUID> viewers = new HashSet<>();
-    private final IFluidHandler fluidHandler = new VaultFluidHandler();
+    private final FluidHandler fluidHandler = new VaultFluidHandler();
     private LinkedHashMap<FluidStackKey, Long> indexedContents;
     private int indexedContentSize = -1;
     private int typeLimit = 1;
@@ -98,7 +98,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
         return syncVersion;
     }
 
-    public IFluidHandler fluidHandler() {
+    public FluidHandler fluidHandler() {
         return fluidHandler;
     }
 
@@ -167,7 +167,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
         return extracted;
     }
 
-    public FluidStack drainForPlayer(FluidStack template, int amount, IFluidHandler.FluidAction action) {
+    public FluidStack drainForPlayer(FluidStack template, int amount, FluidHandler.FluidAction action) {
         if (template.isEmpty() || amount <= 0) {
             return FluidStack.EMPTY;
         }
@@ -486,7 +486,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
     public record StoredFluid(FluidStack stack, long amount) {
     }
 
-    private final class VaultFluidHandler implements IFluidHandler {
+    private final class VaultFluidHandler implements FluidHandler {
         @Override
         public int getTanks() {
             return getTypeLimit();

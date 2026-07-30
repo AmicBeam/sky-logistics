@@ -14,6 +14,9 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.SimplePipeType;
@@ -47,10 +50,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
@@ -1311,11 +1311,11 @@ public final class SkyNetworkRegistry {
         private BlockCapabilityCache<ResourceHandler<ItemResource>, Direction> itemCache;
         private BlockCapabilityCache<ResourceHandler<FluidResource>, Direction> fluidCache;
         private BlockCapabilityCache<EnergyHandler, Direction> energyCache;
-        private IItemHandler itemHandler;
-        private IFluidHandler fluidHandler;
+        private ItemHandler itemHandler;
+        private FluidHandler fluidHandler;
         private ChemicalHandlerBridge chemicalHandler;
         private BlockEntity chemicalTarget;
-        private IEnergyStorage energyHandler;
+        private EnergyStorage energyHandler;
         private ManaHandlerBridge manaHandler;
         private BlockEntity manaTarget;
         private SourceHandlerBridge sourceHandler;
@@ -1528,11 +1528,11 @@ public final class SkyNetworkRegistry {
             return sourceRetryAfter > gameTime ? sourceRetryAfter : gameTime;
         }
 
-        public IItemHandler itemHandler(long gameTime) {
+        public ItemHandler itemHandler(long gameTime) {
             if (!canTryItems(gameTime)) {
                 return null;
             }
-            IItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
+            ItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
             if (direct != null) {
                 return direct;
             }
@@ -1545,18 +1545,18 @@ public final class SkyNetworkRegistry {
                 recordItemFailure(gameTime);
                 return null;
             }
-            itemHandler = TransferCompat.legacyItemHandler(cache.getCapability());
+            itemHandler = TransferCompat.itemHandler(cache.getCapability());
             if (itemHandler == null) {
                 recordItemFailure(gameTime);
             }
             return itemHandler;
         }
 
-        public IFluidHandler fluidHandler(long gameTime) {
+        public FluidHandler fluidHandler(long gameTime) {
             if (!canTryFluids(gameTime)) {
                 return null;
             }
-            IFluidHandler direct = node.getEndpointFluidHandler(direction, gameTime);
+            FluidHandler direct = node.getEndpointFluidHandler(direction, gameTime);
             if (direct != null) {
                 return direct;
             }
@@ -1569,7 +1569,7 @@ public final class SkyNetworkRegistry {
                 recordFluidFailure(gameTime);
                 return null;
             }
-            fluidHandler = TransferCompat.legacyFluidHandler(cache.getCapability());
+            fluidHandler = TransferCompat.fluidHandler(cache.getCapability());
             if (fluidHandler == null) {
                 recordFluidFailure(gameTime);
             }
@@ -1607,11 +1607,11 @@ public final class SkyNetworkRegistry {
             return chemicalHandler;
         }
 
-        public IEnergyStorage energyHandler(long gameTime) {
+        public EnergyStorage energyHandler(long gameTime) {
             if (!canTryEnergy(gameTime)) {
                 return null;
             }
-            IEnergyStorage direct = node.getEndpointEnergyHandler(direction, gameTime);
+            EnergyStorage direct = node.getEndpointEnergyHandler(direction, gameTime);
             if (direct != null) {
                 return direct;
             }
@@ -1624,7 +1624,7 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
                 return null;
             }
-            energyHandler = TransferCompat.legacyEnergyHandler(cache.getCapability());
+            energyHandler = TransferCompat.energyStorage(cache.getCapability());
             if (energyHandler == null) {
                 recordEnergyFailure(gameTime);
             }

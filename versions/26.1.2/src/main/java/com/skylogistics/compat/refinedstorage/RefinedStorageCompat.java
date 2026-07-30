@@ -17,8 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public final class RefinedStorageCompat {
     private static final String REFINED_STORAGE = "refinedstorage";
@@ -37,12 +35,12 @@ public final class RefinedStorageCompat {
         return ModList.get().isLoaded(REFINED_STORAGE);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
+    public static com.skylogistics.util.ItemHandler createItemHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowRefinedStorageItemTransfer()
                 ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
+    public static com.skylogistics.util.FluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()
                 ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
@@ -198,8 +196,8 @@ public final class RefinedStorageCompat {
         return Reflect.enumConstant(ACTION, simulate ? "SIMULATE" : "EXECUTE");
     }
 
-    private static Object action(IFluidHandler.FluidAction action) {
-        return action(action.simulate());
+    private static Object action(com.skylogistics.util.FluidHandler.FluidAction action) {
+        return action(!action.execute());
     }
 
     private static Object actor() throws ReflectiveOperationException {
@@ -363,7 +361,7 @@ public final class RefinedStorageCompat {
     private record ResourceEntry(Object resource, long amount) {
     }
 
-    private record ItemHandler(BlockEntity host) implements IItemHandler {
+    private record ItemHandler(BlockEntity host) implements com.skylogistics.util.ItemHandler {
         @Override
         public int getSlots() {
             return itemEntries(storage(host)).size() + 1;
@@ -440,7 +438,7 @@ public final class RefinedStorageCompat {
         }
     }
 
-    private record FluidHandler(BlockEntity host) implements IFluidHandler {
+    private record FluidHandler(BlockEntity host) implements com.skylogistics.util.FluidHandler {
         @Override
         public int getTanks() {
             return fluidEntries(storage(host)).size() + 1;

@@ -176,8 +176,14 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
         }
 
         @Override
+        public net.minecraft.util.TriState ambientOcclusion() {
+            return original.ambientOcclusion();
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
         public boolean useAmbientOcclusion() {
-            return original.useAmbientOcclusion();
+            return original.ambientOcclusion() != net.minecraft.util.TriState.FALSE;
         }
 
         @Override

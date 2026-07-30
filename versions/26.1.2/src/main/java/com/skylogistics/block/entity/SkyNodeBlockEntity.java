@@ -16,6 +16,9 @@ import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.RedstoneControl;
@@ -48,10 +51,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
 import net.neoforged.neoforge.transfer.energy.EnergyHandler;
@@ -547,11 +547,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return state.getBlock().getName();
     }
 
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
+    public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
         return null;
     }
 
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
+    public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
         return null;
     }
 
@@ -559,7 +559,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return null;
     }
 
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+    public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
         return null;
     }
 
@@ -764,7 +764,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
         EnergyHandler storage = level.getCapability(Capabilities.Energy.BLOCK, targetPos, accessSide);
-        return storage != null && isUsableEnergyStorage(TransferCompat.legacyEnergyHandler(storage));
+        return storage != null && isUsableEnergyStorage(TransferCompat.energyStorage(storage));
     }
 
     private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
@@ -785,7 +785,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 && (handler.canExtract() || handler.canReceive() || handler.getMaxSource() > 0);
     }
 
-    private static boolean isUsableEnergyStorage(IEnergyStorage storage) {
+    private static boolean isUsableEnergyStorage(EnergyStorage storage) {
         return storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive();
     }
 
@@ -892,12 +892,12 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean consumeUpgradeFromItemHandler(ItemStack container, Item item) {
-        IItemHandler handler = TransferCompat.legacyItemHandler(
+        ItemHandler handler = TransferCompat.itemHandler(
                 ItemAccess.forStack(container).getCapability(Capabilities.Item.ITEM));
         return handler != null && consumeUpgradeFromItemHandler(handler, item);
     }
 
-    private static boolean consumeUpgradeFromItemHandler(IItemHandler handler, Item item) {
+    private static boolean consumeUpgradeFromItemHandler(ItemHandler handler, Item item) {
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack simulated = handler.extractItem(slot, 1, true);
             if (simulated.is(item)) {
@@ -1370,6 +1370,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         tag.put("FaceSettings", faceSettings);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);

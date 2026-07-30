@@ -2,6 +2,7 @@ package com.skylogistics.compat.sophisticated;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.curios.CuriosCompat;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public final class SophisticatedBackpacksCompat {
     private static final String MOD_ID = "sophisticatedbackpacks";
@@ -28,11 +28,11 @@ public final class SophisticatedBackpacksCompat {
         return !stack.isEmpty() && init() && backpackItemClass.isInstance(stack.getItem());
     }
 
-    public static List<IItemHandler> carriedBackpackHandlers(ServerPlayer player) {
+    public static List<ItemHandler> carriedBackpackHandlers(ServerPlayer player) {
         if (!init()) {
             return List.of();
         }
-        List<IItemHandler> handlers = new ArrayList<>();
+        List<ItemHandler> handlers = new ArrayList<>();
         Set<ItemStack> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             addBackpackHandler(player.getInventory().getItem(slot), seen, handlers);
@@ -43,19 +43,19 @@ public final class SophisticatedBackpacksCompat {
         return handlers;
     }
 
-    private static void addBackpackHandler(ItemStack stack, Set<ItemStack> seen, List<IItemHandler> handlers) {
+    private static void addBackpackHandler(ItemStack stack, Set<ItemStack> seen, List<ItemHandler> handlers) {
         if (stack.isEmpty() || !seen.add(stack) || !isBackpackItem(stack)) {
             return;
         }
-        IItemHandler handler = inventoryHandler(stack);
+        ItemHandler handler = inventoryHandler(stack);
         if (handler != null) {
             handlers.add(handler);
         }
     }
 
-    private static IItemHandler inventoryHandler(ItemStack stack) {
+    private static ItemHandler inventoryHandler(ItemStack stack) {
         try {
-            return TransferCompat.legacyItemHandler(
+            return TransferCompat.itemHandler(
                     net.neoforged.neoforge.transfer.access.ItemAccess.forStack(stack)
                             .getCapability(Capabilities.Item.ITEM));
         } catch (RuntimeException error) {

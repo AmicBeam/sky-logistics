@@ -153,6 +153,7 @@ public class ConfiguratorItem extends Item {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         ToolConfig config = read(stack);

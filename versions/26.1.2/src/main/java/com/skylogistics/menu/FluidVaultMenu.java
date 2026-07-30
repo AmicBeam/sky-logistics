@@ -3,6 +3,7 @@ package com.skylogistics.menu;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
+import com.skylogistics.util.TransferCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -11,10 +12,13 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.fluids.FluidActionResult;
-import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 
 public class FluidVaultMenu extends AbstractContainerMenu {
     private static final int SNAPSHOT_SYNC_INTERVAL_TICKS = 5;
@@ -64,31 +68,17 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!(blockEntity instanceof FluidVaultBlockEntity vault)) {
             return ItemStack.EMPTY;
         }
-        IFluidHandler fluidHandler = vault.fluidHandler();
+        ResourceHandler<FluidResource> fluidHandler =
+                TransferCompat.fluidResourceHandler(vault.fluidHandler());
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
             return ItemStack.EMPTY;
         }
         ItemStack original = slot.getItem();
         ItemStack copy = original.copy();
-        ItemStack single = original.copy();
-        single.setCount(1);
-        FluidActionResult result = FluidUtil.tryEmptyContainer(single, fluidHandler, Integer.MAX_VALUE, player, true);
-        if (!result.isSuccess()) {
-            result = FluidUtil.tryFillContainer(single, fluidHandler, Integer.MAX_VALUE, player, true);
-        }
-        if (!result.isSuccess()) {
+        if (!transferContainerFluid(ItemAccess.forPlayerSlot(player, slot.getContainerSlot()), fluidHandler,
+                FluidResource.EMPTY)) {
             return ItemStack.EMPTY;
-        }
-        if (original.getCount() == 1) {
-            slot.set(result.getResult());
-        } else {
-            original.shrink(1);
-            ItemStack resultStack = result.getResult();
-            if (!player.getInventory().add(resultStack)) {
-                player.drop(resultStack, false);
-            }
-            slot.setChanged();
         }
         vault.syncToPlayerIfPresent(player);
         noteVaultSnapshotSynced(vault.getSyncVersion());
@@ -110,42 +100,45 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!(blockEntity instanceof FluidVaultBlockEntity vault)) {
             return;
         }
-        IFluidHandler fluidHandler = vault.fluidHandler();
+        ResourceHandler<FluidResource> fluidHandler =
+                TransferCompat.fluidResourceHandler(vault.fluidHandler());
         ItemStack carried = getCarried();
-        FluidActionResult result = interactCarriedWithVault(player, carried, viewedFluid, fluidHandler, vault);
-        if (!result.isSuccess()) {
+        FluidResource viewedResource = viewedFluid.isEmpty() ? null : FluidResource.of(viewedFluid);
+        if (!transferContainerFluid(ItemAccess.forPlayerCursor(player, this), fluidHandler, viewedResource)) {
             return;
         }
-        applyCarriedContainerResult(player, carried, result.getResult());
         vault.syncTo(player);
         noteVaultSnapshotSynced(vault.getSyncVersion());
         broadcastChanges();
     }
 
-    private FluidActionResult interactCarriedWithVault(ServerPlayer player, ItemStack carried, FluidStack viewedFluid,
-            IFluidHandler fluidHandler, FluidVaultBlockEntity vault) {
-        ItemStack single = carried.copy();
-        single.setCount(1);
-        FluidActionResult result = FluidUtil.tryEmptyContainer(single, fluidHandler, Integer.MAX_VALUE, player, true);
-        if (result.isSuccess() || viewedFluid.isEmpty()) {
-            return result;
+    private static boolean transferContainerFluid(ItemAccess access, ResourceHandler<FluidResource> vault,
+            FluidResource requestedFill) {
+        ResourceHandler<FluidResource> container =
+                access.oneByOne().getCapability(Capabilities.Fluid.ITEM);
+        if (container == null) {
+            return false;
         }
-        return FluidUtil.tryFillContainer(single, new ViewedFluidSource(vault, viewedFluid), Integer.MAX_VALUE,
-                player, true);
-    }
-
-    private void applyCarriedContainerResult(ServerPlayer player, ItemStack carried, ItemStack resultStack) {
-        if (carried.getCount() == 1) {
-            setCarried(resultStack);
-            return;
-        }
-        carried.shrink(1);
-        if (!resultStack.isEmpty()) {
-            player.getInventory().add(resultStack);
-            if (!resultStack.isEmpty()) {
-                player.drop(resultStack, false);
+        try (Transaction transaction = Transaction.openRoot()) {
+            if (ResourceHandlerUtil.moveFirst(container, vault, resource -> true, Integer.MAX_VALUE, transaction)
+                    != null) {
+                transaction.commit();
+                return true;
             }
         }
+        if (requestedFill == null) {
+            return false;
+        }
+        try (Transaction transaction = Transaction.openRoot()) {
+            if (ResourceHandlerUtil.moveFirst(vault, container,
+                    resource -> requestedFill.isEmpty() || requestedFill.equals(resource),
+                    Integer.MAX_VALUE, transaction)
+                    != null) {
+                transaction.commit();
+                return true;
+            }
+        }
+        return false;
     }
 
     private void addPlayerInventory(Inventory inventory, int x, int y) {
@@ -186,55 +179,4 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         lastSnapshotSyncTime = inventory.player.level().getGameTime();
     }
 
-    private static final class ViewedFluidSource implements IFluidHandler {
-        private final FluidVaultBlockEntity vault;
-        private final FluidStack viewedFluid;
-
-        private ViewedFluidSource(FluidVaultBlockEntity vault, FluidStack viewedFluid) {
-            this.vault = vault;
-            this.viewedFluid = viewedFluid.copy();
-            this.viewedFluid.setAmount(1);
-        }
-
-        @Override
-        public int getTanks() {
-            return 1;
-        }
-
-        @Override
-        public FluidStack getFluidInTank(int tank) {
-            if (tank != 0 || viewedFluid.isEmpty()) {
-                return FluidStack.EMPTY;
-            }
-            return vault.drainForPlayer(viewedFluid, Integer.MAX_VALUE, FluidAction.SIMULATE);
-        }
-
-        @Override
-        public int getTankCapacity(int tank) {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public boolean isFluidValid(int tank, FluidStack stack) {
-            return false;
-        }
-
-        @Override
-        public int fill(FluidStack resource, FluidAction action) {
-            return 0;
-        }
-
-        @Override
-        public FluidStack drain(FluidStack resource, FluidAction action) {
-            if (resource.isEmpty() || !FluidStack.isSameFluidSameComponents(resource, viewedFluid)) {
-                return FluidStack.EMPTY;
-            }
-            return vault.drainForPlayer(viewedFluid, resource.getAmount(), action);
-        }
-
-        @Override
-        public FluidStack drain(int maxDrain, FluidAction action) {
-            return vault.drainForPlayer(viewedFluid, maxDrain, action);
-        }
-    }
 }

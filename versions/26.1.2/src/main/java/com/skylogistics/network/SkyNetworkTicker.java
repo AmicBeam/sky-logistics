@@ -24,7 +24,11 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.StackData;
+import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -33,12 +37,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 public final class SkyNetworkTicker {
     private SkyNetworkTicker() {
@@ -295,7 +295,7 @@ public final class SkyNetworkTicker {
             return transferDimensionItems(sourceEndpoint, targets, budget, gameTime);
         }
         NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
-        IItemHandler source = sourceEndpoint.itemHandler(gameTime);
+        ItemHandler source = sourceEndpoint.itemHandler(gameTime);
         if (source == null || budget <= 0) {
             return 0;
         }
@@ -668,7 +668,7 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean tryMoveLongItemToHandler(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceLongEndpoint,
-            ItemStack simulated, long available, CachedEndpoint targetEndpoint, IItemHandler target,
+            ItemStack simulated, long available, CachedEndpoint targetEndpoint, ItemHandler target,
             ItemStackKey simulatedKey, long gameTime) {
         if (target == null || isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
             return false;
@@ -679,7 +679,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         ItemStack offer = simulated.copyWithCount(requested);
-        ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, offer.copy(), true);
+        ItemStack remainder = TransferCompat.insertItemStacked(target, offer.copy(), true);
         int movable = offer.getCount() - remainder.getCount();
         if (movable <= 0) {
             targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
@@ -691,7 +691,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         ItemStack extracted = offer.copyWithCount((int) extractedAmount);
-        ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+        ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
         if (!leftover.isEmpty()) {
             long rolledBack = sourceLongEndpoint.insert(leftover, leftover.getCount(), false);
             if (rolledBack < leftover.getCount()) {
@@ -753,13 +753,13 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean isExtractionBlockedBySlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
-            IItemHandler source) {
+            ItemHandler source) {
         int limit = node.getItemSlotLimit(direction);
         return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
                 && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack), limit + 1) <= limit;
     }
 
-    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target,
+    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, ItemHandler target,
             ItemStack candidate) {
         if (target == null) {
             return false;
@@ -772,7 +772,7 @@ public final class SkyNetworkTicker {
                 && !canRefillMatchingItemSlot(target, node, direction, candidate);
     }
 
-    private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate, int stopAt) {
+    private static int countMatchingItemSlots(ItemHandler handler, Predicate<ItemStack> predicate, int stopAt) {
         int count = 0;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack stack = handler.getStackInSlot(slot);
@@ -786,7 +786,7 @@ public final class SkyNetworkTicker {
         return count;
     }
 
-    private static boolean canRefillMatchingItemSlot(IItemHandler handler, NetworkEndpointBlockEntity node,
+    private static boolean canRefillMatchingItemSlot(ItemHandler handler, NetworkEndpointBlockEntity node,
             net.minecraft.core.Direction direction, ItemStack candidate) {
         if (candidate.isEmpty()) {
             return false;
@@ -806,7 +806,7 @@ public final class SkyNetworkTicker {
         return false;
     }
 
-    private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
+    private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, ItemHandler source, int slot, ItemStack simulated,
             List<CachedEndpoint> targets, int budget, long gameTime) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
@@ -854,7 +854,7 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordItemFilterReject(simulated, gameTime);
                     continue;
                 }
-                IItemHandler target = targetEndpoint.itemHandler(gameTime);
+                ItemHandler target = targetEndpoint.itemHandler(gameTime);
                 if (isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
                     continue;
                 }
@@ -890,7 +890,7 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
+                ItemStack remainder = TransferCompat.insertItemStacked(target, simulated.copy(), true);
                 int movable = simulated.getCount() - remainder.getCount();
                 if (movable <= 0) {
                     targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
@@ -901,9 +901,9 @@ public final class SkyNetworkTicker {
                     sourceEndpoint.recordItemFailure(gameTime);
                     return new MoveResult(false, operations);
                 }
-                ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+                ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
                 if (!leftover.isEmpty()) {
-                    ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, leftover, false);
+                    ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, leftover, false);
                     if (!rollbackRemainder.isEmpty()) {
                         SkyLogistics.LOGGER.warn(
                                 "Item rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, target leftover {}, rollback remainder {}",
@@ -1010,7 +1010,7 @@ public final class SkyNetworkTicker {
         return inserted;
     }
 
-    private static long moveItemToLongTarget(CachedEndpoint sourceEndpoint, IItemHandler source, int sourceSlot,
+    private static long moveItemToLongTarget(CachedEndpoint sourceEndpoint, ItemHandler source, int sourceSlot,
             ItemStack simulated, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong, long maxAmount) {
         long requested = Math.min(maxAmount, simulated.getCount());
         if (requested <= 0L) {
@@ -1027,7 +1027,7 @@ public final class SkyNetworkTicker {
         long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
         if (inserted < extracted.getCount()) {
             ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
-            ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, rollback, false);
+            ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, rollback, false);
             if (!rollbackRemainder.isEmpty()) {
                 SkyLogistics.LOGGER.warn(
                         "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
@@ -1160,7 +1160,7 @@ public final class SkyNetworkTicker {
             return transferExternalNetworkFluids(sourceEndpoint, targets, budget, gameTime);
         }
         NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
-        IFluidHandler source = sourceEndpoint.fluidHandler(gameTime);
+        FluidHandler source = sourceEndpoint.fluidHandler(gameTime);
         if (source == null || budget <= 0) {
             return 0;
         }
@@ -1199,7 +1199,7 @@ public final class SkyNetworkTicker {
             int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                     sourceNode.limitFluidTransfer(Integer.MAX_VALUE));
             FluidStack simulated = source.drain(copyWithAmount(inTank, transferLimit),
-                    IFluidHandler.FluidAction.SIMULATE);
+                    FluidHandler.FluidAction.SIMULATE);
             if (simulated.isEmpty()) {
                 sourceEndpoint.recordFluidTankMiss(tank, gameTime);
                 continue;
@@ -1349,7 +1349,7 @@ public final class SkyNetworkTicker {
         return new SourceSearchResult(-1, skippedChecks, attemptLimit >= tanks);
     }
 
-    private static MoveResult tryMoveFluid(CachedEndpoint sourceEndpoint, IFluidHandler source, int sourceTank,
+    private static MoveResult tryMoveFluid(CachedEndpoint sourceEndpoint, FluidHandler source, int sourceTank,
             FluidStack simulated, List<CachedEndpoint> targets, int budget, long gameTime) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
@@ -1409,24 +1409,24 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
-                IFluidHandler target = targetEndpoint.fluidHandler(gameTime);
+                FluidHandler target = targetEndpoint.fluidHandler(gameTime);
                 if (target == null) {
                     continue;
                 }
-                int accepted = target.fill(simulated.copy(), IFluidHandler.FluidAction.SIMULATE);
+                int accepted = target.fill(simulated.copy(), FluidHandler.FluidAction.SIMULATE);
                 if (accepted <= 0) {
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
-                FluidStack drained = source.drain(copyWithAmount(simulated, accepted), IFluidHandler.FluidAction.EXECUTE);
+                FluidStack drained = source.drain(copyWithAmount(simulated, accepted), FluidHandler.FluidAction.EXECUTE);
                 if (drained.isEmpty()) {
                     sourceEndpoint.recordFluidFailure(gameTime);
                     return new MoveResult(false, operations);
                 }
-                int inserted = target.fill(drained.copy(), IFluidHandler.FluidAction.EXECUTE);
+                int inserted = target.fill(drained.copy(), FluidHandler.FluidAction.EXECUTE);
                 if (inserted < drained.getAmount()) {
                     FluidStack rollback = copyWithAmount(drained, drained.getAmount() - inserted);
-                    int rolledBack = source.fill(rollback, IFluidHandler.FluidAction.EXECUTE);
+                    int rolledBack = source.fill(rollback, FluidHandler.FluidAction.EXECUTE);
                     if (rolledBack < rollback.getAmount()) {
                         SkyLogistics.LOGGER.warn(
                                 "Fluid rollback failed after simulated target fill changed during transfer. Source node {} face {}, target node {} face {}, source tank {}, drained {}, inserted {}, rollback remainder {} mB",
@@ -1516,7 +1516,7 @@ public final class SkyNetworkTicker {
 
     private static boolean tryMoveLongFluidToHandler(CachedEndpoint sourceEndpoint,
             LongFluidEndpoint sourceLongEndpoint, FluidStack simulated, long available, CachedEndpoint targetEndpoint,
-            IFluidHandler target, FluidStackKey simulatedKey, long gameTime) {
+            FluidHandler target, FluidStackKey simulatedKey, long gameTime) {
         if (target == null || simulated.isEmpty() || available <= 0L) {
             return false;
         }
@@ -1526,7 +1526,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         FluidStack offer = copyWithAmount(simulated, requested);
-        int accepted = target.fill(offer.copy(), IFluidHandler.FluidAction.SIMULATE);
+        int accepted = target.fill(offer.copy(), FluidHandler.FluidAction.SIMULATE);
         if (accepted <= 0) {
             targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
             return false;
@@ -1537,7 +1537,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         FluidStack extracted = copyWithAmount(offer, (int) Math.min(extractedAmount, Integer.MAX_VALUE));
-        int inserted = target.fill(extracted.copy(), IFluidHandler.FluidAction.EXECUTE);
+        int inserted = target.fill(extracted.copy(), FluidHandler.FluidAction.EXECUTE);
         if (inserted < extracted.getAmount()) {
             FluidStack rollback = copyWithAmount(extracted, extracted.getAmount() - inserted);
             long rolledBack = sourceLongEndpoint.insert(rollback, rollback.getAmount(), false);
@@ -1947,7 +1947,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return 0;
         }
-        IEnergyStorage source = sourceEndpoint.energyHandler(gameTime);
+        EnergyStorage source = sourceEndpoint.energyHandler(gameTime);
         if (source == null) {
             return 0;
         }
@@ -1967,7 +1967,7 @@ public final class SkyNetworkTicker {
         return operations;
     }
 
-    private static MoveResult tryMoveEnergy(CachedEndpoint sourceEndpoint, IEnergyStorage source, int simulated,
+    private static MoveResult tryMoveEnergy(CachedEndpoint sourceEndpoint, EnergyStorage source, int simulated,
             List<CachedEndpoint> targets, int budget, long gameTime) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
@@ -2017,7 +2017,7 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordEnergyFailure(gameTime);
                     continue;
                 }
-                IEnergyStorage target = targetEndpoint.energyHandler(gameTime);
+                EnergyStorage target = targetEndpoint.energyHandler(gameTime);
                 if (target == null) {
                     continue;
                 }

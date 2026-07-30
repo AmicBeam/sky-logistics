@@ -29,10 +29,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public final class AppliedEnergisticsCompat {
@@ -60,12 +57,12 @@ public final class AppliedEnergisticsCompat {
         return ModList.get().isLoaded(AE2);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
+    public static com.skylogistics.util.ItemHandler createItemHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowAe2ItemTransfer()
                 ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
+    public static com.skylogistics.util.FluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowAe2FluidTransfer()
                 ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
@@ -146,7 +143,7 @@ public final class AppliedEnergisticsCompat {
         return firstGrid != null && firstGrid == secondGrid;
     }
 
-    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
+    public static com.skylogistics.util.EnergyStorage createEnergyHandler(BlockEntity host) {
         if (!canUseAppFlux()) {
             return EmptyExternalHandlers.Energy.INSTANCE;
         }
@@ -289,8 +286,8 @@ public final class AppliedEnergisticsCompat {
         return Reflect.enumConstant("appeng.api.config.Actionable", simulate ? "SIMULATE" : "MODULATE");
     }
 
-    private static Object action(IFluidHandler.FluidAction action) {
-        return action(action.simulate());
+    private static Object action(com.skylogistics.util.FluidHandler.FluidAction action) {
+        return action(!action.execute());
     }
 
     private static Object actionSource() {
@@ -792,7 +789,7 @@ public final class AppliedEnergisticsCompat {
     private record Entry(Object key, long amount) {
     }
 
-    private record ItemHandler(BlockEntity host) implements IItemHandler {
+    private record ItemHandler(BlockEntity host) implements com.skylogistics.util.ItemHandler {
         @Override
         public int getSlots() {
             return itemEntries(storage(host)).size() + 1;
@@ -868,7 +865,7 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
-    private record FluidHandler(BlockEntity host) implements IFluidHandler {
+    private record FluidHandler(BlockEntity host) implements com.skylogistics.util.FluidHandler {
         @Override
         public int getTanks() {
             return fluidEntries(storage(host)).size() + 1;
@@ -961,7 +958,7 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
-    private record EnergyHandler(BlockEntity host, Object key) implements IEnergyStorage {
+    private record EnergyHandler(BlockEntity host, Object key) implements com.skylogistics.util.EnergyStorage {
         @Override
         public int receiveEnergy(int maxReceive, boolean simulate) {
             return clampInt(insertKey(host, storage(host), key, maxReceive, simulate));

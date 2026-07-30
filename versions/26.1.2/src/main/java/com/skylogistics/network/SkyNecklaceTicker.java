@@ -10,7 +10,9 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
+import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -28,8 +30,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 public final class SkyNecklaceTicker {
     private static final Map<UUID, Integer> ACTIVE_EXTRACTORS = new HashMap<>();
@@ -174,7 +174,7 @@ public final class SkyNecklaceTicker {
         if (targets.isEmpty()) {
             return;
         }
-        List<IItemHandler> sources = sources(player);
+        List<ItemHandler> sources = sources(player);
         int slotLimit = SkyNecklaceItem.insertSlots(necklace);
         if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS
                 && countMatchingSlots(sources, itemWhitelist, slotLimit + 1) <= slotLimit) {
@@ -208,17 +208,17 @@ public final class SkyNecklaceTicker {
         EXTRACT_SLOT_CURSORS.put(playerId, (cursor + scanned) % totalSlots);
     }
 
-    private static List<IItemHandler> sources(ServerPlayer player) {
-        List<IItemHandler> sources = new ArrayList<>();
+    private static List<ItemHandler> sources(ServerPlayer player) {
+        List<ItemHandler> sources = new ArrayList<>();
         sources.add(new PlayerMainInventoryHandler(player.getInventory(), null, PlayerMainInventoryHandler.MAIN_SLOTS));
         sources.addAll(SophisticatedBackpacksCompat.carriedBackpackHandlers(player));
         return sources;
     }
 
-    private static int countMatchingSlots(List<IItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
+    private static int countMatchingSlots(List<ItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
             int stopAt) {
         int matching = 0;
-        for (IItemHandler source : sources) {
+        for (ItemHandler source : sources) {
             for (int slot = 0; slot < source.getSlots(); slot++) {
                 ItemStack stack = source.getStackInSlot(slot);
                 if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && itemWhitelist.matches(stack)) {
@@ -232,17 +232,17 @@ public final class SkyNecklaceTicker {
         return matching;
     }
 
-    private static int totalSlots(List<IItemHandler> sources) {
+    private static int totalSlots(List<ItemHandler> sources) {
         int totalSlots = 0;
-        for (IItemHandler source : sources) {
+        for (ItemHandler source : sources) {
             totalSlots += source.getSlots();
         }
         return totalSlots;
     }
 
-    private static HandlerSlot handlerSlotAt(List<IItemHandler> sources, int flatIndex) {
+    private static HandlerSlot handlerSlotAt(List<ItemHandler> sources, int flatIndex) {
         int offset = flatIndex;
-        for (IItemHandler source : sources) {
+        for (ItemHandler source : sources) {
             int slots = source.getSlots();
             if (offset < slots) {
                 return new HandlerSlot(source, offset);
@@ -258,7 +258,7 @@ public final class SkyNecklaceTicker {
         if (sources.isEmpty()) {
             return;
         }
-        IItemHandler target = new PlayerMainInventoryHandler(player.getInventory(), itemWhitelist,
+        ItemHandler target = new PlayerMainInventoryHandler(player.getInventory(), itemWhitelist,
                 SkyNecklaceItem.insertSlots(necklace));
         UUID playerId = player.getUUID();
         int sourceCursor = Math.floorMod(INSERT_ENDPOINT_CURSORS.getOrDefault(playerId, 0), sources.size());
@@ -285,7 +285,7 @@ public final class SkyNecklaceTicker {
             if (sourceBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
                 continue;
             }
-            IItemHandler source = sourceEndpoint.itemHandler(gameTime);
+            ItemHandler source = sourceEndpoint.itemHandler(gameTime);
             if (source == null) {
                 continue;
             }
@@ -319,7 +319,7 @@ public final class SkyNecklaceTicker {
     }
 
     private static boolean tryInsertFromDimensionSource(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
-            FilterListItem.CompiledFilter itemWhitelist, IItemHandler target, int transferLimit, long gameTime) {
+            FilterListItem.CompiledFilter itemWhitelist, ItemHandler target, int transferLimit, long gameTime) {
         for (ItemStack sample : itemWhitelist.itemSamples()) {
             BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForStack(
                     sourceBlockEntity, sample);
@@ -341,7 +341,7 @@ public final class SkyNecklaceTicker {
 
     private static boolean tryMoveDimensionToPlayer(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
             BeyondDimensionsCompat.ItemResource resource, FilterListItem.CompiledFilter itemWhitelist,
-            IItemHandler target, int transferLimit, long gameTime) {
+            ItemHandler target, int transferLimit, long gameTime) {
         if (resource.isEmpty()) {
             return false;
         }
@@ -352,7 +352,7 @@ public final class SkyNecklaceTicker {
                 || !itemWhitelist.matches(simulated)) {
             return false;
         }
-        ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
+        ItemStack remainder = TransferCompat.insertItemStacked(target, simulated.copy(), true);
         int movable = simulated.getCount() - remainder.getCount();
         if (movable <= 0) {
             return false;
@@ -363,7 +363,7 @@ public final class SkyNecklaceTicker {
             return false;
         }
         ItemStack extracted = simulated.copyWithCount((int) extractedAmount);
-        ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+        ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
         if (!leftover.isEmpty()) {
             long rolledBack = BeyondDimensionsCompat.insertItem(sourceBlockEntity, leftover, leftover.getCount(),
                     false);
@@ -377,7 +377,7 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    private static boolean tryMove(IItemHandler source, int slot, ItemStack simulated, List<CachedEndpoint> targets,
+    private static boolean tryMove(ItemHandler source, int slot, ItemStack simulated, List<CachedEndpoint> targets,
             long gameTime) {
         for (CachedEndpoint targetEndpoint : targets) {
             if (!targetEndpoint.canTryItems(gameTime)
@@ -394,11 +394,11 @@ public final class SkyNecklaceTicker {
                 }
                 continue;
             }
-            IItemHandler target = targetEndpoint.itemHandler(gameTime);
+            ItemHandler target = targetEndpoint.itemHandler(gameTime);
             if (target == null) {
                 continue;
             }
-            ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
+            ItemStack remainder = TransferCompat.insertItemStacked(target, simulated.copy(), true);
             int movable = simulated.getCount() - remainder.getCount();
             if (movable <= 0) {
                 targetEndpoint.recordItemFailure(gameTime);
@@ -408,9 +408,9 @@ public final class SkyNecklaceTicker {
             if (extracted.isEmpty()) {
                 return false;
             }
-            ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+            ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
             if (!leftover.isEmpty()) {
-                ItemStack rollback = ItemHandlerHelper.insertItemStacked(source, leftover, false);
+                ItemStack rollback = TransferCompat.insertItemStacked(source, leftover, false);
                 if (!rollback.isEmpty()) {
                     SkyLogistics.LOGGER.warn("Sky necklace item rollback failed: extracted {}, leftover {}, rollback {}",
                             extracted, leftover, rollback);
@@ -422,7 +422,7 @@ public final class SkyNecklaceTicker {
         return false;
     }
 
-    private static boolean tryMoveToDimensionTarget(IItemHandler source, int slot, ItemStack simulated,
+    private static boolean tryMoveToDimensionTarget(ItemHandler source, int slot, ItemStack simulated,
             CachedEndpoint targetEndpoint, BlockEntity targetBlockEntity, long gameTime) {
         long accepted = BeyondDimensionsCompat.insertItem(targetBlockEntity, simulated, simulated.getCount(), true);
         if (accepted <= 0L) {
@@ -436,7 +436,7 @@ public final class SkyNecklaceTicker {
         long inserted = BeyondDimensionsCompat.insertItem(targetBlockEntity, extracted, extracted.getCount(), false);
         if (inserted < extracted.getCount()) {
             ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
-            ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, rollback, false);
+            ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, rollback, false);
             if (!rollbackRemainder.isEmpty()) {
                 SkyLogistics.LOGGER.warn("Sky necklace dimension target rollback failed: extracted {}, inserted {}, rollback {}",
                         extracted, inserted, rollbackRemainder);
@@ -446,9 +446,9 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    private static boolean tryMoveToPlayer(CachedEndpoint sourceEndpoint, IItemHandler source, int slot,
-            ItemStack simulated, IItemHandler target, long gameTime) {
-        ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
+    private static boolean tryMoveToPlayer(CachedEndpoint sourceEndpoint, ItemHandler source, int slot,
+            ItemStack simulated, ItemHandler target, long gameTime) {
+        ItemStack remainder = TransferCompat.insertItemStacked(target, simulated.copy(), true);
         int movable = simulated.getCount() - remainder.getCount();
         if (movable <= 0) {
             return false;
@@ -458,9 +458,9 @@ public final class SkyNecklaceTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return false;
         }
-        ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
+        ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
         if (!leftover.isEmpty()) {
-            ItemStack rollback = ItemHandlerHelper.insertItemStacked(source, leftover, false);
+            ItemStack rollback = TransferCompat.insertItemStacked(source, leftover, false);
             if (!rollback.isEmpty()) {
                 SkyLogistics.LOGGER.warn("Sky necklace player insert rollback failed: extracted {}, leftover {}, rollback {}",
                         extracted, leftover, rollback);
@@ -476,7 +476,7 @@ public final class SkyNecklaceTicker {
                                   FilterListItem.CompiledFilter itemWhitelist) {
     }
 
-    private record HandlerSlot(IItemHandler handler, int slot) {
+    private record HandlerSlot(ItemHandler handler, int slot) {
     }
 
     public record ActiveNecklaceDetail(UUID profileId, String playerName, String profileTexture,
@@ -484,7 +484,7 @@ public final class SkyNecklaceTicker {
                                        NodeFaceMode mode, int priority) {
     }
 
-    private static final class PlayerMainInventoryHandler implements IItemHandler {
+    private static final class PlayerMainInventoryHandler implements ItemHandler {
         private static final int MAIN_SLOTS = 36;
         private final Inventory inventory;
         private final FilterListItem.CompiledFilter insertFilter;

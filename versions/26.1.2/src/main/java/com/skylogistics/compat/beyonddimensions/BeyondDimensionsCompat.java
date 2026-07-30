@@ -8,6 +8,7 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.util.EnergyStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.LivingEntity;
@@ -17,10 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public final class BeyondDimensionsCompat {
     private static final String BEYOND_DIMENSIONS = "beyonddimensions";
@@ -33,12 +31,12 @@ public final class BeyondDimensionsCompat {
         return ModList.get().isLoaded(BEYOND_DIMENSIONS);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
+    public static com.skylogistics.util.ItemHandler createItemHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()
                 ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
     }
 
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
+    public static com.skylogistics.util.FluidHandler createFluidHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()
                 ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
     }
@@ -49,7 +47,7 @@ public final class BeyondDimensionsCompat {
                 ? new ChemicalHandler(host) : null;
     }
 
-    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
+    public static EnergyStorage createEnergyHandler(BlockEntity host) {
         return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()
                 ? new EnergyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
     }
@@ -269,7 +267,7 @@ public final class BeyondDimensionsCompat {
         return true;
     }
 
-    private static IItemHandler itemHandler(BlockEntity host) {
+    private static com.skylogistics.util.ItemHandler itemHandler(BlockEntity host) {
         try {
             return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsItemTransfer()
                     ? BeyondDimensionsApiBridge.itemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
@@ -279,7 +277,7 @@ public final class BeyondDimensionsCompat {
         }
     }
 
-    private static IFluidHandler fluidHandler(BlockEntity host) {
+    private static com.skylogistics.util.FluidHandler fluidHandler(BlockEntity host) {
         try {
             return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsFluidTransfer()
                     ? BeyondDimensionsApiBridge.fluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
@@ -300,7 +298,7 @@ public final class BeyondDimensionsCompat {
         }
     }
 
-    private static IEnergyStorage energyHandler(BlockEntity host) {
+    private static EnergyStorage energyHandler(BlockEntity host) {
         try {
             return isLoaded() && SkyLogisticsConfig.allowBeyondDimensionsEnergyTransfer()
                     ? BeyondDimensionsApiBridge.energyHandler(host) : EmptyExternalHandlers.Energy.INSTANCE;
@@ -404,7 +402,7 @@ public final class BeyondDimensionsCompat {
         }
     }
 
-    private record ItemHandler(BlockEntity host) implements IItemHandler {
+    private record ItemHandler(BlockEntity host) implements com.skylogistics.util.ItemHandler {
         @Override
         public int getSlots() {
             return itemHandler(host).getSlots();
@@ -436,7 +434,7 @@ public final class BeyondDimensionsCompat {
         }
     }
 
-    private record FluidHandler(BlockEntity host) implements IFluidHandler {
+    private record FluidHandler(BlockEntity host) implements com.skylogistics.util.FluidHandler {
         @Override
         public int getTanks() {
             return fluidHandler(host).getTanks();
@@ -473,7 +471,7 @@ public final class BeyondDimensionsCompat {
         }
     }
 
-    private record EnergyHandler(BlockEntity host) implements IEnergyStorage {
+    private record EnergyHandler(BlockEntity host) implements EnergyStorage {
         @Override
         public int receiveEnergy(int maxReceive, boolean simulate) {
             return energyHandler(host).receiveEnergy(maxReceive, simulate);

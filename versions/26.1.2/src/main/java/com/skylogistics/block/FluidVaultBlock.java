@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.fluids.FluidUtil;
+import net.neoforged.neoforge.transfer.fluid.FluidUtil;
 
 public class FluidVaultBlock extends BaseEntityBlock {
     public static final MapCodec<FluidVaultBlock> CODEC = simpleCodec(FluidVaultBlock::new);
@@ -48,7 +48,7 @@ public class FluidVaultBlock extends BaseEntityBlock {
         if (stack.is(ModItems.CHORA_NECTAR.get())) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
-        if (FluidUtil.interactWithFluidHandler(player, hand, level, pos, hit.getDirection())) {
+        if (FluidUtil.interactWithFluidHandler(player, hand, level, pos, hit.getDirection(), null)) {
             return com.skylogistics.util.InteractionResults.sidedSuccess(level.isClientSide());
         }
         openVault(level, pos, player);

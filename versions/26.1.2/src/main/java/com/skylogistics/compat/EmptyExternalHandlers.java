@@ -1,16 +1,16 @@
 package com.skylogistics.compat;
 
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public final class EmptyExternalHandlers {
     private EmptyExternalHandlers() {
     }
 
-    public enum Items implements IItemHandler {
+    public enum Items implements ItemHandler {
         INSTANCE;
 
         @Override
@@ -44,7 +44,7 @@ public final class EmptyExternalHandlers {
         }
     }
 
-    public enum Fluids implements IFluidHandler {
+    public enum Fluids implements FluidHandler {
         INSTANCE;
 
         @Override
@@ -83,7 +83,7 @@ public final class EmptyExternalHandlers {
         }
     }
 
-    public enum Energy implements IEnergyStorage {
+    public enum Energy implements EnergyStorage {
         INSTANCE;
 
         @Override

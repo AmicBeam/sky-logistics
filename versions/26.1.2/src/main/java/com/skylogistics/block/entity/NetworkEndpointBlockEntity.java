@@ -4,6 +4,9 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.UUID;
@@ -14,10 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 /** Minimal scheduler-facing state shared by configurable nodes and simple pipes. */
 public abstract class NetworkEndpointBlockEntity extends BlockEntity {
@@ -54,10 +54,10 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public BlockPos getTargetPos(Direction direction) { return worldPosition.relative(direction); }
     public Direction getAccessSide(Direction direction) { return direction.getOpposite(); }
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) { return null; }
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) { return null; }
+    public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) { return null; }
+    public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) { return null; }
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) { return null; }
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) { return null; }
+    public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) { return null; }
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) { return null; }
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) { return null; }
     public boolean allowsItem(Direction direction, ItemStack stack) { return true; }
