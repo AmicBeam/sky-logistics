@@ -1,11 +1,13 @@
 package com.skylogistics.client;
 
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.util.SimplePipeGeometry;
 import com.skylogistics.util.SimplePipeModelData;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     private final Map<Direction, List<BakedQuad>> extractQuads;
+    private final Map<QuadKey, List<BakedQuad>> combinedQuads = new ConcurrentHashMap<>();
 
     SimplePipeBakedModel(BakedModel originalModel, Map<Direction, List<BakedQuad>> extractQuads) {
         super(originalModel);
@@ -52,34 +55,51 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource random,
             ModelData modelData, @Nullable RenderType renderType) {
-        List<BakedQuad> base = originalModel.getQuads(state, side, random, modelData, renderType);
         if (state == null || side != null) {
-            return base;
+            return originalModel.getQuads(state, side, random, modelData, renderType);
         }
         Integer maskValue = modelData.get(SimplePipeModelData.EXTRACT_SIDES);
-        int mask = maskValue == null ? 0 : maskValue;
-        if (mask == 0) {
-            return base;
+        int extractMask = maskValue == null ? 0 : maskValue;
+        int connectionMask = connectionMask(state);
+        int connectedExtractMask = SimplePipeGeometry.connectedExtractMask(connectionMask, extractMask);
+        if (connectedExtractMask == 0) {
+            return originalModel.getQuads(state, side, random, modelData, renderType);
         }
+        QuadKey key = new QuadKey(state, connectedExtractMask, renderType);
+        return combinedQuads.computeIfAbsent(key, ignored ->
+                buildCombinedQuads(state, random, modelData, renderType, connectedExtractMask));
+    }
+
+    private List<BakedQuad> buildCombinedQuads(BlockState state, RandomSource random, ModelData modelData,
+            @Nullable RenderType renderType, int extractMask) {
+        List<BakedQuad> base = originalModel.getQuads(state, null, random, modelData, renderType);
         ArrayList<BakedQuad> combined = new ArrayList<>(base.size());
         for (BakedQuad quad : base) {
-            if (!isCoveredArm(quad, state, mask)) {
+            if (!isCoveredArm(quad, extractMask)) {
                 combined.add(quad);
             }
         }
         for (Direction direction : Direction.values()) {
-            if ((mask & (1 << direction.ordinal())) != 0
-                    && state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+            if ((extractMask & SimplePipeGeometry.sideMask(direction)) != 0) {
                 combined.addAll(extractQuads.get(direction));
             }
         }
-        return combined;
+        return List.copyOf(combined);
     }
 
-    private static boolean isCoveredArm(BakedQuad quad, BlockState state, int extractMask) {
+    private static int connectionMask(BlockState state) {
+        int mask = 0;
         for (Direction direction : Direction.values()) {
-            if ((extractMask & (1 << direction.ordinal())) != 0
-                    && state.getValue(SimplePipeBlock.connectionProperty(direction))
+            if (state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+                mask |= SimplePipeGeometry.sideMask(direction);
+            }
+        }
+        return mask;
+    }
+
+    private static boolean isCoveredArm(BakedQuad quad, int extractMask) {
+        for (Direction direction : Direction.values()) {
+            if ((extractMask & SimplePipeGeometry.sideMask(direction)) != 0
                     && isArmQuad(quad, direction)) {
                 return true;
             }
@@ -95,35 +115,11 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
             float x = Float.intBitsToFloat(vertices[offset]);
             float y = Float.intBitsToFloat(vertices[offset + 1]);
             float z = Float.intBitsToFloat(vertices[offset + 2]);
-            float axis = axisCoordinate(direction.getAxis(), x, y, z);
-            if (!insideArmAxis(direction, axis)
-                    || !insideEndpoint(direction.getAxis(), x, y, z)) {
+            if (!SimplePipeGeometry.isArmVertex(direction, x, y, z)) {
                 return false;
             }
         }
         return true;
-    }
-
-    private static boolean insideArmAxis(Direction direction, float coordinate) {
-        return direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE
-                ? coordinate >= -0.0001F && coordinate <= 4.0F / 16.0F + 0.0001F
-                : coordinate >= 12.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
-    }
-
-    private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
-        float minimum = 5.0F / 16.0F - 0.0001F;
-        float maximum = 11.0F / 16.0F + 0.0001F;
-        return (axis == Direction.Axis.X || x >= minimum && x <= maximum)
-                && (axis == Direction.Axis.Y || y >= minimum && y <= maximum)
-                && (axis == Direction.Axis.Z || z >= minimum && z <= maximum);
-    }
-
-    private static float axisCoordinate(Direction.Axis axis, float x, float y, float z) {
-        return switch (axis) {
-            case X -> x;
-            case Y -> y;
-            case Z -> z;
-        };
     }
 
     private static BakedQuad rotateQuad(BakedQuad quad, Direction target) {
@@ -177,5 +173,8 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         int y = direction.getStepY() * 127 & 0xFF;
         int z = direction.getStepZ() * 127 & 0xFF;
         return x | y << 8 | z << 16;
+    }
+
+    private record QuadKey(BlockState state, int extractMask, @Nullable RenderType renderType) {
     }
 }

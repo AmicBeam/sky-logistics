@@ -1,10 +1,13 @@
 package com.skylogistics.client;
 
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.util.SimplePipeGeometry;
 import com.skylogistics.util.SimplePipeModelData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
@@ -18,6 +21,8 @@ import net.minecraft.world.level.block.state.BlockState;
 final class SimplePipeBlockStateModel implements BlockStateModel {
     private final BlockStateModel original;
     private final Map<Direction, BlockStateModelPart> extractParts;
+    private final Map<BlockStateModelPart, AtomicReferenceArray<ArmFilteredPart>> filteredParts =
+            new ConcurrentHashMap<>();
 
     SimplePipeBlockStateModel(BlockStateModel original, Map<Direction, BlockStateModelPart> extractParts) {
         this.original = original;
@@ -39,7 +44,7 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
         int connectedExtractMask = connectedExtractMask(state, extractMask);
         if (connectedExtractMask != 0) {
             for (int index = firstOriginalPart; index < output.size(); index++) {
-                output.set(index, new ArmFilteredPart(output.get(index), connectedExtractMask));
+                output.set(index, filteredPart(output.get(index), connectedExtractMask));
             }
         }
         for (Direction direction : Direction.values()) {
@@ -91,17 +96,31 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
     }
 
     private static int sideMask(Direction direction) {
-        return 1 << direction.ordinal();
+        return SimplePipeGeometry.sideMask(direction);
     }
 
     private static int connectedExtractMask(BlockState state, int extractMask) {
-        int connected = extractMask;
+        int connected = 0;
         for (Direction direction : Direction.values()) {
-            if (!state.getValue(SimplePipeBlock.connectionProperty(direction))) {
-                connected &= ~sideMask(direction);
+            if (state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+                connected |= sideMask(direction);
             }
         }
-        return connected;
+        return SimplePipeGeometry.connectedExtractMask(connected, extractMask);
+    }
+
+    private ArmFilteredPart filteredPart(BlockStateModelPart part, int extractMask) {
+        AtomicReferenceArray<ArmFilteredPart> variants =
+                filteredParts.computeIfAbsent(part, ignored -> new AtomicReferenceArray<>(64));
+        ArmFilteredPart cached = variants.get(extractMask);
+        if (cached != null) {
+            return cached;
+        }
+        ArmFilteredPart created = new ArmFilteredPart(part, extractMask);
+        if (variants.compareAndSet(extractMask, null, created)) {
+            return created;
+        }
+        return variants.get(extractMask);
     }
 
     private static boolean isCoveredArm(BakedQuad quad, int extractMask) {
@@ -118,49 +137,42 @@ final class SimplePipeBlockStateModel implements BlockStateModel {
             float x = quad.position(vertex).x();
             float y = quad.position(vertex).y();
             float z = quad.position(vertex).z();
-            float coordinate = axisCoordinate(direction.getAxis(), x, y, z);
-            if (!insideArmAxis(direction, coordinate)
-                    || !insideEndpoint(direction.getAxis(), x, y, z)) {
+            if (!SimplePipeGeometry.isArmVertex(direction, x, y, z)) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean insideArmAxis(Direction direction, float coordinate) {
-        return direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE
-                ? coordinate >= -0.0001F && coordinate <= 4.0F / 16.0F + 0.0001F
-                : coordinate >= 12.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
-    }
+    private static final class ArmFilteredPart implements BlockStateModelPart {
+        private final BlockStateModelPart original;
+        private final int extractMask;
+        private final AtomicReferenceArray<List<BakedQuad>> quads = new AtomicReferenceArray<>(7);
 
-    private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
-        float minimum = 5.0F / 16.0F - 0.0001F;
-        float maximum = 11.0F / 16.0F + 0.0001F;
-        return (axis == Direction.Axis.X || x >= minimum && x <= maximum)
-                && (axis == Direction.Axis.Y || y >= minimum && y <= maximum)
-                && (axis == Direction.Axis.Z || z >= minimum && z <= maximum);
-    }
+        private ArmFilteredPart(BlockStateModelPart original, int extractMask) {
+            this.original = original;
+            this.extractMask = extractMask;
+        }
 
-    private static float axisCoordinate(Direction.Axis axis, float x, float y, float z) {
-        return switch (axis) {
-            case X -> x;
-            case Y -> y;
-            case Z -> z;
-        };
-    }
-
-    private record ArmFilteredPart(BlockStateModelPart original, int extractMask)
-            implements BlockStateModelPart {
         @Override
         public List<BakedQuad> getQuads(Direction side) {
-            List<BakedQuad> quads = original.getQuads(side);
-            ArrayList<BakedQuad> filtered = new ArrayList<>(quads.size());
-            for (BakedQuad quad : quads) {
+            int index = side == null ? 6 : side.ordinal();
+            List<BakedQuad> cached = quads.get(index);
+            if (cached != null) {
+                return cached;
+            }
+            List<BakedQuad> originalQuads = original.getQuads(side);
+            ArrayList<BakedQuad> filtered = new ArrayList<>(originalQuads.size());
+            for (BakedQuad quad : originalQuads) {
                 if (!isCoveredArm(quad, extractMask)) {
                     filtered.add(quad);
                 }
             }
-            return filtered;
+            List<BakedQuad> created = List.copyOf(filtered);
+            if (quads.compareAndSet(index, null, created)) {
+                return created;
+            }
+            return quads.get(index);
         }
 
         @Override
