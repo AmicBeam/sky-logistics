@@ -296,7 +296,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
-                    .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
+                    .defineInRange("simplePipeMaxConnectedBlocks", 256, 16, 65_536);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);

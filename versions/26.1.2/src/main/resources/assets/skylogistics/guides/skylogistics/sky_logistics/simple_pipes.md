@@ -36,7 +36,7 @@ Right-click a machine-facing endpoint with the Sky Configurator to switch it bet
 - Fluid: 10,000 mB per extracting endpoint per tick.
 - Energy: 100,000 FE per extracting endpoint per tick.
 
-One line contains at most 1,024 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and the player is notified. Transfer rates and the line limit are server-configurable.
+One line contains at most 256 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and the player is notified. Transfer rates and the line limit are server-configurable.
 
 ## Recipes
 

@@ -42,7 +42,7 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
   - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
   - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
   - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
-  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 1,024; a connection that would exceed it stays disconnected.
+  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 256; a connection that would exceed it stays disconnected.
   - Their recipes do not require Sky Crystals.
 
 - `Starlit Nectar` / `星辉甘露`

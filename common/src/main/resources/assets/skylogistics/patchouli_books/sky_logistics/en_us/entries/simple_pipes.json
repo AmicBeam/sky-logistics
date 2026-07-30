@@ -38,7 +38,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "A simple pipe line contains at most 1,024 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and the player is notified. Different pipe types never join the same line. Transfer rates and the line limit are server-configurable."
+      "text": "A simple pipe line contains at most 256 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and the player is notified. Different pipe types never join the same line. Transfer rates and the line limit are server-configurable."
     }
   ]
 }
