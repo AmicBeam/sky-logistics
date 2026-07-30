@@ -39,6 +39,7 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
   - Placement inherits the logistics node controls: normal placement prefers insert mode and sneak placement prefers extract mode.
   - Pipes automatically connect to compatible adjacent containers and neighboring pipes of the same type. Connected pipes form a bounded local line.
   - Use any item in the wrench tag, including the Sky Wrench, on a machine-facing endpoint to switch between insert and extract. Sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use a wider model.
+  - The Sky Wrench is registered only when neither Applied Energistics 2 nor Refined Storage is installed; packs with either mod use their existing wrench-tag tools instead.
   - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
   - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
   - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.

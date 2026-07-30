@@ -1,4 +1,14 @@
 {
+  "conditions": [
+    {
+      "type": "forge:not",
+      "value": {"type": "forge:mod_loaded", "modid": "ae2"}
+    },
+    {
+      "type": "forge:not",
+      "value": {"type": "forge:mod_loaded", "modid": "refinedstorage"}
+    }
+  ],
   "type": "minecraft:crafting_shaped",
   "pattern": ["L L", " A ", " G "],
   "key": {
