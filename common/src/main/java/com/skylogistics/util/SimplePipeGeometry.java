@@ -73,8 +73,8 @@ public final class SimplePipeGeometry {
 
     private static boolean insideArmAxis(Direction direction, float coordinate) {
         return direction.getAxisDirection() == Direction.AxisDirection.NEGATIVE
-                ? coordinate >= -0.0001F && coordinate <= 4.0F / 16.0F + 0.0001F
-                : coordinate >= 12.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
+                ? coordinate >= -0.0001F && coordinate <= 5.0F / 16.0F + 0.0001F
+                : coordinate >= 11.0F / 16.0F - 0.0001F && coordinate <= 1.0001F;
     }
 
     private static boolean insideEndpoint(Direction.Axis axis, float x, float y, float z) {
@@ -97,16 +97,16 @@ public final class SimplePipeGeometry {
         VoxelShape[] result = new VoxelShape[DIRECTIONS.length];
         for (Direction direction : DIRECTIONS) {
             if (extract) {
-                VoxelShape shape = orientedBox(direction, 5.5D, 5.5D, 2.0D, 10.5D, 10.5D, 5.0D);
+                VoxelShape shape = orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 5.0D);
                 shape = Shapes.or(shape,
-                        orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 5.5D, 2.0D),
-                        orientedBox(direction, 3.0D, 10.5D, 0.0D, 13.0D, 13.0D, 2.0D),
-                        orientedBox(direction, 3.0D, 5.5D, 0.0D, 5.5D, 10.5D, 2.0D),
-                        orientedBox(direction, 10.5D, 5.5D, 0.0D, 13.0D, 10.5D, 2.0D));
+                        orientedBox(direction, 3.0D, 3.0D, 0.0D, 13.0D, 5.0D, 2.0D),
+                        orientedBox(direction, 3.0D, 11.0D, 0.0D, 13.0D, 13.0D, 2.0D),
+                        orientedBox(direction, 3.0D, 5.0D, 0.0D, 5.0D, 11.0D, 2.0D),
+                        orientedBox(direction, 11.0D, 5.0D, 0.0D, 13.0D, 11.0D, 2.0D));
                 result[direction.ordinal()] = shape.optimize();
             } else {
                 result[direction.ordinal()] =
-                        orientedBox(direction, 5.5D, 5.5D, 0.0D, 10.5D, 10.5D, 5.0D);
+                        orientedBox(direction, 5.0D, 5.0D, 0.0D, 11.0D, 11.0D, 5.0D);
             }
         }
         return result;
