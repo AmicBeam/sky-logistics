@@ -30,4 +30,4 @@ item_ids:
 - [物流网络](logistics.md)：连接节点、仓库、过滤器和外部网络。
 - [工具与升级](tools.md)：配置线路、复制设置、提升吞吐或跨维度运输。
 
-<RecipeFor id="sky_node" fallbackText="未找到天穹节点配方，请检查配方数据或 JEI。" />
+<RecipeFor id="sky_node" fallbackText="当前无法显示天穹节点配方，请在 JEI 中查看。" />

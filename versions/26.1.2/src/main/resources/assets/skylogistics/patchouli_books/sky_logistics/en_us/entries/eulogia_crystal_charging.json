@@ -6,7 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "A crafted Eulogia Crystal starts uncharged. Bring it to the configured sky height or higher to let it absorb high-sky light; the server config rituals.skyRitualMinY defaults to Y=200."
+      "text": "A crafted Eulogia Crystal starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=200 by default, though server settings may change this height."
     },
     {
       "type": "patchouli:crafting",
@@ -15,11 +15,11 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Uncharged crystals charge in a player's inventory or on a Sky Offering Table. Ordinary containers do not charge them. The default charge time is 60 seconds, controlled by rituals.eulogiaCrystalChargeSeconds."
+      "text": "Uncharged crystals charge in your inventory or on a Sky Offering Table. Ordinary containers do not charge them. Charging takes about 60 seconds by default."
     },
     {
       "type": "patchouli:text",
-      "text": "When charging finishes, the crystal icon changes and its tooltip says it is charged. A charged Eulogia Crystal can be crafted with #c:stones into Celestial Stone; Celestial Glass is made through offering."
+      "text": "When charging finishes, the crystal icon and tooltip change. A charged Eulogia Crystal can be crafted with any stone into Celestial Stone; Celestial Glass is made through offering."
     },
     {
       "type": "patchouli:crafting",

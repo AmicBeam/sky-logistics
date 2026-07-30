@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "This recipe has a Duration of 240 ticks. When the ritual completes, the offerings and crystal are consumed and Chora Nectar is created on the altar. If the altar slot cannot hold it, the item drops above the altar."
+      "text": "The ritual takes about 12 seconds by default. When it completes, the offerings and crystal are consumed and Chora Nectar appears on the altar. If the altar slot cannot hold it, the item drops above the altar."
     }
   ]
 }

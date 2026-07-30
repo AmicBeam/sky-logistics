@@ -33,4 +33,4 @@ Tier 2 adds one Celestial Stone pillar at each corner of the next outer ring, wi
   <IsometricCamera yaw={35} pitch={30} />
 </GameScene>
 
-Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 8 `#c:glass_blocks` and 8 Glowstone Dust on two offering tables. Duration is 160 ticks and the result is 8 Celestial Glass.
+Celestial Glass is made through a tier 1 offering: place a charged Eulogia Crystal on the altar, then place 8 of any glass and 8 Glowstone Dust on two offering tables. After about 8 seconds, the ritual produces 8 Celestial Glass.

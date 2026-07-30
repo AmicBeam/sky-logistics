@@ -30,7 +30,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_wrench",
-      "text": "Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to use the common dismantle behavior and return its drops to your inventory."
+      "text": "Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to dismantle it quickly; its drops are placed in your inventory when possible."
     },
     {
       "type": "patchouli:text",
@@ -38,7 +38,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "A simple pipe line contains at most 256 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and the player is notified. Different pipe types never join the same line. Transfer rates and the line limit are server-configurable."
+      "text": "A simple pipe line contains at most 256 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and a message appears. Different pipe types never join the same line; server settings may change the default rates and line limit."
     }
   ]
 }

@@ -38,11 +38,11 @@ Use <ItemLink id="filter_list" /> for explicit item or fluid filters, and <ItemL
 
 ## Upgrades
 
-<ItemLink id="speed_upgrade" /> improves throughput. <ItemLink id="dimension_upgrade" /> allows long distance or cross-dimensional routing where the server config permits it.
+<ItemLink id="speed_upgrade" /> helps nodes process resources more quickly. When cross-dimensional transport is allowed, <ItemLink id="dimension_upgrade" /> can reach same-line endpoints in other loaded dimensions.
 
 ## Sky Necklace
 
-The <ItemLink id="sky_necklace" /> can interact with player inventory through Curios when Curios is installed, or through the main inventory fallback when available.
+With Curios installed, the <ItemLink id="sky_necklace" /> works from a Curios slot. Without Curios, it can still use the player's main inventory.
 
 <RecipeFor id="configurator" fallbackText="The configurator recipe is unavailable." />
 <RecipeFor id="sky_necklace" fallbackText="The sky necklace recipe is unavailable." />

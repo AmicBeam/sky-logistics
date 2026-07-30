@@ -10,7 +10,7 @@ item_ids:
 
 # Sky Configurator
 
-The <ItemLink id="configurator" /> manages lines and quickly syncs logistics node settings. Right-click air to open the configurator screen; opening this screen exits paste mode. The screen lets you switch lines and choose whether the stored configuration enables items, fluids, and energy. Its lower-left recipe ingredient is glass.
+The <ItemLink id="configurator" /> manages lines and quickly copies logistics node settings. Right-click air to open its screen; doing so exits paste mode. The screen lets you switch lines and choose whether the saved settings carry items, fluids, and energy.
 
 <RecipeFor id="configurator" fallbackText="The configurator recipe is unavailable." />
 

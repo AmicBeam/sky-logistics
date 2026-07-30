@@ -15,7 +15,7 @@ item_ids:
 
 # Logistics Network
 
-Logistics nodes provide wireless transport. The server pairs extract faces with insert faces that share a line id, then moves only what the target can accept. Failed targets do not consume resources first. For a block-by-block wired network, see [Simple Pipes](simple_pipes.md).
+Logistics nodes provide wireless transport. Set extract and insert faces to the same line, and they can move resources directly between machines. If a destination cannot accept a transfer, the resources remain at the source. For a block-by-block wired network, see [Simple Pipes](simple_pipes.md).
 
 Read more:
 
@@ -26,7 +26,7 @@ Read more:
 
 ## External Networks
 
-When the matching mod is installed, Sky Logistics can expose interfaces for AE2, Refined Storage, and Beyond Dimensions:
+When the matching mod is installed, dedicated interfaces can connect Sky Logistics to AE2, Refined Storage, and Beyond Dimensions:
 
 <ItemGrid>
   <ItemIcon id="sky_me_interface" />

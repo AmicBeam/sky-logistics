@@ -18,7 +18,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Speed upgrades go into node upgrade slots. Without one, a node processes 1 item stack or fluid tank per tick; with one, it processes 2 stacks or tanks per tick. This improves the node's stack/tank throughput, but it does not add a hidden line buffer."
+      "text": "Speed upgrades go into node upgrade slots. They let a node check more source slots or tanks each tick, making busy extract and insert endpoints work more quickly. They do not increase line capacity."
     },
     {
       "type": "patchouli:text",
@@ -27,11 +27,11 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "text": "Speed upgrades are still crafted at a crafting table."
+      "text": "Speed upgrades can be crafted at a crafting table."
     },
     {
       "type": "patchouli:text",
-      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. Duration is 240 ticks. It only needs to be installed on the extracting node."
+      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. The ritual takes about 12 seconds, and the upgrade only needs to be installed on the extracting node."
     }
   ]
 }

@@ -26,7 +26,7 @@ Simple pipes provide a wired alternative to wireless logistics nodes. Item, flui
 
 Place normally to make the container on the clicked side an insert endpoint. Sneak-place to make that side extract instead. Other usable adjacent containers are connected automatically in insert mode.
 
-Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to use the common dismantle behavior and return its drops to your inventory.
+Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to dismantle it quickly; its drops are placed in your inventory when possible.
 
 Right-click a machine-facing endpoint with the Sky Configurator to switch it between extract and insert without opening the configurator screen. An extract endpoint is shown with a wider collar.
 
@@ -36,11 +36,11 @@ Right-click a machine-facing endpoint with the Sky Configurator to switch it bet
 - Fluid: 10,000 mB per extracting endpoint per tick.
 - Energy: 100,000 FE per extracting endpoint per tick.
 
-One line contains at most 256 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and the player is notified. Transfer rates and the line limit are server-configurable.
+One line contains at most 256 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and a message appears. Server settings may change the default transfer rates and line limit.
 
 ## Recipes
 
-Each pipe recipe produces 8 pipes and does not require a Sky Crystal.
+Each pipe recipe produces 8 pipes.
 
 <RecipeFor id="simple_item_pipe" fallbackText="The simple item pipe recipe is unavailable." />
 <RecipeFor id="simple_fluid_pipe" fallbackText="The simple fluid pipe recipe is unavailable." />

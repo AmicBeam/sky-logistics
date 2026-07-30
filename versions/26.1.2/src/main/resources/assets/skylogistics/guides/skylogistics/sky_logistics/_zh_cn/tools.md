@@ -38,11 +38,11 @@ item_ids:
 
 ## 升级
 
-<ItemLink id="speed_upgrade" /> 提升吞吐。服务器配置允许时，<ItemLink id="dimension_upgrade" /> 可以启用远距离或跨维度运输。
+<ItemLink id="speed_upgrade" /> 可以让节点更快地处理资源。服务器允许跨维度运输时，<ItemLink id="dimension_upgrade" /> 可以连接其它已加载维度中的同线路端点。
 
 ## 天穹项链
 
-安装 Curios 时，<ItemLink id="sky_necklace" /> 可以通过饰品栏与玩家物品栏交互；没有 Curios 时则使用可用的主物品栏后备逻辑。
+安装 Curios 后，<ItemLink id="sky_necklace" /> 可以通过饰品栏工作；未安装 Curios 时，项链仍可直接使用玩家的主物品栏。
 
 <RecipeFor id="configurator" fallbackText="未找到配置器配方。" />
 <RecipeFor id="sky_necklace" fallbackText="未找到天穹项链配方。" />

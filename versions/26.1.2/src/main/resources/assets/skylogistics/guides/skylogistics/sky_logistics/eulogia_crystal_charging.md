@@ -12,15 +12,15 @@ item_ids:
 
 # Eulogia Crystal Charging
 
-A crafted <ItemLink id="eulogia_crystal" /> starts uncharged. Bring it to the configured sky height or higher to let it absorb high-sky light. The server config `rituals.skyRitualMinY` defaults to Y=200.
+A crafted <ItemLink id="eulogia_crystal" /> starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=200 by default, though server settings may change this height.
 
 <RecipeFor id="eulogia_crystal" fallbackText="The Eulogia Crystal recipe is unavailable." />
 
 The Eulogia Crystal is built around a diamond core and does not consume an Ender Pearl. Newly crafted crystals start uncharged.
 
-Uncharged crystals charge in a player's inventory or on a <ItemLink id="offering_table" />. Ordinary containers do not charge them. The default charge time is 60 seconds, controlled by `rituals.eulogiaCrystalChargeSeconds`.
+Uncharged crystals charge in your inventory or on an <ItemLink id="offering_table" />. Ordinary containers do not charge them. Charging takes about 60 seconds by default.
 
-When charging finishes, the crystal icon changes and its tooltip says it is charged. A charged Eulogia Crystal can be crafted with `#c:stones` into <ItemLink id="celestial_stone" />; <ItemLink id="celestial_glass" /> is made through offering.
+When charging finishes, the crystal icon and tooltip change. A charged Eulogia Crystal can be crafted with any stone into <ItemLink id="celestial_stone" />; <ItemLink id="celestial_glass" /> is made through offering.
 
 <RecipeFor id="celestial_stone" fallbackText="The Celestial Stone recipe is unavailable." />
 <RecipeFor id="celestial_stone_slab" fallbackText="The Celestial Stone slab recipe is unavailable." />

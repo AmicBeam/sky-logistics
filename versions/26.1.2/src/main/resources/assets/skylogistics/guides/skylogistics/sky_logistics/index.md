@@ -9,7 +9,7 @@ item_ids:
 
 # Sky Logistics Manual
 
-Sky Logistics supports both wired simple pipes and wireless logistics nodes. Simple pipes connect adjacent machines block by block, while nodes directly pair extract and insert faces that share a line ID. Neither system extracts resources first when the target cannot accept them.
+Sky Logistics supports both wired simple pipes and wireless logistics nodes. Simple pipes connect adjacent machines block by block, while nodes link extract and insert faces on the same line. Both systems leave resources at the source when no destination can accept them.
 
 <ItemGrid>
   <ItemIcon id="configurator" />
@@ -30,4 +30,4 @@ Typical setup: create a line with the configurator, place one node beside a sour
 - [Logistics Network](logistics.md): connect nodes, vaults, filters, and external networks.
 - [Tools and Upgrades](tools.md): configure lines, copy settings, and extend throughput or dimensions.
 
-<RecipeFor id="sky_node" fallbackText="Install the recipe data pack or check JEI for the Sky Node recipe." />
+<RecipeFor id="sky_node" fallbackText="The Sky Node recipe cannot be shown here; check JEI for it." />

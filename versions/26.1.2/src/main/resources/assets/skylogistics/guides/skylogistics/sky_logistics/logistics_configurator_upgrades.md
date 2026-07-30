@@ -16,10 +16,10 @@ The Sky Configurator stores a line name, line ID, and resource toggles. Right-cl
 
 Sneak-right-click a node with the configurator to copy that node and enter paste mode. While in paste mode, right-click another node to write the stored line and resource toggles to it. Sneak-right-click again, open the configurator screen, or stop holding the configurator to leave paste mode.
 
-Speed upgrades go into node upgrade slots. Without one, a node processes 1 item stack or fluid tank per tick; with one, it processes 2 stacks or tanks per tick. This improves the node's stack/tank throughput, but it does not add a hidden line buffer.
+Speed upgrades go into node upgrade slots. They let a node check more source slots or tanks each tick, making busy extract and insert endpoints work more quickly. They do not increase line capacity.
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
 
 Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped.
 
-Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. Duration is 240 ticks. It only needs to be installed on the extracting node.
+Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. The ritual takes about 12 seconds, and the upgrade only needs to be installed on the extracting node.
