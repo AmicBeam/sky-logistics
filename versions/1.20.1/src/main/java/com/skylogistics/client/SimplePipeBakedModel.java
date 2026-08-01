@@ -30,9 +30,12 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         this.extractQuads = extractQuads;
     }
 
+    @SuppressWarnings("deprecation")
     static Map<Direction, List<BakedQuad>> rotatedExtractQuads(BakedModel northModel) {
-        List<BakedQuad> northQuads =
-                northModel.getQuads(null, null, RandomSource.create(0L), ModelData.EMPTY, null);
+        // Forge 1.20 additional standalone models expose their baked geometry through the
+        // vanilla overload. The ModelData overload can return no quads here, which made the
+        // normal pipe arm disappear without adding the extraction collar.
+        List<BakedQuad> northQuads = extractModelQuads(northModel);
         Map<Direction, List<BakedQuad>> result = new EnumMap<>(Direction.class);
         for (Direction direction : Direction.values()) {
             List<BakedQuad> rotated = new ArrayList<>(northQuads.size());
@@ -42,6 +45,11 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
             result.put(direction, List.copyOf(rotated));
         }
         return Map.copyOf(result);
+    }
+
+    @SuppressWarnings("deprecation")
+    static List<BakedQuad> extractModelQuads(BakedModel model) {
+        return model.getQuads(null, null, RandomSource.create(0L));
     }
 
     @NotNull

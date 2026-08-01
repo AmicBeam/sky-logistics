@@ -6,9 +6,9 @@
     " R "
   ],
   "key": {
-    "R": "minecraft:redstone",
+    "R": "#c:dusts/redstone",
     "C": "skylogistics:celestial_stone",
-    "P": "minecraft:amethyst_shard"
+    "P": "#c:gems/amethyst"
   },
   "result": {
     "id": "skylogistics:sky_node",

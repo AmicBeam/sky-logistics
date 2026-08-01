@@ -12,11 +12,11 @@
       "count": 4
     },
     {
-      "item": "minecraft:diamond",
+      "tag": "forge:gems/diamond",
       "count": 4
     },
     {
-      "item": "minecraft:amethyst_shard",
+      "tag": "forge:gems/amethyst",
       "count": 4
     },
     {

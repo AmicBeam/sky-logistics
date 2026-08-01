@@ -28,12 +28,12 @@
     },
     {
       "ingredient": {
-        "item": "minecraft:amethyst_shard"
+        "tag":"c:gems/amethyst"
       }
     },
     {
       "ingredient": {
-        "item": "minecraft:glass"
+        "tag":"c:glass_blocks/colorless"
       }
     }
   ],

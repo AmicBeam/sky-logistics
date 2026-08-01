@@ -10,10 +10,10 @@
       "item": "minecraft:paper"
     },
     "L": {
-      "item": "minecraft:lapis_lazuli"
+      "tag":"c:gems/lapis"
     },
     "C": {
-      "item": "minecraft:amethyst_shard"
+      "tag":"c:gems/amethyst"
     }
   },
   "result": {

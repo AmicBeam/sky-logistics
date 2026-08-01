@@ -2,10 +2,10 @@
   "type": "minecraft:crafting_shaped",
   "pattern": ["GAG", "LHL", "GAG"],
   "key": {
-    "G": {"item": "minecraft:glass"},
-    "A": {"item": "minecraft:amethyst_shard"},
-    "L": {"item": "minecraft:lapis_lazuli"},
-    "H": {"item": "minecraft:chest"}
+    "G": {"tag": "forge:glass/colorless"},
+    "A": {"tag": "forge:gems/amethyst"},
+    "L": {"tag": "forge:gems/lapis"},
+    "H": {"tag": "forge:chests/wooden"}
   },
   "result": {"item": "skylogistics:simple_item_pipe", "count": 8}
 }

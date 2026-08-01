@@ -12,9 +12,9 @@
   "type": "minecraft:crafting_shaped",
   "pattern": ["L L", " A ", " G "],
   "key": {
-    "A": {"item": "minecraft:amethyst_shard"},
-    "G": {"item": "minecraft:glass"},
-    "L": {"item": "minecraft:lapis_lazuli"}
+    "A": {"tag": "forge:gems/amethyst"},
+    "G": {"tag": "forge:glass/colorless"},
+    "L": {"tag": "forge:gems/lapis"}
   },
   "result": {"item": "skylogistics:sky_wrench"}
 }

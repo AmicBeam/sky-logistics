@@ -6,9 +6,9 @@
     "C  "
   ],
   "key": {
-    "A": "minecraft:amethyst_shard",
-    "S": "minecraft:stick",
-    "C": "minecraft:glass"
+    "A": "#c:gems/amethyst",
+    "S": "#c:rods/wooden",
+    "C": "#c:glass_blocks/colorless"
   },
   "result": {
     "id": "skylogistics:configurator"
