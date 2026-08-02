@@ -72,8 +72,10 @@ public final class ClientModEvents {
         }
     }
 
-    private static ModelResourceLocation extractModel(String name) {
-        return new ModelResourceLocation(
-                new ResourceLocation(SkyLogistics.MOD_ID, "block/" + name + "_extract"), "standalone");
+    static ResourceLocation extractModel(String name) {
+        // Forge 1.20 treats every ModelResourceLocation except the inventory variant as a
+        // blockstate lookup. Additional standalone JSON models must therefore use a plain
+        // ResourceLocation, otherwise models/block/<name>_extract.json is never loaded.
+        return new ResourceLocation(SkyLogistics.MOD_ID, "block/" + name + "_extract");
     }
 }

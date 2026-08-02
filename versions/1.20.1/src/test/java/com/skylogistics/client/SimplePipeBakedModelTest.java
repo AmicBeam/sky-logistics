@@ -1,5 +1,6 @@
 package com.skylogistics.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,12 +11,24 @@ import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import org.junit.jupiter.api.Test;
 
 class SimplePipeBakedModelTest {
+    @Test
+    void usesPlainResourceLocationForForgeTwentyAdditionalModel() {
+        ResourceLocation location = ClientModEvents.extractModel("simple_item_pipe");
+
+        assertSame(ResourceLocation.class, location.getClass());
+        assertTrue(!(location instanceof ModelResourceLocation));
+        assertEquals("skylogistics", location.getNamespace());
+        assertEquals("block/simple_item_pipe_extract", location.getPath());
+    }
+
     @Test
     @SuppressWarnings("deprecation")
     void readsAdditionalModelGeometryFromForgeTwentyVanillaOverload() {
