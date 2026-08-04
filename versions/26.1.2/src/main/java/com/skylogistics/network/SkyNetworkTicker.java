@@ -973,6 +973,10 @@ public final class SkyNetworkTicker {
     private static TargetItemSlot selectTargetItemSlot(CachedEndpoint endpoint, ItemHandler target,
             ItemStack stack) {
         int slots = target.getSlots();
+        if (slots == 1) {
+            endpoint.clearTargetItemCursor();
+            return simulateSingleTargetItemSlot(target, stack);
+        }
         int lane = endpoint.targetItemCursorLane(stack, slots);
         int hotSlot = endpoint.targetItemHotSlot(lane, slots);
         if (hotSlot >= 0) {
@@ -993,6 +997,13 @@ public final class SkyNetworkTicker {
             }
         }
         return TargetItemSlot.NONE;
+    }
+
+    private static TargetItemSlot simulateSingleTargetItemSlot(ItemHandler target, ItemStack stack) {
+        ItemStack remainder = target.insertItem(0, stack.copy(), true);
+        int movable = stack.getCount() - remainder.getCount();
+        if (movable <= 0) return TargetItemSlot.NONE;
+        return new TargetItemSlot(-1, 0, movable, 0, Integer.MAX_VALUE, false, false);
     }
 
     private static TargetItemSlot simulateTargetItemSlot(ItemHandler target, ItemStack stack, int lane,

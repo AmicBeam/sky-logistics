@@ -1835,8 +1835,12 @@ public final class SkyNetworkRegistry {
 
         public int targetItemCursorLane(ItemStack stack, int totalSlots) {
             int configured = SkyLogisticsConfig.targetItemInsertionCursorCount();
+            if (configured <= 0 || totalSlots <= 1) {
+                clearTargetItemCursor();
+                return -1;
+            }
             int cursorCount = Math.min(configured, totalSlots);
-            if (cursorCount <= 0 || stack.isEmpty()) return -1;
+            if (stack.isEmpty()) return -1;
             if (targetItemCursorOwners == null || targetItemCursorOwners.length != cursorCount
                     || targetItemCursorSlotCount != totalSlots) {
                 targetItemCursorOwners = new Item[cursorCount];
@@ -1916,6 +1920,16 @@ public final class SkyNetworkRegistry {
 
         private boolean validTargetItemCursorLane(int lane) {
             return targetItemCursorOwners != null && lane >= 0 && lane < targetItemCursorOwners.length;
+        }
+
+        public void clearTargetItemCursor() {
+            if (targetItemCursorOwners == null) return;
+            targetItemCursorOwners = null;
+            targetItemHotSlots = null;
+            targetItemScanCursors = null;
+            targetItemCursorModes = null;
+            targetItemSequentialSuccesses = null;
+            targetItemCursorSlotCount = -1;
         }
 
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {

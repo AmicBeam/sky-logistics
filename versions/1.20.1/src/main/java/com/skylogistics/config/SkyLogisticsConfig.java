@@ -388,7 +388,7 @@ public final class SkyLogisticsConfig {
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
             targetItemInsertionCursorCount = builder
-                    .comment("Target item insertion cursor lanes per endpoint. The active count never exceeds the target slot count; 0 disables cursor-based slot ordering.")
+                    .comment("Target item insertion cursor lanes per multi-slot endpoint. Single-slot targets bypass cursors; the active count never exceeds the target slot count; 0 disables cursor-based slot ordering.")
                     .defineInRange("targetItemInsertionCursorCount", 9, 0, 64);
             rejectedAcceptCacheSize = builder
                     .comment("Maximum recent item, fluid, or chemical accept-reject records remembered per receiving endpoint.")
