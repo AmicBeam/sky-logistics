@@ -313,6 +313,8 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean foundCandidate = false;
+        boolean movedFromHotPath = false;
+        int successfulSlot = -1;
         int slotChecks = Math.min(slots, sourceNode.getOperationRate());
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
@@ -351,7 +353,14 @@ public final class SkyNetworkTicker {
             if (result.moved()) {
                 sourceEndpoint.recordItemSlotSuccess(slot, slots);
                 sourceEndpoint.recordItemSuccess();
+                movedFromHotPath = true;
+                successfulSlot = slot;
             }
+        }
+        if (movedFromHotPath && operations < budget
+                && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
+            operations += discoverAdditionalItemSlot(sourceEndpoint, sourceNode, source, slots, gameTime,
+                    successfulSlot, budget - operations);
         }
         if (!foundCandidate) {
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
@@ -696,8 +705,12 @@ public final class SkyNetworkTicker {
         ItemStack extracted = offer.copyWithCount((int) extractedAmount);
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
         int inserted = extracted.getCount() - leftover.getCount();
-        if (inserted > 0) targetEndpoint.recordTargetItemSlotSuccess(extracted, targetSlot.slot());
-        else targetEndpoint.recordTargetItemSlotMiss(extracted, targetSlot.slot());
+        if (inserted > 0) {
+            targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
+                    targetSlot.filledAfter(inserted, leftover), targetSlot.usedHot(), target.getSlots());
+        } else {
+            targetEndpoint.recordTargetItemSlotMiss(targetSlot.lane(), targetSlot.slot(), target.getSlots());
+        }
         if (!leftover.isEmpty()) {
             long rolledBack = sourceLongEndpoint.insert(leftover, leftover.getCount(), false);
             if (rolledBack < leftover.getCount()) {
@@ -713,19 +726,6 @@ public final class SkyNetworkTicker {
 
     private static SourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
             int slots, long gameTime, int firstTriedSlot, int secondTriedSlot, int skipBudget) {
-        if (sourceEndpoint.shouldTryItemSlotDiscoveryBeforePreferred()) {
-            SourceSearchResult discovery = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, true, skipBudget);
-            if (discovery.index() >= 0) {
-                sourceEndpoint.recordItemSlotDiscoveryCheck();
-                return discovery;
-            }
-            if (discovery.exhausted()) {
-                sourceEndpoint.clearItemSlotDiscovery();
-            } else {
-                return discovery;
-            }
-        }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return new SourceSearchResult(preferredSlot, 0, false);
@@ -739,6 +739,32 @@ public final class SkyNetworkTicker {
         }
         return nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                 firstTriedSlot, secondTriedSlot, false, skipBudget);
+    }
+
+    private static int discoverAdditionalItemSlot(CachedEndpoint sourceEndpoint,
+            NetworkEndpointBlockEntity sourceNode, IItemHandler source, int slots, long gameTime,
+            int successfulSlot, int budget) {
+        if (budget <= 0 || !sourceEndpoint.isItemSlotDiscoveryActive()) return 0;
+        SourceSearchResult search = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                successfulSlot, -1, true, budget);
+        int operations = search.skippedChecks();
+        int slot = search.index();
+        if (slot < 0) {
+            if (search.exhausted()) sourceEndpoint.clearItemSlotDiscovery();
+            return operations;
+        }
+        sourceEndpoint.recordItemSlotDiscoveryCheck();
+        if (operations >= budget) return operations;
+        ItemStack simulated = source.extractItem(slot, 1, true);
+        operations++;
+        if (simulated.isEmpty()) {
+            sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+        } else if (sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
+            sourceEndpoint.recordItemSlotSuccess(slot, slots);
+        } else {
+            sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+        }
+        return operations;
     }
 
     private static SourceSearchResult nextSequentialItemSlot(CachedEndpoint sourceEndpoint,
@@ -917,8 +943,12 @@ public final class SkyNetworkTicker {
                 }
                 ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
                 int inserted = extracted.getCount() - leftover.getCount();
-                if (inserted > 0) targetEndpoint.recordTargetItemSlotSuccess(extracted, targetSlot.slot());
-                else targetEndpoint.recordTargetItemSlotMiss(extracted, targetSlot.slot());
+                if (inserted > 0) {
+                    targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
+                            targetSlot.filledAfter(inserted, leftover), targetSlot.usedHot(), target.getSlots());
+                } else {
+                    targetEndpoint.recordTargetItemSlotMiss(targetSlot.lane(), targetSlot.slot(), target.getSlots());
+                }
                 if (!leftover.isEmpty()) {
                     ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, leftover, false);
                     if (!rollbackRemainder.isEmpty()) {
@@ -943,25 +973,42 @@ public final class SkyNetworkTicker {
     private static TargetItemSlot selectTargetItemSlot(CachedEndpoint endpoint, IItemHandler target,
             ItemStack stack) {
         int slots = target.getSlots();
-        int preferred = endpoint.preferredTargetItemSlot(stack, slots);
-        if (preferred >= 0) {
-            ItemStack remainder = target.insertItem(preferred, stack.copy(), true);
-            int movable = stack.getCount() - remainder.getCount();
-            if (movable > 0) return new TargetItemSlot(preferred, movable);
-            endpoint.recordTargetItemSlotMiss(stack, preferred);
+        int lane = endpoint.targetItemCursorLane(stack, slots);
+        int hotSlot = endpoint.targetItemHotSlot(lane, slots);
+        if (hotSlot >= 0) {
+            TargetItemSlot candidate = simulateTargetItemSlot(target, stack, lane, hotSlot, true);
+            if (candidate.movable() > 0) return candidate;
+            endpoint.recordTargetItemHotMiss(lane, hotSlot, slots);
         }
+        int scanStart = endpoint.targetItemScanStart(lane, slots);
         for (int pass = 0; pass < 2; pass++) {
-            for (int slot = 0; slot < slots; slot++) {
-                if (slot == preferred) continue;
+            for (int offset = 0; offset < slots; offset++) {
+                int slot = Math.floorMod(scanStart + offset, slots);
+                if (slot == hotSlot) continue;
                 ItemStack existing = target.getStackInSlot(slot);
                 boolean matchingStack = !existing.isEmpty() && StackData.sameItemAndComponents(existing, stack);
                 if ((pass == 0) != matchingStack) continue;
-                ItemStack remainder = target.insertItem(slot, stack.copy(), true);
-                int movable = stack.getCount() - remainder.getCount();
-                if (movable > 0) return new TargetItemSlot(slot, movable);
+                TargetItemSlot candidate = simulateTargetItemSlot(target, stack, lane, slot, false, existing);
+                if (candidate.movable() > 0) return candidate;
             }
         }
         return TargetItemSlot.NONE;
+    }
+
+    private static TargetItemSlot simulateTargetItemSlot(IItemHandler target, ItemStack stack, int lane,
+            int slot, boolean usedHot) {
+        return simulateTargetItemSlot(target, stack, lane, slot, usedHot, target.getStackInSlot(slot));
+    }
+
+    private static TargetItemSlot simulateTargetItemSlot(IItemHandler target, ItemStack stack, int lane,
+            int slot, boolean usedHot, ItemStack existing) {
+        ItemStack remainder = target.insertItem(slot, stack.copy(), true);
+        int movable = stack.getCount() - remainder.getCount();
+        if (movable <= 0) return TargetItemSlot.NONE;
+        int existingCount = existing.isEmpty() ? 0 : existing.getCount();
+        int effectiveLimit = Math.min(target.getSlotLimit(slot), stack.getMaxStackSize());
+        return new TargetItemSlot(lane, slot, movable, existingCount, effectiveLimit,
+                movable < stack.getCount(), usedHot);
     }
 
     private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
@@ -2496,8 +2543,14 @@ public final class SkyNetworkTicker {
     private record SourceSearchResult(int index, int skippedChecks, boolean exhausted) {
     }
 
-    private record TargetItemSlot(int slot, int movable) {
-        private static final TargetItemSlot NONE = new TargetItemSlot(-1, 0);
+    private record TargetItemSlot(int lane, int slot, int movable, int existingCount, int effectiveLimit,
+            boolean simulationLimited, boolean usedHot) {
+        private static final TargetItemSlot NONE = new TargetItemSlot(-1, -1, 0, 0, 0, false, false);
+
+        private boolean filledAfter(int inserted, ItemStack leftover) {
+            return !leftover.isEmpty() || existingCount + inserted >= effectiveLimit
+                    || (simulationLimited && inserted >= movable);
+        }
     }
 
     private record MoveResult(boolean moved, int operations) {

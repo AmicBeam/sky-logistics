@@ -47,6 +47,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -73,8 +74,12 @@ public final class SkyNetworkRegistry {
     private static final int EMPTY_CHEMICAL_TANK_CACHE_SIZE = 16;
     private static final int PREFERRED_CHEMICAL_TANK_MISS_LIMIT = 3;
     private static final int EMPTY_CHEMICAL_TANK_RETRY_TICKS = 20;
-    private static final int REJECTED_ACCEPT_CACHE_SIZE = 8;
     private static final int MAX_TRANSFER_FAILURES = 8;
+    private static final int TARGET_CURSOR_REPROBE_SUCCESSES = 9;
+    private static final byte TARGET_CURSOR_NEW = 0;
+    private static final byte TARGET_CURSOR_PROBATION = 1;
+    private static final byte TARGET_CURSOR_REUSE = 2;
+    private static final byte TARGET_CURSOR_SEQUENTIAL = 3;
 
     private static final Map<ResourceKey<Level>, DimensionIndex> DIMENSIONS = new HashMap<>();
     private static final Set<LineIndex> ACTIVE_LINES = new LinkedHashSet<>();
@@ -1371,13 +1376,12 @@ public final class SkyNetworkRegistry {
         private long[] rejectedItemAcceptUntil;
         private int[] rejectedItemAcceptFailures;
         private int rejectedItemAcceptCursor;
-        private ItemStack[] preferredTargetItemStacks;
-        private int[] preferredTargetItemSlots;
-        private int preferredTargetItemSlotWriteCursor;
-        private ItemStack[] preferredTargetItemOverflowStacks;
-        private int[] preferredTargetItemOverflowSlots;
-        private int preferredTargetItemOverflowWriteCursor;
-        private int preferredTargetItemSlotEvictions;
+        private Item[] targetItemCursorOwners;
+        private int[] targetItemHotSlots;
+        private int[] targetItemScanCursors;
+        private byte[] targetItemCursorModes;
+        private int[] targetItemSequentialSuccesses;
+        private int targetItemCursorSlotCount = -1;
         private FluidStackKey[] rejectedFluidAccepts;
         private long[] rejectedFluidAcceptUntil;
         private int[] rejectedFluidAcceptFailures;
@@ -1408,14 +1412,12 @@ public final class SkyNetworkRegistry {
             emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
             rejectedItems = new ItemStack[REJECTED_ITEM_CACHE_SIZE];
             rejectedItemUntil = new long[REJECTED_ITEM_CACHE_SIZE];
-            rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
-            preferredTargetItemStacks = new ItemStack[SkyLogisticsConfig.preferredTargetItemSlotPrimaryCacheSize()];
-            preferredTargetItemSlots = new int[preferredTargetItemStacks.length];
+            int rejectedAcceptCacheSize = SkyLogisticsConfig.rejectedAcceptCacheSize();
+            rejectedItemAccepts = new ItemStackKey[rejectedAcceptCacheSize];
+            rejectedItemAcceptUntil = new long[rejectedAcceptCacheSize];
+            rejectedItemAcceptFailures = new int[rejectedAcceptCacheSize];
             clearItemSlotCaches();
             for (int i = 0; i < rejectedItems.length; i++) rejectedItems[i] = ItemStack.EMPTY;
-            for (int i = 0; i < preferredTargetItemStacks.length; i++) preferredTargetItemStacks[i] = ItemStack.EMPTY;
         }
 
         private void enableFluidCaching() {
@@ -1424,9 +1426,10 @@ public final class SkyNetworkRegistry {
             preferredFluidTankMisses = new int[PREFERRED_FLUID_TANK_CACHE_SIZE];
             emptyFluidTanks = new int[EMPTY_FLUID_TANK_CACHE_SIZE];
             emptyFluidTankUntil = new long[EMPTY_FLUID_TANK_CACHE_SIZE];
-            rejectedFluidAccepts = new FluidStackKey[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedFluidAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedFluidAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            int rejectedAcceptCacheSize = SkyLogisticsConfig.rejectedAcceptCacheSize();
+            rejectedFluidAccepts = new FluidStackKey[rejectedAcceptCacheSize];
+            rejectedFluidAcceptUntil = new long[rejectedAcceptCacheSize];
+            rejectedFluidAcceptFailures = new int[rejectedAcceptCacheSize];
             clearFluidTankCaches();
         }
 
@@ -1436,9 +1439,10 @@ public final class SkyNetworkRegistry {
             preferredChemicalTankMisses = new int[PREFERRED_CHEMICAL_TANK_CACHE_SIZE];
             emptyChemicalTanks = new int[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
             emptyChemicalTankUntil = new long[EMPTY_CHEMICAL_TANK_CACHE_SIZE];
-            rejectedChemicalAccepts = new ChemicalStackView[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedChemicalAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
-            rejectedChemicalAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            int rejectedAcceptCacheSize = SkyLogisticsConfig.rejectedAcceptCacheSize();
+            rejectedChemicalAccepts = new ChemicalStackView[rejectedAcceptCacheSize];
+            rejectedChemicalAcceptUntil = new long[rejectedAcceptCacheSize];
+            rejectedChemicalAcceptFailures = new int[rejectedAcceptCacheSize];
             clearChemicalTankCaches();
         }
 
@@ -1779,127 +1783,89 @@ public final class SkyNetworkRegistry {
             return false;
         }
 
-        public int preferredTargetItemSlot(ItemStack stack, int totalSlots) {
-            int primaryIndex = findTargetItemStack(preferredTargetItemStacks, stack);
-            if (primaryIndex >= 0) {
-                return validateTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots,
-                        primaryIndex, totalSlots);
+        public int targetItemCursorLane(ItemStack stack, int totalSlots) {
+            int configured = SkyLogisticsConfig.targetItemInsertionCursorCount();
+            int cursorCount = Math.min(configured, totalSlots);
+            if (cursorCount <= 0 || stack.isEmpty()) return -1;
+            if (targetItemCursorOwners == null || targetItemCursorOwners.length != cursorCount
+                    || targetItemCursorSlotCount != totalSlots) {
+                targetItemCursorOwners = new Item[cursorCount];
+                targetItemHotSlots = new int[cursorCount];
+                targetItemScanCursors = new int[cursorCount];
+                targetItemCursorModes = new byte[cursorCount];
+                targetItemSequentialSuccesses = new int[cursorCount];
+                for (int i = 0; i < cursorCount; i++) targetItemHotSlots[i] = -1;
+                targetItemCursorSlotCount = totalSlots;
             }
-            int overflowIndex = findTargetItemStack(preferredTargetItemOverflowStacks, stack);
-            if (overflowIndex >= 0) {
-                int slot = validateTargetItemSlot(preferredTargetItemOverflowStacks,
-                        preferredTargetItemOverflowSlots, overflowIndex, totalSlots);
-                if (slot < 0) return -1;
-                int promoteIndex = preferredTargetItemSlotWriteCursor;
-                preferredTargetItemSlotWriteCursor = (preferredTargetItemSlotWriteCursor + 1)
-                        % preferredTargetItemStacks.length;
-                ItemStack displacedStack = preferredTargetItemStacks[promoteIndex];
-                int displacedSlot = preferredTargetItemSlots[promoteIndex];
-                preferredTargetItemStacks[promoteIndex] = preferredTargetItemOverflowStacks[overflowIndex];
-                preferredTargetItemSlots[promoteIndex] = slot;
-                preferredTargetItemOverflowStacks[overflowIndex] = displacedStack;
-                preferredTargetItemOverflowSlots[overflowIndex] = displacedSlot;
-                return slot;
+            int lane = Math.floorMod(System.identityHashCode(stack.getItem()), cursorCount);
+            if (targetItemCursorOwners[lane] != stack.getItem()) {
+                targetItemCursorOwners[lane] = stack.getItem();
+                targetItemHotSlots[lane] = -1;
+                targetItemScanCursors[lane] = 0;
+                targetItemCursorModes[lane] = TARGET_CURSOR_NEW;
+                targetItemSequentialSuccesses[lane] = 0;
             }
-            return -1;
+            return lane;
         }
 
-        public void recordTargetItemSlotSuccess(ItemStack stack, int slot) {
-            if (stack.isEmpty() || slot < 0) return;
-            int index = findTargetItemStack(preferredTargetItemStacks, stack);
-            if (index >= 0) {
-                preferredTargetItemSlots[index] = slot;
-                preferredTargetItemSlotEvictions = 0;
+        public int targetItemHotSlot(int lane, int totalSlots) {
+            if (!validTargetItemCursorLane(lane) || totalSlots <= 0) return -1;
+            byte mode = targetItemCursorModes[lane];
+            if (mode != TARGET_CURSOR_PROBATION && mode != TARGET_CURSOR_REUSE) return -1;
+            int slot = targetItemHotSlots[lane];
+            if (slot < 0 || slot >= totalSlots) {
+                targetItemHotSlots[lane] = -1;
+                targetItemCursorModes[lane] = TARGET_CURSOR_NEW;
+                return -1;
+            }
+            return slot;
+        }
+
+        public int targetItemScanStart(int lane, int totalSlots) {
+            if (!validTargetItemCursorLane(lane) || totalSlots <= 0) return 0;
+            return Math.floorMod(targetItemScanCursors[lane], totalSlots);
+        }
+
+        public void recordTargetItemHotMiss(int lane, int slot, int totalSlots) {
+            if (!validTargetItemCursorLane(lane) || totalSlots <= 0) return;
+            targetItemCursorModes[lane] = TARGET_CURSOR_SEQUENTIAL;
+            targetItemSequentialSuccesses[lane] = 0;
+            targetItemScanCursors[lane] = Math.floorMod(slot + 1, totalSlots);
+        }
+
+        public void recordTargetItemSlotSuccess(int lane, int slot, boolean filled, boolean usedHot,
+                int totalSlots) {
+            if (!validTargetItemCursorLane(lane) || slot < 0 || totalSlots <= 0) return;
+            targetItemHotSlots[lane] = slot;
+            if (!filled || usedHot) {
+                targetItemCursorModes[lane] = TARGET_CURSOR_REUSE;
+                targetItemSequentialSuccesses[lane] = 0;
+                targetItemScanCursors[lane] = slot;
                 return;
             }
-            index = findTargetItemStack(preferredTargetItemOverflowStacks, stack);
-            if (index >= 0) {
-                preferredTargetItemOverflowSlots[index] = slot;
-                return;
-            }
-            index = firstEmptyTargetItemStack(preferredTargetItemStacks);
-            if (index >= 0) {
-                storeTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, index, stack, slot);
-                return;
-            }
-            if (preferredTargetItemOverflowStacks == null) {
-                preferredTargetItemSlotEvictions++;
-                int overflowSize = SkyLogisticsConfig.preferredTargetItemSlotMaxCacheSize()
-                        - preferredTargetItemStacks.length;
-                if (overflowSize > 0 && preferredTargetItemSlotEvictions
-                        >= SkyLogisticsConfig.preferredTargetItemSlotExpansionEvictions()) {
-                    preferredTargetItemOverflowStacks = new ItemStack[overflowSize];
-                    preferredTargetItemOverflowSlots = new int[overflowSize];
-                    for (int i = 0; i < overflowSize; i++) {
-                        preferredTargetItemOverflowStacks[i] = ItemStack.EMPTY;
-                        preferredTargetItemOverflowSlots[i] = -1;
-                    }
-                    storeTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots,
-                            0, stack, slot);
-                    preferredTargetItemOverflowWriteCursor = overflowSize == 1 ? 0 : 1;
-                    return;
+            targetItemScanCursors[lane] = Math.floorMod(slot + 1, totalSlots);
+            if (targetItemCursorModes[lane] == TARGET_CURSOR_SEQUENTIAL) {
+                int successes = targetItemSequentialSuccesses[lane] + 1;
+                if (successes >= TARGET_CURSOR_REPROBE_SUCCESSES) {
+                    targetItemCursorModes[lane] = TARGET_CURSOR_PROBATION;
+                    targetItemSequentialSuccesses[lane] = 0;
+                } else {
+                    targetItemSequentialSuccesses[lane] = successes;
                 }
-                index = preferredTargetItemSlotWriteCursor;
-                preferredTargetItemSlotWriteCursor = (preferredTargetItemSlotWriteCursor + 1)
-                        % preferredTargetItemStacks.length;
-                storeTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, index, stack, slot);
-                return;
+            } else {
+                targetItemCursorModes[lane] = TARGET_CURSOR_PROBATION;
+                targetItemSequentialSuccesses[lane] = 0;
             }
-            index = firstEmptyTargetItemStack(preferredTargetItemOverflowStacks);
-            if (index < 0) {
-                index = preferredTargetItemOverflowWriteCursor;
-                preferredTargetItemOverflowWriteCursor = (preferredTargetItemOverflowWriteCursor + 1)
-                        % preferredTargetItemOverflowStacks.length;
-            }
-            storeTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots,
-                    index, stack, slot);
         }
 
-        public void recordTargetItemSlotMiss(ItemStack stack, int slot) {
-            if (clearTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, stack, slot)) return;
-            clearTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots, stack, slot);
+        public void recordTargetItemSlotMiss(int lane, int slot, int totalSlots) {
+            if (!validTargetItemCursorLane(lane) || totalSlots <= 0) return;
+            if (targetItemHotSlots[lane] == slot) recordTargetItemHotMiss(lane, slot, totalSlots);
+            else targetItemScanCursors[lane] = Math.floorMod(slot + 1, totalSlots);
         }
 
-        private static int findTargetItemStack(ItemStack[] stacks, ItemStack stack) {
-            if (stacks == null) return -1;
-            for (int i = 0; i < stacks.length; i++) {
-                if (!stacks[i].isEmpty() && StackData.sameItemAndComponents(stacks[i], stack)) return i;
-            }
-            return -1;
-        }
-
-        private static int firstEmptyTargetItemStack(ItemStack[] stacks) {
-            for (int i = 0; i < stacks.length; i++) {
-                if (stacks[i].isEmpty()) return i;
-            }
-            return -1;
-        }
-
-        private static int validateTargetItemSlot(ItemStack[] stacks, int[] slots, int index, int totalSlots) {
-            int slot = slots[index];
-            if (slot >= 0 && slot < totalSlots) return slot;
-            stacks[index] = ItemStack.EMPTY;
-            slots[index] = -1;
-            return -1;
-        }
-
-        private static void storeTargetItemSlot(ItemStack[] stacks, int[] slots, int index,
-                ItemStack stack, int slot) {
-            stacks[index] = stack.copyWithCount(1);
-            slots[index] = slot;
-        }
-
-        private static boolean clearTargetItemSlot(ItemStack[] stacks, int[] slots, ItemStack stack, int slot) {
-            if (stacks == null) return false;
-            for (int i = 0; i < stacks.length; i++) {
-                if (slots[i] == slot && !stacks[i].isEmpty()
-                        && StackData.sameItemAndComponents(stacks[i], stack)) {
-                    stacks[i] = ItemStack.EMPTY;
-                    slots[i] = -1;
-                    return true;
-                }
-            }
-            return false;
+        private boolean validTargetItemCursorLane(int lane) {
+            return targetItemCursorOwners != null && lane >= 0 && lane < targetItemCursorOwners.length;
         }
 
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {
@@ -1966,7 +1932,7 @@ public final class SkyNetworkRegistry {
             return itemSlotDiscoveryRemaining > 0;
         }
 
-        public boolean shouldTryItemSlotDiscoveryBeforePreferred() {
+        public boolean shouldTryItemSlotDiscoveryAfterPreferred() {
             if (itemSlotDiscoveryRemaining <= 0) {
                 return false;
             }
@@ -2475,21 +2441,12 @@ public final class SkyNetworkRegistry {
             itemSlotDiscoveryRemaining = 0;
             itemSlotDiscoveryDeferrals = 0;
             emptyItemSlotCursor = 0;
-            if (preferredTargetItemStacks != null) {
-                for (int i = 0; i < preferredTargetItemStacks.length; i++) {
-                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
-                    preferredTargetItemSlots[i] = -1;
-                }
-                preferredTargetItemSlotWriteCursor = 0;
-                preferredTargetItemSlotEvictions = 0;
-                if (preferredTargetItemOverflowStacks != null) {
-                    for (int i = 0; i < preferredTargetItemOverflowStacks.length; i++) {
-                        preferredTargetItemOverflowStacks[i] = ItemStack.EMPTY;
-                        preferredTargetItemOverflowSlots[i] = -1;
-                    }
-                    preferredTargetItemOverflowWriteCursor = 0;
-                }
-            }
+            targetItemCursorOwners = null;
+            targetItemHotSlots = null;
+            targetItemScanCursors = null;
+            targetItemCursorModes = null;
+            targetItemSequentialSuccesses = null;
+            targetItemCursorSlotCount = -1;
         }
 
         private void clearFluidTankCaches() {
