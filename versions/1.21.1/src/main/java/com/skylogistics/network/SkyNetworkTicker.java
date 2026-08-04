@@ -74,6 +74,12 @@ public final class SkyNetworkTicker {
             boolean lineBudgetExhausted = false;
             boolean endpointVisitBudgetExhausted = false;
             int lineEndpointVisits = 0;
+            boolean localItemRoute = line.hasLocalItemRoute();
+            boolean localFluidRoute = line.hasLocalFluidRoute();
+            boolean localChemicalRoute = line.hasLocalChemicalRoute();
+            boolean localEnergyRoute = line.hasLocalEnergyRoute();
+            boolean localManaRoute = line.hasLocalManaRoute();
+            boolean localSourceRoute = line.hasLocalSourceRoute();
             int inputCount = line.inputCount();
             for (int inputIndex = 0; inputIndex < inputCount; inputIndex++) {
                 if (endpointVisits >= serverOpsPerTick) {
@@ -103,8 +109,14 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 boolean dimensionUpgrade = node.hasDimensionUpgrade();
+                boolean itemRoute = localItemRoute || dimensionUpgrade;
+                boolean fluidRoute = localFluidRoute || dimensionUpgrade;
+                boolean chemicalRoute = localChemicalRoute || dimensionUpgrade;
+                boolean energyRoute = localEnergyRoute || dimensionUpgrade;
+                boolean manaRoute = localManaRoute || dimensionUpgrade;
+                boolean sourceRoute = localSourceRoute || dimensionUpgrade;
                 int remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
-                if (node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)) {
+                if (itemRoute && node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)) {
                     if (dimensionUpgrade && globalItemOutputs == null) {
                         globalItemOutputs = SkyNetworkRegistry.globalItemOutputs(line.lineId());
                     }
@@ -130,7 +142,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isFluidsEnabled(input.direction()) && input.canTryFluids(gameTime)) {
+                if (fluidRoute && node.isFluidsEnabled(input.direction()) && input.canTryFluids(gameTime)) {
                     if (dimensionUpgrade && globalFluidOutputs == null) {
                         globalFluidOutputs = SkyNetworkRegistry.globalFluidOutputs(line.lineId());
                     }
@@ -152,7 +164,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+                if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && node.isFluidsEnabled(input.direction())
                         && input.supportsChemical()
                         && input.canTryChemicals(gameTime)) {
@@ -177,7 +189,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
+                if (energyRoute && node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
                     }
@@ -195,7 +207,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction()) && input.supportsMana()
+                if (manaRoute && node.isEnergyEnabled(input.direction()) && input.supportsMana()
                         && canTransferMana() && input.canTryMana(gameTime)) {
                     if (dimensionUpgrade && globalManaOutputs == null) {
                         globalManaOutputs = SkyNetworkRegistry.globalManaOutputs(line.lineId());
@@ -214,7 +226,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (node.isEnergyEnabled(input.direction()) && input.supportsSource()
+                if (sourceRoute && node.isEnergyEnabled(input.direction()) && input.supportsSource()
                         && canTransferSource() && input.canTrySource(gameTime)) {
                     if (dimensionUpgrade && globalSourceOutputs == null) {
                         globalSourceOutputs = SkyNetworkRegistry.globalSourceOutputs(line.lineId());
@@ -228,7 +240,8 @@ public final class SkyNetworkTicker {
                                 Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
                     }
                 }
-                nextWake = nextInputWake(input, node, gameTime, nextWake);
+                nextWake = nextInputWake(input, node, gameTime, nextWake, itemRoute, fluidRoute,
+                        chemicalRoute, energyRoute, manaRoute, sourceRoute);
             }
             line.advanceInputCursor(endpointVisitBudgetExhausted ? lineEndpointVisits : 1);
             if (operations > lineOperationsBefore) {
@@ -257,24 +270,26 @@ public final class SkyNetworkTicker {
         return localOutputs;
     }
 
-    private static long nextInputWake(CachedEndpoint input, NetworkEndpointBlockEntity node, long gameTime, long current) {
+    private static long nextInputWake(CachedEndpoint input, NetworkEndpointBlockEntity node, long gameTime,
+            long current, boolean itemRoute, boolean fluidRoute, boolean chemicalRoute, boolean energyRoute,
+            boolean manaRoute, boolean sourceRoute) {
         long nextWake = current;
-        if (node.isItemsEnabled(input.direction())) {
+        if (itemRoute && node.isItemsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextItemWake(gameTime));
         }
-        if (node.isFluidsEnabled(input.direction())) {
+        if (fluidRoute && node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
+            if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                     && input.supportsChemical()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
-        if (node.isEnergyEnabled(input.direction())) {
+        if (energyRoute && node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
-            if (canTransferMana() && input.supportsMana()) {
+            if (manaRoute && canTransferMana() && input.supportsMana()) {
                 nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
             }
-            if (canTransferSource() && input.supportsSource()) {
+            if (sourceRoute && canTransferSource() && input.supportsSource()) {
                 nextWake = Math.min(nextWake, input.nextSourceWake(gameTime));
             }
         }

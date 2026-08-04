@@ -1147,6 +1147,12 @@ public final class SkyNetworkRegistry {
     }
 
     public static final class LineIndex {
+        private static final int RESOURCE_ITEMS = 1;
+        private static final int RESOURCE_FLUIDS = 1 << 1;
+        private static final int RESOURCE_CHEMICALS = 1 << 2;
+        private static final int RESOURCE_ENERGY = 1 << 3;
+        private static final int RESOURCE_MANA = 1 << 4;
+        private static final int RESOURCE_SOURCE = 1 << 5;
         private final UUID lineId;
         private final List<CachedEndpoint> inputs = new ArrayList<>();
         private final List<CachedEndpoint> outputs = new ArrayList<>();
@@ -1172,6 +1178,8 @@ public final class SkyNetworkRegistry {
         private long retryAfter;
         private int nodeCount;
         private int inputCursor;
+        private int inputResourceMask;
+        private int outputResourceMask;
 
         private LineIndex(UUID lineId) {
             this.lineId = lineId;
@@ -1243,6 +1251,34 @@ public final class SkyNetworkRegistry {
             return prioritySourceOutputs;
         }
 
+        public boolean hasLocalItemRoute() {
+            return hasLocalRoute(RESOURCE_ITEMS);
+        }
+
+        public boolean hasLocalFluidRoute() {
+            return hasLocalRoute(RESOURCE_FLUIDS);
+        }
+
+        public boolean hasLocalChemicalRoute() {
+            return hasLocalRoute(RESOURCE_CHEMICALS);
+        }
+
+        public boolean hasLocalEnergyRoute() {
+            return hasLocalRoute(RESOURCE_ENERGY);
+        }
+
+        public boolean hasLocalManaRoute() {
+            return hasLocalRoute(RESOURCE_MANA);
+        }
+
+        public boolean hasLocalSourceRoute() {
+            return hasLocalRoute(RESOURCE_SOURCE);
+        }
+
+        private boolean hasLocalRoute(int resource) {
+            return (inputResourceMask & outputResourceMask & resource) != 0;
+        }
+
         public boolean hasProcessableInputs() {
             return !itemInputs.isEmpty() || !fluidInputs.isEmpty() || !chemicalInputs.isEmpty()
                     || !energyInputs.isEmpty() || !manaInputs.isEmpty() || !sourceInputs.isEmpty();
@@ -1262,14 +1298,14 @@ public final class SkyNetworkRegistry {
 
         private void addInput(CachedEndpoint endpoint) {
             inputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs, energyInputs,
-                    manaInputs, sourceInputs);
+            inputResourceMask |= addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs,
+                    energyInputs, manaInputs, sourceInputs);
         }
 
         private void addOutput(CachedEndpoint endpoint) {
             outputs.add(endpoint);
-            addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, chemicalOutputs, energyOutputs,
-                    manaOutputs, sourceOutputs);
+            outputResourceMask |= addResourceEndpoint(endpoint, itemOutputs, fluidOutputs, chemicalOutputs,
+                    energyOutputs, manaOutputs, sourceOutputs);
         }
 
         private void rebuildPriorityOutputs() {
@@ -1302,41 +1338,56 @@ public final class SkyNetworkRegistry {
             sortByPriority(prioritySourceOutputs);
         }
 
-        private static void addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
+        private static int addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
                 List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> chemicalEndpoints,
                 List<CachedEndpoint> energyEndpoints, List<CachedEndpoint> manaEndpoints,
                 List<CachedEndpoint> sourceEndpoints) {
             NetworkEndpointBlockEntity node = endpoint.node();
             Direction direction = endpoint.direction();
+            int resourceMask = 0;
             if (node.isItemsEnabled(direction)) {
                 endpoint.enableItemCaching();
                 itemEndpoints.add(endpoint);
+                resourceMask |= RESOURCE_ITEMS;
             }
             if (node.isFluidsEnabled(direction)) {
                 endpoint.enableFluidCaching();
                 fluidEndpoints.add(endpoint);
+                resourceMask |= RESOURCE_FLUIDS;
                 if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && endpoint.detectChemicalSupport(node, direction)) {
                     endpoint.enableChemicalCaching();
                     chemicalEndpoints.add(endpoint);
+                    resourceMask |= RESOURCE_CHEMICALS;
                 }
             }
             if (node.isEnergyEnabled(direction)) {
                 energyEndpoints.add(endpoint);
+                resourceMask |= RESOURCE_ENERGY;
                 if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()
                         && endpoint.detectManaSupport(node, direction)) {
                     manaEndpoints.add(endpoint);
+                    resourceMask |= RESOURCE_MANA;
                 }
                 if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()
                         && endpoint.detectSourceSupport(node, direction)) {
                     sourceEndpoints.add(endpoint);
+                    resourceMask |= RESOURCE_SOURCE;
                 }
             }
+            return resourceMask;
         }
 
     }
 
     public static final class CachedEndpoint {
+        private static final int CAPABILITY_ITEMS = 1;
+        private static final int CAPABILITY_FLUIDS = 1 << 1;
+        private static final int CAPABILITY_CHEMICALS = 1 << 2;
+        private static final int CAPABILITY_ENERGY = 1 << 3;
+        private static final int CAPABILITY_MANA = 1 << 4;
+        private static final int CAPABILITY_SOURCE = 1 << 5;
+        private static final long CAPABILITY_LIFECYCLE_CHECK_INTERVAL = 20L;
         private final NetworkEndpointBlockEntity node;
         private final Direction direction;
         private final BlockPos targetPos;
@@ -1421,6 +1472,10 @@ public final class SkyNetworkRegistry {
         private boolean chemicalSupportKnown;
         private boolean manaSupportKnown;
         private boolean sourceSupportKnown;
+        private int absentCapabilityMask;
+        private BlockEntity capabilityTarget;
+        private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
+        private long capabilityLifecycleCheckAt;
 
         private CachedEndpoint(NetworkEndpointBlockEntity node, Direction direction) {
             this.node = node;
@@ -1524,51 +1579,107 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean canTryItems(long gameTime) {
-            return gameTime >= itemRetryAfter;
+            return gameTime >= itemRetryAfter && capabilityMayExist(CAPABILITY_ITEMS, gameTime);
         }
 
         public boolean canTryFluids(long gameTime) {
-            return gameTime >= fluidRetryAfter;
+            return gameTime >= fluidRetryAfter && capabilityMayExist(CAPABILITY_FLUIDS, gameTime);
         }
 
         public boolean canTryChemicals(long gameTime) {
-            return gameTime >= chemicalRetryAfter;
+            return gameTime >= chemicalRetryAfter && capabilityMayExist(CAPABILITY_CHEMICALS, gameTime);
         }
 
         public boolean canTryEnergy(long gameTime) {
-            return gameTime >= energyRetryAfter;
+            return gameTime >= energyRetryAfter && capabilityMayExist(CAPABILITY_ENERGY, gameTime);
         }
 
         public boolean canTryMana(long gameTime) {
-            return gameTime >= manaRetryAfter;
+            return gameTime >= manaRetryAfter && capabilityMayExist(CAPABILITY_MANA, gameTime);
         }
 
         public boolean canTrySource(long gameTime) {
-            return gameTime >= sourceRetryAfter;
+            return gameTime >= sourceRetryAfter && capabilityMayExist(CAPABILITY_SOURCE, gameTime);
         }
 
         public long nextItemWake(long gameTime) {
-            return itemRetryAfter > gameTime ? itemRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_ITEMS, itemRetryAfter, gameTime);
         }
 
         public long nextFluidWake(long gameTime) {
-            return fluidRetryAfter > gameTime ? fluidRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_FLUIDS, fluidRetryAfter, gameTime);
         }
 
         public long nextChemicalWake(long gameTime) {
-            return chemicalRetryAfter > gameTime ? chemicalRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_CHEMICALS, chemicalRetryAfter, gameTime);
         }
 
         public long nextEnergyWake(long gameTime) {
-            return energyRetryAfter > gameTime ? energyRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_ENERGY, energyRetryAfter, gameTime);
         }
 
         public long nextManaWake(long gameTime) {
-            return manaRetryAfter > gameTime ? manaRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_MANA, manaRetryAfter, gameTime);
         }
 
         public long nextSourceWake(long gameTime) {
-            return sourceRetryAfter > gameTime ? sourceRetryAfter : gameTime;
+            return nextCapabilityWake(CAPABILITY_SOURCE, sourceRetryAfter, gameTime);
+        }
+
+        private boolean capabilityMayExist(int capability, long gameTime) {
+            if ((absentCapabilityMask & capability) == 0) {
+                return true;
+            }
+            if (gameTime < capabilityLifecycleCheckAt) {
+                return false;
+            }
+            Level level = node.getLevel();
+            capabilityLifecycleCheckAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
+            if (level == null || !level.isLoaded(targetPos)) {
+                return false;
+            }
+            BlockEntity currentTarget = level.getBlockEntity(targetPos);
+            net.minecraft.world.level.block.state.BlockState currentState = level.getBlockState(targetPos);
+            if (currentTarget == capabilityTarget && currentState == capabilityTargetState) {
+                return false;
+            }
+            invalidateCapabilityKnowledge();
+            return true;
+        }
+
+        private long nextCapabilityWake(int capability, long retryAfter, long gameTime) {
+            long wake = retryAfter > gameTime ? retryAfter : gameTime;
+            if ((absentCapabilityMask & capability) != 0 && capabilityLifecycleCheckAt > wake) {
+                wake = capabilityLifecycleCheckAt;
+            }
+            return wake;
+        }
+
+        private void recordCapabilityPresent(int capability) {
+            absentCapabilityMask &= ~capability;
+        }
+
+        private void recordCapabilityAbsent(int capability, long gameTime) {
+            absentCapabilityMask |= capability;
+            Level level = node.getLevel();
+            if (level != null && level.isLoaded(targetPos)) {
+                capabilityTarget = level.getBlockEntity(targetPos);
+                capabilityTargetState = level.getBlockState(targetPos);
+            }
+            capabilityLifecycleCheckAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
+        }
+
+        private void invalidateCapabilityKnowledge() {
+            absentCapabilityMask = 0;
+            capabilityTarget = null;
+            capabilityTargetState = null;
+            capabilityLifecycleCheckAt = 0L;
+            clearItemCache();
+            clearFluidCache();
+            clearChemicalCache();
+            clearEnergyCache();
+            clearManaCache();
+            clearSourceCache();
         }
 
         public IItemHandler itemHandler(long gameTime) {
@@ -1577,6 +1688,7 @@ public final class SkyNetworkRegistry {
             }
             IItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_ITEMS);
                 return direct;
             }
             if (itemHandler != null && itemOptional.isPresent()) {
@@ -1596,8 +1708,10 @@ public final class SkyNetworkRegistry {
             itemOptional = target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide);
             itemHandler = itemOptional.orElse(null);
             if (itemHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_ITEMS, gameTime);
                 recordItemFailure(gameTime);
             } else {
+                recordCapabilityPresent(CAPABILITY_ITEMS);
                 itemOptional.addListener(ignored -> clearItemCache());
             }
             return itemHandler;
@@ -1609,6 +1723,7 @@ public final class SkyNetworkRegistry {
             }
             IFluidHandler direct = node.getEndpointFluidHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_FLUIDS);
                 return direct;
             }
             if (fluidHandler != null && fluidOptional.isPresent()) {
@@ -1628,8 +1743,10 @@ public final class SkyNetworkRegistry {
             fluidOptional = target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide);
             fluidHandler = fluidOptional.orElse(null);
             if (fluidHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_FLUIDS, gameTime);
                 recordFluidFailure(gameTime);
             } else {
+                recordCapabilityPresent(CAPABILITY_FLUIDS);
                 fluidOptional.addListener(ignored -> clearFluidCache());
             }
             return fluidHandler;
@@ -1642,6 +1759,7 @@ public final class SkyNetworkRegistry {
             }
             ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_CHEMICALS);
                 return direct;
             }
             if (chemicalHandler != null) {
@@ -1660,7 +1778,10 @@ public final class SkyNetworkRegistry {
             }
             chemicalHandler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
             if (chemicalHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_CHEMICALS, gameTime);
                 recordChemicalFailure(gameTime);
+            } else {
+                recordCapabilityPresent(CAPABILITY_CHEMICALS);
             }
             return chemicalHandler;
         }
@@ -1671,6 +1792,7 @@ public final class SkyNetworkRegistry {
             }
             IEnergyStorage direct = node.getEndpointEnergyHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_ENERGY);
                 return direct;
             }
             if (energyHandler != null && energyOptional.isPresent()) {
@@ -1690,8 +1812,10 @@ public final class SkyNetworkRegistry {
             energyOptional = target.getCapability(ForgeCapabilities.ENERGY, accessSide);
             energyHandler = energyOptional.orElse(null);
             if (energyHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_ENERGY, gameTime);
                 recordEnergyFailure(gameTime);
             } else {
+                recordCapabilityPresent(CAPABILITY_ENERGY);
                 energyOptional.addListener(ignored -> clearEnergyCache());
             }
             return energyHandler;
@@ -1705,6 +1829,7 @@ public final class SkyNetworkRegistry {
             }
             ManaHandlerBridge direct = node.getEndpointManaHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_MANA);
                 return direct;
             }
             Level level = node.getLevel();
@@ -1724,7 +1849,10 @@ public final class SkyNetworkRegistry {
             manaTarget = target;
             manaHandler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
             if (manaHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_MANA, gameTime);
                 recordManaFailure(gameTime);
+            } else {
+                recordCapabilityPresent(CAPABILITY_MANA);
             }
             return manaHandler;
         }
@@ -1737,6 +1865,7 @@ public final class SkyNetworkRegistry {
             }
             SourceHandlerBridge direct = node.getEndpointSourceHandler(direction, gameTime);
             if (direct != null) {
+                recordCapabilityPresent(CAPABILITY_SOURCE);
                 return direct;
             }
             Level level = node.getLevel();
@@ -1756,7 +1885,10 @@ public final class SkyNetworkRegistry {
             sourceTarget = target;
             sourceHandler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
             if (sourceHandler == null) {
+                recordCapabilityAbsent(CAPABILITY_SOURCE, gameTime);
                 recordSourceFailure(gameTime);
+            } else {
+                recordCapabilityPresent(CAPABILITY_SOURCE);
             }
             return sourceHandler;
         }
@@ -2375,6 +2507,7 @@ public final class SkyNetworkRegistry {
         }
 
         private void clearItemCache() {
+            recordCapabilityPresent(CAPABILITY_ITEMS);
             itemHandler = null;
             itemOptional = LazyOptional.empty();
             clearItemSlotCaches();
@@ -2382,6 +2515,7 @@ public final class SkyNetworkRegistry {
         }
 
         private void clearFluidCache() {
+            recordCapabilityPresent(CAPABILITY_FLUIDS);
             fluidHandler = null;
             fluidOptional = LazyOptional.empty();
             clearFluidTankCaches();
@@ -2389,22 +2523,26 @@ public final class SkyNetworkRegistry {
         }
 
         private void clearChemicalCache() {
+            recordCapabilityPresent(CAPABILITY_CHEMICALS);
             chemicalHandler = null;
             clearChemicalTankCaches();
             clearRejectedChemicalAccepts();
         }
 
         private void clearEnergyCache() {
+            recordCapabilityPresent(CAPABILITY_ENERGY);
             energyHandler = null;
             energyOptional = LazyOptional.empty();
         }
 
         private void clearManaCache() {
+            recordCapabilityPresent(CAPABILITY_MANA);
             manaHandler = null;
             manaTarget = null;
         }
 
         private void clearSourceCache() {
+            recordCapabilityPresent(CAPABILITY_SOURCE);
             sourceHandler = null;
             sourceTarget = null;
         }
