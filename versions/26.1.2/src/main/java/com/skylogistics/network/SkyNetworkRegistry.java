@@ -62,7 +62,10 @@ public final class SkyNetworkRegistry {
     private static final int EMPTY_ITEM_SLOT_CACHE_SIZE = 32;
     private static final int PREFERRED_ITEM_SLOT_MISS_LIMIT = 3;
     private static final int ITEM_SLOT_DISCOVERY_PREFERRED_INTERVAL = 4;
+    private static final int FLUID_TANK_DISCOVERY_PREFERRED_INTERVAL = 4;
+    private static final int CHEMICAL_TANK_DISCOVERY_PREFERRED_INTERVAL = 4;
     private static final int EMPTY_ITEM_SLOT_RETRY_TICKS = 20;
+    private static final int PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE = 4;
     private static final int PREFERRED_FLUID_TANK_CACHE_SIZE = 4;
     private static final int EMPTY_FLUID_TANK_CACHE_SIZE = 16;
     private static final int PREFERRED_FLUID_TANK_MISS_LIMIT = 3;
@@ -1349,6 +1352,7 @@ public final class SkyNetworkRegistry {
         private int preferredFluidTankCursor;
         private int preferredFluidTankWriteCursor;
         private int fluidTankDiscoveryRemaining;
+        private int fluidTankDiscoveryDeferrals;
         private int[] emptyFluidTanks;
         private long[] emptyFluidTankUntil;
         private int emptyFluidTankCursor;
@@ -1357,6 +1361,7 @@ public final class SkyNetworkRegistry {
         private int preferredChemicalTankCursor;
         private int preferredChemicalTankWriteCursor;
         private int chemicalTankDiscoveryRemaining;
+        private int chemicalTankDiscoveryDeferrals;
         private int[] emptyChemicalTanks;
         private long[] emptyChemicalTankUntil;
         private int emptyChemicalTankCursor;
@@ -1367,6 +1372,9 @@ public final class SkyNetworkRegistry {
         private long[] rejectedItemAcceptUntil;
         private int[] rejectedItemAcceptFailures;
         private int rejectedItemAcceptCursor;
+        private ItemStack[] preferredTargetItemStacks;
+        private int[] preferredTargetItemSlots;
+        private int preferredTargetItemSlotWriteCursor;
         private FluidStackKey[] rejectedFluidAccepts;
         private long[] rejectedFluidAcceptUntil;
         private int[] rejectedFluidAcceptFailures;
@@ -1400,8 +1408,11 @@ public final class SkyNetworkRegistry {
             rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
             rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
             rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
+            preferredTargetItemStacks = new ItemStack[PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE];
+            preferredTargetItemSlots = new int[PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE];
             clearItemSlotCaches();
             for (int i = 0; i < rejectedItems.length; i++) rejectedItems[i] = ItemStack.EMPTY;
+            for (int i = 0; i < preferredTargetItemStacks.length; i++) preferredTargetItemStacks[i] = ItemStack.EMPTY;
         }
 
         private void enableFluidCaching() {
@@ -1758,6 +1769,58 @@ public final class SkyNetworkRegistry {
             return false;
         }
 
+        public boolean hasActiveItemAcceptRejects(long gameTime) {
+            for (long retryUntil : rejectedItemAcceptUntil) {
+                if (gameTime < retryUntil) return true;
+            }
+            return false;
+        }
+
+        public int preferredTargetItemSlot(ItemStack stack, int totalSlots) {
+            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
+                if (!preferredTargetItemStacks[i].isEmpty()
+                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
+                    int slot = preferredTargetItemSlots[i];
+                    if (slot >= 0 && slot < totalSlots) return slot;
+                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
+                    preferredTargetItemSlots[i] = -1;
+                    return -1;
+                }
+            }
+            return -1;
+        }
+
+        public void recordTargetItemSlotSuccess(ItemStack stack, int slot) {
+            if (stack.isEmpty() || slot < 0) return;
+            int index = -1;
+            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
+                if (!preferredTargetItemStacks[i].isEmpty()
+                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
+                    preferredTargetItemSlots[i] = slot;
+                    return;
+                }
+                if (index < 0 && preferredTargetItemStacks[i].isEmpty()) index = i;
+            }
+            if (index < 0) {
+                index = preferredTargetItemSlotWriteCursor;
+                preferredTargetItemSlotWriteCursor = (preferredTargetItemSlotWriteCursor + 1)
+                        % preferredTargetItemStacks.length;
+            }
+            preferredTargetItemStacks[index] = stack.copyWithCount(1);
+            preferredTargetItemSlots[index] = slot;
+        }
+
+        public void recordTargetItemSlotMiss(ItemStack stack, int slot) {
+            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
+                if (preferredTargetItemSlots[i] == slot && !preferredTargetItemStacks[i].isEmpty()
+                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
+                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
+                    preferredTargetItemSlots[i] = -1;
+                    return;
+                }
+            }
+        }
+
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {
             int index = findRejectedItemAccept(key);
             if (index < 0) {
@@ -1964,6 +2027,7 @@ public final class SkyNetworkRegistry {
                 preferredFluidTankMisses[insertIndex] = 0;
                 if (preferredCount == 0 && totalTanks > 1) {
                     fluidTankDiscoveryRemaining = Math.max(fluidTankDiscoveryRemaining, totalTanks - 1);
+                    fluidTankDiscoveryDeferrals = 0;
                 }
             }
             clearEmptyFluidTank(tank);
@@ -1971,6 +2035,17 @@ public final class SkyNetworkRegistry {
 
         public boolean isFluidTankDiscoveryActive() {
             return fluidTankDiscoveryRemaining > 0;
+        }
+
+        public boolean shouldTryFluidTankDiscoveryBeforePreferred() {
+            if (fluidTankDiscoveryRemaining <= 0) return false;
+            if (preferredFluidTankCount() <= 0) return true;
+            fluidTankDiscoveryDeferrals++;
+            if (fluidTankDiscoveryDeferrals >= FLUID_TANK_DISCOVERY_PREFERRED_INTERVAL) {
+                fluidTankDiscoveryDeferrals = 0;
+                return true;
+            }
+            return false;
         }
 
         public void recordFluidTankDiscoveryCheck() {
@@ -1981,6 +2056,7 @@ public final class SkyNetworkRegistry {
 
         public void clearFluidTankDiscovery() {
             fluidTankDiscoveryRemaining = 0;
+            fluidTankDiscoveryDeferrals = 0;
         }
 
         public void recordFluidTankMiss(int tank, long gameTime) {
@@ -2101,6 +2177,7 @@ public final class SkyNetworkRegistry {
                 preferredChemicalTankMisses[insertIndex] = 0;
                 if (preferredCount == 0 && totalTanks > 1) {
                     chemicalTankDiscoveryRemaining = Math.max(chemicalTankDiscoveryRemaining, totalTanks - 1);
+                    chemicalTankDiscoveryDeferrals = 0;
                 }
             }
             clearEmptyChemicalTank(tank);
@@ -2108,6 +2185,17 @@ public final class SkyNetworkRegistry {
 
         public boolean isChemicalTankDiscoveryActive() {
             return chemicalTankDiscoveryRemaining > 0;
+        }
+
+        public boolean shouldTryChemicalTankDiscoveryBeforePreferred() {
+            if (chemicalTankDiscoveryRemaining <= 0) return false;
+            if (preferredChemicalTankCount() <= 0) return true;
+            chemicalTankDiscoveryDeferrals++;
+            if (chemicalTankDiscoveryDeferrals >= CHEMICAL_TANK_DISCOVERY_PREFERRED_INTERVAL) {
+                chemicalTankDiscoveryDeferrals = 0;
+                return true;
+            }
+            return false;
         }
 
         public void recordChemicalTankDiscoveryCheck() {
@@ -2118,6 +2206,7 @@ public final class SkyNetworkRegistry {
 
         public void clearChemicalTankDiscovery() {
             chemicalTankDiscoveryRemaining = 0;
+            chemicalTankDiscoveryDeferrals = 0;
         }
 
         public void recordChemicalTankMiss(int tank, long gameTime) {
@@ -2305,6 +2394,13 @@ public final class SkyNetworkRegistry {
             itemSlotDiscoveryRemaining = 0;
             itemSlotDiscoveryDeferrals = 0;
             emptyItemSlotCursor = 0;
+            if (preferredTargetItemStacks != null) {
+                for (int i = 0; i < preferredTargetItemStacks.length; i++) {
+                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
+                    preferredTargetItemSlots[i] = -1;
+                }
+                preferredTargetItemSlotWriteCursor = 0;
+            }
         }
 
         private void clearFluidTankCaches() {
@@ -2319,6 +2415,7 @@ public final class SkyNetworkRegistry {
             preferredFluidTankCursor = 0;
             preferredFluidTankWriteCursor = 0;
             fluidTankDiscoveryRemaining = 0;
+            fluidTankDiscoveryDeferrals = 0;
             emptyFluidTankCursor = 0;
         }
 
@@ -2334,6 +2431,7 @@ public final class SkyNetworkRegistry {
             preferredChemicalTankCursor = 0;
             preferredChemicalTankWriteCursor = 0;
             chemicalTankDiscoveryRemaining = 0;
+            chemicalTankDiscoveryDeferrals = 0;
             emptyChemicalTankCursor = 0;
         }
 
