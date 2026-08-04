@@ -329,7 +329,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
             endpointTargetAttempts = builder
                     .comment("Maximum receiving endpoints one source endpoint may try for one transfer candidate.")
-                    .defineInRange("endpointTargetAttempts", 16, 1, 1_000_000);
+                    .defineInRange("endpointTargetAttempts", 1, 1, 1_000_000);
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);

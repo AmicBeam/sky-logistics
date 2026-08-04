@@ -20,7 +20,7 @@ RESOURCE_TYPES = ("item", "fluid", "chemical", "energy")
 class Budget:
     server_ops_per_tick: int = 2048
     line_ops_per_tick: int = 256
-    endpoint_target_attempts: int = 16
+    endpoint_target_attempts: int = 1
 
 
 @dataclass(frozen=True)
@@ -175,7 +175,7 @@ def built_in_scenarios() -> list[Scenario]:
     ]
 
 
-def assert_expected(results: list[Result]) -> None:
+def assert_expected(results: list[Result], budget: Budget) -> None:
     by_key = {(result.scenario, result.indexed): result for result in results}
     large_success = by_key[("40 inputs -> 40 item outputs, first target accepts", True)]
     assert large_success.operations == 80, large_success
@@ -183,8 +183,13 @@ def assert_expected(results: list[Result]) -> None:
 
     mixed_indexed = by_key[("40 inputs -> mixed 4x40 outputs, item targets full", True)]
     mixed_unindexed = by_key[("40 inputs -> mixed 4x40 outputs, item targets full", False)]
-    assert mixed_indexed.operations == 256, mixed_indexed
-    assert mixed_unindexed.operations == 256, mixed_unindexed
+    expected_mixed_operations = min(
+        budget.server_ops_per_tick,
+        budget.line_ops_per_tick,
+        40 * (1 + min(budget.endpoint_target_attempts, 40)),
+    )
+    assert mixed_indexed.operations == expected_mixed_operations, mixed_indexed
+    assert mixed_unindexed.operations == expected_mixed_operations, mixed_unindexed
     assert mixed_unindexed.target_visits >= mixed_indexed.target_visits * 8, (
         mixed_indexed,
         mixed_unindexed,
@@ -238,7 +243,7 @@ def main() -> int:
         print(format_result(result))
 
     if not args.no_assert:
-        assert_expected(results)
+        assert_expected(results, budget)
         print("Regression assertions passed.")
     return 0
 
