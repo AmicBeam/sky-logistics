@@ -60,7 +60,6 @@ public final class SkyNetworkRegistry {
     private static final int FLUID_TANK_DISCOVERY_PREFERRED_INTERVAL = 4;
     private static final int CHEMICAL_TANK_DISCOVERY_PREFERRED_INTERVAL = 4;
     private static final int EMPTY_ITEM_SLOT_RETRY_TICKS = 20;
-    private static final int PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE = 4;
     private static final int PREFERRED_FLUID_TANK_CACHE_SIZE = 4;
     private static final int EMPTY_FLUID_TANK_CACHE_SIZE = 16;
     private static final int PREFERRED_FLUID_TANK_MISS_LIMIT = 3;
@@ -1381,6 +1380,10 @@ public final class SkyNetworkRegistry {
         private ItemStack[] preferredTargetItemStacks;
         private int[] preferredTargetItemSlots;
         private int preferredTargetItemSlotWriteCursor;
+        private ItemStack[] preferredTargetItemOverflowStacks;
+        private int[] preferredTargetItemOverflowSlots;
+        private int preferredTargetItemOverflowWriteCursor;
+        private int preferredTargetItemSlotEvictions;
         private FluidStackKey[] rejectedFluidAccepts;
         private long[] rejectedFluidAcceptUntil;
         private int[] rejectedFluidAcceptFailures;
@@ -1416,8 +1419,8 @@ public final class SkyNetworkRegistry {
             rejectedItemAccepts = new ItemStackKey[REJECTED_ACCEPT_CACHE_SIZE];
             rejectedItemAcceptUntil = new long[REJECTED_ACCEPT_CACHE_SIZE];
             rejectedItemAcceptFailures = new int[REJECTED_ACCEPT_CACHE_SIZE];
-            preferredTargetItemStacks = new ItemStack[PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE];
-            preferredTargetItemSlots = new int[PREFERRED_TARGET_ITEM_SLOT_CACHE_SIZE];
+            preferredTargetItemStacks = new ItemStack[SkyLogisticsConfig.preferredTargetItemSlotPrimaryCacheSize()];
+            preferredTargetItemSlots = new int[preferredTargetItemStacks.length];
             clearItemSlotCaches();
             for (int i = 0; i < rejectedItems.length; i++) {
                 rejectedItems[i] = ItemStack.EMPTY;
@@ -1793,48 +1796,126 @@ public final class SkyNetworkRegistry {
         }
 
         public int preferredTargetItemSlot(ItemStack stack, int totalSlots) {
-            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
-                if (!preferredTargetItemStacks[i].isEmpty()
-                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
-                    int slot = preferredTargetItemSlots[i];
-                    if (slot >= 0 && slot < totalSlots) return slot;
-                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
-                    preferredTargetItemSlots[i] = -1;
-                    return -1;
-                }
+            int primaryIndex = findTargetItemStack(preferredTargetItemStacks, stack);
+            if (primaryIndex >= 0) {
+                return validateTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots,
+                        primaryIndex, totalSlots);
+            }
+            int overflowIndex = findTargetItemStack(preferredTargetItemOverflowStacks, stack);
+            if (overflowIndex >= 0) {
+                int slot = validateTargetItemSlot(preferredTargetItemOverflowStacks,
+                        preferredTargetItemOverflowSlots, overflowIndex, totalSlots);
+                if (slot < 0) return -1;
+                int promoteIndex = preferredTargetItemSlotWriteCursor;
+                preferredTargetItemSlotWriteCursor = (preferredTargetItemSlotWriteCursor + 1)
+                        % preferredTargetItemStacks.length;
+                ItemStack displacedStack = preferredTargetItemStacks[promoteIndex];
+                int displacedSlot = preferredTargetItemSlots[promoteIndex];
+                preferredTargetItemStacks[promoteIndex] = preferredTargetItemOverflowStacks[overflowIndex];
+                preferredTargetItemSlots[promoteIndex] = slot;
+                preferredTargetItemOverflowStacks[overflowIndex] = displacedStack;
+                preferredTargetItemOverflowSlots[overflowIndex] = displacedSlot;
+                return slot;
             }
             return -1;
         }
 
         public void recordTargetItemSlotSuccess(ItemStack stack, int slot) {
             if (stack.isEmpty() || slot < 0) return;
-            int index = -1;
-            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
-                if (!preferredTargetItemStacks[i].isEmpty()
-                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
-                    preferredTargetItemSlots[i] = slot;
+            int index = findTargetItemStack(preferredTargetItemStacks, stack);
+            if (index >= 0) {
+                preferredTargetItemSlots[index] = slot;
+                preferredTargetItemSlotEvictions = 0;
+                return;
+            }
+            index = findTargetItemStack(preferredTargetItemOverflowStacks, stack);
+            if (index >= 0) {
+                preferredTargetItemOverflowSlots[index] = slot;
+                return;
+            }
+            index = firstEmptyTargetItemStack(preferredTargetItemStacks);
+            if (index >= 0) {
+                storeTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, index, stack, slot);
+                return;
+            }
+            if (preferredTargetItemOverflowStacks == null) {
+                preferredTargetItemSlotEvictions++;
+                int overflowSize = SkyLogisticsConfig.preferredTargetItemSlotMaxCacheSize()
+                        - preferredTargetItemStacks.length;
+                if (overflowSize > 0 && preferredTargetItemSlotEvictions
+                        >= SkyLogisticsConfig.preferredTargetItemSlotExpansionEvictions()) {
+                    preferredTargetItemOverflowStacks = new ItemStack[overflowSize];
+                    preferredTargetItemOverflowSlots = new int[overflowSize];
+                    for (int i = 0; i < overflowSize; i++) {
+                        preferredTargetItemOverflowStacks[i] = ItemStack.EMPTY;
+                        preferredTargetItemOverflowSlots[i] = -1;
+                    }
+                    storeTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots,
+                            0, stack, slot);
+                    preferredTargetItemOverflowWriteCursor = overflowSize == 1 ? 0 : 1;
                     return;
                 }
-                if (index < 0 && preferredTargetItemStacks[i].isEmpty()) index = i;
-            }
-            if (index < 0) {
                 index = preferredTargetItemSlotWriteCursor;
                 preferredTargetItemSlotWriteCursor = (preferredTargetItemSlotWriteCursor + 1)
                         % preferredTargetItemStacks.length;
+                storeTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, index, stack, slot);
+                return;
             }
-            preferredTargetItemStacks[index] = stack.copyWithCount(1);
-            preferredTargetItemSlots[index] = slot;
+            index = firstEmptyTargetItemStack(preferredTargetItemOverflowStacks);
+            if (index < 0) {
+                index = preferredTargetItemOverflowWriteCursor;
+                preferredTargetItemOverflowWriteCursor = (preferredTargetItemOverflowWriteCursor + 1)
+                        % preferredTargetItemOverflowStacks.length;
+            }
+            storeTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots,
+                    index, stack, slot);
         }
 
         public void recordTargetItemSlotMiss(ItemStack stack, int slot) {
-            for (int i = 0; i < preferredTargetItemStacks.length; i++) {
-                if (preferredTargetItemSlots[i] == slot && !preferredTargetItemStacks[i].isEmpty()
-                        && StackData.sameItemAndComponents(preferredTargetItemStacks[i], stack)) {
-                    preferredTargetItemStacks[i] = ItemStack.EMPTY;
-                    preferredTargetItemSlots[i] = -1;
-                    return;
+            if (clearTargetItemSlot(preferredTargetItemStacks, preferredTargetItemSlots, stack, slot)) return;
+            clearTargetItemSlot(preferredTargetItemOverflowStacks, preferredTargetItemOverflowSlots, stack, slot);
+        }
+
+        private static int findTargetItemStack(ItemStack[] stacks, ItemStack stack) {
+            if (stacks == null) return -1;
+            for (int i = 0; i < stacks.length; i++) {
+                if (!stacks[i].isEmpty() && StackData.sameItemAndComponents(stacks[i], stack)) return i;
+            }
+            return -1;
+        }
+
+        private static int firstEmptyTargetItemStack(ItemStack[] stacks) {
+            for (int i = 0; i < stacks.length; i++) {
+                if (stacks[i].isEmpty()) return i;
+            }
+            return -1;
+        }
+
+        private static int validateTargetItemSlot(ItemStack[] stacks, int[] slots, int index, int totalSlots) {
+            int slot = slots[index];
+            if (slot >= 0 && slot < totalSlots) return slot;
+            stacks[index] = ItemStack.EMPTY;
+            slots[index] = -1;
+            return -1;
+        }
+
+        private static void storeTargetItemSlot(ItemStack[] stacks, int[] slots, int index,
+                ItemStack stack, int slot) {
+            stacks[index] = stack.copyWithCount(1);
+            slots[index] = slot;
+        }
+
+        private static boolean clearTargetItemSlot(ItemStack[] stacks, int[] slots, ItemStack stack, int slot) {
+            if (stacks == null) return false;
+            for (int i = 0; i < stacks.length; i++) {
+                if (slots[i] == slot && !stacks[i].isEmpty()
+                        && StackData.sameItemAndComponents(stacks[i], stack)) {
+                    stacks[i] = ItemStack.EMPTY;
+                    slots[i] = -1;
+                    return true;
                 }
             }
+            return false;
         }
 
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {
@@ -2416,6 +2497,14 @@ public final class SkyNetworkRegistry {
                     preferredTargetItemSlots[i] = -1;
                 }
                 preferredTargetItemSlotWriteCursor = 0;
+                preferredTargetItemSlotEvictions = 0;
+                if (preferredTargetItemOverflowStacks != null) {
+                    for (int i = 0; i < preferredTargetItemOverflowStacks.length; i++) {
+                        preferredTargetItemOverflowStacks[i] = ItemStack.EMPTY;
+                        preferredTargetItemOverflowSlots[i] = -1;
+                    }
+                    preferredTargetItemOverflowWriteCursor = 0;
+                }
             }
         }
 

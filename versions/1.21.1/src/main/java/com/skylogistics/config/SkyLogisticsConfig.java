@@ -174,6 +174,19 @@ public final class SkyLogisticsConfig {
         return SERVER.preferredItemSlotCacheSize.get();
     }
 
+    public static int preferredTargetItemSlotPrimaryCacheSize() {
+        return SERVER.preferredTargetItemSlotPrimaryCacheSize.get();
+    }
+
+    public static int preferredTargetItemSlotMaxCacheSize() {
+        return Math.max(SERVER.preferredTargetItemSlotPrimaryCacheSize.get(),
+                SERVER.preferredTargetItemSlotMaxCacheSize.get());
+    }
+
+    public static int preferredTargetItemSlotExpansionEvictions() {
+        return SERVER.preferredTargetItemSlotExpansionEvictions.get();
+    }
+
     public static int transferRetryDelayTicks(int failures) {
         return SERVER.transferRetryDelayTicks(failures);
     }
@@ -211,6 +224,9 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
+        public final ModConfigSpec.IntValue preferredTargetItemSlotPrimaryCacheSize;
+        public final ModConfigSpec.IntValue preferredTargetItemSlotMaxCacheSize;
+        public final ModConfigSpec.IntValue preferredTargetItemSlotExpansionEvictions;
         public final ModConfigSpec.IntValue transferRetryFirstTicks;
         public final ModConfigSpec.IntValue transferRetrySecondTicks;
         public final ModConfigSpec.IntValue transferRetryThirdTicks;
@@ -369,6 +385,15 @@ public final class SkyLogisticsConfig {
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
+            preferredTargetItemSlotPrimaryCacheSize = builder
+                    .comment("Number of target item hot slots kept in the always-active primary cache per endpoint.")
+                    .defineInRange("preferredTargetItemSlotPrimaryCacheSize", 4, 1, 256);
+            preferredTargetItemSlotMaxCacheSize = builder
+                    .comment("Maximum combined primary and lazily allocated overflow target item hot slots per endpoint.")
+                    .defineInRange("preferredTargetItemSlotMaxCacheSize", 16, 1, 256);
+            preferredTargetItemSlotExpansionEvictions = builder
+                    .comment("Primary target hot-slot replacements required before lazily allocating the overflow cache.")
+                    .defineInRange("preferredTargetItemSlotExpansionEvictions", 4, 1, 256);
             transferRetryFirstTicks = builder
                     .comment("Ticks to wait after the first failed transfer attempt. Shared by sending endpoint failures and receiving endpoint accept-reject retries.")
                     .defineInRange("transferRetryFirstTicks", 5, 1, 1200);
