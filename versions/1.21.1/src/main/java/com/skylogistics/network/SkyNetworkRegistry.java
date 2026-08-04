@@ -557,7 +557,11 @@ public final class SkyNetworkRegistry {
     private static CachedEndpoint reusableEndpoint(Map<EndpointKey, CachedEndpoint> reusableEndpoints,
             NetworkEndpointBlockEntity node, Direction direction) {
         CachedEndpoint endpoint = reusableEndpoints.remove(new EndpointKey(node.getBlockPos(), direction));
-        return endpoint != null && endpoint.node() == node ? endpoint : new CachedEndpoint(node, direction);
+        if (endpoint != null && endpoint.node() == node) {
+            endpoint.resetResourceSupportKnowledge();
+            return endpoint;
+        }
+        return new CachedEndpoint(node, direction);
     }
 
     private static void rebuildNodeTopology(DimensionIndex index) {
@@ -1457,6 +1461,9 @@ public final class SkyNetworkRegistry {
         private BlockEntity capabilityTarget;
         private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
         private long capabilityLifecycleCheckAt;
+        private long chemicalHandlerValidateAt;
+        private long manaHandlerValidateAt;
+        private long sourceHandlerValidateAt;
 
         private CachedEndpoint(NetworkEndpointBlockEntity node, Direction direction) {
             this.node = node;
@@ -1537,6 +1544,15 @@ public final class SkyNetworkRegistry {
                 sourceSupportKnown = true;
             }
             return sourceSupported;
+        }
+
+        private void resetResourceSupportKnowledge() {
+            chemicalSupported = false;
+            manaSupported = false;
+            sourceSupported = false;
+            chemicalSupportKnown = false;
+            manaSupportKnown = false;
+            sourceSupportKnown = false;
         }
 
         public boolean supportsChemical() {
@@ -1718,7 +1734,7 @@ public final class SkyNetworkRegistry {
         }
 
         public ChemicalHandlerBridge chemicalHandler(long gameTime) {
-            if (!node.supportsChemicalEndpoint(direction) || !canTryChemicals(gameTime)
+            if (!canTryChemicals(gameTime) || !chemicalSupported
                     || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
                 return null;
             }
@@ -1737,12 +1753,13 @@ public final class SkyNetworkRegistry {
                 recordChemicalFailure(gameTime);
                 return null;
             }
-            if (chemicalHandler != null && chemicalTarget == target) {
+            if (chemicalHandler != null && chemicalTarget == target && gameTime < chemicalHandlerValidateAt) {
                 return chemicalHandler;
             }
             clearChemicalCache();
             chemicalTarget = target;
             chemicalHandler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
+            chemicalHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (chemicalHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_CHEMICALS, gameTime);
                 recordChemicalFailure(gameTime);
@@ -1781,7 +1798,7 @@ public final class SkyNetworkRegistry {
         }
 
         public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!node.supportsManaEndpoint(direction) || !canTryMana(gameTime)
+            if (!canTryMana(gameTime) || !manaSupported
                     || !SkyLogisticsConfig.allowEnergyManaTransfer()
                     || !BotaniaCompat.isLoaded()) {
                 return null;
@@ -1801,12 +1818,13 @@ public final class SkyNetworkRegistry {
                 recordManaFailure(gameTime);
                 return null;
             }
-            if (manaHandler != null && manaTarget == target) {
+            if (manaHandler != null && manaTarget == target && gameTime < manaHandlerValidateAt) {
                 return manaHandler;
             }
             clearManaCache();
             manaTarget = target;
             manaHandler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
+            manaHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (manaHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_MANA, gameTime);
                 recordManaFailure(gameTime);
@@ -1817,7 +1835,7 @@ public final class SkyNetworkRegistry {
         }
 
         public SourceHandlerBridge sourceHandler(long gameTime) {
-            if (!node.supportsSourceEndpoint(direction) || !canTrySource(gameTime)
+            if (!canTrySource(gameTime) || !sourceSupported
                     || !SkyLogisticsConfig.allowEnergySourceTransfer()
                     || !ArsNouveauCompat.isLoaded()) {
                 return null;
@@ -1837,12 +1855,13 @@ public final class SkyNetworkRegistry {
                 recordSourceFailure(gameTime);
                 return null;
             }
-            if (sourceHandler != null && sourceTarget == target) {
+            if (sourceHandler != null && sourceTarget == target && gameTime < sourceHandlerValidateAt) {
                 return sourceHandler;
             }
             clearSourceCache();
             sourceTarget = target;
             sourceHandler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
+            sourceHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (sourceHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_SOURCE, gameTime);
                 recordSourceFailure(gameTime);
@@ -2530,6 +2549,7 @@ public final class SkyNetworkRegistry {
             recordCapabilityPresent(CAPABILITY_CHEMICALS);
             chemicalHandler = null;
             chemicalTarget = null;
+            chemicalHandlerValidateAt = 0L;
             clearChemicalTankCaches();
             clearRejectedChemicalAccepts();
         }
@@ -2543,12 +2563,14 @@ public final class SkyNetworkRegistry {
             recordCapabilityPresent(CAPABILITY_MANA);
             manaHandler = null;
             manaTarget = null;
+            manaHandlerValidateAt = 0L;
         }
 
         private void clearSourceCache() {
             recordCapabilityPresent(CAPABILITY_SOURCE);
             sourceHandler = null;
             sourceTarget = null;
+            sourceHandlerValidateAt = 0L;
         }
 
         private void clearRejectedItems() {
