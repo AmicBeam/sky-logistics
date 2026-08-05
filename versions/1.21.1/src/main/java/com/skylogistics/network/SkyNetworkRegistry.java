@@ -175,7 +175,7 @@ public final class SkyNetworkRegistry {
     public static synchronized void markPriorityDirty(ServerLevel level, BlockPos pos) {
         LineIndex line = findLine(level, pos);
         if (line != null) {
-            line.rebuildPriorityOutputs();
+            line.refreshPriorityOutputs(pos);
             globalOutputsDirty = true;
             wakeLine(line);
         }
@@ -449,11 +449,9 @@ public final class SkyNetworkRegistry {
         BlockPos immutablePos = pos.immutable();
         index.dirtyNodePositions.add(immutablePos);
         LineIndex oldLine = index.lineByNode.get(pos);
-        if (oldLine != null) {
-            index.dirtyNodeLines.add(oldLine.lineId());
-        }
         NetworkEndpointBlockEntity endpoint = index.loadedEndpoints.get(pos);
-        if (endpoint != null) {
+        if (oldLine != null && endpoint != null && !oldLine.lineId().equals(endpoint.getLineId())) {
+            index.dirtyNodeLines.add(oldLine.lineId());
             index.dirtyNodeLines.add(endpoint.getLineId());
         }
         index.dirty = true;
@@ -565,6 +563,10 @@ public final class SkyNetworkRegistry {
     }
 
     private static void rebuildNodeTopology(DimensionIndex index) {
+        if (index.dirtyNodeLines.isEmpty()) {
+            rebuildDirtyNodePositions(index);
+            return;
+        }
         Set<UUID> oldLineIds = new HashSet<>(index.dirtyNodeLines);
         for (BlockPos pos : index.dirtyNodePositions) {
             LineIndex oldLine = index.lineByNode.get(pos);
@@ -638,6 +640,53 @@ public final class SkyNetworkRegistry {
         }
         index.dirtyNodePositions.clear();
         index.dirtyNodeLines.clear();
+        refreshGlobalLineIds(changedLineIds);
+    }
+
+    private static void rebuildDirtyNodePositions(DimensionIndex index) {
+        Set<LineIndex> changedLines = new HashSet<>();
+        Set<UUID> changedLineIds = new HashSet<>();
+        for (BlockPos pos : index.dirtyNodePositions) {
+            LineIndex oldLine = index.lineByNode.remove(pos);
+            if (oldLine != null) {
+                if (changedLines.add(oldLine)) detachRuntimeLine(oldLine);
+                changedLineIds.add(oldLine.lineId());
+                Set<BlockPos> members = index.lineMembers.get(oldLine.lineId());
+                if (members != null && members.remove(pos)) oldLine.nodeCount--;
+                oldLine.removeNodeEndpoints(pos);
+            }
+
+            NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
+            if (node == null || node instanceof SimplePipeBlockEntity) continue;
+            UUID lineId = node.getLineId();
+            LineIndex line = index.lines.computeIfAbsent(lineId, LineIndex::new);
+            if (changedLines.add(line)) detachRuntimeLine(line);
+            changedLineIds.add(lineId);
+            Set<BlockPos> members = index.lineMembers.computeIfAbsent(lineId, ignored -> new HashSet<>());
+            if (members.add(pos)) line.nodeCount++;
+            index.lineByNode.put(pos, line);
+            for (Direction direction : Direction.values()) {
+                NodeFaceMode faceMode = node.getFaceMode(direction);
+                if (faceMode == NodeFaceMode.INPUT) {
+                    line.addInput(new CachedEndpoint(node, direction));
+                } else if (faceMode == NodeFaceMode.OUTPUT) {
+                    CachedEndpoint endpoint = new CachedEndpoint(node, direction);
+                    line.addOutput(endpoint);
+                    line.addPriorityOutput(endpoint);
+                }
+            }
+        }
+        for (LineIndex line : changedLines) {
+            Set<BlockPos> members = index.lineMembers.get(line.lineId());
+            if (members == null || members.isEmpty()) {
+                index.lineMembers.remove(line.lineId());
+                index.lines.remove(line.lineId(), line);
+                continue;
+            }
+            line.refreshResourceMasks();
+            attachRuntimeLine(line);
+        }
+        index.dirtyNodePositions.clear();
         refreshGlobalLineIds(changedLineIds);
     }
 
@@ -1322,6 +1371,93 @@ public final class SkyNetworkRegistry {
             sortByPriority(prioritySourceOutputs);
         }
 
+        private void removeNodeEndpoints(BlockPos pos) {
+            inputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            outputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            itemInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            fluidInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            chemicalInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            energyInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            manaInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            sourceInputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            itemOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            fluidOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            chemicalOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            energyOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            manaOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            sourceOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityItemOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityFluidOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityChemicalOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityEnergyOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityManaOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            prioritySourceOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+        }
+
+        private void refreshResourceMasks() {
+            inputResourceMask = resourceMask(itemInputs, fluidInputs, chemicalInputs, energyInputs, manaInputs,
+                    sourceInputs);
+            outputResourceMask = resourceMask(itemOutputs, fluidOutputs, chemicalOutputs, energyOutputs, manaOutputs,
+                    sourceOutputs);
+        }
+
+        private void addPriorityOutput(CachedEndpoint endpoint) {
+            insertByPriority(priorityOutputs, endpoint);
+            NetworkEndpointBlockEntity node = endpoint.node();
+            Direction direction = endpoint.direction();
+            if (node.isItemsEnabled(direction)) insertByPriority(priorityItemOutputs, endpoint);
+            if (node.isFluidsEnabled(direction)) {
+                insertByPriority(priorityFluidOutputs, endpoint);
+                if (endpoint.supportsChemical()) insertByPriority(priorityChemicalOutputs, endpoint);
+            }
+            if (node.isEnergyEnabled(direction)) {
+                insertByPriority(priorityEnergyOutputs, endpoint);
+                if (endpoint.supportsMana()) insertByPriority(priorityManaOutputs, endpoint);
+                if (endpoint.supportsSource()) insertByPriority(prioritySourceOutputs, endpoint);
+            }
+        }
+
+        private void refreshPriorityOutputs(BlockPos pos) {
+            priorityOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityItemOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityFluidOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityChemicalOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityEnergyOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            priorityManaOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            prioritySourceOutputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
+            for (CachedEndpoint endpoint : outputs) {
+                if (endpoint.node().getBlockPos().equals(pos)) addPriorityOutput(endpoint);
+            }
+        }
+
+        private static void insertByPriority(List<CachedEndpoint> endpoints, CachedEndpoint endpoint) {
+            int priority = endpoint.node().getPriority(endpoint.direction());
+            int low = 0;
+            int high = endpoints.size();
+            while (low < high) {
+                int middle = (low + high) >>> 1;
+                CachedEndpoint candidate = endpoints.get(middle);
+                int candidatePriority = candidate.node().getPriority(candidate.direction());
+                if (candidatePriority >= priority) low = middle + 1;
+                else high = middle;
+            }
+            endpoints.add(low, endpoint);
+        }
+
+        private static int resourceMask(List<CachedEndpoint> items, List<CachedEndpoint> fluids,
+                List<CachedEndpoint> chemicals, List<CachedEndpoint> energy, List<CachedEndpoint> mana,
+                List<CachedEndpoint> source) {
+            int mask = 0;
+            if (!items.isEmpty()) mask |= RESOURCE_ITEMS;
+            if (!fluids.isEmpty()) mask |= RESOURCE_FLUIDS;
+            if (!chemicals.isEmpty()) mask |= RESOURCE_CHEMICALS;
+            if (!energy.isEmpty()) mask |= RESOURCE_ENERGY;
+            if (!mana.isEmpty()) mask |= RESOURCE_MANA;
+            if (!source.isEmpty()) mask |= RESOURCE_SOURCE;
+            return mask;
+        }
+
         private static int addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
                 List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> chemicalEndpoints,
                 List<CachedEndpoint> energyEndpoints, List<CachedEndpoint> manaEndpoints,
@@ -1756,11 +1892,19 @@ public final class SkyNetworkRegistry {
             if (chemicalHandler != null && chemicalTarget == target && gameTime < chemicalHandlerValidateAt) {
                 return chemicalHandler;
             }
-            clearChemicalCache();
+            boolean preserveTankKnowledge = chemicalHandler != null && chemicalTarget == target;
+            chemicalHandler = null;
+            chemicalHandlerValidateAt = 0L;
+            if (!preserveTankKnowledge) {
+                clearChemicalTankCaches();
+                clearRejectedChemicalAccepts();
+            }
             chemicalTarget = target;
             chemicalHandler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
             chemicalHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (chemicalHandler == null) {
+                clearChemicalTankCaches();
+                clearRejectedChemicalAccepts();
                 recordCapabilityAbsent(CAPABILITY_CHEMICALS, gameTime);
                 recordChemicalFailure(gameTime);
             } else {
@@ -1875,8 +2019,6 @@ public final class SkyNetworkRegistry {
             itemFailures = 0;
             itemRetryAfter = 0L;
             itemSourceMisses = 0;
-            clearRejectedItems();
-            clearRejectedItemAccepts();
         }
 
         public void recordItemCandidateFound() {
@@ -2159,7 +2301,6 @@ public final class SkyNetworkRegistry {
             fluidFailures = 0;
             fluidRetryAfter = 0L;
             fluidSourceMisses = 0;
-            clearRejectedFluidAccepts();
         }
 
         public void recordFluidCandidateFound() {
@@ -2307,7 +2448,6 @@ public final class SkyNetworkRegistry {
             chemicalFailures = 0;
             chemicalRetryAfter = 0L;
             chemicalSourceMisses = 0;
-            clearRejectedChemicalAccepts();
         }
 
         public void recordChemicalCandidateFound() {
