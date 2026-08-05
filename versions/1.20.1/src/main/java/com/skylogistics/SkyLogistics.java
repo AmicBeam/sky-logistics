@@ -153,6 +153,7 @@ public class SkyLogistics {
 
     private void onServerStopping(ServerStoppingEvent event) {
         SkyNetworkRegistry.clear();
+        SkyNetworkTicker.clear();
         SkyNecklaceTicker.clear();
     }
 }

@@ -36,6 +36,11 @@ public final class SkyNecklaceTicker {
     private static final Map<UUID, Integer> ACTIVE_INSERTERS = new HashMap<>();
     private static final Map<UUID, Integer> ACTIVE_ITEM_INSERTERS = new HashMap<>();
     private static final Map<UUID, List<ActiveNecklaceDetail>> ACTIVE_DETAILS = new HashMap<>();
+    private static final Map<UUID, ActiveNecklace> PLAYER_NECKLACES = new HashMap<>();
+    private static final Map<UUID, PlayerDetailCache> PLAYER_DETAILS = new HashMap<>();
+    private static final List<ActiveNecklace> ACTIVE_NECKLACES = new ArrayList<>();
+    private static final Set<UUID> EQUIPPED_PLAYER_IDS = new HashSet<>();
+    private static final Set<UUID> TRANSFER_PLAYER_IDS = new HashSet<>();
     private static final Map<UUID, Integer> EXTRACT_SLOT_CURSORS = new HashMap<>();
     private static final Map<UUID, Integer> EXTRACT_TARGET_CURSORS = new HashMap<>();
     private static final Map<UUID, Integer> INSERT_ENDPOINT_CURSORS = new HashMap<>();
@@ -77,6 +82,11 @@ public final class SkyNecklaceTicker {
         ACTIVE_INSERTERS.clear();
         ACTIVE_ITEM_INSERTERS.clear();
         ACTIVE_DETAILS.clear();
+        PLAYER_NECKLACES.clear();
+        PLAYER_DETAILS.clear();
+        ACTIVE_NECKLACES.clear();
+        EQUIPPED_PLAYER_IDS.clear();
+        TRANSFER_PLAYER_IDS.clear();
         EXTRACT_SLOT_CURSORS.clear();
         EXTRACT_TARGET_CURSORS.clear();
         INSERT_ENDPOINT_CURSORS.clear();
@@ -85,12 +95,15 @@ public final class SkyNecklaceTicker {
 
     private static void process(MinecraftServer server) {
         long gameTime = server.overworld().getGameTime();
-        Map<UUID, Integer> activeExtractors = new HashMap<>();
-        Map<UUID, Integer> activeInserters = new HashMap<>();
-        Map<UUID, Integer> activeItemInserters = new HashMap<>();
-        Map<UUID, List<ActiveNecklaceDetail>> activeDetails = new HashMap<>();
-        List<ActiveNecklace> activeNecklaces = new ArrayList<>();
-        Set<UUID> activePlayers = new HashSet<>();
+        ACTIVE_EXTRACTORS.clear();
+        ACTIVE_INSERTERS.clear();
+        ACTIVE_ITEM_INSERTERS.clear();
+        for (List<ActiveNecklaceDetail> details : ACTIVE_DETAILS.values()) {
+            details.clear();
+        }
+        ACTIVE_NECKLACES.clear();
+        EQUIPPED_PLAYER_IDS.clear();
+        TRANSFER_PLAYER_IDS.clear();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             ItemStack necklace = activeNecklace(player);
             if (necklace.isEmpty()) {
@@ -102,46 +115,44 @@ public final class SkyNecklaceTicker {
             }
             SkyNecklaceItem.NecklaceMode mode = SkyNecklaceItem.mode(necklace);
             if (mode == SkyNecklaceItem.NecklaceMode.EXTRACT) {
-                activeExtractors.merge(lineId, 1, Integer::sum);
+                ACTIVE_EXTRACTORS.merge(lineId, 1, Integer::sum);
             } else {
-                activeInserters.merge(lineId, 1, Integer::sum);
+                ACTIVE_INSERTERS.merge(lineId, 1, Integer::sum);
             }
             int priority = SkyNecklaceItem.priority(necklace);
-            activeDetails.computeIfAbsent(lineId, ignored -> new ArrayList<>())
-                    .add(activeDetail(player, mode, priority));
             UUID playerId = player.getUUID();
+            EQUIPPED_PLAYER_IDS.add(playerId);
+            ACTIVE_DETAILS.computeIfAbsent(lineId, ignored -> new ArrayList<>())
+                    .add(activeDetail(player, mode, priority));
             FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(playerId, necklace);
             if (itemWhitelist != null) {
-                activeNecklaces.add(new ActiveNecklace(player, necklace, lineId, mode, priority, itemWhitelist));
-                activePlayers.add(playerId);
+                ActiveNecklace active = PLAYER_NECKLACES.computeIfAbsent(playerId, ignored -> new ActiveNecklace());
+                active.update(player, necklace, lineId, mode, priority, itemWhitelist);
+                ACTIVE_NECKLACES.add(active);
+                TRANSFER_PLAYER_IDS.add(playerId);
                 if (mode == SkyNecklaceItem.NecklaceMode.INSERT) {
-                    activeItemInserters.merge(lineId, 1, Integer::sum);
+                    ACTIVE_ITEM_INSERTERS.merge(lineId, 1, Integer::sum);
                 }
             }
         }
-        activeNecklaces.sort(Comparator.comparingInt(ActiveNecklace::priority).reversed());
-        for (List<ActiveNecklaceDetail> details : activeDetails.values()) {
+        ACTIVE_NECKLACES.sort(Comparator.comparingInt(ActiveNecklace::priority).reversed());
+        ACTIVE_DETAILS.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        for (List<ActiveNecklaceDetail> details : ACTIVE_DETAILS.values()) {
             details.sort(Comparator.comparingInt(ActiveNecklaceDetail::priority).reversed());
         }
-        for (ActiveNecklace active : activeNecklaces) {
+        for (ActiveNecklace active : ACTIVE_NECKLACES) {
             if (active.mode() == SkyNecklaceItem.NecklaceMode.EXTRACT) {
                 tryExtract(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             } else {
                 tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             }
         }
-        EXTRACT_SLOT_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
-        EXTRACT_TARGET_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
-        INSERT_ENDPOINT_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
-        ITEM_WHITELISTS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
-        ACTIVE_EXTRACTORS.clear();
-        ACTIVE_EXTRACTORS.putAll(activeExtractors);
-        ACTIVE_INSERTERS.clear();
-        ACTIVE_INSERTERS.putAll(activeInserters);
-        ACTIVE_ITEM_INSERTERS.clear();
-        ACTIVE_ITEM_INSERTERS.putAll(activeItemInserters);
-        ACTIVE_DETAILS.clear();
-        ACTIVE_DETAILS.putAll(activeDetails);
+        EXTRACT_SLOT_CURSORS.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
+        EXTRACT_TARGET_CURSORS.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
+        INSERT_ENDPOINT_CURSORS.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
+        ITEM_WHITELISTS.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
+        PLAYER_NECKLACES.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
+        PLAYER_DETAILS.keySet().removeIf(playerId -> !EQUIPPED_PLAYER_IDS.contains(playerId));
     }
 
     private static ItemStack activeNecklace(ServerPlayer player) {
@@ -155,12 +166,27 @@ public final class SkyNecklaceTicker {
             int priority) {
         GameProfile profile = player.getGameProfile();
         Property texture = firstTexture(profile);
-        return new ActiveNecklaceDetail(profile.getId(), profile.getName(),
-                texture == null ? "" : texture.getValue(),
-                texture != null && texture.hasSignature() ? texture.getSignature() : "",
-                player.level().dimension().location().toString(), player.blockPosition().immutable(),
-                mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT,
-                priority);
+        String textureValue = texture == null ? "" : texture.getValue();
+        String textureSignature = texture != null && texture.hasSignature() ? texture.getSignature() : "";
+        BlockPos pos = player.blockPosition().immutable();
+        NodeFaceMode faceMode = mode == SkyNecklaceItem.NecklaceMode.EXTRACT
+                ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT;
+        Object dimensionKey = player.level().dimension();
+        PlayerDetailCache cached = PLAYER_DETAILS.get(profile.getId());
+        ActiveNecklaceDetail cachedDetail = cached == null ? null : cached.detail();
+        if (cachedDetail != null && cached.dimensionKey().equals(dimensionKey)
+                && cachedDetail.playerName().equals(profile.getName())
+                && cachedDetail.profileTexture().equals(textureValue)
+                && cachedDetail.profileTextureSignature().equals(textureSignature)
+                && cachedDetail.pos().equals(pos) && cachedDetail.mode() == faceMode
+                && cachedDetail.priority() == priority) {
+            return cachedDetail;
+        }
+        String dimension = player.level().dimension().location().toString();
+        ActiveNecklaceDetail detail = new ActiveNecklaceDetail(profile.getId(), profile.getName(), textureValue,
+                textureSignature, dimension, pos, faceMode, priority);
+        PLAYER_DETAILS.put(profile.getId(), new PlayerDetailCache(dimensionKey, detail));
+        return detail;
     }
 
     private static Property firstTexture(GameProfile profile) {
@@ -204,29 +230,31 @@ public final class SkyNecklaceTicker {
         int scanBudget = Math.min(totalSlots, SkyLogisticsConfig.skyNecklaceSlotScansPerTick());
         int slotLimit = SkyNecklaceItem.insertSlots(necklace);
         if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS && totalSlots <= scanBudget) {
-            SlotCountResult result = countMatchingSlots(sources, itemWhitelist, slotLimit + 1);
-            if (result.matching() <= slotLimit) return;
-            scanBudget = Math.max(1, scanBudget - result.checks());
+            long countResult = countMatchingSlots(sources, itemWhitelist, slotLimit + 1);
+            if (unpackHigh(countResult) <= slotLimit) return;
+            scanBudget = Math.max(1, scanBudget - unpackLow(countResult));
         }
         int cursor = Math.floorMod(EXTRACT_SLOT_CURSORS.getOrDefault(playerId, 0), totalSlots);
         int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
         int scanned = 0;
         while (scanned < scanBudget) {
             int flatIndex = (cursor + scanned) % totalSlots;
-            HandlerSlot handlerSlot = handlerSlotAt(sources, flatIndex);
+            long handlerSlot = handlerSlotAt(sources, flatIndex);
             scanned++;
-            if (handlerSlot == null) {
+            if (handlerSlot < 0L) {
                 continue;
             }
-            ItemStack simulated = handlerSlot.handler().extractItem(handlerSlot.slot(), transferLimit, true);
+            IItemHandler handler = sources.get(unpackHigh(handlerSlot));
+            int slot = unpackLow(handlerSlot);
+            ItemStack simulated = handler.extractItem(slot, transferLimit, true);
             if (simulated.isEmpty() || shouldSkipSourceStack(simulated) || !itemWhitelist.matches(simulated)) {
                 continue;
             }
             int targetCursor = Math.floorMod(EXTRACT_TARGET_CURSORS.getOrDefault(playerId, 0), targets.size());
-            NecklaceMoveResult result = tryMove(handlerSlot.handler(), handlerSlot.slot(), simulated, targets,
+            int nextTargetCursor = tryMove(handler, slot, simulated, targets,
                     targetCursor, SkyLogisticsConfig.skyNecklaceTargetAttemptsPerWork(), gameTime);
-            EXTRACT_TARGET_CURSORS.put(playerId, result.moved() ? 0 : result.nextCursor());
-            if (result.moved()) {
+            EXTRACT_TARGET_CURSORS.put(playerId, nextTargetCursor < 0 ? 0 : nextTargetCursor);
+            if (nextTargetCursor < 0) {
                 EXTRACT_SLOT_CURSORS.put(playerId, (flatIndex + 1) % totalSlots);
                 return;
             }
@@ -241,7 +269,7 @@ public final class SkyNecklaceTicker {
         return sources;
     }
 
-    private static SlotCountResult countMatchingSlots(List<IItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
+    private static long countMatchingSlots(List<IItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
             int stopAt) {
         int matching = 0;
         int checks = 0;
@@ -252,15 +280,12 @@ public final class SkyNecklaceTicker {
                 if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && itemWhitelist.matches(stack)) {
                     matching++;
                     if (matching >= stopAt) {
-                        return new SlotCountResult(matching, checks);
+                        return packInts(matching, checks);
                     }
                 }
             }
         }
-        return new SlotCountResult(matching, checks);
-    }
-
-    private record SlotCountResult(int matching, int checks) {
+        return packInts(matching, checks);
     }
 
     private static int totalSlots(List<IItemHandler> sources) {
@@ -271,16 +296,17 @@ public final class SkyNecklaceTicker {
         return totalSlots;
     }
 
-    private static HandlerSlot handlerSlotAt(List<IItemHandler> sources, int flatIndex) {
+    private static long handlerSlotAt(List<IItemHandler> sources, int flatIndex) {
         int offset = flatIndex;
-        for (IItemHandler source : sources) {
+        for (int sourceIndex = 0; sourceIndex < sources.size(); sourceIndex++) {
+            IItemHandler source = sources.get(sourceIndex);
             int slots = source.getSlots();
             if (offset < slots) {
-                return new HandlerSlot(source, offset);
+                return packInts(sourceIndex, offset);
             }
             offset -= slots;
         }
-        return null;
+        return -1L;
     }
 
     private static void tryInsert(ServerPlayer player, ItemStack necklace, UUID lineId,
@@ -408,7 +434,7 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    private static NecklaceMoveResult tryMove(IItemHandler source, int slot, ItemStack simulated,
+    private static int tryMove(IItemHandler source, int slot, ItemStack simulated,
             List<CachedEndpoint> targets, int startCursor, int attemptLimit, long gameTime) {
         int visited = 0;
         int limit = Math.min(targets.size(), Math.max(1, attemptLimit));
@@ -425,7 +451,7 @@ public final class SkyNecklaceTicker {
             BlockEntity targetBlockEntity = targetEndpoint.targetBlockEntity();
             if (targetBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
                 if (tryMoveToDimensionTarget(source, slot, simulated, targetEndpoint, targetBlockEntity, gameTime)) {
-                    return new NecklaceMoveResult(true, 0);
+                    return -1;
                 }
                 continue;
             }
@@ -441,7 +467,7 @@ public final class SkyNecklaceTicker {
             }
             ItemStack extracted = source.extractItem(slot, movable, false);
             if (extracted.isEmpty()) {
-                return new NecklaceMoveResult(false, (startCursor + visited) % targets.size());
+                return (startCursor + visited) % targets.size();
             }
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(target, extracted, false);
             if (!leftover.isEmpty()) {
@@ -452,12 +478,9 @@ public final class SkyNecklaceTicker {
                 }
             }
             targetEndpoint.recordItemSuccess();
-            return new NecklaceMoveResult(true, 0);
+            return -1;
         }
-        return new NecklaceMoveResult(false, (startCursor + visited) % targets.size());
-    }
-
-    private record NecklaceMoveResult(boolean moved, int nextCursor) {
+        return (startCursor + visited) % targets.size();
     }
 
     private static boolean tryMoveToDimensionTarget(IItemHandler source, int slot, ItemStack simulated,
@@ -509,15 +532,49 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    private record ActiveNecklace(ServerPlayer player, ItemStack necklace, UUID lineId,
-                                  SkyNecklaceItem.NecklaceMode mode, int priority,
-                                  FilterListItem.CompiledFilter itemWhitelist) {
+    private static long packInts(int high, int low) {
+        return ((long) high << 32) | (low & 0xffffffffL);
+    }
+
+    private static int unpackHigh(long packed) {
+        return (int) (packed >> 32);
+    }
+
+    private static int unpackLow(long packed) {
+        return (int) packed;
+    }
+
+    private static final class ActiveNecklace {
+        private ServerPlayer player;
+        private ItemStack necklace;
+        private UUID lineId;
+        private SkyNecklaceItem.NecklaceMode mode;
+        private int priority;
+        private FilterListItem.CompiledFilter itemWhitelist;
+
+        private void update(ServerPlayer player, ItemStack necklace, UUID lineId,
+                SkyNecklaceItem.NecklaceMode mode, int priority,
+                FilterListItem.CompiledFilter itemWhitelist) {
+            this.player = player;
+            this.necklace = necklace;
+            this.lineId = lineId;
+            this.mode = mode;
+            this.priority = priority;
+            this.itemWhitelist = itemWhitelist;
+        }
+
+        private ServerPlayer player() { return player; }
+        private ItemStack necklace() { return necklace; }
+        private UUID lineId() { return lineId; }
+        private SkyNecklaceItem.NecklaceMode mode() { return mode; }
+        private int priority() { return priority; }
+        private FilterListItem.CompiledFilter itemWhitelist() { return itemWhitelist; }
     }
 
     private record WhitelistCache(ItemStack filter, FilterListItem.CompiledFilter compiled) {
     }
 
-    private record HandlerSlot(IItemHandler handler, int slot) {
+    private record PlayerDetailCache(Object dimensionKey, ActiveNecklaceDetail detail) {
     }
 
     public record ActiveNecklaceDetail(UUID profileId, String playerName, String profileTexture,

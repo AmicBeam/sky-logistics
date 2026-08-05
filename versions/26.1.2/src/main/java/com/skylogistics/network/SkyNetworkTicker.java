@@ -33,6 +33,8 @@ import com.skylogistics.util.StackData;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -42,7 +44,15 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class SkyNetworkTicker {
+    private static final Map<CachedEndpoint, LongItemEndpointCache> LONG_ITEM_ENDPOINTS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, LongFluidEndpointCache> LONG_FLUID_ENDPOINTS = new WeakHashMap<>();
+
     private SkyNetworkTicker() {
+    }
+
+    public static void clear() {
+        LONG_ITEM_ENDPOINTS.clear();
+        LONG_FLUID_ENDPOINTS.clear();
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
@@ -595,8 +605,9 @@ public final class SkyNetworkTicker {
 
     private static MoveResult tryMoveDimensionItem(CachedEndpoint sourceEndpoint, BlockEntity sourceBlockEntity,
             ItemStack simulated, long available, List<CachedEndpoint> targets, int budget, long gameTime) {
-        return tryMoveLongItem(sourceEndpoint, new DimensionItemLongEndpoint(sourceBlockEntity), simulated, available,
-                targets, budget, gameTime);
+        LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
+        return sourceLongEndpoint == null ? new MoveResult(false, 0)
+                : tryMoveLongItem(sourceEndpoint, sourceLongEndpoint, simulated, available, targets, budget, gameTime);
     }
 
     private static MoveResult tryMoveLongItem(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceLongEndpoint,
@@ -1062,23 +1073,28 @@ public final class SkyNetworkTicker {
         BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
                 || endpoint.node() instanceof SkyRSInterfaceBlockEntity
                 ? endpoint.node() : endpoint.targetBlockEntity();
-        if (blockEntity instanceof ItemVaultBlockEntity vault) {
-            return new ItemVaultLongEndpoint(vault);
-        }
-        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-            return new DimensionItemLongEndpoint(blockEntity);
-        }
-        if (blockEntity instanceof SkyMEInterfaceBlockEntity
+        boolean supported = blockEntity instanceof ItemVaultBlockEntity
+                || blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost
+                || (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
-                && SkyLogisticsConfig.allowAe2ItemTransfer()) {
-            return new Ae2ItemLongEndpoint(blockEntity);
-        }
-        if (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && SkyLogisticsConfig.allowAe2ItemTransfer())
+                || (blockEntity instanceof SkyRSInterfaceBlockEntity
                 && RefinedStorageCompat.isLoaded()
-                && SkyLogisticsConfig.allowRefinedStorageItemTransfer()) {
-            return new RefinedStorageItemLongEndpoint(blockEntity);
+                && SkyLogisticsConfig.allowRefinedStorageItemTransfer());
+        if (!supported) {
+            LONG_ITEM_ENDPOINTS.remove(endpoint);
+            return null;
         }
-        return null;
+        LongItemEndpointCache cached = LONG_ITEM_ENDPOINTS.get(endpoint);
+        if (cached != null && cached.blockEntity() == blockEntity) return cached.endpoint();
+        LongItemEndpoint resolved;
+        if (blockEntity instanceof ItemVaultBlockEntity vault) resolved = new ItemVaultLongEndpoint(vault);
+        else if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            resolved = new DimensionItemLongEndpoint(blockEntity);
+        } else if (blockEntity instanceof SkyMEInterfaceBlockEntity) resolved = new Ae2ItemLongEndpoint(blockEntity);
+        else resolved = new RefinedStorageItemLongEndpoint(blockEntity);
+        LONG_ITEM_ENDPOINTS.put(endpoint, new LongItemEndpointCache(blockEntity, resolved));
+        return resolved;
     }
 
     private static long moveLongItem(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceEndpointLong,
@@ -1184,6 +1200,9 @@ public final class SkyNetworkTicker {
         long extract(int slot, ItemStack stack, long amount, boolean simulate);
 
         boolean sameStorage(LongItemEndpoint other);
+    }
+
+    private record LongItemEndpointCache(BlockEntity blockEntity, LongItemEndpoint endpoint) {
     }
 
     private record LongItemResource(ItemStack stack, long amount) {
@@ -1701,23 +1720,28 @@ public final class SkyNetworkTicker {
         BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
                 || endpoint.node() instanceof SkyRSInterfaceBlockEntity
                 ? endpoint.node() : endpoint.targetBlockEntity();
-        if (blockEntity instanceof FluidVaultBlockEntity vault) {
-            return new FluidVaultLongEndpoint(vault);
-        }
-        if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-            return new DimensionFluidLongEndpoint(blockEntity);
-        }
-        if (blockEntity instanceof SkyMEInterfaceBlockEntity
+        boolean supported = blockEntity instanceof FluidVaultBlockEntity
+                || blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost
+                || (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
-                && SkyLogisticsConfig.allowAe2FluidTransfer()) {
-            return new Ae2FluidLongEndpoint(blockEntity);
-        }
-        if (blockEntity instanceof SkyRSInterfaceBlockEntity
+                && SkyLogisticsConfig.allowAe2FluidTransfer())
+                || (blockEntity instanceof SkyRSInterfaceBlockEntity
                 && RefinedStorageCompat.isLoaded()
-                && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()) {
-            return new RefinedStorageFluidLongEndpoint(blockEntity);
+                && SkyLogisticsConfig.allowRefinedStorageFluidTransfer());
+        if (!supported) {
+            LONG_FLUID_ENDPOINTS.remove(endpoint);
+            return null;
         }
-        return null;
+        LongFluidEndpointCache cached = LONG_FLUID_ENDPOINTS.get(endpoint);
+        if (cached != null && cached.blockEntity() == blockEntity) return cached.endpoint();
+        LongFluidEndpoint resolved;
+        if (blockEntity instanceof FluidVaultBlockEntity vault) resolved = new FluidVaultLongEndpoint(vault);
+        else if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
+            resolved = new DimensionFluidLongEndpoint(blockEntity);
+        } else if (blockEntity instanceof SkyMEInterfaceBlockEntity) resolved = new Ae2FluidLongEndpoint(blockEntity);
+        else resolved = new RefinedStorageFluidLongEndpoint(blockEntity);
+        LONG_FLUID_ENDPOINTS.put(endpoint, new LongFluidEndpointCache(blockEntity, resolved));
+        return resolved;
     }
 
     private static long moveFluidToLongTarget(CachedEndpoint sourceEndpoint, FluidHandler source, int sourceTank,
@@ -1817,6 +1841,9 @@ public final class SkyNetworkTicker {
         long extract(int tank, FluidStack stack, long amount, boolean simulate);
 
         boolean sameStorage(LongFluidEndpoint other);
+    }
+
+    private record LongFluidEndpointCache(BlockEntity blockEntity, LongFluidEndpoint endpoint) {
     }
 
     private record LongFluidResource(FluidStack stack, long amount) {

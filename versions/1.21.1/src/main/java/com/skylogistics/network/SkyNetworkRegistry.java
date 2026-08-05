@@ -1448,20 +1448,14 @@ public final class SkyNetworkRegistry {
             Direction direction = endpoint.direction();
             int resourceMask = 0;
             if (node.isItemsEnabled(direction)) {
-                if (sourceEndpoint) endpoint.enableItemSourceCaching();
-                else endpoint.enableItemTargetCaching();
                 itemEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_ITEMS;
             }
             if (node.isFluidsEnabled(direction)) {
-                if (sourceEndpoint) endpoint.enableFluidSourceCaching();
-                else endpoint.enableFluidTargetCaching();
                 fluidEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_FLUIDS;
                 if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && endpoint.detectChemicalSupport(node, direction)) {
-                    if (sourceEndpoint) endpoint.enableChemicalSourceCaching();
-                    else endpoint.enableChemicalTargetCaching();
                     chemicalEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_CHEMICALS;
                 }
@@ -2060,6 +2054,7 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean isItemFilterRejected(ItemStack stack, long gameTime) {
+            if (rejectedItems == null) return false;
             for (int i = 0; i < rejectedItems.length; i++) {
                 if (gameTime < rejectedItemUntil[i] && !rejectedItems[i].isEmpty()
                         && StackData.sameItemAndComponents(rejectedItems[i], stack)) {
@@ -2073,6 +2068,7 @@ public final class SkyNetworkRegistry {
             if (stack.isEmpty()) {
                 return;
             }
+            enableItemTargetCaching();
             ItemStack rejected = stack.copy();
             rejected.setCount(1);
             rejectedItems[rejectedItemCursor] = rejected;
@@ -2081,6 +2077,7 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean isItemAcceptRejected(ItemStackKey key, long gameTime) {
+            if (rejectedItemAccepts == null) return false;
             for (int i = 0; i < rejectedItemAccepts.length; i++) {
                 if (gameTime < rejectedItemAcceptUntil[i] && key.equals(rejectedItemAccepts[i])) {
                     return true;
@@ -2197,6 +2194,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemAcceptReject(ItemStackKey key, long gameTime) {
+            enableItemTargetCaching();
             int index = findRejectedItemAccept(key);
             if (index < 0) {
                 index = rejectedItemAcceptCursor;
@@ -2210,6 +2208,7 @@ public final class SkyNetworkRegistry {
         }
 
         public int nextPreferredItemSlot(int slots, long gameTime, int firstTriedSlot, int secondTriedSlot) {
+            if (preferredItemSlots == null) return -1;
             for (int i = 0; i < preferredItemSlots.length; i++) {
                 int index = Math.floorMod(preferredItemSlotCursor + i, preferredItemSlots.length);
                 int slot = preferredItemSlots[index];
@@ -2231,11 +2230,13 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean canTryItemSlot(int slot, long gameTime) {
+            if (emptyItemSlots == null) return true;
             int index = findEmptyItemSlot(slot);
             return index < 0 || gameTime >= emptyItemSlotUntil[index];
         }
 
         public void recordItemSlotSuccess(int slot, int totalSlots) {
+            enableItemSourceCaching();
             int preferredCount = preferredItemSlotCount();
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
@@ -2287,6 +2288,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemSlotMiss(int slot, long gameTime) {
+            enableItemSourceCaching();
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
                 int misses = preferredItemSlotMisses[preferredIndex] + 1;
@@ -2303,6 +2305,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemSlotRejected(int slot, long gameTime) {
+            enableItemSourceCaching();
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
                 preferredItemSlots[preferredIndex] = -1;
@@ -2339,6 +2342,7 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean isFluidAcceptRejected(FluidStackKey key, long gameTime) {
+            if (rejectedFluidAccepts == null) return false;
             for (int i = 0; i < rejectedFluidAccepts.length; i++) {
                 if (gameTime < rejectedFluidAcceptUntil[i] && key.equals(rejectedFluidAccepts[i])) {
                     return true;
@@ -2356,6 +2360,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidAcceptReject(FluidStackKey key, long gameTime) {
+            enableFluidTargetCaching();
             int index = findRejectedFluidAccept(key);
             if (index < 0) {
                 index = rejectedFluidAcceptCursor;
@@ -2369,6 +2374,7 @@ public final class SkyNetworkRegistry {
         }
 
         public int nextPreferredFluidTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
+            if (preferredFluidTanks == null) return -1;
             for (int i = 0; i < preferredFluidTanks.length; i++) {
                 int index = Math.floorMod(preferredFluidTankCursor + i, preferredFluidTanks.length);
                 int tank = preferredFluidTanks[index];
@@ -2390,11 +2396,13 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean canTryFluidTank(int tank, long gameTime) {
+            if (emptyFluidTanks == null) return true;
             int index = findEmptyFluidTank(tank);
             return index < 0 || gameTime >= emptyFluidTankUntil[index];
         }
 
         public void recordFluidTankSuccess(int tank, int totalTanks) {
+            enableFluidSourceCaching();
             int preferredCount = preferredFluidTankCount();
             int preferredIndex = findPreferredFluidTank(tank);
             if (preferredIndex >= 0) {
@@ -2442,6 +2450,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidTankMiss(int tank, long gameTime) {
+            enableFluidSourceCaching();
             int preferredIndex = findPreferredFluidTank(tank);
             if (preferredIndex >= 0) {
                 int misses = preferredFluidTankMisses[preferredIndex] + 1;
@@ -2458,6 +2467,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidTankRejected(int tank, long gameTime) {
+            enableFluidSourceCaching();
             int preferredIndex = findPreferredFluidTank(tank);
             if (preferredIndex >= 0) {
                 preferredFluidTanks[preferredIndex] = -1;
@@ -2494,6 +2504,7 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean isChemicalAcceptRejected(ChemicalStackView key, long gameTime) {
+            if (rejectedChemicalAccepts == null) return false;
             for (int i = 0; i < rejectedChemicalAccepts.length; i++) {
                 if (gameTime < rejectedChemicalAcceptUntil[i]
                         && rejectedChemicalAccepts[i] != null
@@ -2505,6 +2516,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordChemicalAcceptReject(ChemicalStackView key, long gameTime) {
+            enableChemicalTargetCaching();
             int index = findRejectedChemicalAccept(key);
             if (index < 0) {
                 index = rejectedChemicalAcceptCursor;
@@ -2518,6 +2530,7 @@ public final class SkyNetworkRegistry {
         }
 
         public int nextPreferredChemicalTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
+            if (preferredChemicalTanks == null) return -1;
             for (int i = 0; i < preferredChemicalTanks.length; i++) {
                 int index = Math.floorMod(preferredChemicalTankCursor + i, preferredChemicalTanks.length);
                 int tank = preferredChemicalTanks[index];
@@ -2539,11 +2552,13 @@ public final class SkyNetworkRegistry {
         }
 
         public boolean canTryChemicalTank(int tank, long gameTime) {
+            if (emptyChemicalTanks == null) return true;
             int index = findEmptyChemicalTank(tank);
             return index < 0 || gameTime >= emptyChemicalTankUntil[index];
         }
 
         public void recordChemicalTankSuccess(int tank, int totalTanks) {
+            enableChemicalSourceCaching();
             int preferredCount = preferredChemicalTankCount();
             int preferredIndex = findPreferredChemicalTank(tank);
             if (preferredIndex >= 0) {
@@ -2591,6 +2606,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordChemicalTankMiss(int tank, long gameTime) {
+            enableChemicalSourceCaching();
             int preferredIndex = findPreferredChemicalTank(tank);
             if (preferredIndex >= 0) {
                 int misses = preferredChemicalTankMisses[preferredIndex] + 1;
