@@ -14,9 +14,10 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -48,6 +49,9 @@ public final class AppliedEnergisticsCompat {
     private static final String MANA_KEY_CLASS = "appbot.ae2.ManaKey";
     private static final String SOURCE_KEY_CLASS = "gripe._90.arseng.me.key.SourceKey";
     private static boolean warned;
+    private static Object cachedSimulateAction;
+    private static Object cachedModulateAction;
+    private static Object cachedEmptyActionSource;
 
     private AppliedEnergisticsCompat() {
     }
@@ -294,7 +298,12 @@ public final class AppliedEnergisticsCompat {
     }
 
     private static Object action(boolean simulate) {
-        return Reflect.enumConstant("appeng.api.config.Actionable", simulate ? "SIMULATE" : "MODULATE");
+        Object cached = simulate ? cachedSimulateAction : cachedModulateAction;
+        if (cached != null) return cached;
+        Object resolved = Reflect.enumConstant("appeng.api.config.Actionable", simulate ? "SIMULATE" : "MODULATE");
+        if (simulate) cachedSimulateAction = resolved;
+        else cachedModulateAction = resolved;
+        return resolved;
     }
 
     private static Object action(IFluidHandler.FluidAction action) {
@@ -302,8 +311,11 @@ public final class AppliedEnergisticsCompat {
     }
 
     private static Object actionSource() {
+        if (cachedEmptyActionSource != null) return cachedEmptyActionSource;
         try {
-            return Reflect.invokeStatic(Class.forName("appeng.api.networking.security.IActionSource"), "empty");
+            cachedEmptyActionSource = Reflect.invokeStatic(
+                    Class.forName("appeng.api.networking.security.IActionSource"), "empty");
+            return cachedEmptyActionSource;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
             return null;
@@ -357,27 +369,8 @@ public final class AppliedEnergisticsCompat {
         return Reflect.staticField(className, "KEY");
     }
 
-    private static long amountStored(Object storage, Object key) {
-        if (storage == null || key == null) {
-            return 0L;
-        }
-        try {
-            Object stacks = Reflect.invoke(storage, "getAvailableStacks");
-            if (!(stacks instanceof Iterable<?> iterable)) {
-                return 0L;
-            }
-            for (Object entry : iterable) {
-                Object entryKey = Reflect.invoke(entry, "getKey");
-                if (!key.equals(entryKey)) {
-                    continue;
-                }
-                Object amount = Reflect.invoke(entry, "getLongValue");
-                return amount instanceof Number number ? Math.max(0L, number.longValue()) : 0L;
-            }
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
-            warn(error);
-        }
-        return 0L;
+    private static long amountStored(BlockEntity host, Object storage, Object key) {
+        return extractKey(host, storage, key, Long.MAX_VALUE, true);
     }
 
     private static long insertKey(BlockEntity host, Object storage, Object key, long amount, boolean simulate) {
@@ -429,7 +422,6 @@ public final class AppliedEnergisticsCompat {
                     entries.add(new Entry(key, count));
                 }
             }
-            entries.sort(Comparator.comparing(entry -> entry.key().toString()));
             return entries;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
@@ -455,7 +447,6 @@ public final class AppliedEnergisticsCompat {
                     entries.add(new Entry(key, count));
                 }
             }
-            entries.sort(Comparator.comparing(entry -> entry.key().toString()));
             return entries;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
@@ -982,7 +973,7 @@ public final class AppliedEnergisticsCompat {
 
         @Override
         public int getEnergyStored() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -993,7 +984,7 @@ public final class AppliedEnergisticsCompat {
         @Override
         public boolean canExtract() {
             Object storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -1002,15 +993,36 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
-    private record ChemicalHandler(BlockEntity host, Class<?> keyClass) implements ChemicalHandlerBridge {
+    private static final class ChemicalHandler implements ChemicalHandlerBridge {
+        private final BlockEntity host;
+        private final Class<?> keyClass;
+        private long snapshotTick = Long.MIN_VALUE;
+        private Object snapshotStorage;
+        private List<Entry> snapshot = List.of();
+
+        private ChemicalHandler(BlockEntity host, Class<?> keyClass) {
+            this.host = host;
+            this.keyClass = keyClass;
+        }
+
+        private List<Entry> snapshot(Object storage) {
+            long gameTime = host.getLevel() == null ? Long.MIN_VALUE : host.getLevel().getGameTime();
+            if (snapshotStorage != storage || snapshotTick != gameTime) {
+                snapshotStorage = storage;
+                snapshotTick = gameTime;
+                snapshot = entries(storage, keyClass);
+            }
+            return snapshot;
+        }
+
         @Override
         public int getTanks() {
-            return entries(storage(host), keyClass).size() + 1;
+            return snapshot(storage(host)).size() + 1;
         }
 
         @Override
         public ChemicalStackView getChemicalInTank(int tank) {
-            List<Entry> entries = entries(storage(host), keyClass);
+            List<Entry> entries = snapshot(storage(host));
             return tank >= 0 && tank < entries.size()
                     ? chemicalStack(entries.get(tank))
                     : EmptyChemicalStackView.INSTANCE;
@@ -1022,13 +1034,14 @@ public final class AppliedEnergisticsCompat {
                 return EmptyChemicalStackView.INSTANCE;
             }
             Object storage = storage(host);
-            List<Entry> entries = entries(storage, keyClass);
+            List<Entry> entries = snapshot(storage);
             if (tank < 0 || tank >= entries.size()) {
                 return EmptyChemicalStackView.INSTANCE;
             }
             Entry entry = entries.get(tank);
             long requested = Math.min(entry.amount(), amount);
             long extracted = extractKey(host, storage, entry.key(), requested, simulate);
+            if (!simulate && extracted > 0L) snapshotTick = Long.MIN_VALUE;
             return extracted <= 0L ? EmptyChemicalStackView.INSTANCE
                     : new AeChemicalStackView(entry.key(), extracted);
         }
@@ -1042,6 +1055,7 @@ public final class AppliedEnergisticsCompat {
             Object key = chemicalKey(stack, keyClass);
             long requested = stack.getAmount();
             long inserted = insertKey(host, storage, key, requested, simulate);
+            if (!simulate && inserted > 0L) snapshotTick = Long.MIN_VALUE;
             return Math.min(inserted, requested);
         }
     }
@@ -1049,7 +1063,7 @@ public final class AppliedEnergisticsCompat {
     private record ManaHandler(BlockEntity host, Object key) implements ManaHandlerBridge {
         @Override
         public int getCurrentMana() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -1060,7 +1074,7 @@ public final class AppliedEnergisticsCompat {
         @Override
         public boolean canExtract() {
             Object storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -1082,7 +1096,7 @@ public final class AppliedEnergisticsCompat {
     private record SourceHandler(BlockEntity host, Object key) implements SourceHandlerBridge {
         @Override
         public int getCurrentSource() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -1093,7 +1107,7 @@ public final class AppliedEnergisticsCompat {
         @Override
         public boolean canExtract() {
             Object storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -1176,6 +1190,14 @@ public final class AppliedEnergisticsCompat {
     }
 
     private static final class Reflect {
+        private static final Class<?> NULL_ARGUMENT = Reflect.class;
+        private static final ClassValue<Map<InvocationShape, Method>> METHODS = new ClassValue<>() {
+            @Override
+            protected Map<InvocationShape, Method> computeValue(Class<?> type) {
+                return new ConcurrentHashMap<>();
+            }
+        };
+
         private Reflect() {
         }
 
@@ -1200,8 +1222,10 @@ public final class AppliedEnergisticsCompat {
         }
 
         static boolean tryInvoke(Object target, String name, Object... args) throws ReflectiveOperationException {
-            Method method = findMethod(target.getClass(), name, args);
-            if (method == null) {
+            Method method;
+            try {
+                method = method(target.getClass(), name, args);
+            } catch (NoSuchMethodException ignored) {
                 return false;
             }
             method.invoke(target, args);
@@ -1247,19 +1271,37 @@ public final class AppliedEnergisticsCompat {
         }
 
         private static Method method(Class<?> type, String name, Object[] args) throws NoSuchMethodException {
+            InvocationShape shape = InvocationShape.of(name, args);
+            Method cached = METHODS.get(type).get(shape);
+            if (cached != null) return cached;
             Method method = findMethod(type, name, args);
             if (method == null) {
                 throw new NoSuchMethodException(type.getName() + "#" + name + "/" + args.length);
             }
-            return method;
+            return METHODS.get(type).putIfAbsent(shape, method) == null ? method : METHODS.get(type).get(shape);
         }
 
         private static Method method(Class<?> type, String name, int argCount) throws NoSuchMethodException {
+            InvocationShape shape = InvocationShape.byCount(name, argCount);
+            Method cached = METHODS.get(type).get(shape);
+            if (cached != null) return cached;
             Method method = findMethod(type, name, argCount);
             if (method == null) {
                 throw new NoSuchMethodException(type.getName() + "#" + name + "/" + argCount);
             }
-            return method;
+            return METHODS.get(type).putIfAbsent(shape, method) == null ? method : METHODS.get(type).get(shape);
+        }
+
+        private record InvocationShape(String name, List<Class<?>> argumentTypes, int countOnly) {
+            private static InvocationShape of(String name, Object[] args) {
+                List<Class<?>> types = new ArrayList<>(args.length);
+                for (Object arg : args) types.add(arg == null ? NULL_ARGUMENT : arg.getClass());
+                return new InvocationShape(name, List.copyOf(types), -1);
+            }
+
+            private static InvocationShape byCount(String name, int count) {
+                return new InvocationShape(name, List.of(), count);
+            }
         }
 
         private static Method findMethod(Class<?> type, String name, Object[] args) {

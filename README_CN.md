@@ -74,7 +74,7 @@
 - Mekanism 化学品走流体开关；植物魔法 mana 和新生魔艺 Source 魔源走能量开关，但只会搬到同类资源处理器，不会转换为 FE。
 - 显示名对应的线路 id 是稳定的；不改名或复用同名线路时，会继续指向同一条线路。
 - 节点传输使用预算、缓存、就绪线路队列、热槽追踪、能力缓存和端点退避来控制性能开销。
-- 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick。
+- 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick；`skyNecklaceTargetAttemptsPerWork` 限制每次工作访问的输出端点数，默认 1。
 - 仓库类型上限、节点物品/能量单次传输量、天穹容器间直连传输量、操作预算、热槽缓存大小、供奉高度和水晶充能时间均可配置。
 - 简易管道可分别通过 `simpleItemPipeTransferRate`、`simpleFluidPipeTransferRate`、`simpleEnergyPipeTransferRate`、`simpleChemicalPipeTransferRate`、`simpleManaPipeTransferRate` 和 `simpleSourcePipeTransferRate` 配置限速；`simplePipeMaxConnectedBlocks` 控制单条相连管道线路的最大规模。
 - Patchouli 支持为纯数据内容，安装 Patchouli 后会显示指南书内容。

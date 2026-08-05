@@ -6,8 +6,11 @@ import com.refinedmods.refinedstorage.api.network.node.INetworkNodeProxy;
 import com.refinedmods.refinedstorage.api.util.Action;
 import com.refinedmods.refinedstorage.api.util.StackListEntry;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -21,6 +24,8 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.registries.ForgeRegistries;
 
 final class RefinedStorageApiBridge {
+    private static final Map<BlockEntity, NetworkCache> NETWORKS = Collections.synchronizedMap(new WeakHashMap<>());
+
     private RefinedStorageApiBridge() {
     }
 
@@ -123,6 +128,14 @@ final class RefinedStorageApiBridge {
         if (level == null || level.isClientSide) {
             return null;
         }
+        NetworkCache cached = NETWORKS.get(host);
+        if (cached != null) {
+            long gameTime = level.getGameTime();
+            if (gameTime < cached.validateAt() && cached.node().isActive() && cached.network().canRun()) {
+                return cached.network();
+            }
+            NETWORKS.remove(host);
+        }
         BlockPos pos = host.getBlockPos();
         for (Direction direction : Direction.values()) {
             BlockPos targetPos = pos.relative(direction);
@@ -134,11 +147,15 @@ final class RefinedStorageApiBridge {
                 INetworkNode node = proxy.getNode();
                 INetwork network = node == null ? null : node.getNetwork();
                 if (network != null && node.isActive() && network.canRun()) {
+                    NETWORKS.put(host, new NetworkCache(node, network, level.getGameTime() + 20L));
                     return network;
                 }
             }
         }
         return null;
+    }
+
+    private record NetworkCache(INetworkNode node, INetwork network, long validateAt) {
     }
 
     private static Action action(boolean simulate) {

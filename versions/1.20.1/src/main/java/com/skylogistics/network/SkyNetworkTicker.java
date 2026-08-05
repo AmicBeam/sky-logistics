@@ -392,7 +392,7 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean isExternalNetworkItemEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        BlockEntity blockEntity = endpoint.node();
         return (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
                 && SkyLogisticsConfig.allowAe2ItemTransfer())
@@ -403,7 +403,7 @@ public final class SkyNetworkTicker {
 
     private static int transferExternalNetworkItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
             int budget, long gameTime) {
-        BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+        BlockEntity sourceBlockEntity = sourceEndpoint.node();
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
         if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
             return 0;
@@ -416,10 +416,12 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean candidateFound = false;
-        for (ItemStack sample : candidates.itemSamples()) {
+        List<ItemStack> samples = candidates.itemSamples();
+        for (int candidateOffset = 0; candidateOffset < samples.size(); candidateOffset++) {
             if (operations >= budget) {
                 break;
             }
+            ItemStack sample = samples.get(sourceEndpoint.nextExternalItemCandidate(samples.size()));
             operations++;
             LongItemResource resource = externalNetworkItemResourceForStack(sourceBlockEntity, sample);
             if (resource.isEmpty()
@@ -546,10 +548,12 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean candidateFound = false;
-        for (ItemStack sample : candidates.itemSamples()) {
+        List<ItemStack> samples = candidates.itemSamples();
+        for (int candidateOffset = 0; candidateOffset < samples.size(); candidateOffset++) {
             if (operations >= budget) {
                 break;
             }
+            ItemStack sample = samples.get(sourceEndpoint.nextExternalItemCandidate(samples.size()));
             operations++;
             BeyondDimensionsCompat.ItemResource resource = BeyondDimensionsCompat.itemResourceForStack(
                     sourceBlockEntity, sample);
@@ -613,7 +617,7 @@ public final class SkyNetworkTicker {
         int targetAttempts = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
+        ItemStackKey simulatedKey = null;
         targetLoop:
         for (int groupStart = 0; groupStart < targets.size();) {
             int groupEnd = priorityGroupEnd(targets, groupStart);
@@ -636,9 +640,10 @@ public final class SkyNetworkTicker {
                         || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())) {
                     continue;
                 }
-                if (targetEndpoint.isItemFilterRejected(simulated, gameTime)
-                        || targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
-                    continue;
+                if (targetEndpoint.isItemFilterRejected(simulated, gameTime)) continue;
+                if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
+                    if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
+                    if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) continue;
                 }
                 if (targetAttempts >= targetAttemptBudget) {
                     budgetExhausted = true;
@@ -662,6 +667,7 @@ public final class SkyNetworkTicker {
                         sourceEndpoint.recordItemFailure(gameTime);
                         return targetMoveResult(false, operations, targetVisits);
                     }
+                    if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
@@ -711,7 +717,10 @@ public final class SkyNetworkTicker {
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
         if (movable <= 0) {
-            if (selection.exhaustive()) targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
+            if (selection.exhaustive()) {
+                if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
+                targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
+            }
             return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks(), false);
         }
         long extractedAmount = sourceLongEndpoint.extract(-1, offer, movable, false);
@@ -818,15 +827,15 @@ public final class SkyNetworkTicker {
         int matchingSlots = 0;
         int checks = 0;
         int slots = source.getSlots();
-        for (int slot = 0; slot < slots && checks < checkBudget; slot++) {
+        // A partial scan cannot safely be resumed because ordinary handlers expose no mutation version.
+        // Bypass the optional limit when a complete proof does not fit instead of rescanning slot zero forever.
+        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
+        for (int slot = 0; slot < slots; slot++) {
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
             if (!stack.isEmpty() && node.allowsItem(direction, stack) && ++matchingSlots > limit) {
                 return new SlotLimitCheck(false, checks, true);
             }
-        }
-        if (checks < slots) {
-            return new SlotLimitCheck(false, checks, false);
         }
         return new SlotLimitCheck(true, checks, true);
     }
@@ -848,7 +857,8 @@ public final class SkyNetworkTicker {
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
         int slots = target.getSlots();
-        for (int slot = 0; slot < slots && checks < checkBudget; slot++) {
+        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
+        for (int slot = 0; slot < slots; slot++) {
             checks++;
             ItemStack existing = target.getStackInSlot(slot);
             if (existing.isEmpty() || !node.allowsItem(direction, existing)) {
@@ -862,9 +872,6 @@ public final class SkyNetworkTicker {
             if (matchingSlots >= limit && canRefill) {
                 return new SlotLimitCheck(false, checks, true);
             }
-        }
-        if (checks < slots) {
-            return new SlotLimitCheck(false, checks, false);
         }
         return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks, true);
     }
@@ -1081,7 +1088,9 @@ public final class SkyNetworkTicker {
     }
 
     private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
+                || endpoint.node() instanceof SkyRSInterfaceBlockEntity
+                ? endpoint.node() : endpoint.targetBlockEntity();
         if (blockEntity instanceof ItemVaultBlockEntity vault) {
             return new ItemVaultLongEndpoint(vault);
         }
@@ -1382,7 +1391,7 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean isExternalNetworkFluidEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        BlockEntity blockEntity = endpoint.node();
         return (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
                 && SkyLogisticsConfig.allowAe2FluidTransfer())
@@ -1393,7 +1402,7 @@ public final class SkyNetworkTicker {
 
     private static int transferExternalNetworkFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
             int budget, long gameTime) {
-        BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+        BlockEntity sourceBlockEntity = sourceEndpoint.node();
         LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
         if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
             return 0;
@@ -1406,10 +1415,12 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean candidateFound = false;
-        for (FluidStack sample : candidates.fluidSamples()) {
+        List<FluidStack> samples = candidates.fluidSamples();
+        for (int candidateOffset = 0; candidateOffset < samples.size(); candidateOffset++) {
             if (operations >= budget) {
                 break;
             }
+            FluidStack sample = samples.get(sourceEndpoint.nextExternalFluidCandidate(samples.size()));
             operations++;
             LongFluidResource resource = externalNetworkFluidResourceForStack(sourceBlockEntity, sample);
             if (resource.isEmpty()
@@ -1621,7 +1632,7 @@ public final class SkyNetworkTicker {
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        FluidStackKey simulatedKey = FluidStackKey.of(simulated);
+        FluidStackKey simulatedKey = null;
         targetLoop:
         for (int groupStart = 0; groupStart < targets.size();) {
             int groupEnd = priorityGroupEnd(targets, groupStart);
@@ -1641,9 +1652,10 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (!targetEndpoint.canTryFluids(gameTime)
-                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())
-                        || targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) {
-                    continue;
+                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())) continue;
+                if (targetEndpoint.hasActiveFluidAcceptRejects(gameTime)) {
+                    if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
+                    if (targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) continue;
                 }
                 if (operations >= targetAttemptBudget) {
                     budgetExhausted = true;
@@ -1651,6 +1663,7 @@ public final class SkyNetworkTicker {
                 }
                 operations++;
                 if (!targetEndpoint.node().allowsFluid(targetEndpoint.direction(), simulated)) {
+                    if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
@@ -1697,6 +1710,7 @@ public final class SkyNetworkTicker {
         FluidStack offer = copyWithAmount(simulated, requested);
         int accepted = target.fill(offer.copy(), IFluidHandler.FluidAction.SIMULATE);
         if (accepted <= 0) {
+            if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
             targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
             return false;
         }
@@ -1722,7 +1736,9 @@ public final class SkyNetworkTicker {
     }
 
     private static LongFluidEndpoint longFluidEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
+                || endpoint.node() instanceof SkyRSInterfaceBlockEntity
+                ? endpoint.node() : endpoint.targetBlockEntity();
         if (blockEntity instanceof FluidVaultBlockEntity vault) {
             return new FluidVaultLongEndpoint(vault);
         }

@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -341,16 +343,8 @@ final class AppliedEnergisticsApiBridge {
         throw new IllegalStateException("Resolved object is not an AE key: " + key);
     }
 
-    private static long amountStored(MEStorage storage, AEKey key) {
-        if (storage == null || key == null) {
-            return 0L;
-        }
-        for (Object2LongMap.Entry<AEKey> entry : storage.getAvailableStacks()) {
-            if (key.equals(entry.getKey())) {
-                return Math.max(0L, entry.getLongValue());
-            }
-        }
-        return 0L;
+    private static long amountStored(BlockEntity host, MEStorage storage, AEKey key) {
+        return extractKey(host, storage, key, Long.MAX_VALUE, true);
     }
 
     private static long insertKey(BlockEntity host, MEStorage storage, AEKey key, long amount, boolean simulate) {
@@ -422,7 +416,6 @@ final class AppliedEnergisticsApiBridge {
                 entries.add(new ChemicalEntry(key, entry.getLongValue()));
             }
         }
-        entries.sort(Comparator.comparing(entry -> entry.key().toString()));
         return entries;
     }
 
@@ -622,7 +615,7 @@ final class AppliedEnergisticsApiBridge {
 
         @Override
         public int getEnergyStored() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -633,7 +626,7 @@ final class AppliedEnergisticsApiBridge {
         @Override
         public boolean canExtract() {
             MEStorage storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -642,15 +635,36 @@ final class AppliedEnergisticsApiBridge {
         }
     }
 
-    private record ChemicalHandler(BlockEntity host, Class<?> keyClass) implements ChemicalHandlerBridge {
+    private static final class ChemicalHandler implements ChemicalHandlerBridge {
+        private final BlockEntity host;
+        private final Class<?> keyClass;
+        private long snapshotTick = Long.MIN_VALUE;
+        private MEStorage snapshotStorage;
+        private List<ChemicalEntry> snapshot = List.of();
+
+        private ChemicalHandler(BlockEntity host, Class<?> keyClass) {
+            this.host = host;
+            this.keyClass = keyClass;
+        }
+
+        private List<ChemicalEntry> snapshot(MEStorage storage) {
+            long gameTime = host.getLevel() == null ? Long.MIN_VALUE : host.getLevel().getGameTime();
+            if (snapshotStorage != storage || snapshotTick != gameTime) {
+                snapshotStorage = storage;
+                snapshotTick = gameTime;
+                snapshot = chemicalEntries(storage, keyClass);
+            }
+            return snapshot;
+        }
+
         @Override
         public int getTanks() {
-            return chemicalEntries(storage(host), keyClass).size() + 1;
+            return snapshot(storage(host)).size() + 1;
         }
 
         @Override
         public ChemicalStackView getChemicalInTank(int tank) {
-            List<ChemicalEntry> entries = chemicalEntries(storage(host), keyClass);
+            List<ChemicalEntry> entries = snapshot(storage(host));
             return tank >= 0 && tank < entries.size()
                     ? chemicalStack(entries.get(tank))
                     : EmptyChemicalStackView.INSTANCE;
@@ -662,13 +676,14 @@ final class AppliedEnergisticsApiBridge {
                 return EmptyChemicalStackView.INSTANCE;
             }
             MEStorage storage = storage(host);
-            List<ChemicalEntry> entries = chemicalEntries(storage, keyClass);
+            List<ChemicalEntry> entries = snapshot(storage);
             if (tank < 0 || tank >= entries.size()) {
                 return EmptyChemicalStackView.INSTANCE;
             }
             ChemicalEntry entry = entries.get(tank);
             long requested = Math.min(entry.amount(), amount);
             long extracted = extractKey(host, storage, entry.key(), requested, simulate);
+            if (!simulate && extracted > 0L) snapshotTick = Long.MIN_VALUE;
             return extracted <= 0L ? EmptyChemicalStackView.INSTANCE
                     : new AeChemicalStackView(entry.key(), extracted);
         }
@@ -682,6 +697,7 @@ final class AppliedEnergisticsApiBridge {
             AEKey key = chemicalKey(stack, keyClass);
             long requested = stack.getAmount();
             long inserted = insertKey(host, storage, key, requested, simulate);
+            if (!simulate && inserted > 0L) snapshotTick = Long.MIN_VALUE;
             return Math.min(inserted, requested);
         }
     }
@@ -689,7 +705,7 @@ final class AppliedEnergisticsApiBridge {
     private record ManaHandler(BlockEntity host, AEKey key) implements ManaHandlerBridge {
         @Override
         public int getCurrentMana() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -700,7 +716,7 @@ final class AppliedEnergisticsApiBridge {
         @Override
         public boolean canExtract() {
             MEStorage storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -722,7 +738,7 @@ final class AppliedEnergisticsApiBridge {
     private record SourceHandler(BlockEntity host, AEKey key) implements SourceHandlerBridge {
         @Override
         public int getCurrentSource() {
-            return clampInt(amountStored(storage(host), key));
+            return clampInt(amountStored(host, storage(host), key));
         }
 
         @Override
@@ -733,7 +749,7 @@ final class AppliedEnergisticsApiBridge {
         @Override
         public boolean canExtract() {
             MEStorage storage = storage(host);
-            return amountStored(storage, key) > 0L || extractKey(host, storage, key, 1L, true) > 0L;
+            return amountStored(host, storage, key) > 0L;
         }
 
         @Override
@@ -816,6 +832,13 @@ final class AppliedEnergisticsApiBridge {
     }
 
     private static final class Reflect {
+        private static final Class<?> NULL_ARGUMENT = Reflect.class;
+        private static final ClassValue<Map<InvocationShape, Method>> METHODS = new ClassValue<>() {
+            @Override
+            protected Map<InvocationShape, Method> computeValue(Class<?> type) {
+                return new ConcurrentHashMap<>();
+            }
+        };
         private Reflect() {
         }
 
@@ -834,11 +857,22 @@ final class AppliedEnergisticsApiBridge {
         }
 
         private static Method method(Class<?> type, String name, Object[] args) throws NoSuchMethodException {
+            InvocationShape shape = InvocationShape.of(name, args);
+            Method cached = METHODS.get(type).get(shape);
+            if (cached != null) return cached;
             Method method = findMethod(type, name, args);
             if (method == null) {
                 throw new NoSuchMethodException(type.getName() + "#" + name + "/" + args.length);
             }
-            return method;
+            return METHODS.get(type).putIfAbsent(shape, method) == null ? method : METHODS.get(type).get(shape);
+        }
+
+        private record InvocationShape(String name, List<Class<?>> argumentTypes) {
+            private static InvocationShape of(String name, Object[] args) {
+                List<Class<?>> types = new ArrayList<>(args.length);
+                for (Object arg : args) types.add(arg == null ? NULL_ARGUMENT : arg.getClass());
+                return new InvocationShape(name, List.copyOf(types));
+            }
         }
 
         private static Method findMethod(Class<?> type, String name, Object[] args) {

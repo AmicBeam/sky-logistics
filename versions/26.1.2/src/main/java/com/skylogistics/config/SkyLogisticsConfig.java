@@ -194,6 +194,10 @@ public final class SkyLogisticsConfig {
         return SERVER.skyNecklaceSlotScansPerTick.get();
     }
 
+    public static int skyNecklaceTargetAttemptsPerWork() {
+        return SERVER.skyNecklaceTargetAttemptsPerWork.get();
+    }
+
     public static int skyRitualMinY() {
         return SERVER.skyRitualMinY.get();
     }
@@ -227,6 +231,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue transferRetryMaxTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
+        public final ModConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
@@ -406,6 +411,9 @@ public final class SkyLogisticsConfig {
             skyNecklaceSlotScansPerTick = builder
                     .comment("Maximum inventory, backpack, or network item slots one Sky Necklace may scan each work tick.")
                     .defineInRange("skyNecklaceSlotScansPerTick", 64, 1, 1_000_000);
+            skyNecklaceTargetAttemptsPerWork = builder
+                    .comment("Maximum logistics output endpoints one Sky Necklace may attempt during one work interval.")
+                    .defineInRange("skyNecklaceTargetAttemptsPerWork", 1, 1, 1_000_000);
             builder.pop();
 
             builder.push("rituals");

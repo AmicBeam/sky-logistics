@@ -74,7 +74,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Mekanism chemicals use fluid-enabled faces. Botania mana and Ars Nouveau Source use energy-enabled faces, but they are moved only to matching resource handlers and are not converted to FE.
 - Line ids are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
-- Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks.
+- Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
 - Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
 - Simple pipe limits are configurable independently through `simpleItemPipeTransferRate`, `simpleFluidPipeTransferRate`, `simpleEnergyPipeTransferRate`, `simpleChemicalPipeTransferRate`, `simpleManaPipeTransferRate`, and `simpleSourcePipeTransferRate`. `simplePipeMaxConnectedBlocks` controls the maximum size of one connected pipe line.
 - Patchouli support is data-only and appears when Patchouli is installed.

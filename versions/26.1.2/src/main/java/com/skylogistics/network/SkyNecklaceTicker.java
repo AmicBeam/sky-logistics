@@ -37,6 +37,7 @@ public final class SkyNecklaceTicker {
     private static final Map<UUID, Integer> ACTIVE_ITEM_INSERTERS = new HashMap<>();
     private static final Map<UUID, List<ActiveNecklaceDetail>> ACTIVE_DETAILS = new HashMap<>();
     private static final Map<UUID, Integer> EXTRACT_SLOT_CURSORS = new HashMap<>();
+    private static final Map<UUID, Integer> EXTRACT_TARGET_CURSORS = new HashMap<>();
     private static final Map<UUID, Integer> INSERT_ENDPOINT_CURSORS = new HashMap<>();
 
     private SkyNecklaceTicker() {
@@ -176,17 +177,18 @@ public final class SkyNecklaceTicker {
             return;
         }
         List<ItemHandler> sources = sources(player);
-        int slotLimit = SkyNecklaceItem.insertSlots(necklace);
-        if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS
-                && countMatchingSlots(sources, itemWhitelist, slotLimit + 1) <= slotLimit) {
-            return;
-        }
         int totalSlots = totalSlots(sources);
         if (totalSlots <= 0) {
             return;
         }
         UUID playerId = player.getUUID();
         int scanBudget = Math.min(totalSlots, SkyLogisticsConfig.skyNecklaceSlotScansPerTick());
+        int slotLimit = SkyNecklaceItem.insertSlots(necklace);
+        if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS && totalSlots <= scanBudget) {
+            SlotCountResult result = countMatchingSlots(sources, itemWhitelist, slotLimit + 1);
+            if (result.matching() <= slotLimit) return;
+            scanBudget = Math.max(1, scanBudget - result.checks());
+        }
         int cursor = Math.floorMod(EXTRACT_SLOT_CURSORS.getOrDefault(playerId, 0), totalSlots);
         int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
         int scanned = 0;
@@ -201,7 +203,11 @@ public final class SkyNecklaceTicker {
             if (simulated.isEmpty() || shouldSkipSourceStack(simulated) || !itemWhitelist.matches(simulated)) {
                 continue;
             }
-            if (tryMove(handlerSlot.handler(), handlerSlot.slot(), simulated, targets, gameTime)) {
+            int targetCursor = Math.floorMod(EXTRACT_TARGET_CURSORS.getOrDefault(playerId, 0), targets.size());
+            NecklaceMoveResult result = tryMove(handlerSlot.handler(), handlerSlot.slot(), simulated, targets,
+                    targetCursor, SkyLogisticsConfig.skyNecklaceTargetAttemptsPerWork(), gameTime);
+            EXTRACT_TARGET_CURSORS.put(playerId, result.moved() ? 0 : result.nextCursor());
+            if (result.moved()) {
                 EXTRACT_SLOT_CURSORS.put(playerId, (flatIndex + 1) % totalSlots);
                 return;
             }
@@ -216,21 +222,26 @@ public final class SkyNecklaceTicker {
         return sources;
     }
 
-    private static int countMatchingSlots(List<ItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
+    private static SlotCountResult countMatchingSlots(List<ItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
             int stopAt) {
         int matching = 0;
+        int checks = 0;
         for (ItemHandler source : sources) {
             for (int slot = 0; slot < source.getSlots(); slot++) {
+                checks++;
                 ItemStack stack = source.getStackInSlot(slot);
                 if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && itemWhitelist.matches(stack)) {
                     matching++;
                     if (matching >= stopAt) {
-                        return matching;
+                        return new SlotCountResult(matching, checks);
                     }
                 }
             }
         }
-        return matching;
+        return new SlotCountResult(matching, checks);
+    }
+
+    private record SlotCountResult(int matching, int checks) {
     }
 
     private static int totalSlots(List<ItemHandler> sources) {
@@ -378,9 +389,13 @@ public final class SkyNecklaceTicker {
         return true;
     }
 
-    private static boolean tryMove(ItemHandler source, int slot, ItemStack simulated, List<CachedEndpoint> targets,
-            long gameTime) {
-        for (CachedEndpoint targetEndpoint : targets) {
+    private static NecklaceMoveResult tryMove(ItemHandler source, int slot, ItemStack simulated,
+            List<CachedEndpoint> targets, int startCursor, int attemptLimit, long gameTime) {
+        int visited = 0;
+        int limit = Math.min(targets.size(), Math.max(1, attemptLimit));
+        while (visited < limit) {
+            CachedEndpoint targetEndpoint = targets.get(Math.floorMod(startCursor + visited, targets.size()));
+            visited++;
             if (!targetEndpoint.canTryItems(gameTime)
                     || !targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())
                     || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())
@@ -391,7 +406,7 @@ public final class SkyNecklaceTicker {
             BlockEntity targetBlockEntity = targetEndpoint.targetBlockEntity();
             if (targetBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
                 if (tryMoveToDimensionTarget(source, slot, simulated, targetEndpoint, targetBlockEntity, gameTime)) {
-                    return true;
+                    return new NecklaceMoveResult(true, 0);
                 }
                 continue;
             }
@@ -407,7 +422,7 @@ public final class SkyNecklaceTicker {
             }
             ItemStack extracted = source.extractItem(slot, movable, false);
             if (extracted.isEmpty()) {
-                return false;
+                return new NecklaceMoveResult(false, (startCursor + visited) % targets.size());
             }
             ItemStack leftover = TransferCompat.insertItemStacked(target, extracted, false);
             if (!leftover.isEmpty()) {
@@ -418,9 +433,12 @@ public final class SkyNecklaceTicker {
                 }
             }
             targetEndpoint.recordItemSuccess();
-            return true;
+            return new NecklaceMoveResult(true, 0);
         }
-        return false;
+        return new NecklaceMoveResult(false, (startCursor + visited) % targets.size());
+    }
+
+    private record NecklaceMoveResult(boolean moved, int nextCursor) {
     }
 
     private static boolean tryMoveToDimensionTarget(ItemHandler source, int slot, ItemStack simulated,

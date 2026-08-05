@@ -6,8 +6,12 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentPatch;
@@ -28,6 +32,11 @@ public final class RefinedStorageCompat {
     private static final String ACTOR = "com.refinedmods.refinedstorage.api.storage.Actor";
     private static final String ITEM_RESOURCE = "com.refinedmods.refinedstorage.common.support.resource.ItemResource";
     private static final String FLUID_RESOURCE = "com.refinedmods.refinedstorage.common.support.resource.FluidResource";
+    private static final Map<BlockEntity, NetworkCache> NETWORKS = Collections.synchronizedMap(new WeakHashMap<>());
+    private static Class<?> cachedStorageComponent;
+    private static Object cachedSimulateAction;
+    private static Object cachedExecuteAction;
+    private static Object cachedActor;
     private static boolean warned;
 
     private RefinedStorageCompat() {
@@ -135,6 +144,12 @@ public final class RefinedStorageCompat {
         if (level == null || level.isClientSide) {
             return null;
         }
+        long gameTime = level.getGameTime();
+        NetworkCache cached = NETWORKS.get(host);
+        if (cached != null) {
+            if (gameTime < cached.validateAt()) return cached.network();
+            NETWORKS.remove(host);
+        }
         BlockPos pos = host.getBlockPos();
         for (Direction direction : Direction.values()) {
             BlockPos targetPos = pos.relative(direction);
@@ -148,6 +163,7 @@ public final class RefinedStorageCompat {
             try {
                 Object network = networkFromContainerProvider(target);
                 if (network != null && storageFromNetwork(network) != null) {
+                    NETWORKS.put(host, new NetworkCache(network, gameTime + 20L));
                     return network;
                 }
             } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
@@ -155,6 +171,9 @@ public final class RefinedStorageCompat {
             }
         }
         return null;
+    }
+
+    private record NetworkCache(Object network, long validateAt) {
     }
 
     private static Object networkFromContainerProvider(BlockEntity target) throws ReflectiveOperationException {
@@ -181,11 +200,17 @@ public final class RefinedStorageCompat {
     }
 
     private static Object storageFromNetwork(Object network) throws ReflectiveOperationException {
-        return Reflect.invoke(network, "getComponent", Class.forName(STORAGE_COMPONENT));
+        if (cachedStorageComponent == null) cachedStorageComponent = Class.forName(STORAGE_COMPONENT);
+        return Reflect.invoke(network, "getComponent", cachedStorageComponent);
     }
 
     private static Object action(boolean simulate) {
-        return Reflect.enumConstant(ACTION, simulate ? "SIMULATE" : "EXECUTE");
+        Object cached = simulate ? cachedSimulateAction : cachedExecuteAction;
+        if (cached != null) return cached;
+        Object resolved = Reflect.enumConstant(ACTION, simulate ? "SIMULATE" : "EXECUTE");
+        if (simulate) cachedSimulateAction = resolved;
+        else cachedExecuteAction = resolved;
+        return resolved;
     }
 
     private static Object action(IFluidHandler.FluidAction action) {
@@ -193,7 +218,8 @@ public final class RefinedStorageCompat {
     }
 
     private static Object actor() throws ReflectiveOperationException {
-        return Class.forName(ACTOR).getField("EMPTY").get(null);
+        if (cachedActor == null) cachedActor = Class.forName(ACTOR).getField("EMPTY").get(null);
+        return cachedActor;
     }
 
     private static long insertResource(Object storage, Object resource, long amount, boolean simulate) {
@@ -522,6 +548,14 @@ public final class RefinedStorageCompat {
     }
 
     private static final class Reflect {
+        private static final Class<?> NULL_ARGUMENT = Reflect.class;
+        private static final ClassValue<Map<InvocationShape, Method>> METHODS = new ClassValue<>() {
+            @Override
+            protected Map<InvocationShape, Method> computeValue(Class<?> type) {
+                return new ConcurrentHashMap<>();
+            }
+        };
+
         private Reflect() {
         }
 
@@ -531,8 +565,11 @@ public final class RefinedStorageCompat {
         }
 
         static Object tryInvoke(Object target, String name, Object... args) throws ReflectiveOperationException {
-            Method method = findMethod(target.getClass(), name, args);
-            return method == null ? null : method.invoke(target, args);
+            try {
+                return method(target.getClass(), name, args).invoke(target, args);
+            } catch (NoSuchMethodException ignored) {
+                return null;
+            }
         }
 
         static Object invokeStatic(Class<?> owner, String name, Object... args) throws ReflectiveOperationException {
@@ -558,11 +595,22 @@ public final class RefinedStorageCompat {
         }
 
         private static Method method(Class<?> type, String name, Object[] args) throws NoSuchMethodException {
+            InvocationShape shape = InvocationShape.of(name, args);
+            Method cached = METHODS.get(type).get(shape);
+            if (cached != null) return cached;
             Method method = findMethod(type, name, args);
             if (method == null) {
                 throw new NoSuchMethodException(type.getName() + "#" + name + "/" + args.length);
             }
-            return method;
+            return METHODS.get(type).putIfAbsent(shape, method) == null ? method : METHODS.get(type).get(shape);
+        }
+
+        private record InvocationShape(String name, List<Class<?>> argumentTypes) {
+            private static InvocationShape of(String name, Object[] args) {
+                List<Class<?>> types = new ArrayList<>(args.length);
+                for (Object arg : args) types.add(arg == null ? NULL_ARGUMENT : arg.getClass());
+                return new InvocationShape(name, List.copyOf(types));
+            }
         }
 
         private static Method findMethod(Class<?> type, String name, Object[] args) {

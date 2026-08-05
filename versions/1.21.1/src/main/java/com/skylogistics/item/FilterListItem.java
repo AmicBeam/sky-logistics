@@ -432,7 +432,9 @@ public class FilterListItem extends Item {
     }
 
     public static final class CompiledFilter {
-        private static final int HASH_LOOKUP_THRESHOLD = 5;
+        // Small filters are faster as allocation-free linear scans. Hash probes allocate stack keys,
+        // and component/NBT-aware probes may also copy their data.
+        private static final int HASH_LOOKUP_THRESHOLD = 16;
         private static final Entry[] NO_ENTRIES = new Entry[0];
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
         private static final List<TagKey<Item>> NO_TAG_ENTRIES = List.of();
