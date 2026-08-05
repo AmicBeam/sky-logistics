@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.Function;
 import java.nio.charset.StandardCharsets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -88,6 +89,13 @@ public final class SkyNetworkRegistry {
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ENERGY_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_MANA_OUTPUTS = new HashMap<>();
     private static final Map<UUID, List<CachedEndpoint>> GLOBAL_SOURCE_OUTPUTS = new HashMap<>();
+    // Keep a resource index warm once requested; upgrade/config churn must not recreate it.
+    private static final Set<UUID> GLOBAL_ITEM_OUTPUT_LINES = new HashSet<>();
+    private static final Set<UUID> GLOBAL_FLUID_OUTPUT_LINES = new HashSet<>();
+    private static final Set<UUID> GLOBAL_CHEMICAL_OUTPUT_LINES = new HashSet<>();
+    private static final Set<UUID> GLOBAL_ENERGY_OUTPUT_LINES = new HashSet<>();
+    private static final Set<UUID> GLOBAL_MANA_OUTPUT_LINES = new HashSet<>();
+    private static final Set<UUID> GLOBAL_SOURCE_OUTPUT_LINES = new HashSet<>();
     private static boolean runtimeCachesDirty = true;
     private static boolean globalOutputsDirty = true;
     private static boolean activeLineSnapshotDirty = true;
@@ -190,7 +198,7 @@ public final class SkyNetworkRegistry {
             globalOutputsDirty = true;
         }
         if (globalOutputsDirty) {
-            rebuildGlobalOutputs(server);
+            rebuildGlobalOutputs();
             globalOutputsDirty = false;
         }
         promoteDueWakes(gameTime);
@@ -198,33 +206,33 @@ public final class SkyNetworkRegistry {
     }
 
     public static synchronized List<CachedEndpoint> globalItemOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_ITEM_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, lineId,
+                LineIndex::priorityItemOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalFluidOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_FLUID_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
+                LineIndex::priorityFluidOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalChemicalOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_CHEMICAL_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS, lineId,
+                LineIndex::priorityChemicalOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalEnergyOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_ENERGY_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, lineId,
+                LineIndex::priorityEnergyOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalManaOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_MANA_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, lineId,
+                LineIndex::priorityManaOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalSourceOutputs(UUID lineId) {
-        List<CachedEndpoint> outputs = GLOBAL_SOURCE_OUTPUTS.get(lineId);
-        return outputs == null ? List.of() : outputs;
+        return activateGlobalOutputs(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, lineId,
+                LineIndex::prioritySourceOutputs);
     }
 
     public static synchronized LineStats lineStats(MinecraftServer server, UUID lineId) {
@@ -433,6 +441,12 @@ public final class SkyNetworkRegistry {
         GLOBAL_ENERGY_OUTPUTS.clear();
         GLOBAL_MANA_OUTPUTS.clear();
         GLOBAL_SOURCE_OUTPUTS.clear();
+        GLOBAL_ITEM_OUTPUT_LINES.clear();
+        GLOBAL_FLUID_OUTPUT_LINES.clear();
+        GLOBAL_CHEMICAL_OUTPUT_LINES.clear();
+        GLOBAL_ENERGY_OUTPUT_LINES.clear();
+        GLOBAL_MANA_OUTPUT_LINES.clear();
+        GLOBAL_SOURCE_OUTPUT_LINES.clear();
         runtimeCachesDirty = true;
         globalOutputsDirty = true;
         activeLineSnapshotDirty = true;
@@ -781,34 +795,19 @@ public final class SkyNetworkRegistry {
 
     private static void refreshGlobalLineIds(Set<UUID> lineIds) {
         for (UUID lineId : lineIds) {
-            GLOBAL_ITEM_OUTPUTS.remove(lineId);
-            GLOBAL_FLUID_OUTPUTS.remove(lineId);
-            GLOBAL_CHEMICAL_OUTPUTS.remove(lineId);
-            GLOBAL_ENERGY_OUTPUTS.remove(lineId);
-            GLOBAL_MANA_OUTPUTS.remove(lineId);
-            GLOBAL_SOURCE_OUTPUTS.remove(lineId);
-            for (DimensionIndex dimension : DIMENSIONS.values()) {
-                LineIndex line = dimension.lines.get(lineId);
-                if (line == null) continue;
-                addGlobalOutputs(GLOBAL_ITEM_OUTPUTS, lineId, line.priorityItemOutputs());
-                addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, lineId, line.priorityFluidOutputs());
-                addGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS, lineId, line.priorityChemicalOutputs());
-                addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, lineId, line.priorityEnergyOutputs());
-                addGlobalOutputs(GLOBAL_MANA_OUTPUTS, lineId, line.priorityManaOutputs());
-                addGlobalOutputs(GLOBAL_SOURCE_OUTPUTS, lineId, line.prioritySourceOutputs());
-            }
-            sortGlobalOutput(GLOBAL_ITEM_OUTPUTS, lineId);
-            sortGlobalOutput(GLOBAL_FLUID_OUTPUTS, lineId);
-            sortGlobalOutput(GLOBAL_CHEMICAL_OUTPUTS, lineId);
-            sortGlobalOutput(GLOBAL_ENERGY_OUTPUTS, lineId);
-            sortGlobalOutput(GLOBAL_MANA_OUTPUTS, lineId);
-            sortGlobalOutput(GLOBAL_SOURCE_OUTPUTS, lineId);
+            refreshGlobalOutputIfActive(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, lineId,
+                    LineIndex::priorityItemOutputs);
+            refreshGlobalOutputIfActive(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
+                    LineIndex::priorityFluidOutputs);
+            refreshGlobalOutputIfActive(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS, lineId,
+                    LineIndex::priorityChemicalOutputs);
+            refreshGlobalOutputIfActive(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, lineId,
+                    LineIndex::priorityEnergyOutputs);
+            refreshGlobalOutputIfActive(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, lineId,
+                    LineIndex::priorityManaOutputs);
+            refreshGlobalOutputIfActive(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, lineId,
+                    LineIndex::prioritySourceOutputs);
         }
-    }
-
-    private static void sortGlobalOutput(Map<UUID, List<CachedEndpoint>> outputs, UUID lineId) {
-        List<CachedEndpoint> endpoints = outputs.get(lineId);
-        if (endpoints != null) sortByPriority(endpoints);
     }
 
     private static void assignSimplePipeLineIds(ServerLevel level, DimensionIndex index,
@@ -980,46 +979,52 @@ public final class SkyNetworkRegistry {
         }
     }
 
-    private static void rebuildGlobalOutputs(MinecraftServer server) {
-        GLOBAL_ITEM_OUTPUTS.clear();
-        GLOBAL_FLUID_OUTPUTS.clear();
-        GLOBAL_CHEMICAL_OUTPUTS.clear();
-        GLOBAL_ENERGY_OUTPUTS.clear();
-        GLOBAL_MANA_OUTPUTS.clear();
-        GLOBAL_SOURCE_OUTPUTS.clear();
-        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
-            if (server.getLevel(entry.getKey()) == null) {
-                continue;
-            }
-            DimensionIndex index = entry.getValue();
-            for (LineIndex line : index.lines.values()) {
-                addGlobalOutputs(GLOBAL_ITEM_OUTPUTS, line.lineId(), line.priorityItemOutputs());
-                addGlobalOutputs(GLOBAL_FLUID_OUTPUTS, line.lineId(), line.priorityFluidOutputs());
-                addGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS, line.lineId(), line.priorityChemicalOutputs());
-                addGlobalOutputs(GLOBAL_ENERGY_OUTPUTS, line.lineId(), line.priorityEnergyOutputs());
-                addGlobalOutputs(GLOBAL_MANA_OUTPUTS, line.lineId(), line.priorityManaOutputs());
-                addGlobalOutputs(GLOBAL_SOURCE_OUTPUTS, line.lineId(), line.prioritySourceOutputs());
-            }
-        }
-        sortGlobalOutputs(GLOBAL_ITEM_OUTPUTS);
-        sortGlobalOutputs(GLOBAL_FLUID_OUTPUTS);
-        sortGlobalOutputs(GLOBAL_CHEMICAL_OUTPUTS);
-        sortGlobalOutputs(GLOBAL_ENERGY_OUTPUTS);
-        sortGlobalOutputs(GLOBAL_MANA_OUTPUTS);
-        sortGlobalOutputs(GLOBAL_SOURCE_OUTPUTS);
+    private static void rebuildGlobalOutputs() {
+        refreshGlobalOutputs(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, LineIndex::priorityItemOutputs);
+        refreshGlobalOutputs(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, LineIndex::priorityFluidOutputs);
+        refreshGlobalOutputs(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS,
+                LineIndex::priorityChemicalOutputs);
+        refreshGlobalOutputs(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, LineIndex::priorityEnergyOutputs);
+        refreshGlobalOutputs(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, LineIndex::priorityManaOutputs);
+        refreshGlobalOutputs(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, LineIndex::prioritySourceOutputs);
     }
 
-    private static void addGlobalOutputs(Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
-            List<CachedEndpoint> outputs) {
-        if (!outputs.isEmpty()) {
-            globalOutputs.computeIfAbsent(lineId, ignored -> new ArrayList<>()).addAll(outputs);
+    private static List<CachedEndpoint> activateGlobalOutputs(Set<UUID> activeLines,
+            Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
+            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
+        if (activeLines.add(lineId)) {
+            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
+        }
+        return globalOutputs.get(lineId);
+    }
+
+    private static void refreshGlobalOutputs(Set<UUID> activeLines,
+            Map<UUID, List<CachedEndpoint>> globalOutputs,
+            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
+        for (UUID lineId : activeLines) {
+            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
         }
     }
 
-    private static void sortGlobalOutputs(Map<UUID, List<CachedEndpoint>> globalOutputs) {
-        for (List<CachedEndpoint> endpoints : globalOutputs.values()) {
-            sortByPriority(endpoints);
+    private static void refreshGlobalOutputIfActive(Set<UUID> activeLines,
+            Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
+            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
+        if (activeLines.contains(lineId)) {
+            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
         }
+    }
+
+    private static void refreshGlobalOutput(Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
+            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
+        List<CachedEndpoint> outputs = globalOutputs.computeIfAbsent(lineId, ignored -> new ArrayList<>());
+        outputs.clear();
+        for (DimensionIndex dimension : DIMENSIONS.values()) {
+            LineIndex line = dimension.lines.get(lineId);
+            if (line != null) {
+                outputs.addAll(outputSelector.apply(line));
+            }
+        }
+        sortByPriority(outputs);
     }
 
     private static void sortByPriority(List<CachedEndpoint> endpoints) {
