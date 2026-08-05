@@ -179,7 +179,7 @@ public final class SkyNetworkRegistry {
         LineIndex line = findLine(level, pos);
         if (line != null) {
             line.refreshPriorityOutputs(pos);
-            globalOutputsDirty = true;
+            refreshGlobalLineIds(Set.of(line.lineId()));
             wakeLine(line);
         }
     }
@@ -1915,6 +1915,9 @@ public final class SkyNetworkRegistry {
                 recordCapabilityPresent(CAPABILITY_CHEMICALS);
                 return direct;
             }
+            if (chemicalHandler != null && gameTime < chemicalHandlerValidateAt) {
+                return chemicalHandler;
+            }
             Level level = node.getLevel();
             if (level == null || !level.isLoaded(targetPos)) {
                 clearChemicalCache();
@@ -1926,9 +1929,6 @@ public final class SkyNetworkRegistry {
                 clearChemicalCache();
                 recordChemicalFailure(gameTime);
                 return null;
-            }
-            if (chemicalHandler != null && chemicalTarget == target && gameTime < chemicalHandlerValidateAt) {
-                return chemicalHandler;
             }
             boolean preserveTankKnowledge = chemicalHandler != null && chemicalTarget == target;
             chemicalHandler = null;
@@ -1997,6 +1997,9 @@ public final class SkyNetworkRegistry {
                 recordCapabilityPresent(CAPABILITY_MANA);
                 return direct;
             }
+            if (manaHandler != null && gameTime < manaHandlerValidateAt) {
+                return manaHandler;
+            }
             Level level = node.getLevel();
             if (level == null || !level.isLoaded(targetPos)) {
                 recordManaFailure(gameTime);
@@ -2006,9 +2009,6 @@ public final class SkyNetworkRegistry {
             if (target == null) {
                 recordManaFailure(gameTime);
                 return null;
-            }
-            if (manaHandler != null && manaTarget == target && gameTime < manaHandlerValidateAt) {
-                return manaHandler;
             }
             clearManaCache();
             manaTarget = target;
@@ -2034,6 +2034,9 @@ public final class SkyNetworkRegistry {
                 recordCapabilityPresent(CAPABILITY_SOURCE);
                 return direct;
             }
+            if (sourceHandler != null && gameTime < sourceHandlerValidateAt) {
+                return sourceHandler;
+            }
             Level level = node.getLevel();
             if (level == null || !level.isLoaded(targetPos)) {
                 recordSourceFailure(gameTime);
@@ -2043,9 +2046,6 @@ public final class SkyNetworkRegistry {
             if (target == null) {
                 recordSourceFailure(gameTime);
                 return null;
-            }
-            if (sourceHandler != null && sourceTarget == target && gameTime < sourceHandlerValidateAt) {
-                return sourceHandler;
             }
             clearSourceCache();
             sourceTarget = target;

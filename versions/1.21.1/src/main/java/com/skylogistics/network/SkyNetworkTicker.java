@@ -6,6 +6,7 @@ import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
+import com.skylogistics.block.entity.NetworkEndpointBlockEntity.TargetResource;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
@@ -27,7 +28,6 @@ import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -322,11 +322,12 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
-        if (isExtractionBlockedBySlotLimit(sourceNode, sourceEndpoint.direction(), source)) {
+        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceNode, sourceEndpoint.direction(), source);
+        int operations = extractionSlotLimit.checks();
+        if (extractionSlotLimit.blocked()) {
             sourceEndpoint.recordItemFailure(gameTime);
-            return 0;
+            return operations;
         }
-        int operations = 0;
         boolean foundCandidate = false;
         boolean movedFromHotPath = false;
         int successfulSlot = -1;
@@ -336,9 +337,9 @@ public final class SkyNetworkTicker {
         boolean sourceSlotsExhausted = false;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
-        for (int i = 0; i < slotChecks && operations < budget; i++) {
+        for (int i = 0; i < slotChecks && (operations < budget || i == 0); i++) {
             SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, budget - operations);
+                    firstTriedSlot, secondTriedSlot, Math.max(1, budget - operations));
             operations += search.skippedChecks();
             int slot = search.index();
             if (slot < 0) {
@@ -363,7 +364,7 @@ public final class SkyNetworkTicker {
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
             MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, targets,
-                    budget - operations, gameTime);
+                    Math.max(1, budget - operations), gameTime);
             operations += result.operations();
             if (result.moved()) {
                 sourceEndpoint.recordItemSlotSuccess(slot, slots);
@@ -630,7 +631,7 @@ public final class SkyNetworkTicker {
         }
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ITEM);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -647,6 +648,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.ITEM);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -704,26 +706,29 @@ public final class SkyNetworkTicker {
             LongItemEndpoint sourceLongEndpoint,
             ItemStack simulated, long available, CachedEndpoint targetEndpoint, IItemHandler target,
             ItemStackKey simulatedKey, long gameTime, int slotCheckBudget) {
-        if (target == null || isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
+        if (target == null) {
             return HandlerMoveResult.NONE;
         }
+        SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated);
+        if (slotLimitCheck.blocked()) return new HandlerMoveResult(false, slotLimitCheck.checks());
         int requested = (int) Math.min(Math.min(available, sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit())), Integer.MAX_VALUE);
         if (requested <= 0) {
             return HandlerMoveResult.NONE;
         }
         ItemStack offer = simulated.copyWithCount(requested);
-        TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer, slotCheckBudget);
+        TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer,
+                Math.max(1, slotCheckBudget - slotLimitCheck.checks()));
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
         if (movable <= 0) {
             if (selection.exhaustive()) targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-            return new HandlerMoveResult(false, selection.checks());
+            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks());
         }
         long extractedAmount = sourceLongEndpoint.extract(-1, offer, movable, false);
         if (extractedAmount <= 0L) {
             sourceEndpoint.recordItemFailure(gameTime);
-            return new HandlerMoveResult(false, selection.checks());
+            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks());
         }
         ItemStack extracted = offer.copyWithCount((int) extractedAmount);
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
@@ -744,7 +749,7 @@ public final class SkyNetworkTicker {
                         leftover.getCount() - rolledBack);
             }
         }
-        return new HandlerMoveResult(true, selection.checks());
+        return new HandlerMoveResult(true, slotLimitCheck.checks() + selection.checks());
     }
 
     private static SourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
@@ -814,58 +819,48 @@ public final class SkyNetworkTicker {
         return firstTriedSlot == slot || secondTriedSlot == slot;
     }
 
-    private static boolean isExtractionBlockedBySlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
+    private static SlotLimitCheck checkExtractionSlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
             IItemHandler source) {
         int limit = node.getItemSlotLimit(direction);
-        return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                && countMatchingItemSlots(source, stack -> node.allowsItem(direction, stack), limit + 1) <= limit;
+        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
+        int matchingSlots = 0;
+        int checks = 0;
+        for (int slot = 0; slot < source.getSlots(); slot++) {
+            checks++;
+            ItemStack stack = source.getStackInSlot(slot);
+            if (!stack.isEmpty() && node.allowsItem(direction, stack) && ++matchingSlots > limit) {
+                return new SlotLimitCheck(false, checks);
+            }
+        }
+        return new SlotLimitCheck(true, checks);
     }
 
-    private static boolean isInsertionBlockedBySlotLimit(CachedEndpoint endpoint, IItemHandler target,
+    private static SlotLimitCheck checkInsertionSlotLimit(CachedEndpoint endpoint, IItemHandler target,
             ItemStack candidate) {
         if (target == null) {
-            return false;
+            return SlotLimitCheck.ALLOWED;
         }
         NetworkEndpointBlockEntity node = endpoint.node();
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
-        return limit > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                && countMatchingItemSlots(target, stack -> node.allowsItem(direction, stack), limit) >= limit
-                && !canRefillMatchingItemSlot(target, node, direction, candidate);
-    }
-
-    private static int countMatchingItemSlots(IItemHandler handler, Predicate<ItemStack> predicate, int stopAt) {
-        int count = 0;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack stack = handler.getStackInSlot(slot);
-            if (!stack.isEmpty() && predicate.test(stack)) {
-                count++;
-                if (count >= stopAt) {
-                    return count;
-                }
-            }
-        }
-        return count;
-    }
-
-    private static boolean canRefillMatchingItemSlot(IItemHandler handler, NetworkEndpointBlockEntity node,
-            net.minecraft.core.Direction direction, ItemStack candidate) {
-        if (candidate.isEmpty()) {
-            return false;
-        }
+        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
+        int matchingSlots = 0;
+        int checks = 0;
+        boolean canRefill = false;
         ItemStack probe = candidate.copy();
-        probe.setCount(1);
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack existing = handler.getStackInSlot(slot);
-            if (existing.isEmpty() || !node.allowsItem(direction, existing)
-                    || !StackData.sameItemAndComponents(existing, candidate)) {
-                continue;
+        probe.setCount(candidate.isEmpty() ? 0 : 1);
+        for (int slot = 0; slot < target.getSlots(); slot++) {
+            checks++;
+            ItemStack existing = target.getStackInSlot(slot);
+            if (existing.isEmpty() || !node.allowsItem(direction, existing)) continue;
+            matchingSlots++;
+            if (!canRefill && !probe.isEmpty() && StackData.sameItemAndComponents(existing, candidate)
+                    && target.insertItem(slot, probe, true).getCount() < probe.getCount()) {
+                canRefill = true;
             }
-            if (handler.insertItem(slot, probe, true).getCount() < probe.getCount()) {
-                return true;
-            }
+            if (matchingSlots >= limit && canRefill) return new SlotLimitCheck(false, checks);
         }
-        return false;
+        return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks);
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
@@ -876,7 +871,7 @@ public final class SkyNetworkTicker {
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ITEM);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -893,6 +888,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.ITEM);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -949,12 +945,12 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 IItemHandler target = targetEndpoint.itemHandler(gameTime);
-                if (isInsertionBlockedBySlotLimit(targetEndpoint, target, simulated)) {
-                    continue;
-                }
                 if (target == null) {
                     continue;
                 }
+                SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated);
+                operations += slotLimitCheck.checks();
+                if (slotLimitCheck.blocked()) continue;
                 TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, simulated,
                         Math.max(1, budget - operations + 1));
                 operations += Math.max(0, selection.checks() - 1);
@@ -1505,7 +1501,7 @@ public final class SkyNetworkTicker {
         LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.FLUID);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -1522,6 +1518,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.FLUID);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -1604,7 +1601,7 @@ public final class SkyNetworkTicker {
         }
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.FLUID);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -1621,6 +1618,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.FLUID);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -2039,7 +2037,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.CHEMICAL);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -2055,6 +2053,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.CHEMICAL);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -2139,7 +2138,7 @@ public final class SkyNetworkTicker {
         LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitEnergyTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ENERGY);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -2155,6 +2154,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.ENERGY);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -2325,7 +2325,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.MANA);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -2341,6 +2341,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.MANA);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -2423,7 +2424,7 @@ public final class SkyNetworkTicker {
         }
         LongSourceEndpoint sourceLongEndpoint = longSourceEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
-        int targetCursor = sourceEndpoint.node().nextTargetCursor();
+        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.SOURCE);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;
@@ -2439,6 +2440,7 @@ public final class SkyNetworkTicker {
                         groupOffset);
                 if (operations >= budget) { budgetExhausted = true; break targetLoop; }
                 operations++;
+                sourceEndpoint.node().advanceTargetCursor(TargetResource.SOURCE);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
                     redstoneBlocked = true;
                     continue;
@@ -2629,6 +2631,10 @@ public final class SkyNetworkTicker {
 
     private record HandlerMoveResult(boolean moved, int slotChecks) {
         private static final HandlerMoveResult NONE = new HandlerMoveResult(false, 0);
+    }
+
+    private record SlotLimitCheck(boolean blocked, int checks) {
+        private static final SlotLimitCheck ALLOWED = new SlotLimitCheck(false, 0);
     }
 
     private record MoveResult(boolean moved, int operations) {
