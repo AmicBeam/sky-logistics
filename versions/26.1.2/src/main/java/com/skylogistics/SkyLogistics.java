@@ -180,16 +180,6 @@ public class SkyLogistics {
                 (altar, side) -> TransferCompat.itemResourceHandler(altar.itemHandler()));
         event.registerBlockEntity(Capabilities.Item.BLOCK, ModBlockEntities.OFFERING_TABLE.get(),
                 (table, side) -> TransferCompat.itemResourceHandler(table.itemHandler()));
-        event.registerBlockEntity(Capabilities.Item.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> TransferCompat.itemResourceHandler(blockEntity.exposedItemHandler()));
-        event.registerBlockEntity(Capabilities.Fluid.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> TransferCompat.fluidResourceHandler(blockEntity.exposedFluidHandler()));
-        event.registerBlockEntity(Capabilities.Energy.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> TransferCompat.energyHandler(blockEntity.exposedEnergyHandler()));
-        event.registerBlockEntity(Capabilities.Item.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> TransferCompat.itemResourceHandler(blockEntity.exposedItemHandler()));
-        event.registerBlockEntity(Capabilities.Fluid.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> TransferCompat.fluidResourceHandler(blockEntity.exposedFluidHandler()));
         event.registerBlockEntity(Capabilities.Item.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
                 (blockEntity, side) -> TransferCompat.itemResourceHandler(blockEntity.exposedItemHandler()));
         event.registerBlockEntity(Capabilities.Fluid.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),

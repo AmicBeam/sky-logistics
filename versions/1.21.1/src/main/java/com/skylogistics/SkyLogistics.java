@@ -171,16 +171,6 @@ public class SkyLogistics {
                 (altar, side) -> altar.itemHandler());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.OFFERING_TABLE.get(),
                 (table, side) -> table.itemHandler());
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedItemHandler());
-        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedFluidHandler());
-        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedEnergyHandler());
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedItemHandler());
-        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedFluidHandler());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
                 (blockEntity, side) -> blockEntity.exposedItemHandler());
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),

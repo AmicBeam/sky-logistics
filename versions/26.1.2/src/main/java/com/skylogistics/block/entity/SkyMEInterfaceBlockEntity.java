@@ -5,9 +5,6 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
-import com.skylogistics.util.EnergyStorage;
-import com.skylogistics.util.FluidHandler;
-import com.skylogistics.util.ItemHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -22,35 +19,12 @@ public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEnti
     private static final String DATA_TAG = "SkyLogisticsSkyMEInterface";
     private final AppliedEnergisticsCompat.GridNodeHandle ae2GridNode =
             AppliedEnergisticsCompat.createGridNodeHandle(this);
-    private final ItemHandler itemHandler = AppliedEnergisticsCompat.createItemHandler(this);
-    private final FluidHandler fluidHandler = AppliedEnergisticsCompat.createFluidHandler(this);
-    private final EnergyStorage energyHandler = AppliedEnergisticsCompat.createEnergyHandler(this);
     private final ChemicalHandlerBridge chemicalHandler = AppliedEnergisticsCompat.createChemicalHandler(this);
     private final ManaHandlerBridge manaHandler = AppliedEnergisticsCompat.createManaHandler(this);
     private final SourceHandlerBridge sourceHandler = AppliedEnergisticsCompat.createSourceHandler(this);
 
     public SkyMEInterfaceBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SKY_ME_INTERFACE.get(), pos, state);
-    }
-
-    @Override
-    protected ItemHandler getItemHandler() {
-        return itemHandler;
-    }
-
-    @Override
-    protected FluidHandler getFluidHandler() {
-        return fluidHandler;
-    }
-
-    @Override
-    protected EnergyStorage getEnergyHandler() {
-        return energyHandler;
-    }
-
-    @Override
-    protected boolean supportsEnergyEndpoint() {
-        return AppliedEnergisticsCompat.supportsEnergyEndpoint();
     }
 
     @Override

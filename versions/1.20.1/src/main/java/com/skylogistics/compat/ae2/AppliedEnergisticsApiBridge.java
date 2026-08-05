@@ -79,14 +79,6 @@ final class AppliedEnergisticsApiBridge {
         return new ManagedGridNodeHandle(host);
     }
 
-    static IItemHandler createItemHandler(BlockEntity host) {
-        return new ItemHandler(host);
-    }
-
-    static IFluidHandler createFluidHandler(BlockEntity host) {
-        return new FluidHandler(host);
-    }
-
     static AppliedEnergisticsCompat.ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
         if (stack.isEmpty()) {
             return AppliedEnergisticsCompat.ItemResource.EMPTY;
@@ -158,10 +150,6 @@ final class AppliedEnergisticsApiBridge {
         IGrid firstGrid = grid(first);
         IGrid secondGrid = grid(second);
         return firstGrid != null && firstGrid == secondGrid;
-    }
-
-    static IEnergyStorage createEnergyHandler(BlockEntity host) {
-        return new EnergyHandler(host, appFluxEnergyKey());
     }
 
     static ChemicalHandlerBridge createChemicalHandler(BlockEntity host) {
@@ -315,10 +303,16 @@ final class AppliedEnergisticsApiBridge {
         return action.simulate() ? Actionable.SIMULATE : Actionable.MODULATE;
     }
 
+    private static AEKey cachedAppFluxEnergyKey;
+
     private static AEKey appFluxEnergyKey() {
+        if (cachedAppFluxEnergyKey != null) {
+            return cachedAppFluxEnergyKey;
+        }
         try {
             Object energyType = Reflect.staticField(FLUX_ENERGY_TYPE_CLASS, "FE");
-            return aeKey(Reflect.invokeStatic(Class.forName(FLUX_KEY_CLASS), "of", energyType));
+            cachedAppFluxEnergyKey = aeKey(Reflect.invokeStatic(Class.forName(FLUX_KEY_CLASS), "of", energyType));
+            return cachedAppFluxEnergyKey;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             throw new IllegalStateException("Unable to resolve AppFlux FE key", error);
         }
@@ -371,6 +365,18 @@ final class AppliedEnergisticsApiBridge {
             return 0L;
         }
         return storage.extract(key, amount, action(simulate), actionSource(host));
+    }
+
+    static long energyStored(BlockEntity host) {
+        return extractKey(host, storage(host), appFluxEnergyKey(), Long.MAX_VALUE, true);
+    }
+
+    static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        return insertKey(host, storage(host), appFluxEnergyKey(), amount, simulate);
+    }
+
+    static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        return extractKey(host, storage(host), appFluxEnergyKey(), amount, simulate);
     }
 
     private static int clampInt(long amount) {

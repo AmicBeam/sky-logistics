@@ -22,15 +22,23 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
-    protected abstract ItemHandler getItemHandler();
+    protected ItemHandler getItemHandler() {
+        return EmptyExternalHandlers.Items.INSTANCE;
+    }
 
-    protected abstract FluidHandler getFluidHandler();
+    protected FluidHandler getFluidHandler() {
+        return EmptyExternalHandlers.Fluids.INSTANCE;
+    }
 
     protected EnergyStorage getEnergyHandler() {
         return EmptyExternalHandlers.Energy.INSTANCE;
     }
 
     protected boolean supportsEnergyEndpoint() {
+        return false;
+    }
+
+    protected boolean exposesGenericResourceHandlers() {
         return false;
     }
 
@@ -85,17 +93,19 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getItemHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getItemHandler() : null;
     }
 
     @Override
     public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getFluidHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getFluidHandler() : null;
     }
 
     @Override
     public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() ? getEnergyHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() && supportsEnergyEndpoint()
+                ? getEnergyHandler()
+                : null;
     }
 
     @Override

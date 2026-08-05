@@ -24,14 +24,6 @@ final class RefinedStorageApiBridge {
     private RefinedStorageApiBridge() {
     }
 
-    static IItemHandler createItemHandler(BlockEntity host) {
-        return new ItemHandler(host);
-    }
-
-    static IFluidHandler createFluidHandler(BlockEntity host) {
-        return new FluidHandler(host);
-    }
-
     static RefinedStorageCompat.ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
         if (stack.isEmpty()) {
             return RefinedStorageCompat.ItemResource.EMPTY;

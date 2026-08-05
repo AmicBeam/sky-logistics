@@ -37,16 +37,6 @@ public final class RefinedStorageCompat {
         return ModList.get().isLoaded(REFINED_STORAGE);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
-        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageItemTransfer()
-                ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
-    }
-
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() && SkyLogisticsConfig.allowRefinedStorageFluidTransfer()
-                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
-    }
-
     public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
         if (!isLoaded() || !SkyLogisticsConfig.allowRefinedStorageItemTransfer() || stack.isEmpty()) {
             return ItemResource.EMPTY;

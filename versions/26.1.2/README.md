@@ -95,6 +95,7 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
   - Supports 18 ghost filter entries, whitelist/blacklist mode and optional NBT/durability matching.
   - Node face filter slots copy the filter list state as a ghost reference; inserting or pasting one does not consume the item.
   - Insert a configured filter list into a node's filter slot to filter both extraction and insertion item transfers.
+  - AE2 and Refined Storage extraction queries only exact item/fluid whitelist entries; tag-only whitelist entries do not enumerate either external network.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.
 

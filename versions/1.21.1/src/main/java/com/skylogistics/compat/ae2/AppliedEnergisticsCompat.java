@@ -56,16 +56,6 @@ public final class AppliedEnergisticsCompat {
         return ModList.get().isLoaded(AE2);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
-        return isLoaded() && SkyLogisticsConfig.allowAe2ItemTransfer()
-                ? new ItemHandler(host) : EmptyExternalHandlers.Items.INSTANCE;
-    }
-
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
-        return isLoaded() && SkyLogisticsConfig.allowAe2FluidTransfer()
-                ? new FluidHandler(host) : EmptyExternalHandlers.Fluids.INSTANCE;
-    }
-
     public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
         if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty()) {
             return ItemResource.EMPTY;
@@ -142,15 +132,33 @@ public final class AppliedEnergisticsCompat {
         return firstGrid != null && firstGrid == secondGrid;
     }
 
-    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
-        if (!canUseAppFlux()) {
-            return EmptyExternalHandlers.Energy.INSTANCE;
-        }
+    public static long energyStored(BlockEntity host) {
+        if (!canUseAppFlux()) return 0L;
         try {
-            return new EnergyHandler(host, appFluxEnergyKey());
+            return extractKey(host, storage(host), appFluxEnergyKey(), Long.MAX_VALUE, true);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             warn(error);
-            return EmptyExternalHandlers.Energy.INSTANCE;
+            return 0L;
+        }
+    }
+
+    public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!canUseAppFlux()) return 0L;
+        try {
+            return insertKey(host, storage(host), appFluxEnergyKey(), amount, simulate);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!canUseAppFlux()) return 0L;
+        try {
+            return extractKey(host, storage(host), appFluxEnergyKey(), amount, simulate);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
         }
     }
 
@@ -192,6 +200,10 @@ public final class AppliedEnergisticsCompat {
 
     public static boolean supportsEnergyEndpoint() {
         return canUseAppFlux() || canUseAppliedBotanics() || canUseArsEnergistique();
+    }
+
+    public static boolean supportsAppFluxEnergyEndpoint() {
+        return canUseAppFlux();
     }
 
     public static boolean supportsChemicalEndpoint() {
@@ -332,9 +344,13 @@ public final class AppliedEnergisticsCompat {
                 && ModList.get().isLoaded(ARSENG);
     }
 
+    private static Object cachedAppFluxEnergyKey;
+
     private static Object appFluxEnergyKey() throws ReflectiveOperationException {
+        if (cachedAppFluxEnergyKey != null) return cachedAppFluxEnergyKey;
         Object energyType = Reflect.staticField(FLUX_ENERGY_TYPE_CLASS, "FE");
-        return Reflect.invokeStatic(Class.forName(FLUX_KEY_CLASS), "of", energyType);
+        cachedAppFluxEnergyKey = Reflect.invokeStatic(Class.forName(FLUX_KEY_CLASS), "of", energyType);
+        return cachedAppFluxEnergyKey;
     }
 
     private static Object singletonKey(String className) throws ReflectiveOperationException {

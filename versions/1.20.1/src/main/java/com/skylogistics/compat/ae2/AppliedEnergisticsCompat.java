@@ -33,30 +33,6 @@ public final class AppliedEnergisticsCompat {
         return ModList.get().isLoaded(AE2);
     }
 
-    public static IItemHandler createItemHandler(BlockEntity host) {
-        if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer()) {
-            return EmptyExternalHandlers.Items.INSTANCE;
-        }
-        try {
-            return AppliedEnergisticsApiBridge.createItemHandler(host);
-        } catch (LinkageError error) {
-            warn(error);
-            return EmptyExternalHandlers.Items.INSTANCE;
-        }
-    }
-
-    public static IFluidHandler createFluidHandler(BlockEntity host) {
-        if (!isLoaded() || !SkyLogisticsConfig.allowAe2FluidTransfer()) {
-            return EmptyExternalHandlers.Fluids.INSTANCE;
-        }
-        try {
-            return AppliedEnergisticsApiBridge.createFluidHandler(host);
-        } catch (LinkageError error) {
-            warn(error);
-            return EmptyExternalHandlers.Fluids.INSTANCE;
-        }
-    }
-
     public static ItemResource itemResourceForStack(BlockEntity host, ItemStack stack) {
         if (!isLoaded() || !SkyLogisticsConfig.allowAe2ItemTransfer() || stack.isEmpty()) {
             return ItemResource.EMPTY;
@@ -144,15 +120,33 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
-    public static IEnergyStorage createEnergyHandler(BlockEntity host) {
-        if (!canUseAppFlux()) {
-            return EmptyExternalHandlers.Energy.INSTANCE;
-        }
+    public static long energyStored(BlockEntity host) {
+        if (!canUseAppFlux()) return 0L;
         try {
-            return AppliedEnergisticsApiBridge.createEnergyHandler(host);
+            return AppliedEnergisticsApiBridge.energyStored(host);
         } catch (RuntimeException | LinkageError error) {
             warn(error);
-            return EmptyExternalHandlers.Energy.INSTANCE;
+            return 0L;
+        }
+    }
+
+    public static long insertEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!canUseAppFlux()) return 0L;
+        try {
+            return AppliedEnergisticsApiBridge.insertEnergy(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractEnergy(BlockEntity host, long amount, boolean simulate) {
+        if (!canUseAppFlux()) return 0L;
+        try {
+            return AppliedEnergisticsApiBridge.extractEnergy(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
         }
     }
 
@@ -194,6 +188,10 @@ public final class AppliedEnergisticsCompat {
 
     public static boolean supportsEnergyEndpoint() {
         return canUseAppFlux() || canUseAppliedBotanics() || canUseArsEnergistique();
+    }
+
+    public static boolean supportsAppFluxEnergyEndpoint() {
+        return canUseAppFlux();
     }
 
     public static boolean supportsChemicalEndpoint() {
