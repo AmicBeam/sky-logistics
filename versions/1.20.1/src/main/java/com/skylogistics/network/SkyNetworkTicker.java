@@ -325,8 +325,12 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
-        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceNode, sourceEndpoint.direction(), source);
+        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceNode, sourceEndpoint.direction(), source,
+                budget);
         int operations = extractionSlotLimit.checks();
+        if (!extractionSlotLimit.complete()) {
+            return operations;
+        }
         if (extractionSlotLimit.blocked()) {
             sourceEndpoint.recordItemFailure(gameTime);
             return operations;
@@ -665,6 +669,10 @@ public final class SkyNetworkTicker {
                         simulated, available, targetEndpoint, targetEndpoint.itemHandler(gameTime), simulatedKey,
                         gameTime, Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += Math.max(0, handlerResult.slotChecks() - 1);
+                if (handlerResult.budgetExhausted()) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
                 if (handlerResult.moved()) {
                     targetEndpoint.recordItemSuccess();
                     return targetMoveResult(true, operations, targetVisits);
@@ -685,9 +693,12 @@ public final class SkyNetworkTicker {
         if (target == null) {
             return HandlerMoveResult.NONE;
         }
-        SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated);
+        SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated, slotCheckBudget);
+        if (!slotLimitCheck.complete()) {
+            return new HandlerMoveResult(false, slotLimitCheck.checks(), true);
+        }
         if (slotLimitCheck.blocked()) {
-            return new HandlerMoveResult(false, slotLimitCheck.checks());
+            return new HandlerMoveResult(false, slotLimitCheck.checks(), false);
         }
         int requested = (int) Math.min(Math.min(available, sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit())), Integer.MAX_VALUE);
@@ -701,12 +712,12 @@ public final class SkyNetworkTicker {
         int movable = targetSlot.movable();
         if (movable <= 0) {
             if (selection.exhaustive()) targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
-            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks());
+            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks(), false);
         }
         long extractedAmount = sourceLongEndpoint.extract(-1, offer, movable, false);
         if (extractedAmount <= 0L) {
             sourceEndpoint.recordItemFailure(gameTime);
-            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks());
+            return new HandlerMoveResult(false, slotLimitCheck.checks() + selection.checks(), false);
         }
         ItemStack extracted = offer.copyWithCount((int) extractedAmount);
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
@@ -727,7 +738,7 @@ public final class SkyNetworkTicker {
                         leftover.getCount() - rolledBack);
             }
         }
-        return new HandlerMoveResult(true, slotLimitCheck.checks() + selection.checks());
+        return new HandlerMoveResult(true, slotLimitCheck.checks() + selection.checks(), false);
     }
 
     private static SourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
@@ -801,23 +812,27 @@ public final class SkyNetworkTicker {
     }
 
     private static SlotLimitCheck checkExtractionSlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
-            IItemHandler source) {
+            IItemHandler source, int checkBudget) {
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
         int matchingSlots = 0;
         int checks = 0;
-        for (int slot = 0; slot < source.getSlots(); slot++) {
+        int slots = source.getSlots();
+        for (int slot = 0; slot < slots && checks < checkBudget; slot++) {
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
             if (!stack.isEmpty() && node.allowsItem(direction, stack) && ++matchingSlots > limit) {
-                return new SlotLimitCheck(false, checks);
+                return new SlotLimitCheck(false, checks, true);
             }
         }
-        return new SlotLimitCheck(true, checks);
+        if (checks < slots) {
+            return new SlotLimitCheck(false, checks, false);
+        }
+        return new SlotLimitCheck(true, checks, true);
     }
 
     private static SlotLimitCheck checkInsertionSlotLimit(CachedEndpoint endpoint, IItemHandler target,
-            ItemStack candidate) {
+            ItemStack candidate, int checkBudget) {
         if (target == null) {
             return SlotLimitCheck.ALLOWED;
         }
@@ -832,7 +847,8 @@ public final class SkyNetworkTicker {
         boolean canRefill = false;
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
-        for (int slot = 0; slot < target.getSlots(); slot++) {
+        int slots = target.getSlots();
+        for (int slot = 0; slot < slots && checks < checkBudget; slot++) {
             checks++;
             ItemStack existing = target.getStackInSlot(slot);
             if (existing.isEmpty() || !node.allowsItem(direction, existing)) {
@@ -844,10 +860,13 @@ public final class SkyNetworkTicker {
                 canRefill = true;
             }
             if (matchingSlots >= limit && canRefill) {
-                return new SlotLimitCheck(false, checks);
+                return new SlotLimitCheck(false, checks, true);
             }
         }
-        return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks);
+        if (checks < slots) {
+            return new SlotLimitCheck(false, checks, false);
+        }
+        return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks, true);
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
@@ -944,8 +963,13 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated);
+                SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated,
+                        Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += slotLimitCheck.checks();
+                if (!slotLimitCheck.complete()) {
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
                 if (slotLimitCheck.blocked()) continue;
                 TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, simulated,
                         Math.max(1, budget - Math.max(operations, targetVisits) + 1));
@@ -2276,7 +2300,7 @@ public final class SkyNetworkTicker {
     }
 
     private static LongEnergyEndpoint longEnergyEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.targetBlockEntity();
+        BlockEntity blockEntity = endpoint.node();
         if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
             return new DimensionEnergyLongEndpoint(blockEntity);
         }
@@ -2847,12 +2871,12 @@ public final class SkyNetworkTicker {
     private record TargetItemSelection(TargetItemSlot slot, int checks, boolean exhaustive) {
     }
 
-    private record HandlerMoveResult(boolean moved, int slotChecks) {
-        private static final HandlerMoveResult NONE = new HandlerMoveResult(false, 0);
+    private record HandlerMoveResult(boolean moved, int slotChecks, boolean budgetExhausted) {
+        private static final HandlerMoveResult NONE = new HandlerMoveResult(false, 0, false);
     }
 
-    private record SlotLimitCheck(boolean blocked, int checks) {
-        private static final SlotLimitCheck ALLOWED = new SlotLimitCheck(false, 0);
+    private record SlotLimitCheck(boolean blocked, int checks, boolean complete) {
+        private static final SlotLimitCheck ALLOWED = new SlotLimitCheck(false, 0, true);
     }
 
     private record MoveResult(boolean moved, int operations) {

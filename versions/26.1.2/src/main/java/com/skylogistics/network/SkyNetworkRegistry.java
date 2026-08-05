@@ -1498,9 +1498,7 @@ public final class SkyNetworkRegistry {
         private BlockEntity chemicalTarget;
         private EnergyStorage energyHandler;
         private ManaHandlerBridge manaHandler;
-        private BlockEntity manaTarget;
         private SourceHandlerBridge sourceHandler;
-        private BlockEntity sourceTarget;
         private long itemRetryAfter;
         private long fluidRetryAfter;
         private long chemicalRetryAfter;
@@ -1737,6 +1735,8 @@ public final class SkyNetworkRegistry {
         }
 
         private boolean capabilityMayExist(int capability, long gameTime) {
+            if (capability == CAPABILITY_ITEMS || capability == CAPABILITY_FLUIDS
+                    || capability == CAPABILITY_ENERGY) return true;
             if ((absentCapabilityMask & capability) == 0) return true;
             if (gameTime < capabilityLifecycleCheckAt) return false;
             Level level = node.getLevel();
@@ -1751,6 +1751,8 @@ public final class SkyNetworkRegistry {
 
         private long nextCapabilityWake(int capability, long retryAfter, long gameTime) {
             long wake = retryAfter > gameTime ? retryAfter : gameTime;
+            if (capability == CAPABILITY_ITEMS || capability == CAPABILITY_FLUIDS
+                    || capability == CAPABILITY_ENERGY) return wake;
             return (absentCapabilityMask & capability) != 0 && capabilityLifecycleCheckAt > wake
                     ? capabilityLifecycleCheckAt : wake;
         }
@@ -1758,6 +1760,8 @@ public final class SkyNetworkRegistry {
         private void recordCapabilityPresent(int capability) { absentCapabilityMask &= ~capability; }
 
         private void recordCapabilityAbsent(int capability, long gameTime) {
+            if (capability == CAPABILITY_ITEMS || capability == CAPABILITY_FLUIDS
+                    || capability == CAPABILITY_ENERGY) return;
             absentCapabilityMask |= capability;
             Level level = node.getLevel();
             if (level != null && level.isLoaded(targetPos)) {
@@ -1933,7 +1937,6 @@ public final class SkyNetworkRegistry {
                 return null;
             }
             clearManaCache();
-            manaTarget = target;
             manaHandler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
             manaHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (manaHandler == null) {
@@ -1970,7 +1973,6 @@ public final class SkyNetworkRegistry {
                 return null;
             }
             clearSourceCache();
-            sourceTarget = target;
             sourceHandler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
             sourceHandlerValidateAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (sourceHandler == null) {
@@ -2669,14 +2671,12 @@ public final class SkyNetworkRegistry {
         private void clearManaCache() {
             recordCapabilityPresent(CAPABILITY_MANA);
             manaHandler = null;
-            manaTarget = null;
             manaHandlerValidateAt = 0L;
         }
 
         private void clearSourceCache() {
             recordCapabilityPresent(CAPABILITY_SOURCE);
             sourceHandler = null;
-            sourceTarget = null;
             sourceHandlerValidateAt = 0L;
         }
 
