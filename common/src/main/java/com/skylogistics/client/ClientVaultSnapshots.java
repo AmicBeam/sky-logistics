@@ -17,7 +17,8 @@ public final class ClientVaultSnapshots {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(packet.pos());
         if (blockEntity instanceof ItemVaultBlockEntity vault) {
-            vault.applyClientSnapshot(packet.typeLimit(), packet.usedTypes(), packet.totalAmount(), packet.entries());
+            vault.applyClientSnapshot(packet.full(), packet.typeLimit(), packet.usedTypes(), packet.totalAmount(),
+                    packet.entries());
         }
     }
 
@@ -27,7 +28,8 @@ public final class ClientVaultSnapshots {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(packet.pos());
         if (blockEntity instanceof FluidVaultBlockEntity vault) {
-            vault.applyClientSnapshot(packet.typeLimit(), packet.usedTypes(), packet.totalAmount(), packet.entries());
+            vault.applyClientSnapshot(packet.full(), packet.typeLimit(), packet.usedTypes(), packet.totalAmount(),
+                    packet.entries());
         }
     }
 }

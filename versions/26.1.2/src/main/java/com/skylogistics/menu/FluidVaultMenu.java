@@ -80,8 +80,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
                 FluidResource.EMPTY)) {
             return ItemStack.EMPTY;
         }
-        vault.syncToPlayerIfPresent(player);
-        noteVaultSnapshotSynced(vault.getSyncVersion());
+        if (player instanceof ServerPlayer serverPlayer) syncVaultSnapshotNow(serverPlayer, vault);
         broadcastChanges();
         return copy;
     }
@@ -107,8 +106,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
         if (!transferContainerFluid(ItemAccess.forPlayerCursor(player, this), fluidHandler, viewedResource)) {
             return;
         }
-        vault.syncTo(player);
-        noteVaultSnapshotSynced(vault.getSyncVersion());
+        syncVaultSnapshotNow(player, vault);
         broadcastChanges();
     }
 
@@ -170,7 +168,11 @@ public class FluidVaultMenu extends AbstractContainerMenu {
                 && gameTime - lastSnapshotSyncTime < SNAPSHOT_SYNC_INTERVAL_TICKS) {
             return;
         }
-        vault.syncTo(serverPlayer);
+        syncVaultSnapshotNow(serverPlayer, vault);
+    }
+
+    private void syncVaultSnapshotNow(ServerPlayer player, FluidVaultBlockEntity vault) {
+        vault.syncTo(player, lastSyncedVaultVersion);
         noteVaultSnapshotSynced(vault.getSyncVersion());
     }
 

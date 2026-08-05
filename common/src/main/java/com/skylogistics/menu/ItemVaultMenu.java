@@ -74,8 +74,7 @@ public class ItemVaultMenu extends AbstractContainerMenu {
         } else {
             slot.setChanged();
         }
-        vault.syncToPlayerIfPresent(player);
-        noteVaultSnapshotSynced(vault.getSyncVersion());
+        if (player instanceof ServerPlayer serverPlayer) syncVaultSnapshotNow(serverPlayer, vault);
         broadcastChanges();
         return copy;
     }
@@ -102,8 +101,7 @@ public class ItemVaultMenu extends AbstractContainerMenu {
             changed = insertCarried(vault, carried, button);
         }
         if (changed) {
-            vault.syncTo(player);
-            noteVaultSnapshotSynced(vault.getSyncVersion());
+            syncVaultSnapshotNow(player, vault);
             broadcastChanges();
         }
     }
@@ -176,7 +174,11 @@ public class ItemVaultMenu extends AbstractContainerMenu {
                 && gameTime - lastSnapshotSyncTime < SNAPSHOT_SYNC_INTERVAL_TICKS) {
             return;
         }
-        vault.syncTo(serverPlayer);
+        syncVaultSnapshotNow(serverPlayer, vault);
+    }
+
+    private void syncVaultSnapshotNow(ServerPlayer player, ItemVaultBlockEntity vault) {
+        vault.syncTo(player, lastSyncedVaultVersion);
         noteVaultSnapshotSynced(vault.getSyncVersion());
     }
 
