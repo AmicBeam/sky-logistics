@@ -19,14 +19,18 @@ public final class ClientLineNames {
         NAMES.put(lineId, new Entry(assigned, display));
     }
 
+    public static void clear() {
+        NAMES.clear();
+    }
+
     public static String displayName(UUID lineId, String fallback) {
         Entry entry = NAMES.get(lineId);
-        return entry == null ? sanitize(fallback, "") : sanitize(entry.displayName(), fallback);
+        return entry == null ? sanitize(fallback, "") : entry.displayName();
     }
 
     public static String assignedName(UUID lineId, String fallback) {
         Entry entry = NAMES.get(lineId);
-        return entry == null ? sanitize(fallback, "") : sanitize(entry.assignedName(), fallback);
+        return entry == null ? sanitize(fallback, "") : entry.assignedName();
     }
 
     public static String editedName(UUID lineId, String requestedName, String fallback) {

@@ -24,6 +24,7 @@ import com.skylogistics.util.StackData;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -329,7 +330,7 @@ public final class SkyNetworkRegistry {
             return List.of();
         }
         LineIndex line = index.lines.get(lineId);
-        return line == null ? List.of() : List.copyOf(line.priorityItemOutputs());
+        return line == null ? List.of() : line.priorityItemOutputsView();
     }
 
     public static synchronized List<CachedEndpoint> lineItemInputs(MinecraftServer server,
@@ -343,7 +344,7 @@ public final class SkyNetworkRegistry {
             return List.of();
         }
         LineIndex line = index.lines.get(lineId);
-        return line == null ? List.of() : List.copyOf(line.itemInputs);
+        return line == null ? List.of() : line.itemInputsView();
     }
 
     public static synchronized List<LineFaceDetail> lineDetails(MinecraftServer server, UUID lineId, int limit) {
@@ -1184,12 +1185,14 @@ public final class SkyNetworkRegistry {
         private final List<CachedEndpoint> inputs = new ArrayList<>();
         private final List<CachedEndpoint> outputs = new ArrayList<>();
         private final List<CachedEndpoint> itemInputs = new ArrayList<>();
+        private final List<CachedEndpoint> itemInputsView = Collections.unmodifiableList(itemInputs);
         private final List<CachedEndpoint> fluidInputs = new ArrayList<>();
         private final List<CachedEndpoint> chemicalInputs = new ArrayList<>();
         private final List<CachedEndpoint> energyInputs = new ArrayList<>();
         private final List<CachedEndpoint> manaInputs = new ArrayList<>();
         private final List<CachedEndpoint> sourceInputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityItemOutputs = new ArrayList<>();
+        private final List<CachedEndpoint> priorityItemOutputsView = Collections.unmodifiableList(priorityItemOutputs);
         private final List<CachedEndpoint> priorityFluidOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityChemicalOutputs = new ArrayList<>();
         private final List<CachedEndpoint> priorityEnergyOutputs = new ArrayList<>();
@@ -1245,6 +1248,14 @@ public final class SkyNetworkRegistry {
 
         public List<CachedEndpoint> priorityItemOutputs() {
             return priorityItemOutputs;
+        }
+
+        private List<CachedEndpoint> itemInputsView() {
+            return itemInputsView;
+        }
+
+        private List<CachedEndpoint> priorityItemOutputsView() {
+            return priorityItemOutputsView;
         }
 
         public List<CachedEndpoint> priorityFluidOutputs() {

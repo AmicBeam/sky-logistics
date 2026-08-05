@@ -134,5 +134,6 @@ public final class ClientModEvents {
 
     private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientOfferingRecipes.clear();
+        ClientLineNames.clear();
     }
 }

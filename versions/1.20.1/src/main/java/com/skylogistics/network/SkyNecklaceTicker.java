@@ -39,6 +39,7 @@ public final class SkyNecklaceTicker {
     private static final Map<UUID, Integer> EXTRACT_SLOT_CURSORS = new HashMap<>();
     private static final Map<UUID, Integer> EXTRACT_TARGET_CURSORS = new HashMap<>();
     private static final Map<UUID, Integer> INSERT_ENDPOINT_CURSORS = new HashMap<>();
+    private static final Map<UUID, WhitelistCache> ITEM_WHITELISTS = new HashMap<>();
 
     private SkyNecklaceTicker() {
     }
@@ -77,7 +78,9 @@ public final class SkyNecklaceTicker {
         ACTIVE_ITEM_INSERTERS.clear();
         ACTIVE_DETAILS.clear();
         EXTRACT_SLOT_CURSORS.clear();
+        EXTRACT_TARGET_CURSORS.clear();
         INSERT_ENDPOINT_CURSORS.clear();
+        ITEM_WHITELISTS.clear();
     }
 
     private static void process(MinecraftServer server) {
@@ -106,10 +109,11 @@ public final class SkyNecklaceTicker {
             int priority = SkyNecklaceItem.priority(necklace);
             activeDetails.computeIfAbsent(lineId, ignored -> new ArrayList<>())
                     .add(activeDetail(player, mode, priority));
-            FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(necklace);
+            UUID playerId = player.getUUID();
+            FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(playerId, necklace);
             if (itemWhitelist != null) {
                 activeNecklaces.add(new ActiveNecklace(player, necklace, lineId, mode, priority, itemWhitelist));
-                activePlayers.add(player.getUUID());
+                activePlayers.add(playerId);
                 if (mode == SkyNecklaceItem.NecklaceMode.INSERT) {
                     activeItemInserters.merge(lineId, 1, Integer::sum);
                 }
@@ -127,7 +131,9 @@ public final class SkyNecklaceTicker {
             }
         }
         EXTRACT_SLOT_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
+        EXTRACT_TARGET_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
         INSERT_ENDPOINT_CURSORS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
+        ITEM_WHITELISTS.keySet().removeIf(playerId -> !activePlayers.contains(playerId));
         ACTIVE_EXTRACTORS.clear();
         ACTIVE_EXTRACTORS.putAll(activeExtractors);
         ACTIVE_INSERTERS.clear();
@@ -164,13 +170,23 @@ public final class SkyNecklaceTicker {
         return null;
     }
 
-    private static FilterListItem.CompiledFilter itemWhitelist(ItemStack necklace) {
+    private static FilterListItem.CompiledFilter itemWhitelist(UUID playerId, ItemStack necklace) {
         ItemStack filter = SkyNecklaceItem.filterList(necklace);
         if (filter.isEmpty() || !FilterListItem.isWhitelist(filter)) {
+            ITEM_WHITELISTS.remove(playerId);
             return null;
         }
+        WhitelistCache cached = ITEM_WHITELISTS.get(playerId);
+        if (cached != null && ItemStack.isSameItemSameTags(cached.filter(), filter)) {
+            return cached.compiled();
+        }
         FilterListItem.CompiledFilter compiled = FilterListItem.compile(filter);
-        return compiled.hasItemRules() ? compiled : null;
+        if (!compiled.hasItemRules()) {
+            ITEM_WHITELISTS.remove(playerId);
+            return null;
+        }
+        ITEM_WHITELISTS.put(playerId, new WhitelistCache(filter.copy(), compiled));
+        return compiled;
     }
 
     private static void tryExtract(ServerPlayer player, ItemStack necklace, UUID lineId,
@@ -496,6 +512,9 @@ public final class SkyNecklaceTicker {
     private record ActiveNecklace(ServerPlayer player, ItemStack necklace, UUID lineId,
                                   SkyNecklaceItem.NecklaceMode mode, int priority,
                                   FilterListItem.CompiledFilter itemWhitelist) {
+    }
+
+    private record WhitelistCache(ItemStack filter, FilterListItem.CompiledFilter compiled) {
     }
 
     private record HandlerSlot(IItemHandler handler, int slot) {
