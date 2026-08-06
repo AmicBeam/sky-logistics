@@ -11,6 +11,11 @@ if [[ ! -d "$wiki_dir" ]]; then
 fi
 
 missing=0
+if rg -n '^\|.*\[\[[^]]*\|[^]]*\]\]' "$wiki_dir" -g '*.md'; then
+    echo "GitHub Wiki links containing '|' cannot be used inside Markdown tables" >&2
+    missing=1
+fi
+
 while IFS= read -r resource_id; do
     if ! rg -q --fixed-strings "skylogistics:$resource_id" "$wiki_dir/方块图鉴.md" "$wiki_dir/物品图鉴.md"; then
         echo "missing Wiki entry for skylogistics:$resource_id" >&2
