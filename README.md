@@ -4,6 +4,11 @@
 
 Celestial logistics for Minecraft. Sky Logistics moves items, fluids, energy, and supported third-party resources through named wireless lines or lightweight local pipe runs, adds large aggregate vaults, and provides sky-themed tools for configuring networks, filters, portable transfer, and high-altitude offering recipes.
 
+## Documentation
+
+- **[Player Wiki](https://github.com/AmicBeam/sky-logistics/wiki)**: getting started, complete block/item reference, logistics, offerings, integrations, configuration, and troubleshooting.
+- The Git-tracked Wiki source is maintained in [`wiki/`](wiki/README.md).
+
 ## Features
 
 - **Wireless by design**: connect machines, vaults, and interfaces through named logistics lines instead of pipe runs. Items, fluids, and energy use the same line model, with optional cross-dimensional transfer.
