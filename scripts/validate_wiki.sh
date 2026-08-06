@@ -35,8 +35,15 @@ while IFS= read -r link; do
     fi
 done < <(rg -o '\[\[[^]]+\]\]' "$wiki_dir" -g '*.md' | sed -E 's/.*\[\[([^]]+)\]\].*/\1/' | sort -u)
 
+while IFS= read -r image_path; do
+    if [[ ! -f "$wiki_dir/$image_path" ]]; then
+        echo "broken Wiki image: $image_path" >&2
+        missing=1
+    fi
+done < <(rg -o '\]\(images/[^)]+\)' "$wiki_dir" -g '*.md' | sed -E 's/.*\]\((images\/[^)]+)\).*/\1/' | sort -u)
+
 if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi
 
-echo "Wiki validation passed: all translated items/blocks are documented and page links resolve."
+echo "Wiki validation passed: all translated items/blocks are documented; page and image links resolve."
