@@ -21,10 +21,10 @@
       "count": 4
     },
     {
-      "item": "minecraft:amethyst_shard"
+      "tag": "forge:gems/amethyst"
     },
     {
-      "item": "minecraft:glass"
+      "tag": "forge:glass/colorless"
     }
   ],
   "result": {

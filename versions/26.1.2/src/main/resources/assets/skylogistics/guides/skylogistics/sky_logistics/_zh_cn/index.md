@@ -25,9 +25,9 @@ item_ids:
 
 ## 主题
 
-- [简易管道](simple_pipes.md)：铺设物品、流体和能量线路，并使用天穹扳手调整端点。
+- [简易管道](simple_pipes.md)：铺设物品、流体和能量线路，使用扳手控制连接、配置器调整端点。
 - [祭坛与供奉](offerings.md)：充能水晶、搭建法阵、制作柯拉甘露。
 - [物流网络](logistics.md)：连接节点、仓库、过滤器和外部网络。
 - [工具与升级](tools.md)：配置线路、复制设置、提升吞吐或跨维度运输。
 
-<RecipeFor id="sky_node" fallbackText="未找到天穹节点配方，请检查配方数据或 JEI。" />
+<RecipeFor id="sky_node" fallbackText="当前无法显示天穹节点配方，请在 JEI 中查看。" />

@@ -7,8 +7,6 @@ import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.resources.model.BakedModel;
@@ -37,7 +35,6 @@ public final class ClientModEvents {
             MenuScreens.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);
             MenuScreens.register(ModMenus.ITEM_VAULT.get(), ItemVaultScreen::new);
             MenuScreens.register(ModMenus.FLUID_VAULT.get(), FluidVaultScreen::new);
-            ItemBlockRenderTypes.setRenderLayer(ModBlocks.CELESTIAL_GLASS.get(), RenderType.translucent());
             BlockEntityRenderers.register(ModBlockEntities.OFFERING_ALTAR.get(), SingleSlotDisplayRenderer::new);
             BlockEntityRenderers.register(ModBlockEntities.OFFERING_TABLE.get(), SingleSlotDisplayRenderer::new);
             ItemProperties.register(ModItems.EULOGIA_CRYSTAL.get(),
@@ -75,8 +72,10 @@ public final class ClientModEvents {
         }
     }
 
-    private static ModelResourceLocation extractModel(String name) {
-        return new ModelResourceLocation(
-                new ResourceLocation(SkyLogistics.MOD_ID, "block/" + name + "_extract"), "standalone");
+    static ResourceLocation extractModel(String name) {
+        // Forge 1.20 treats every ModelResourceLocation except the inventory variant as a
+        // blockstate lookup. Additional standalone JSON models must therefore use a plain
+        // ResourceLocation, otherwise models/block/<name>_extract.json is never loaded.
+        return new ResourceLocation(SkyLogistics.MOD_ID, "block/" + name + "_extract");
     }
 }

@@ -29,15 +29,23 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
-    protected abstract IItemHandler getItemHandler();
+    protected IItemHandler getItemHandler() {
+        return EmptyExternalHandlers.Items.INSTANCE;
+    }
 
-    protected abstract IFluidHandler getFluidHandler();
+    protected IFluidHandler getFluidHandler() {
+        return EmptyExternalHandlers.Fluids.INSTANCE;
+    }
 
     protected IEnergyStorage getEnergyHandler() {
         return EmptyExternalHandlers.Energy.INSTANCE;
     }
 
     protected boolean supportsEnergyEndpoint() {
+        return false;
+    }
+
+    protected boolean exposesGenericResourceHandlers() {
         return false;
     }
 
@@ -80,17 +88,19 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getItemHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getItemHandler() : null;
     }
 
     @Override
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getFluidHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getFluidHandler() : null;
     }
 
     @Override
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() ? getEnergyHandler() : null;
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() && supportsEnergyEndpoint()
+                ? getEnergyHandler()
+                : null;
     }
 
     @Override
@@ -222,6 +232,9 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction side) {
+        if (!exposesGenericResourceHandlers()) {
+            return super.getCapability(capability, side);
+        }
         if (capability == ForgeCapabilities.ITEM_HANDLER) {
             return itemCapability.cast();
         }

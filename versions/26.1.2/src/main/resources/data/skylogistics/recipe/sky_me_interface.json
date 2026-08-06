@@ -21,10 +21,10 @@
       "count": 4
     },
     {
-      "ingredient": "minecraft:amethyst_shard"
+      "ingredient": "#c:gems/amethyst"
     },
     {
-      "ingredient": "minecraft:glass"
+      "ingredient": "#c:glass_blocks/colorless"
     }
   ],
   "result": {

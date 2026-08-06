@@ -1,11 +1,13 @@
 package com.skylogistics.client;
 
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.util.SimplePipeGeometry;
 import com.skylogistics.util.SimplePipeModelData;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     private final Map<Direction, List<BakedQuad>> extractQuads;
+    private final Map<QuadKey, List<BakedQuad>> combinedQuads = new ConcurrentHashMap<>();
 
     SimplePipeBakedModel(BakedModel originalModel, Map<Direction, List<BakedQuad>> extractQuads) {
         super(originalModel);
@@ -27,7 +30,8 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     }
 
     static Map<Direction, List<BakedQuad>> rotatedExtractQuads(BakedModel northModel) {
-        List<BakedQuad> northQuads = northModel.getQuads(null, null, RandomSource.create(0L));
+        List<BakedQuad> northQuads =
+                northModel.getQuads(null, null, RandomSource.create(0L), ModelData.EMPTY, null);
         Map<Direction, List<BakedQuad>> result = new EnumMap<>(Direction.class);
         for (Direction direction : Direction.values()) {
             List<BakedQuad> rotated = new ArrayList<>(northQuads.size());
@@ -52,23 +56,71 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource random,
             ModelData modelData, @Nullable RenderType renderType) {
-        List<BakedQuad> base = originalModel.getQuads(state, side, random, modelData, renderType);
         if (state == null || side != null) {
-            return base;
+            return originalModel.getQuads(state, side, random, modelData, renderType);
         }
         Integer maskValue = modelData.get(SimplePipeModelData.EXTRACT_SIDES);
-        int mask = maskValue == null ? 0 : maskValue;
-        if (mask == 0) {
-            return base;
+        int extractMask = maskValue == null ? 0 : maskValue;
+        int connectionMask = connectionMask(state);
+        int connectedExtractMask = SimplePipeGeometry.connectedExtractMask(connectionMask, extractMask);
+        if (connectedExtractMask == 0) {
+            return originalModel.getQuads(state, side, random, modelData, renderType);
         }
-        ArrayList<BakedQuad> combined = new ArrayList<>(base);
+        QuadKey key = new QuadKey(state, connectedExtractMask, renderType);
+        return combinedQuads.computeIfAbsent(key, ignored ->
+                buildCombinedQuads(state, random, modelData, renderType, connectedExtractMask));
+    }
+
+    private List<BakedQuad> buildCombinedQuads(BlockState state, RandomSource random, ModelData modelData,
+            @Nullable RenderType renderType, int extractMask) {
+        List<BakedQuad> base = originalModel.getQuads(state, null, random, modelData, renderType);
+        ArrayList<BakedQuad> combined = new ArrayList<>(base.size());
+        for (BakedQuad quad : base) {
+            if (!isCoveredArm(quad, extractMask)) {
+                combined.add(quad);
+            }
+        }
         for (Direction direction : Direction.values()) {
-            if ((mask & (1 << direction.ordinal())) != 0
-                    && state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+            if ((extractMask & SimplePipeGeometry.sideMask(direction)) != 0) {
                 combined.addAll(extractQuads.get(direction));
             }
         }
-        return combined;
+        return List.copyOf(combined);
+    }
+
+    private static int connectionMask(BlockState state) {
+        int mask = 0;
+        for (Direction direction : Direction.values()) {
+            if (state.getValue(SimplePipeBlock.connectionProperty(direction))) {
+                mask |= SimplePipeGeometry.sideMask(direction);
+            }
+        }
+        return mask;
+    }
+
+    private static boolean isCoveredArm(BakedQuad quad, int extractMask) {
+        for (Direction direction : Direction.values()) {
+            if ((extractMask & SimplePipeGeometry.sideMask(direction)) != 0
+                    && isArmQuad(quad, direction)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isArmQuad(BakedQuad quad, Direction direction) {
+        int[] vertices = quad.getVertices();
+        int stride = vertices.length / 4;
+        for (int vertex = 0; vertex < 4; vertex++) {
+            int offset = vertex * stride;
+            float x = Float.intBitsToFloat(vertices[offset]);
+            float y = Float.intBitsToFloat(vertices[offset + 1]);
+            float z = Float.intBitsToFloat(vertices[offset + 2]);
+            if (!SimplePipeGeometry.isArmVertex(direction, x, y, z)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static BakedQuad rotateQuad(BakedQuad quad, Direction target) {
@@ -122,5 +174,8 @@ final class SimplePipeBakedModel extends BakedModelWrapper<BakedModel> {
         int y = direction.getStepY() * 127 & 0xFF;
         int z = direction.getStepZ() * 127 & 0xFF;
         return x | y << 8 | z << 16;
+    }
+
+    private record QuadKey(BlockState state, int extractMask, @Nullable RenderType renderType) {
     }
 }

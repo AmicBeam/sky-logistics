@@ -2,6 +2,9 @@ package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,9 +13,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
-import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEntity {
     protected static final Direction ENDPOINT_DIRECTION = Direction.NORTH;
@@ -22,11 +22,15 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 
-    protected abstract IItemHandler getItemHandler();
+    protected ItemHandler getItemHandler() {
+        return EmptyExternalHandlers.Items.INSTANCE;
+    }
 
-    protected abstract IFluidHandler getFluidHandler();
+    protected FluidHandler getFluidHandler() {
+        return EmptyExternalHandlers.Fluids.INSTANCE;
+    }
 
-    protected IEnergyStorage getEnergyHandler() {
+    protected EnergyStorage getEnergyHandler() {
         return EmptyExternalHandlers.Energy.INSTANCE;
     }
 
@@ -34,17 +38,21 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
         return false;
     }
 
+    protected boolean exposesGenericResourceHandlers() {
+        return false;
+    }
+
     protected abstract Component externalNetworkName();
 
-    public IItemHandler exposedItemHandler() {
+    public ItemHandler exposedItemHandler() {
         return getItemHandler();
     }
 
-    public IFluidHandler exposedFluidHandler() {
+    public FluidHandler exposedFluidHandler() {
         return getFluidHandler();
     }
 
-    public IEnergyStorage exposedEnergyHandler() {
+    public EnergyStorage exposedEnergyHandler() {
         return getEnergyHandler();
     }
 
@@ -84,18 +92,20 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     @Override
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getItemHandler() : null;
+    public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getItemHandler() : null;
     }
 
     @Override
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION ? getFluidHandler() : null;
+    public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() ? getFluidHandler() : null;
     }
 
     @Override
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return direction == ENDPOINT_DIRECTION && supportsEnergyEndpoint() ? getEnergyHandler() : null;
+    public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && exposesGenericResourceHandlers() && supportsEnergyEndpoint()
+                ? getEnergyHandler()
+                : null;
     }
 
     @Override

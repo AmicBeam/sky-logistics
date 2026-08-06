@@ -132,7 +132,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         if (slot >= 0 && menu.isFluidFilter(slot)) {
             FluidStack fluid = menu.getFluidFilter(slot);
             if (!fluid.isEmpty()) {
-                graphics.renderTooltip(font, fluid.getDisplayName(), x, y);
+                graphics.renderTooltip(font, fluid.getHoverName(), x, y);
                 return;
             }
         }

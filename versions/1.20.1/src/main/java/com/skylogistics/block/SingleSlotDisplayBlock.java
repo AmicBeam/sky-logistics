@@ -28,11 +28,13 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
         return RenderShape.MODEL;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return getDisplayShape(state);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return getDisplayShape(state);
@@ -42,6 +44,7 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
         return Shapes.block();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
@@ -58,6 +61,7 @@ public abstract class SingleSlotDisplayBlock extends BaseEntityBlock {
         return changed ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof SingleSlotDisplayBlockEntity display) {

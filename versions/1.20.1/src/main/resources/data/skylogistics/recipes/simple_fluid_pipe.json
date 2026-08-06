@@ -2,9 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "pattern": ["GAG", "LBL", "GAG"],
   "key": {
-    "G": {"item": "minecraft:glass"},
-    "A": {"item": "minecraft:amethyst_shard"},
-    "L": {"item": "minecraft:lapis_lazuli"},
+    "G": {"tag": "forge:glass/colorless"},
+    "A": {"tag": "forge:gems/amethyst"},
+    "L": {"tag": "forge:gems/lapis"},
     "B": {"item": "minecraft:bucket"}
   },
   "result": {"item": "skylogistics:simple_fluid_pipe", "count": 8}

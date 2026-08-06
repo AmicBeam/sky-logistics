@@ -7,13 +7,13 @@
   ],
   "key": {
     "A": {
-      "item": "minecraft:amethyst_shard"
+      "tag":"c:gems/amethyst"
     },
     "S": {
-      "item": "minecraft:stick"
+      "tag":"c:rods/wooden"
     },
     "C": {
-      "item": "skylogistics:celestial_stone"
+      "tag":"c:glass_blocks/colorless"
     }
   },
   "result": {

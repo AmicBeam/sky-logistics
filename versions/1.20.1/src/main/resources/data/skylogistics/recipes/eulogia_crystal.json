@@ -7,13 +7,13 @@
   ],
   "key": {
     "A": {
-      "item": "minecraft:amethyst_shard"
+      "tag": "forge:gems/amethyst"
     },
     "G": {
-      "item": "minecraft:glass"
+      "tag": "forge:glass/colorless"
     },
     "D": {
-      "item": "minecraft:diamond"
+      "tag": "forge:gems/diamond"
     }
   },
   "result": {

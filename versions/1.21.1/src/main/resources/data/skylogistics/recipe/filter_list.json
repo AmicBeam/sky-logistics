@@ -10,10 +10,10 @@
       "item": "minecraft:paper"
     },
     "R": {
-      "item": "minecraft:redstone"
+      "tag":"c:dusts/redstone"
     },
     "C": {
-      "item": "minecraft:amethyst_shard"
+      "tag":"c:gems/amethyst"
     }
   },
   "result": {

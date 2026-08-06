@@ -7,8 +7,8 @@
   ],
   "key": {
     "P": "minecraft:paper",
-    "L": "minecraft:lapis_lazuli",
-    "C": "minecraft:amethyst_shard"
+    "L": "#c:gems/lapis",
+    "C": "#c:gems/amethyst"
   },
   "result": {
     "id": "skylogistics:tag_filter_list"

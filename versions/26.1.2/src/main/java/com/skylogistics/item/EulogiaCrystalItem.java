@@ -155,6 +155,7 @@ public class EulogiaCrystalItem extends Item {
         return false;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         if (isCharged(stack)) {

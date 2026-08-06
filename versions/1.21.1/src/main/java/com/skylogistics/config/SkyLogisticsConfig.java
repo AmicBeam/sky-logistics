@@ -174,6 +174,14 @@ public final class SkyLogisticsConfig {
         return SERVER.preferredItemSlotCacheSize.get();
     }
 
+    public static int targetItemInsertionCursorCount() {
+        return SERVER.targetItemInsertionCursorCount.get();
+    }
+
+    public static int rejectedAcceptCacheSize() {
+        return SERVER.rejectedAcceptCacheSize.get();
+    }
+
     public static int transferRetryDelayTicks(int failures) {
         return SERVER.transferRetryDelayTicks(failures);
     }
@@ -184,6 +192,10 @@ public final class SkyLogisticsConfig {
 
     public static int skyNecklaceSlotScansPerTick() {
         return SERVER.skyNecklaceSlotScansPerTick.get();
+    }
+
+    public static int skyNecklaceTargetAttemptsPerWork() {
+        return SERVER.skyNecklaceTargetAttemptsPerWork.get();
     }
 
     public static int skyRitualMinY() {
@@ -211,12 +223,15 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
+        public final ModConfigSpec.IntValue targetItemInsertionCursorCount;
+        public final ModConfigSpec.IntValue rejectedAcceptCacheSize;
         public final ModConfigSpec.IntValue transferRetryFirstTicks;
         public final ModConfigSpec.IntValue transferRetrySecondTicks;
         public final ModConfigSpec.IntValue transferRetryThirdTicks;
         public final ModConfigSpec.IntValue transferRetryMaxTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
+        public final ModConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
@@ -296,7 +311,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
-                    .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
+                    .defineInRange("simplePipeMaxConnectedBlocks", 256, 16, 65_536);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
@@ -308,7 +323,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
             endpointTargetAttempts = builder
                     .comment("Maximum receiving endpoints one source endpoint may try for one transfer candidate.")
-                    .defineInRange("endpointTargetAttempts", 16, 1, 1_000_000);
+                    .defineInRange("endpointTargetAttempts", 1, 1, 1_000_000);
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
@@ -369,6 +384,12 @@ public final class SkyLogisticsConfig {
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.")
                     .defineInRange("preferredItemSlotCacheSize", 9, 1, 256);
+            targetItemInsertionCursorCount = builder
+                    .comment("Target item insertion cursor lanes per multi-slot endpoint. Single-slot targets bypass cursors; the active count never exceeds the target slot count; 0 disables cursor-based slot ordering.")
+                    .defineInRange("targetItemInsertionCursorCount", 9, 0, 64);
+            rejectedAcceptCacheSize = builder
+                    .comment("Maximum recent item, fluid, or chemical accept-reject records remembered per receiving endpoint.")
+                    .defineInRange("rejectedAcceptCacheSize", 9, 1, 64);
             transferRetryFirstTicks = builder
                     .comment("Ticks to wait after the first failed transfer attempt. Shared by sending endpoint failures and receiving endpoint accept-reject retries.")
                     .defineInRange("transferRetryFirstTicks", 5, 1, 1200);
@@ -390,6 +411,9 @@ public final class SkyLogisticsConfig {
             skyNecklaceSlotScansPerTick = builder
                     .comment("Maximum inventory, backpack, or network item slots one Sky Necklace may scan each work tick.")
                     .defineInRange("skyNecklaceSlotScansPerTick", 64, 1, 1_000_000);
+            skyNecklaceTargetAttemptsPerWork = builder
+                    .comment("Maximum logistics output endpoints one Sky Necklace may attempt during one work interval.")
+                    .defineInRange("skyNecklaceTargetAttemptsPerWork", 1, 1, 1_000_000);
             builder.pop();
 
             builder.push("rituals");

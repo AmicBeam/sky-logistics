@@ -243,7 +243,7 @@ final class BeyondDimensionsApiBridge {
                 || host.getDimensionNetworkId() >= 0) {
             return;
         }
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net != null && net.isManager(player)) {
             host.setDimensionNetworkId(net.getId());
             player.sendSystemMessage(Component.translatable("msg.beyonddimensions.block_net_bound", net.getId()));
@@ -265,7 +265,7 @@ final class BeyondDimensionsApiBridge {
 
     private static void bindFromPlayerNetwork(Level level, Player player,
             BeyondDimensionsCompat.NetworkBoundHost host) {
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net == null) {
             return;
         }
@@ -280,7 +280,7 @@ final class BeyondDimensionsApiBridge {
 
     private static void unbindFromPlayerNetwork(Level level, Player player,
             BeyondDimensionsCompat.NetworkBoundHost host, int currentNetId) {
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net == null) {
             return;
         }

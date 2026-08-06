@@ -16,6 +16,9 @@ import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.RedstoneControl;
@@ -37,6 +40,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -48,10 +52,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
 import net.neoforged.neoforge.transfer.energy.EnergyHandler;
@@ -89,6 +90,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private final EnumMap<Direction, NonNullList<ItemStack>> faceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FilterListItem.CompiledFilter[]> compiledFaceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, boolean[]> compiledFaceFilterDirty = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, ExternalWhitelistCandidates> externalWhitelistCandidates =
+            new EnumMap<>(Direction.class);
     private boolean itemsEnabled = true;
     private boolean fluidsEnabled = true;
     private boolean energyEnabled = true;
@@ -306,6 +309,32 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             return ItemStack.EMPTY;
         }
         return filters.get(slot);
+    }
+
+    public ExternalWhitelistCandidates externalWhitelistCandidates(Direction direction) {
+        ExternalWhitelistCandidates cached = externalWhitelistCandidates.get(direction);
+        if (cached != null) return cached;
+        boolean itemWhitelist = false;
+        boolean fluidWhitelist = false;
+        List<ItemStack> itemSamples = new ArrayList<>();
+        List<TagKey<Item>> itemTags = new ArrayList<>();
+        List<FluidStack> fluidSamples = new ArrayList<>();
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (compiled.whitelist() && compiled.hasItemRules()) {
+                itemWhitelist = true;
+                itemSamples.addAll(compiled.itemSamples());
+                itemTags.addAll(compiled.itemTags());
+            }
+            if (compiled.whitelist() && compiled.hasFluidRules()) {
+                fluidWhitelist = true;
+                fluidSamples.addAll(compiled.fluidSamples());
+            }
+        }
+        cached = new ExternalWhitelistCandidates(itemWhitelist, List.copyOf(itemSamples), List.copyOf(itemTags),
+                fluidWhitelist, List.copyOf(fluidSamples));
+        externalWhitelistCandidates.put(direction, cached);
+        return cached;
     }
 
     public boolean hasFaceFilter(Direction direction) {
@@ -547,11 +576,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return state.getBlock().getName();
     }
 
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
+    public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
         return null;
     }
 
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
+    public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
         return null;
     }
 
@@ -559,7 +588,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return null;
     }
 
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+    public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
         return null;
     }
 
@@ -764,7 +793,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
         EnergyHandler storage = level.getCapability(Capabilities.Energy.BLOCK, targetPos, accessSide);
-        return storage != null && isUsableEnergyStorage(TransferCompat.legacyEnergyHandler(storage));
+        return storage != null && isUsableEnergyStorage(TransferCompat.energyStorage(storage));
     }
 
     private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
@@ -785,7 +814,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 && (handler.canExtract() || handler.canReceive() || handler.getMaxSource() > 0);
     }
 
-    private static boolean isUsableEnergyStorage(IEnergyStorage storage) {
+    private static boolean isUsableEnergyStorage(EnergyStorage storage) {
         return storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive();
     }
 
@@ -892,12 +921,12 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean consumeUpgradeFromItemHandler(ItemStack container, Item item) {
-        IItemHandler handler = TransferCompat.legacyItemHandler(
+        ItemHandler handler = TransferCompat.itemHandler(
                 ItemAccess.forStack(container).getCapability(Capabilities.Item.ITEM));
         return handler != null && consumeUpgradeFromItemHandler(handler, item);
     }
 
-    private static boolean consumeUpgradeFromItemHandler(IItemHandler handler, Item item) {
+    private static boolean consumeUpgradeFromItemHandler(ItemHandler handler, Item item) {
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack simulated = handler.extractItem(slot, 1, true);
             if (simulated.is(item)) {
@@ -1370,6 +1399,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         tag.put("FaceSettings", faceSettings);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
@@ -1633,6 +1663,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (dirty != null && slot >= 0 && slot < dirty.length) {
             dirty[slot] = true;
         }
+        externalWhitelistCandidates.remove(direction);
+    }
+
+    public record ExternalWhitelistCandidates(boolean itemWhitelist, List<ItemStack> itemSamples,
+            List<TagKey<Item>> itemTags, boolean fluidWhitelist, List<FluidStack> fluidSamples) {
     }
 
     private void setFaceFilterDirect(Direction direction, int slot, ItemStack stack) {

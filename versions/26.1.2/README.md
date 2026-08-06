@@ -1,6 +1,6 @@
 # Sky Logistics / 天穹物流
 
-NeoForge 1.21.1 public test build for celestial wireless logistics.
+NeoForge 26.1.2 public test build for celestial wireless logistics.
 
 ## Current MVP
 
@@ -29,10 +29,22 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
   - The node GUI owns transfer rate, a filter-list slot and the player inventory below it.
   - The model is smaller than a full block and shows a larger connector ring in extract mode.
   - Server tick dispatcher transfers items, fluids and energy wirelessly between matching extract/insert faces on the same line.
-  - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
+  - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Botania mana and Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
   - A dimension upgrade on an extract node lets it send to matching insert faces on the same line in other dimensions.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.
+
+- `Simple Celestial Pipes and Sky Wrench` / `天穹简易管道与天穹扳手`
+  - Item, fluid and energy pipes are separate blocks with their own blue/orange, blue/deep-blue and blue/red models.
+  - Placement inherits the logistics node controls: normal placement prefers insert mode and sneak placement prefers extract mode.
+  - Pipes automatically connect to compatible adjacent containers and neighboring pipes of the same type. Connected pipes form a bounded local line.
+  - Use any item in the wrench tag, including the Sky Wrench, on a machine-facing endpoint to switch between insert and extract. Sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use a wider model.
+  - The Sky Wrench is registered only when neither Applied Energistics 2 nor Refined Storage is installed; packs with either mod use their existing wrench-tag tools instead.
+  - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
+  - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
+  - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
+  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 256; a connection that would exceed it stays disconnected.
+  - Their recipes do not require Sky Crystals.
 
 - `Starlit Nectar` / `星辉甘露`
   - Core sky material, no longer only a capacity item.
@@ -83,6 +95,7 @@ NeoForge 1.21.1 public test build for celestial wireless logistics.
   - Supports 18 ghost filter entries, whitelist/blacklist mode and optional NBT/durability matching.
   - Node face filter slots copy the filter list state as a ghost reference; inserting or pasting one does not consume the item.
   - Insert a configured filter list into a node's filter slot to filter both extraction and insertion item transfers.
+  - AE2 and Refined Storage extraction queries only exact item/fluid whitelist entries; tag-only whitelist entries do not enumerate either external network.
 
 Crafting recipes are included for the current item/block set. Starlit Nectar is produced by the included `skylogistics:sky_offering` recipe and requires a tier 2 altar.
 
@@ -90,24 +103,18 @@ GuideME support adds a data-driven Sky Logistics manual for 26.1.2 when GuideME 
 
 ## Build Note
 
-Use Java 21, matching the `recipe-linkage` 1.21.1 NeoForge ModDev build style:
+Use Java 25:
 
 ```bash
-env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/jdk-21.0.9+10/Contents/Home \
-  PATH=/Users/bytedance/.gradle/jdks/eclipse_adoptium-21-aarch64-os_x.2/jdk-21.0.9+10/Contents/Home/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+env JAVA_HOME=/Users/bytedance/.gradle/jdks/eclipse_adoptium-25-aarch64-os_x/jdk-25.0.3+9/Contents/Home \
+  PATH=/Users/bytedance/.gradle/jdks/eclipse_adoptium-25-aarch64-os_x/jdk-25.0.3+9/Contents/Home/bin:/usr/bin:/bin:/usr/sbin:/sbin \
   ./gradlew --no-daemon build
 ```
 
-The verified output jar is `build/libs/skylogistics-0.2.0+26.1.2.jar`.
+The verified output jar is `build/libs/skylogistics-0.3.0+26.1.2.jar`.
 
-This branch uses NeoForge ModDev, Java 21 toolchains, Parchment `1.21-2024.11.10`, and NeoForge `21.1.169`. Runtime metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml`.
+This build uses NeoForge ModDev, a Java 25 toolchain, and NeoForge `26.1.2.76`. Runtime metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml`.
 
 Data resources use 1.21 singular paths such as `data/skylogistics/recipe`, `loot_table`, `advancement`, `tags/block`, and `tags/item`. Crafting outputs use `result.id`, common tags use the `c:` namespace, and optional recipe conditions use `neoforge:conditions`.
 
 The optional Jade and JEI compatibility sources are included when their matching API jars are present.
-
-## Simulated Project Compatibility
-
-Checked against `Creators-of-Aeronautics/Simulated-Project` `main`, which targets Minecraft 1.21.1, Java 21 and NeoForge 21.1.228. Sky Logistics nodes and vaults are ordinary block entities that expose/use NeoForge item, fluid and energy capabilities, while Simulated assembles real block entities into Sable sub-levels and also talks to inventories through `Level#getCapability`. Structurally, the core logistics network should run inside assembled Simulated contraptions.
-
-The important limitation is coordinate space: Sky Logistics targets adjacent block positions in the block entity's current local level/sub-level grid. A node on a moving simulated contraption can interact with adjacent machines that are part of that same simulated structure, but it will not automatically target unrelated world blocks merely because the moving structure passes near them in physical space. Configurator line details may also show local/sub-level coordinates rather than rendered world-space positions.

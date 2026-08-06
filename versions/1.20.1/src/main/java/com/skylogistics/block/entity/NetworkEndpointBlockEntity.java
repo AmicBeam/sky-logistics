@@ -26,9 +26,18 @@ import net.minecraftforge.items.IItemHandler;
 public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
 
+    public enum TargetResource {
+        ITEM,
+        FLUID,
+        CHEMICAL,
+        ENERGY,
+        MANA,
+        SOURCE
+    }
+
     private int itemCursor;
     private int fluidCursor;
-    private int targetCursor;
+    private final int[] targetCursors = new int[TargetResource.values().length];
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -182,10 +191,14 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return start;
     }
 
-    public int nextTargetCursor() {
-        int start = targetCursor;
-        targetCursor = targetCursor == Integer.MAX_VALUE ? 0 : targetCursor + 1;
-        return start;
+    public int targetCursor(TargetResource resource) {
+        return targetCursors[resource.ordinal()];
+    }
+
+    public void advanceTargetCursor(TargetResource resource) {
+        int index = resource.ordinal();
+        int cursor = targetCursors[index];
+        targetCursors[index] = cursor == Integer.MAX_VALUE ? 0 : cursor + 1;
     }
 
     public void lineNameChanged(UUID targetLineId) {

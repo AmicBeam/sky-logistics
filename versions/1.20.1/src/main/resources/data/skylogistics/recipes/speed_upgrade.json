@@ -10,7 +10,7 @@
       "item": "minecraft:sugar"
     },
     "R": {
-      "item": "minecraft:redstone"
+      "tag": "forge:dusts/redstone"
     },
     "N": {
       "item": "skylogistics:chora_nectar"

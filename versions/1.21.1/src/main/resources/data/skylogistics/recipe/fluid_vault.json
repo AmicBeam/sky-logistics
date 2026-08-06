@@ -10,7 +10,7 @@
       "item": "skylogistics:celestial_stone"
     },
     "S": {
-      "item": "minecraft:amethyst_shard"
+      "tag":"c:gems/amethyst"
     },
     "N": {
       "item": "skylogistics:chora_nectar"

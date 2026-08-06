@@ -2,10 +2,10 @@ package com.skylogistics.item;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.menu.ConfiguratorMenu;
+import com.skylogistics.util.LineNaming;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.StackData;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -58,8 +58,7 @@ public class ConfiguratorItem extends Item {
     private static final String LINE_NAME = "LineName";
     private static final String LINE_ENTRY_NAME = "Name";
     private static final String LINE_ENTRY_ASSIGNED_NAME = "AssignedName";
-    private static final String FALLBACK_LINE_PREFIX = "Line";
-    private static final int MAX_LINE_NAME_LENGTH = 48;
+    private static final String FALLBACK_LINE_PREFIX = LineNaming.DEFAULT_PREFIX;
 
     public ConfiguratorItem(Properties properties) {
         super(properties);
@@ -376,12 +375,11 @@ public class ConfiguratorItem extends Item {
     }
 
     public static String lineName(String prefix, int index) {
-        return cleanLinePrefix(prefix) + "-" + Math.max(0, index);
+        return LineNaming.indexedName(prefix, index);
     }
 
     public static UUID lineIdForName(String lineName) {
-        String normalized = validLineName(lineName == null ? "" : lineName.trim(), fallbackLineName(0));
-        return UUID.nameUUIDFromBytes(("skylogistics:line:" + normalized).getBytes(StandardCharsets.UTF_8));
+        return LineNaming.idForName(lineName);
     }
 
     private static EnumMap<Direction, FaceConfig> defaultFaces() {
@@ -648,12 +646,7 @@ public class ConfiguratorItem extends Item {
     }
 
     private static String cleanLinePrefix(String prefix) {
-        String clean = prefix == null ? "" : prefix.trim();
-        if (clean.isEmpty()) {
-            clean = FALLBACK_LINE_PREFIX;
-        }
-        clean = clean.replaceAll("\\s+", "_");
-        return clean.length() > 24 ? clean.substring(0, 24) : clean;
+        return LineNaming.cleanPrefix(prefix);
     }
 
     private static String lineName(List<LineEntry> lines, UUID lineId) {
@@ -662,11 +655,7 @@ public class ConfiguratorItem extends Item {
     }
 
     private static String validLineName(String name, String fallback) {
-        String clean = name == null ? "" : name.trim().replaceAll("\\s+", " ");
-        if (clean.isBlank()) {
-            clean = fallback == null ? "" : fallback.trim().replaceAll("\\s+", " ");
-        }
-        return clean.length() > MAX_LINE_NAME_LENGTH ? clean.substring(0, MAX_LINE_NAME_LENGTH) : clean;
+        return LineNaming.validName(name, fallback);
     }
 
     private static String fallbackLineName(int index) {

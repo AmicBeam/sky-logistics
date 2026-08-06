@@ -4,6 +4,9 @@ import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -11,19 +14,16 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEntity
         implements BeyondDimensionsCompat.NetworkBoundHost {
     private static final String DATA_TAG = "SkyLogisticsSkyDimensionInterface";
     private static final String NET_ID_TAG = "netId";
 
-    private final IItemHandler itemHandler = BeyondDimensionsCompat.createItemHandler(this);
-    private final IFluidHandler fluidHandler = BeyondDimensionsCompat.createFluidHandler(this);
+    private final ItemHandler itemHandler = BeyondDimensionsCompat.createItemHandler(this);
+    private final FluidHandler fluidHandler = BeyondDimensionsCompat.createFluidHandler(this);
     private final ChemicalHandlerBridge chemicalHandler = BeyondDimensionsCompat.createChemicalHandler(this);
-    private final IEnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
+    private final EnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
     private final SourceHandlerBridge sourceHandler = BeyondDimensionsCompat.createSourceHandler(this);
     private int dimensionNetworkId = -1;
 
@@ -32,17 +32,22 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     }
 
     @Override
-    protected IItemHandler getItemHandler() {
+    protected boolean exposesGenericResourceHandlers() {
+        return true;
+    }
+
+    @Override
+    protected ItemHandler getItemHandler() {
         return itemHandler;
     }
 
     @Override
-    protected IFluidHandler getFluidHandler() {
+    protected FluidHandler getFluidHandler() {
         return fluidHandler;
     }
 
     @Override
-    protected IEnergyStorage getEnergyHandler() {
+    protected EnergyStorage getEnergyHandler() {
         return energyHandler;
     }
 

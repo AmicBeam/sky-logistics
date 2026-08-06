@@ -6,6 +6,9 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeModelData;
@@ -25,10 +28,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.model.data.ModelData;
 
 public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
@@ -52,18 +52,18 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     public static boolean hasCapability(Level level, BlockPos pos, Direction side, SimplePipeType type) {
         return switch (type) {
             case ITEM -> {
-                IItemHandler handler = itemHandler(level, pos, side);
+                ItemHandler handler = itemHandler(level, pos, side);
                 yield handler != null && handler.getSlots() > 0;
             }
             case FLUID -> {
-                IFluidHandler handler = fluidHandler(level, pos, side);
+                FluidHandler handler = fluidHandler(level, pos, side);
                 yield handler != null && handler.getTanks() > 0
                         || SkyLogisticsConfig.allowFluidChemicalTransfer()
                         && MekanismCompat.isLoaded()
                         && MekanismCompat.chemicalHandler(level, pos, side) != null;
             }
             case ENERGY -> {
-                IEnergyStorage storage = energyHandler(level, pos, side);
+                EnergyStorage storage = energyHandler(level, pos, side);
                 yield storage != null
                         && (storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive())
                         || SkyLogisticsConfig.allowEnergyManaTransfer()
@@ -76,16 +76,16 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         };
     }
 
-    private static IItemHandler itemHandler(Level level, BlockPos pos, Direction side) {
-        return TransferCompat.legacyItemHandler(level.getCapability(Capabilities.Item.BLOCK, pos, side));
+    private static ItemHandler itemHandler(Level level, BlockPos pos, Direction side) {
+        return TransferCompat.itemHandler(level.getCapability(Capabilities.Item.BLOCK, pos, side));
     }
 
-    private static IFluidHandler fluidHandler(Level level, BlockPos pos, Direction side) {
-        return TransferCompat.legacyFluidHandler(level.getCapability(Capabilities.Fluid.BLOCK, pos, side));
+    private static FluidHandler fluidHandler(Level level, BlockPos pos, Direction side) {
+        return TransferCompat.fluidHandler(level.getCapability(Capabilities.Fluid.BLOCK, pos, side));
     }
 
-    private static IEnergyStorage energyHandler(Level level, BlockPos pos, Direction side) {
-        return TransferCompat.legacyEnergyHandler(level.getCapability(Capabilities.Energy.BLOCK, pos, side));
+    private static EnergyStorage energyHandler(Level level, BlockPos pos, Direction side) {
+        return TransferCompat.energyStorage(level.getCapability(Capabilities.Energy.BLOCK, pos, side));
     }
 
     public SimplePipeType pipeType() {
@@ -115,7 +115,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         requestModelDataUpdate();
         if (level != null && !level.isClientSide()) {
             BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
         }
     }
 
@@ -291,6 +291,10 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
             rememberedExtractSides = input.getIntOr(LEGACY_REMEMBERED_EXTRACT_SIDES_TAG, 0) & SIDE_MASK;
         }
         requestModelDataUpdate();
+        if (level != null && level.isClientSide()) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
+        }
     }
 
     @Override

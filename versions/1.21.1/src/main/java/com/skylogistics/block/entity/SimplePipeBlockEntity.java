@@ -102,7 +102,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         requestModelDataUpdate();
         if (level != null && !level.isClientSide) {
             BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
         }
     }
 
@@ -278,6 +278,10 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
             rememberedExtractSides = tag.getInt(LEGACY_REMEMBERED_EXTRACT_SIDES_TAG) & SIDE_MASK;
         }
         requestModelDataUpdate();
+        if (level != null && level.isClientSide) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
+        }
     }
 
     @Override

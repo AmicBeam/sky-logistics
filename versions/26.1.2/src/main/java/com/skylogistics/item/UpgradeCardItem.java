@@ -18,6 +18,7 @@ public class UpgradeCardItem extends Item {
         this.tooltipKey = tooltipKey;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         tooltip.accept(Component.translatable(tooltipKey).withStyle(ChatFormatting.GRAY));

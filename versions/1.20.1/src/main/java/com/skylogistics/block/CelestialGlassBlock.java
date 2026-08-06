@@ -32,6 +32,7 @@ public class CelestialGlassBlock extends GlassBlock {
         return withConnections(defaultBlockState(), context.getLevel(), context.getClickedPos());
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
             LevelAccessor level, BlockPos pos, BlockPos neighborPos) {

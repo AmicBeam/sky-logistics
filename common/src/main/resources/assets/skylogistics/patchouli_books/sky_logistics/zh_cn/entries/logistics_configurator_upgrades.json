@@ -27,7 +27,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "text": "速度升级卡仍通过工作台合成。"
+      "text": "速度升级卡可以在工作台中合成。"
     },
     {
       "type": "patchouli:text",

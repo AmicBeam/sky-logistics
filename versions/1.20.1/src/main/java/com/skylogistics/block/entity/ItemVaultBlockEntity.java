@@ -40,6 +40,8 @@ public class ItemVaultBlockEntity extends BlockEntity {
     private final List<ItemStack> items = new ArrayList<>();
     private final List<Long> amounts = new ArrayList<>();
     private final LinkedHashMap<ItemStackKey, Long> clientStored = new LinkedHashMap<>();
+    private long[] slotChangeVersions = new long[0];
+    private boolean[] dirtySlots = new boolean[0];
     private final Set<UUID> viewers = new HashSet<>();
     private final IItemHandler itemHandler = new VaultItemHandler();
     private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> itemHandler);
@@ -218,12 +220,22 @@ public class ItemVaultBlockEntity extends BlockEntity {
     }
 
     public void syncTo(ServerPlayer player) {
+        syncTo(player, Long.MIN_VALUE);
+    }
+
+    public void syncTo(ServerPlayer player, long sinceVersion) {
+        boolean full = sinceVersion == Long.MIN_VALUE;
         List<ItemVaultSnapshotPacket.Entry> entries = new ArrayList<>();
-        for (StoredItem item : getStoredItems(SNAPSHOT_ENTRY_LIMIT)) {
-            entries.add(new ItemVaultSnapshotPacket.Entry(item.stack(), item.amount()));
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots && entries.size() < SNAPSHOT_ENTRY_LIMIT; slot++) {
+            if (!full && slotChangeVersions[slot] <= sinceVersion) continue;
+            ItemStack stack = templateInSlot(slot);
+            long amount = amountInSlot(slot);
+            entries.add(new ItemVaultSnapshotPacket.Entry(slot,
+                    stack.isEmpty() || amount <= 0L ? ItemStack.EMPTY : stack.copy(), amount));
         }
-        ModNetworking.sendToPlayer(player, new ItemVaultSnapshotPacket(worldPosition, getTypeLimit(), getUsedTypes(),
-                getTotalAmount(), entries));
+        ModNetworking.sendToPlayer(player, new ItemVaultSnapshotPacket(worldPosition, full, getTypeLimit(),
+                getUsedTypes(), getTotalAmount(), entries));
     }
 
     public void syncToPlayerIfPresent(Player player) {
@@ -242,22 +254,19 @@ public class ItemVaultBlockEntity extends BlockEntity {
         viewers.remove(player.getUUID());
     }
 
-    public void applyClientSnapshot(int typeLimit, int usedTypes, long totalAmount,
+    public void applyClientSnapshot(boolean full, int typeLimit, int usedTypes, long totalAmount,
             List<ItemVaultSnapshotPacket.Entry> entries) {
         this.typeLimit = Math.max(1, typeLimit);
+        ensureItemCapacity();
         this.clientUsedTypes = Math.max(0, usedTypes);
         this.clientTotalAmount = Math.max(0L, totalAmount);
         clientSnapshotVersion++;
-        clientStored.clear();
+        if (full) clearItems();
         for (ItemVaultSnapshotPacket.Entry entry : entries) {
-            ItemStack stack = entry.stack();
-            if (entry.amount() <= 0 || stack.isEmpty()) {
-                continue;
-            }
-            ItemStack normalized = stack.copy();
-            normalized.setCount(1);
-            clientStored.put(ItemStackKey.of(normalized), entry.amount());
+            if (entry.slot() < 0 || entry.slot() >= items.size()) continue;
+            setStored(entry.slot(), entry.stack(), entry.amount());
         }
+        rebuildClientStored();
     }
 
     @Override
@@ -357,6 +366,11 @@ public class ItemVaultBlockEntity extends BlockEntity {
 
     private void markContentsChanged() {
         syncVersion++;
+        for (int slot = 0; slot < dirtySlots.length; slot++) {
+            if (!dirtySlots[slot]) continue;
+            slotChangeVersions[slot] = syncVersion;
+            dirtySlots[slot] = false;
+        }
         setChanged();
     }
 
@@ -480,6 +494,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
             } else {
                 amounts.set(slot, current + inserted);
             }
+            markSlotDirty(slot);
         }
         return inserted;
     }
@@ -565,7 +580,26 @@ public class ItemVaultBlockEntity extends BlockEntity {
         while (amounts.size() > items.size()) {
             amounts.remove(amounts.size() - 1);
         }
+        if (slotChangeVersions.length != max) slotChangeVersions = java.util.Arrays.copyOf(slotChangeVersions, max);
+        if (dirtySlots.length != max) dirtySlots = java.util.Arrays.copyOf(dirtySlots, max);
         typeLimit = Math.max(1, Math.min(typeLimit, max));
+    }
+
+    private void markSlotDirty(int slot) {
+        if (slot >= 0 && slot < dirtySlots.length) dirtySlots[slot] = true;
+    }
+
+    private void rebuildClientStored() {
+        clientStored.clear();
+        int slots = getTypeLimit();
+        for (int slot = 0; slot < slots; slot++) {
+            ItemStack stack = templateInSlot(slot);
+            long amount = amountInSlot(slot);
+            if (stack.isEmpty() || amount <= 0L) continue;
+            ItemStack normalized = stack.copy();
+            normalized.setCount(1);
+            clientStored.put(ItemStackKey.of(normalized), amount);
+        }
     }
 
     private void clearItems() {
@@ -620,6 +654,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
         } else {
             amounts.set(slot, remaining);
         }
+        markSlotDirty(slot);
     }
 
     private static long saturatingAdd(long left, long right) {

@@ -39,6 +39,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
 
     private final LinkedHashMap<FluidStackKey, Long> stored = new LinkedHashMap<>();
     private final List<FluidStackKey> contentIndex = new ArrayList<>();
+    private FluidStackKey[] clientSlots = new FluidStackKey[0];
+    private long[] clientSlotAmounts = new long[0];
+    private long[] slotChangeVersions = new long[0];
+    private boolean[] dirtySlots = new boolean[0];
     private final Set<UUID> viewers = new HashSet<>();
     private final IFluidHandler fluidHandler = new VaultFluidHandler();
     private LinkedHashMap<FluidStackKey, Long> indexedContents;
@@ -184,12 +188,22 @@ public class FluidVaultBlockEntity extends BlockEntity {
     }
 
     public void syncTo(ServerPlayer player) {
+        syncTo(player, Long.MIN_VALUE);
+    }
+
+    public void syncTo(ServerPlayer player, long sinceVersion) {
+        ensureSlotVersionCapacity();
+        boolean full = sinceVersion == Long.MIN_VALUE;
         List<FluidVaultSnapshotPacket.Entry> entries = new ArrayList<>();
-        for (StoredFluid fluid : getStoredFluids(SNAPSHOT_ENTRY_LIMIT)) {
-            entries.add(new FluidVaultSnapshotPacket.Entry(fluid.stack(), fluid.amount()));
+        for (int slot = 0; slot < getTypeLimit() && entries.size() < SNAPSHOT_ENTRY_LIMIT; slot++) {
+            if (!full && slotChangeVersions[slot] <= sinceVersion) continue;
+            Map.Entry<FluidStackKey, Long> fluid = entryAt(slot);
+            entries.add(fluid == null
+                    ? new FluidVaultSnapshotPacket.Entry(slot, FluidStack.EMPTY, 0L)
+                    : new FluidVaultSnapshotPacket.Entry(slot, fluid.getKey().toStack(1), fluid.getValue()));
         }
-        ModNetworking.sendToPlayer(player, new FluidVaultSnapshotPacket(worldPosition, getTypeLimit(), getUsedTypes(),
-                getTotalAmount(), entries));
+        ModNetworking.sendToPlayer(player, new FluidVaultSnapshotPacket(worldPosition, full, getTypeLimit(),
+                getUsedTypes(), getTotalAmount(), entries));
     }
 
     public void syncToPlayerIfPresent(Player player) {
@@ -208,24 +222,33 @@ public class FluidVaultBlockEntity extends BlockEntity {
         viewers.remove(player.getUUID());
     }
 
-    public void applyClientSnapshot(int typeLimit, int usedTypes, long totalAmount,
+    public void applyClientSnapshot(boolean full, int typeLimit, int usedTypes, long totalAmount,
             List<FluidVaultSnapshotPacket.Entry> entries) {
         this.typeLimit = Math.max(1, typeLimit);
+        ensureClientSlotCapacity();
         this.clientUsedTypes = Math.max(0, usedTypes);
         this.clientTotalAmount = Math.max(0L, totalAmount);
         clientSnapshotVersion++;
         invalidateSummaryCache();
-        invalidateContentIndex();
-        stored.clear();
+        if (full) {
+            java.util.Arrays.fill(clientSlots, null);
+            java.util.Arrays.fill(clientSlotAmounts, 0L);
+        }
         for (FluidVaultSnapshotPacket.Entry entry : entries) {
+            int slot = entry.slot();
+            if (slot < 0 || slot >= clientSlots.length) continue;
             FluidStack stack = entry.stack();
             if (entry.amount() <= 0 || stack.isEmpty()) {
+                clientSlots[slot] = null;
+                clientSlotAmounts[slot] = 0L;
                 continue;
             }
             FluidStack normalized = stack.copy();
             normalized.setAmount(1);
-            stored.put(FluidStackKey.of(normalized), entry.amount());
+            clientSlots[slot] = FluidStackKey.of(normalized);
+            clientSlotAmounts[slot] = entry.amount();
         }
+        rebuildClientStored();
     }
 
     @Override
@@ -321,6 +344,12 @@ public class FluidVaultBlockEntity extends BlockEntity {
 
     private void markContentsChanged() {
         syncVersion++;
+        ensureSlotVersionCapacity();
+        for (int slot = 0; slot < dirtySlots.length; slot++) {
+            if (!dirtySlots[slot]) continue;
+            slotChangeVersions[slot] = syncVersion;
+            dirtySlots[slot] = false;
+        }
         invalidateSummaryCache();
         setChanged();
     }
@@ -394,12 +423,52 @@ public class FluidVaultBlockEntity extends BlockEntity {
         contentIndex.clear();
     }
 
+    private void ensureSlotVersionCapacity() {
+        int size = Math.max(1, SkyLogisticsConfig.maxVaultTypes());
+        if (slotChangeVersions.length != size) {
+            slotChangeVersions = java.util.Arrays.copyOf(slotChangeVersions, size);
+        }
+        if (dirtySlots.length != size) dirtySlots = java.util.Arrays.copyOf(dirtySlots, size);
+    }
+
+    private void ensureClientSlotCapacity() {
+        int size = Math.max(1, SkyLogisticsConfig.maxVaultTypes());
+        if (clientSlots.length != size) clientSlots = java.util.Arrays.copyOf(clientSlots, size);
+        if (clientSlotAmounts.length != size) {
+            clientSlotAmounts = java.util.Arrays.copyOf(clientSlotAmounts, size);
+        }
+    }
+
+    private void markSlotDirty(int slot) {
+        ensureSlotVersionCapacity();
+        if (slot >= 0 && slot < dirtySlots.length) dirtySlots[slot] = true;
+    }
+
+    private void markSlotsDirty(int first, int endExclusive) {
+        ensureSlotVersionCapacity();
+        for (int slot = Math.max(0, first); slot < Math.min(endExclusive, dirtySlots.length); slot++) {
+            dirtySlots[slot] = true;
+        }
+    }
+
+    private void rebuildClientStored() {
+        stored.clear();
+        invalidateContentIndex();
+        int slots = Math.min(getTypeLimit(), clientSlots.length);
+        for (int slot = 0; slot < slots; slot++) {
+            FluidStackKey key = clientSlots[slot];
+            long amount = clientSlotAmounts[slot];
+            if (key != null && amount > 0L) stored.put(key, amount);
+        }
+    }
+
     private long insertDirect(FluidStackKey key, long amount, boolean simulate) {
         if (amount <= 0) {
             return 0L;
         }
         LinkedHashMap<FluidStackKey, Long> contents = contents();
         long current = contents.getOrDefault(key, 0L);
+        int slot = current > 0L ? contentIndex(contents).indexOf(key) : contents.size();
         if (current <= 0 && !isFluidKeyWithinNbtLimit(key)) {
             return 0L;
         }
@@ -414,6 +483,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (!simulate) {
             long updated = current + inserted;
             contents.put(key, updated);
+            markSlotDirty(slot);
             markContentsChanged();
         }
         return inserted;
@@ -425,11 +495,15 @@ public class FluidVaultBlockEntity extends BlockEntity {
         }
         LinkedHashMap<FluidStackKey, Long> contents = contents();
         long current = contents.getOrDefault(key, 0L);
+        int slot = contentIndex(contents).indexOf(key);
+        int oldSize = contents.size();
         long remaining = current - Math.min(current, amount);
         if (remaining <= 0) {
             contents.remove(key);
+            markSlotsDirty(slot, oldSize);
         } else {
             contents.put(key, remaining);
+            markSlotDirty(slot);
         }
         markContentsChanged();
     }
@@ -528,7 +602,9 @@ public class FluidVaultBlockEntity extends BlockEntity {
             if (action.execute()) {
                 long updated = Math.min(capacityPerType, saturatingAdd(current, resource.getAmount()));
                 if (updated != current) {
+                    int slot = current > 0L ? contentIndex(contents).indexOf(key) : contents.size();
                     contents.put(key, updated);
+                    markSlotDirty(slot);
                     markContentsChanged();
                 }
             }
@@ -550,11 +626,15 @@ public class FluidVaultBlockEntity extends BlockEntity {
                 return FluidStack.EMPTY;
             }
             if (action.execute()) {
+                int slot = contentIndex(contents).indexOf(key);
+                int oldSize = contents.size();
                 long remaining = current - drained;
                 if (remaining <= 0) {
                     contents.remove(key);
+                    markSlotsDirty(slot, oldSize);
                 } else {
                     contents.put(key, remaining);
+                    markSlotDirty(slot);
                 }
                 markContentsChanged();
             }
@@ -576,11 +656,14 @@ public class FluidVaultBlockEntity extends BlockEntity {
             }
             FluidStackKey key = entry.getKey();
             if (action.execute()) {
+                int oldSize = contents().size();
                 long remaining = entry.getValue() - drained;
                 if (remaining <= 0) {
                     contents().remove(key);
+                    markSlotsDirty(0, oldSize);
                 } else {
                     contents().put(key, remaining);
+                    markSlotDirty(0);
                 }
                 markContentsChanged();
             }

@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Sky Logistics Nodes provide wireless transport: the server directly pairs extract faces with insert faces that share a line ID. For a wired network laid out block by block, use the simple pipes introduced in the first chapter."
+      "text": "Sky Logistics Nodes provide wireless transport. Set an extract face and an insert face to the same line, and resources can travel directly between them. For a wired network laid out block by block, use the simple pipes introduced in the first chapter."
     },
     {
       "type": "patchouli:text",

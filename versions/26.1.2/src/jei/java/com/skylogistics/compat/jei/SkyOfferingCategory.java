@@ -253,7 +253,10 @@ public class SkyOfferingCategory implements IRecipeCategory<RecipeHolder<Offerin
 
     private static List<ItemStack> displayStacks(OfferingRecipe.CountedIngredient ingredient) {
         List<ItemStack> stacks = new ArrayList<>();
-        ingredient.ingredient().items().forEach(item -> {
+        var valueStream = ingredient.ingredient().isCustom()
+                ? ingredient.ingredient().getCustomIngredient().items()
+                : ingredient.ingredient().getValues().stream();
+        valueStream.forEach(item -> {
             ItemStack copy = item.value().getDefaultInstance();
             copy.setCount(ingredient.count());
             if (ingredient.requireChargedCrystal() && copy.is(ModItems.EULOGIA_CRYSTAL.get())) {

@@ -4,7 +4,9 @@ import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.SimplePipeConnection;
+import com.skylogistics.util.SimplePipeGeometry;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
@@ -40,7 +42,6 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class SimplePipeBlock extends BaseEntityBlock {
@@ -56,9 +57,6 @@ public class SimplePipeBlock extends BaseEntityBlock {
             new ResourceLocation("forge", "tools/wrench"));
     private static final TagKey<Item> COMMON_WRENCHES = TagKey.create(Registries.ITEM,
             new ResourceLocation("c", "tools/wrench"));
-    private static final VoxelShape CORE = Block.box(5.0D, 5.0D, 5.0D, 11.0D, 11.0D, 11.0D);
-    private static final VoxelShape[] NORMAL_ARMS = makeArmShapes(false);
-    private static final VoxelShape[] EXTRACT_ARMS = makeArmShapes(true);
     private final SimplePipeType pipeType;
 
     public SimplePipeBlock(Properties properties, SimplePipeType pipeType) {
@@ -153,6 +151,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
             LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
@@ -313,23 +312,31 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private record PlacementConnections(Set<Direction> allowed, Set<Direction> rejected) {
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
         ItemStack held = player.getItemInHand(hand);
-        if (!held.is(FORGE_WRENCHES) && !held.is(COMMON_WRENCHES)) {
+        boolean wrench = held.is(FORGE_WRENCHES) || held.is(COMMON_WRENCHES);
+        if (wrench && player.isShiftKeyDown()) {
             return InteractionResult.PASS;
         }
-        boolean toggleConnection = player.isShiftKeyDown();
-        Direction direction = targetedDirection(state, level, pos, hit, toggleConnection);
-        if (direction == null) {
-            return InteractionResult.PASS;
-        }
-        if (toggleConnection) {
+        if (wrench) {
+            Direction direction = targetedDirection(state, level, pos, hit, true);
+            if (direction == null) {
+                return InteractionResult.PASS;
+            }
             if (!level.isClientSide && !toggleDisconnected(level, pos, state, direction, player)) {
                 return InteractionResult.PASS;
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        if (!held.is(ModItems.CONFIGURATOR.get())) {
+            return InteractionResult.PASS;
+        }
+        Direction direction = targetedDirection(state, level, pos, hit, false);
+        if (direction == null) {
+            return InteractionResult.PASS;
         }
         SimplePipeConnection current = connectionFromState(level, pos, state, direction);
         if (!current.isContainer()) {
@@ -423,6 +430,16 @@ public class SimplePipeBlock extends BaseEntityBlock {
 
     private boolean pipeConnectionWouldExceedLimit(Level level, BlockPos first, BlockPos second) {
         int maxConnected = SkyLogisticsConfig.simplePipeMaxConnectedBlocks();
+        if (level instanceof ServerLevel serverLevel) {
+            SkyNetworkRegistry.PipeLineInfo firstInfo =
+                    SkyNetworkRegistry.simplePipeLineInfo(serverLevel, first, pipeType);
+            SkyNetworkRegistry.PipeLineInfo secondInfo =
+                    SkyNetworkRegistry.simplePipeLineInfo(serverLevel, second, pipeType);
+            if (firstInfo != null && secondInfo != null) {
+                return !firstInfo.lineId().equals(secondInfo.lineId())
+                        && firstInfo.size() > maxConnected - secondInfo.size();
+            }
+        }
         Set<BlockPos> connected = collectConnectedPipeComponent(level, first, null, maxConnected);
         if (connected.size() > maxConnected) {
             return true;
@@ -492,21 +509,23 @@ public class SimplePipeBlock extends BaseEntityBlock {
         return RenderShape.MODEL;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        VoxelShape shape = CORE;
+        int connectionMask = 0;
+        int extractMask = 0;
+        SimplePipeBlockEntity pipeEntity =
+                level.getBlockEntity(pos) instanceof SimplePipeBlockEntity entity ? entity : null;
         for (Direction direction : Direction.values()) {
-            if (!state.getValue(connectionProperty(direction))) {
-                continue;
-            }
-            if (level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity
-                    && pipeEntity.isExtracting(direction)) {
-                shape = Shapes.or(shape, EXTRACT_ARMS[direction.ordinal()]);
-            } else {
-                shape = Shapes.or(shape, NORMAL_ARMS[direction.ordinal()]);
+            int side = SimplePipeGeometry.sideMask(direction);
+            if (state.getValue(connectionProperty(direction))) {
+                connectionMask |= side;
+                if (pipeEntity != null && pipeEntity.isExtracting(direction)) {
+                    extractMask |= side;
+                }
             }
         }
-        return shape;
+        return SimplePipeGeometry.shape(connectionMask, extractMask);
     }
 
     private static BlockState withConnection(BlockState state, Direction direction,
@@ -534,37 +553,11 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private record PlacementExtraction(BlockPos pos, Direction direction) {
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
             CollisionContext context) {
         return getShape(state, level, pos, context);
-    }
-
-    private static VoxelShape[] makeArmShapes(boolean extract) {
-        VoxelShape[] result = new VoxelShape[Direction.values().length];
-        for (Direction direction : Direction.values()) {
-            if (extract) {
-                VoxelShape shape = orientedBox(direction, 4.0D, 4.0D, 0.0D, 12.0D, 12.0D, 2.0D);
-                result[direction.ordinal()] = Shapes.or(shape,
-                        orientedBox(direction, 5.0D, 5.0D, 2.0D, 11.0D, 11.0D, 5.0D));
-            } else {
-                result[direction.ordinal()] =
-                        orientedBox(direction, 5.0D, 5.0D, 0.0D, 11.0D, 11.0D, 5.0D);
-            }
-        }
-        return result;
-    }
-
-    private static VoxelShape orientedBox(Direction direction, double minX, double minY, double minZ,
-            double maxX, double maxY, double maxZ) {
-        return switch (direction) {
-            case NORTH -> Block.box(minX, minY, minZ, maxX, maxY, maxZ);
-            case SOUTH -> Block.box(16.0D - maxX, minY, 16.0D - maxZ, 16.0D - minX, maxY, 16.0D - minZ);
-            case WEST -> Block.box(minZ, minY, minX, maxZ, maxY, maxX);
-            case EAST -> Block.box(16.0D - maxZ, minY, 16.0D - maxX, 16.0D - minZ, maxY, 16.0D - minX);
-            case DOWN -> Block.box(minX, minZ, minY, maxX, maxZ, maxY);
-            case UP -> Block.box(minX, 16.0D - maxZ, 16.0D - maxY, maxX, 16.0D - minZ, 16.0D - minY);
-        };
     }
 
     public boolean enabled() {

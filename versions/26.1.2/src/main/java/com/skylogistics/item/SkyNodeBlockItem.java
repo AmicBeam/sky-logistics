@@ -46,9 +46,9 @@ public class SkyNodeBlockItem extends BlockItem {
         return result;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, tooltip, flag);
         List<StoredFilter> filters = storedFilters(stack, context);
         if (filters.isEmpty()) {
             return;

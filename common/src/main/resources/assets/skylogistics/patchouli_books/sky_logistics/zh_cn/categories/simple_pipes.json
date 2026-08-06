@@ -1,6 +1,6 @@
 {
   "name": "简易管道",
-  "description": "使用物品、流体和能量管道连接相邻机器，并用天穹扳手调整端点。",
+  "description": "使用物品、流体和能量管道连接相邻机器，以扳手控制连接、配置器调整端点。",
   "icon": "skylogistics:simple_item_pipe",
   "sortnum": 0
 }

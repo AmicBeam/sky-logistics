@@ -30,11 +30,15 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_wrench",
-      "text": "Right-click a machine endpoint with the Sky Wrench to switch between extract and insert. Extract endpoints use a wider collar. Sneak-right-click a pipe connection to disconnect or reconnect that side."
+      "text": "Right-click a pipe connection with the Sky Wrench to disconnect or reconnect that side. Sneak-right-click a pipe to dismantle it quickly; its drops are placed in your inventory when possible."
     },
     {
       "type": "patchouli:text",
-      "text": "A simple pipe line contains at most 1,024 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and the player is notified. Different pipe types never join the same line. Transfer rates and the line limit are server-configurable."
+      "text": "Right-click a machine-facing endpoint with the Sky Configurator to switch it between extract and insert without opening the configurator screen. Extract endpoints use a wider collar."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A simple pipe line contains at most 256 pipe blocks by default. If placing or reconnecting a pipe would exceed the limit, the new edge stays disconnected and a message appears. Different pipe types never join the same line; server settings may change the default rates and line limit."
     }
   ]
 }

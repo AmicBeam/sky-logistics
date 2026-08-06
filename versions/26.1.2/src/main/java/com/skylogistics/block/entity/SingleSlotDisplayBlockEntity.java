@@ -1,6 +1,7 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.util.StackData;
+import com.skylogistics.util.ItemHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -17,36 +18,70 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     private static final String DATA_TAG = "SkyLogisticsSingleSlot";
-    private final ItemStackHandler items = new ItemStackHandler(1) {
+    private ItemStack displayedItem = ItemStack.EMPTY;
+    private final ItemHandler items = new ItemHandler() {
         @Override
-        public int getSlotLimit(int slot) {
-            return 64;
+        public int getSlots() {
+            return 1;
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            return slot == 0 ? displayedItem : ItemStack.EMPTY;
         }
 
         @Override
         public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-            if (isDisplaySlotLocked()) {
+            if (slot != 0 || stack.isEmpty() || isDisplaySlotLocked()) {
                 return stack;
             }
-            return super.insertItem(slot, stack, simulate);
+            if (!displayedItem.isEmpty() && !ItemStack.isSameItemSameComponents(displayedItem, stack)) {
+                return stack;
+            }
+            int limit = Math.min(64, stack.getMaxStackSize());
+            int space = limit - displayedItem.getCount();
+            int inserted = Math.min(space, stack.getCount());
+            if (inserted <= 0) {
+                return stack;
+            }
+            if (!simulate) {
+                displayedItem = displayedItem.isEmpty()
+                        ? stack.copyWithCount(inserted)
+                        : displayedItem.copyWithCount(displayedItem.getCount() + inserted);
+                markSlotChanged();
+            }
+            return inserted == stack.getCount()
+                    ? ItemStack.EMPTY
+                    : stack.copyWithCount(stack.getCount() - inserted);
         }
 
         @Override
         public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            if (isDisplaySlotLocked()) {
+            if (slot != 0 || amount <= 0 || displayedItem.isEmpty() || isDisplaySlotLocked()) {
                 return ItemStack.EMPTY;
             }
-            return super.extractItem(slot, amount, simulate);
+            int extracted = Math.min(amount, displayedItem.getCount());
+            ItemStack result = displayedItem.copyWithCount(extracted);
+            if (!simulate) {
+                displayedItem = displayedItem.getCount() == extracted
+                        ? ItemStack.EMPTY
+                        : displayedItem.copyWithCount(displayedItem.getCount() - extracted);
+                markSlotChanged();
+            }
+            return result;
         }
 
         @Override
-        protected void onContentsChanged(int slot) {
-            markSlotChanged();
+        public int getSlotLimit(int slot) {
+            return slot == 0 ? 64 : 0;
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return slot == 0 && !stack.isEmpty() && !isDisplaySlotLocked();
         }
     };
 
@@ -54,7 +89,7 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         super(type, pos, state);
     }
 
-    public IItemHandler itemHandler() {
+    public ItemHandler itemHandler() {
         return items;
     }
 
@@ -67,7 +102,8 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         if (!copy.isEmpty()) {
             copy.setCount(Math.min(copy.getCount(), Math.min(64, copy.getMaxStackSize())));
         }
-        items.setStackInSlot(0, copy);
+        displayedItem = copy;
+        markSlotChanged();
     }
 
     public void shrinkDisplayedItem(int count) {
@@ -77,10 +113,11 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         }
         stack.shrink(count);
         if (stack.isEmpty()) {
-            items.setStackInSlot(0, ItemStack.EMPTY);
+            displayedItem = ItemStack.EMPTY;
         } else {
-            items.setStackInSlot(0, stack);
+            displayedItem = stack;
         }
+        markSlotChanged();
     }
 
     public boolean insertFromPlayer(Player player, ItemStack held) {
@@ -128,7 +165,8 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         }
         int extracted = Math.min(amount, stack.getCount());
         ItemStack result = stack.split(extracted);
-        items.setStackInSlot(0, stack.isEmpty() ? ItemStack.EMPTY : stack);
+        displayedItem = stack.isEmpty() ? ItemStack.EMPTY : stack;
+        markSlotChanged();
         return result;
     }
 
@@ -155,6 +193,7 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
         tag.put("Item", StackData.saveItem(items.getStackInSlot(0), registries));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
@@ -163,7 +202,7 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
     }
 
     private void loadDisplayData(CompoundTag tag, HolderLookup.Provider registries) {
-        items.setStackInSlot(0, StackData.loadItem(tag.getCompoundOrEmpty("Item"), registries));
+        displayedItem = StackData.loadItem(tag.getCompoundOrEmpty("Item"), registries);
     }
 
     @Override

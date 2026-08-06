@@ -27,6 +27,7 @@ plugins {
 }
 
 apply plugin: 'net.minecraftforge.gradle'
+apply from: file('../../gradle/version-consistency.gradle')
 
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
@@ -213,6 +214,9 @@ def beyondDimensionsCompatJar = beyondDimensionsCompatPath ? file(beyondDimensio
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "mekanism:Mekanism:${mekanism_version}"
     if (ae2CompatJar != null && ae2CompatJar.exists()) {
         compileOnly files(ae2CompatJar)
@@ -280,11 +284,16 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url = "file://${project.projectDir}/mcmodsrepo"
         }
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs.addAll('-Xlint:deprecation', '-Xlint:unchecked')
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }

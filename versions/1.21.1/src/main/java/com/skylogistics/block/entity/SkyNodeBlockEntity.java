@@ -36,6 +36,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -80,6 +81,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private final EnumMap<Direction, NonNullList<ItemStack>> faceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FilterListItem.CompiledFilter[]> compiledFaceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, boolean[]> compiledFaceFilterDirty = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, ExternalWhitelistCandidates> externalWhitelistCandidates =
+            new EnumMap<>(Direction.class);
     private boolean itemsEnabled = true;
     private boolean fluidsEnabled = true;
     private boolean energyEnabled = true;
@@ -291,6 +294,32 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             return ItemStack.EMPTY;
         }
         return filters.get(slot);
+    }
+
+    public ExternalWhitelistCandidates externalWhitelistCandidates(Direction direction) {
+        ExternalWhitelistCandidates cached = externalWhitelistCandidates.get(direction);
+        if (cached != null) return cached;
+        boolean itemWhitelist = false;
+        boolean fluidWhitelist = false;
+        List<ItemStack> itemSamples = new ArrayList<>();
+        List<TagKey<Item>> itemTags = new ArrayList<>();
+        List<FluidStack> fluidSamples = new ArrayList<>();
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (compiled.whitelist() && compiled.hasItemRules()) {
+                itemWhitelist = true;
+                itemSamples.addAll(compiled.itemSamples());
+                itemTags.addAll(compiled.itemTags());
+            }
+            if (compiled.whitelist() && compiled.hasFluidRules()) {
+                fluidWhitelist = true;
+                fluidSamples.addAll(compiled.fluidSamples());
+            }
+        }
+        cached = new ExternalWhitelistCandidates(itemWhitelist, List.copyOf(itemSamples), List.copyOf(itemTags),
+                fluidWhitelist, List.copyOf(fluidSamples));
+        externalWhitelistCandidates.put(direction, cached);
+        return cached;
     }
 
     public boolean hasFaceFilter(Direction direction) {
@@ -1602,6 +1631,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (dirty != null && slot >= 0 && slot < dirty.length) {
             dirty[slot] = true;
         }
+        externalWhitelistCandidates.remove(direction);
+    }
+
+    public record ExternalWhitelistCandidates(boolean itemWhitelist, List<ItemStack> itemSamples,
+            List<TagKey<Item>> itemTags, boolean fluidWhitelist, List<FluidStack> fluidSamples) {
     }
 
     private void setFaceFilterDirect(Direction direction, int slot, ItemStack stack) {

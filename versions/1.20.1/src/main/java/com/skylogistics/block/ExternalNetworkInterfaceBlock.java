@@ -55,6 +55,7 @@ public class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {

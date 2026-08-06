@@ -4,6 +4,9 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.UUID;
@@ -14,17 +17,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 /** Minimal scheduler-facing state shared by configurable nodes and simple pipes. */
 public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
+    public enum TargetResource { ITEM, FLUID, CHEMICAL, ENERGY, MANA, SOURCE }
     private int itemCursor;
     private int fluidCursor;
-    private int targetCursor;
+    private final int[] targetCursors = new int[TargetResource.values().length];
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -54,10 +55,10 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public BlockPos getTargetPos(Direction direction) { return worldPosition.relative(direction); }
     public Direction getAccessSide(Direction direction) { return direction.getOpposite(); }
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) { return null; }
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) { return null; }
+    public ItemHandler getEndpointItemHandler(Direction direction, long gameTime) { return null; }
+    public FluidHandler getEndpointFluidHandler(Direction direction, long gameTime) { return null; }
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) { return null; }
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) { return null; }
+    public EnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) { return null; }
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) { return null; }
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) { return null; }
     public boolean allowsItem(Direction direction, ItemStack stack) { return true; }
@@ -93,10 +94,14 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return start;
     }
 
-    public int nextTargetCursor() {
-        int start = targetCursor;
-        targetCursor = targetCursor == Integer.MAX_VALUE ? 0 : targetCursor + 1;
-        return start;
+    public int targetCursor(TargetResource resource) {
+        return targetCursors[resource.ordinal()];
+    }
+
+    public void advanceTargetCursor(TargetResource resource) {
+        int index = resource.ordinal();
+        int cursor = targetCursors[index];
+        targetCursors[index] = cursor == Integer.MAX_VALUE ? 0 : cursor + 1;
     }
 
     public void lineNameChanged(UUID targetLineId) {

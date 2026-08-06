@@ -468,7 +468,10 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     private static Component describeIngredient(OfferingRecipe.CountedIngredient ingredient) {
-        Optional<ItemStack> example = ingredient.ingredient().items()
+        var valueStream = ingredient.ingredient().isCustom()
+                ? ingredient.ingredient().getCustomIngredient().items()
+                : ingredient.ingredient().getValues().stream();
+        Optional<ItemStack> example = valueStream
                 .findFirst()
                 .map(holder -> new ItemStack(holder.value()));
         Component name = example.map(ItemStack::getHoverName)

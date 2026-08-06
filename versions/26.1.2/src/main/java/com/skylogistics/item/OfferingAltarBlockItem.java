@@ -17,9 +17,9 @@ public class OfferingAltarBlockItem extends BlockItem {
         super(block, properties);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, display, tooltip, flag);
         tooltip.accept(Component.translatable("tooltip.skylogistics.offering_altar",
                 SkyLogisticsConfig.skyRitualMinY()).withStyle(ChatFormatting.GRAY));
     }

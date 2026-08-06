@@ -31,6 +31,11 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     }
 
     @Override
+    protected boolean exposesGenericResourceHandlers() {
+        return true;
+    }
+
+    @Override
     protected IItemHandler getItemHandler() {
         return itemHandler;
     }

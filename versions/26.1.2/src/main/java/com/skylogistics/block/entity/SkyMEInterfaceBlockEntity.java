@@ -13,44 +13,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEntity
         implements AppliedEnergisticsCompat.GridNodeOwner {
     private static final String DATA_TAG = "SkyLogisticsSkyMEInterface";
     private final AppliedEnergisticsCompat.GridNodeHandle ae2GridNode =
             AppliedEnergisticsCompat.createGridNodeHandle(this);
-    private final IItemHandler itemHandler = AppliedEnergisticsCompat.createItemHandler(this);
-    private final IFluidHandler fluidHandler = AppliedEnergisticsCompat.createFluidHandler(this);
-    private final IEnergyStorage energyHandler = AppliedEnergisticsCompat.createEnergyHandler(this);
     private final ChemicalHandlerBridge chemicalHandler = AppliedEnergisticsCompat.createChemicalHandler(this);
     private final ManaHandlerBridge manaHandler = AppliedEnergisticsCompat.createManaHandler(this);
     private final SourceHandlerBridge sourceHandler = AppliedEnergisticsCompat.createSourceHandler(this);
 
     public SkyMEInterfaceBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SKY_ME_INTERFACE.get(), pos, state);
-    }
-
-    @Override
-    protected IItemHandler getItemHandler() {
-        return itemHandler;
-    }
-
-    @Override
-    protected IFluidHandler getFluidHandler() {
-        return fluidHandler;
-    }
-
-    @Override
-    protected IEnergyStorage getEnergyHandler() {
-        return energyHandler;
-    }
-
-    @Override
-    protected boolean supportsEnergyEndpoint() {
-        return AppliedEnergisticsCompat.supportsEnergyEndpoint();
     }
 
     @Override
@@ -103,6 +77,7 @@ public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEnti
         output.store(DATA_TAG, CompoundTag.CODEC, tag);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);

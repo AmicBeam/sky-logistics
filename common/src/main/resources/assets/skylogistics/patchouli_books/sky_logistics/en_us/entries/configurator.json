@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Sky Configurator manages lines and quickly syncs logistics node settings. Right-click air to open the configurator screen; opening this screen exits paste mode. The screen lets you switch lines and choose whether the stored configuration enables items, fluids, and energy."
+      "text": "The Sky Configurator manages lines and quickly copies logistics node settings. Right-click air to open its screen; doing so exits paste mode. The screen lets you switch lines and choose whether the saved settings carry items, fluids, and energy."
     },
     {
       "type": "patchouli:text",
@@ -14,6 +14,10 @@
     {
       "type": "patchouli:text",
       "text": "While paste mode is active, right-click a Sky Logistics Node to paste the configurator's line and resource toggles onto that node, also without opening the node screen. Paste mode exits when the configurator is no longer held, when the configurator screen is opened, or when you sneak-right-click air or a non-node block."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Right-clicking a machine-facing simple-pipe endpoint with the configurator does not open its screen. Instead, it switches that endpoint directly between extract and insert."
     }
   ]
 }

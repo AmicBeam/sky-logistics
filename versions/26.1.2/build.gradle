@@ -5,6 +5,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
+apply from: file('../../gradle/version-consistency.gradle')
+
 version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
@@ -54,6 +56,11 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
+    unitTest {
+        enable()
+        testedMod = mods."${mod_id}"
+    }
 }
 
 configurations {
@@ -88,6 +95,10 @@ def includeJeiCompat = true
 sourceSets {
     main {
         resources.srcDir '../../common/src/main/resources'
+    }
+    test {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
     }
 }
 
@@ -126,6 +137,10 @@ sourceSets.main.java.srcDir 'src/jade/java'
 sourceSets.main.java.srcDir 'src/jei/java'
 
 dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "net.neoforged:testframework:${neo_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "maven.modrinth:ae2:${ae2_version}"
     compileOnly "maven.modrinth:refined-storage:${refined_storage_version}"
     compileOnly "maven.modrinth:beyonddimensions:${beyond_dimensions_version}"
@@ -188,11 +203,17 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url = "file://${project.projectDir}/mcmodsrepo"
         }
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs.addAll('-Xlint:deprecation', '-Xlint:unchecked')
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+    maxHeapSize = '2G'
 }

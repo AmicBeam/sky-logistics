@@ -1,6 +1,5 @@
 package com.skylogistics;
 
-import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -82,26 +81,11 @@ public class SkyLogistics {
         if (tryDismantleWithWrench(event)) {
             return;
         }
-        if (forceSneakingPipeWrenchInteraction(event)) {
-            return;
-        }
         if (event.getHand() == InteractionHand.MAIN_HAND
                 && isNodeOrSimplePipe(event.getItemStack())) {
             event.setUseBlock(TriState.FALSE);
             event.setUseItem(TriState.TRUE);
         }
-    }
-
-    private static boolean forceSneakingPipeWrenchInteraction(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getHand() != InteractionHand.MAIN_HAND
-                || !event.getEntity().isShiftKeyDown()
-                || !isWrench(event.getItemStack())
-                || !(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof SimplePipeBlock)) {
-            return false;
-        }
-        event.setUseBlock(TriState.TRUE);
-        event.setUseItem(TriState.FALSE);
-        return true;
     }
 
     private static boolean isNodeOrSimplePipe(ItemStack stack) {
@@ -120,7 +104,6 @@ public class SkyLogistics {
                 || player.isSpectator()
                 || !player.mayBuild()
                 || !isWrench(event.getItemStack())
-                || state.getBlock() instanceof SimplePipeBlock
                 || !isSkyLogisticsBlock(state)) {
             return false;
         }
@@ -176,6 +159,7 @@ public class SkyLogistics {
 
     private void onServerStopping(ServerStoppingEvent event) {
         SkyNetworkRegistry.clear();
+        SkyNetworkTicker.clear();
         SkyNecklaceTicker.clear();
     }
 
@@ -188,16 +172,6 @@ public class SkyLogistics {
                 (altar, side) -> altar.itemHandler());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.OFFERING_TABLE.get(),
                 (table, side) -> table.itemHandler());
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedItemHandler());
-        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedFluidHandler());
-        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.SKY_ME_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedEnergyHandler());
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedItemHandler());
-        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_RS_INTERFACE.get(),
-                (blockEntity, side) -> blockEntity.exposedFluidHandler());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
                 (blockEntity, side) -> blockEntity.exposedItemHandler());
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),

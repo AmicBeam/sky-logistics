@@ -6,6 +6,9 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.util.EnergyStorage;
+import com.skylogistics.util.FluidHandler;
+import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.TransferCompat;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.EnergyUnifiedStorageHandler;
 import com.wintercogs.beyonddimensions.api.capability.helper.unordered.FluidUnifiedStorageHandler;
@@ -30,10 +33,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
 
 final class BeyondDimensionsApiBridge {
     private static final String CHEMICAL_HANDLER_CLASS =
@@ -46,16 +46,16 @@ final class BeyondDimensionsApiBridge {
     private BeyondDimensionsApiBridge() {
     }
 
-    static IItemHandler itemHandler(BlockEntity host) {
+    static ItemHandler itemHandler(BlockEntity host) {
         UnifiedStorage storage = storage(host);
         return storage == null ? EmptyExternalHandlers.Items.INSTANCE
-                : TransferCompat.legacyItemHandler(new ItemUnifiedStorageHandler(storage));
+                : TransferCompat.itemHandler(new ItemUnifiedStorageHandler(storage));
     }
 
-    static IFluidHandler fluidHandler(BlockEntity host) {
+    static FluidHandler fluidHandler(BlockEntity host) {
         UnifiedStorage storage = storage(host);
         return storage == null ? EmptyExternalHandlers.Fluids.INSTANCE
-                : TransferCompat.legacyFluidHandler(new FluidUnifiedStorageHandler(storage));
+                : TransferCompat.fluidHandler(new FluidUnifiedStorageHandler(storage));
     }
 
     static ChemicalHandlerBridge chemicalHandler(BlockEntity host) {
@@ -77,10 +77,10 @@ final class BeyondDimensionsApiBridge {
         }
     }
 
-    static IEnergyStorage energyHandler(BlockEntity host) {
+    static EnergyStorage energyHandler(BlockEntity host) {
         UnifiedStorage storage = storage(host);
         return storage == null ? EmptyExternalHandlers.Energy.INSTANCE
-                : TransferCompat.legacyEnergyHandler(new EnergyUnifiedStorageHandler(storage));
+                : TransferCompat.energyStorage(new EnergyUnifiedStorageHandler(storage));
     }
 
     static SourceHandlerBridge sourceHandler(BlockEntity host) {
@@ -247,7 +247,7 @@ final class BeyondDimensionsApiBridge {
                 || host.getDimensionNetworkId() >= 0) {
             return;
         }
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net != null && net.isManager(player)) {
             host.setDimensionNetworkId(net.getId());
             player.sendSystemMessage(Component.translatable("msg.beyonddimensions.block_net_bound", net.getId()));
@@ -269,7 +269,7 @@ final class BeyondDimensionsApiBridge {
 
     private static void bindFromPlayerNetwork(Level level, Player player,
             BeyondDimensionsCompat.NetworkBoundHost host) {
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net == null) {
             return;
         }
@@ -284,7 +284,7 @@ final class BeyondDimensionsApiBridge {
 
     private static void unbindFromPlayerNetwork(Level level, Player player,
             BeyondDimensionsCompat.NetworkBoundHost host, int currentNetId) {
-        DimensionsNet net = DimensionsNet.getNetFromPlayer(player);
+        DimensionsNet net = DimensionsNet.getPrimaryNetFromPlayer(player);
         if (net == null) {
             return;
         }

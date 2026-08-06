@@ -7,7 +7,7 @@
   ],
   "key": {
     "C": "skylogistics:celestial_stone",
-    "S": "minecraft:amethyst_shard",
+    "S": "#c:gems/amethyst",
     "N": "skylogistics:chora_nectar",
     "B": "minecraft:bucket"
   },

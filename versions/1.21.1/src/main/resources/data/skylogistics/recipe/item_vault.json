@@ -10,13 +10,13 @@
       "item": "skylogistics:celestial_stone"
     },
     "S": {
-      "item": "minecraft:amethyst_shard"
+      "tag":"c:gems/amethyst"
     },
     "N": {
       "item": "skylogistics:chora_nectar"
     },
     "H": {
-      "item": "minecraft:chest"
+      "tag":"c:chests/wooden"
     }
   },
   "result": {

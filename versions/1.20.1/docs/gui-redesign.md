@@ -48,6 +48,7 @@
 - [配置器宽屏工作台改版样例](gui-mockups/configurator-workbench-concept.png)
 - [配置器 AE2 / Mekanism 参考升级（GUI Scale 4）](gui-mockups/configurator-ae2-mek-upgrade-final-4x.png)
 - [物流节点现有布局优化](gui-mockups/node-face-config.png)
+- [物流节点 AE2 / Mekanism 参考升级（GUI Scale 4）](gui-mockups/sky-node-ae2-mek-upgrade-final-4x.png)
 - [过滤升级现有布局优化](gui-mockups/filter-upgrade-modes.png)
 - [库存终端现有布局优化](gui-mockups/vault-terminal.png)
 
@@ -71,6 +72,14 @@
 - 只从 AE2 借鉴紧凑网格与分区节奏，从 Mekanism 借鉴暗色内屏和模块化控件；颜色、图标仍来自天穹现有素材。
 - 顶部工具带、状态条、连接面主列表和右侧检查器严格覆盖当前功能，不加入搜索、保存、重置或新设置。
 - 无文字背景为 `384 x 244`，以最近邻放大到 `1536 x 976`；中文在同尺寸透明层单独渲染，避免 GUI Scale 4 下模糊。
+
+### 物流节点 AE2 / Mekanism 参考升级
+
+![Sky Node AE2 and Mekanism inspired upgrade](gui-mockups/sky-node-ae2-mek-upgrade-final-4x.png)
+
+- 左侧六面选择常驻，右侧只编辑当前面，底部完整保留 27 格物品栏和 9 格快捷栏。
+- 此图展示现有“基础”状态；红石、槽数、优先级和单面过滤仍通过现有“更多”入口进入，没有与基础控件同时暴露。
+- 两个升级槽、三种资源开关、无/抽取/存入模式及线路操作均保持现有数量和行为。
 
 ## 调研结论
 

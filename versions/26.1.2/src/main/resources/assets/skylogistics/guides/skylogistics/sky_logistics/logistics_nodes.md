@@ -16,6 +16,6 @@ A <ItemLink id="sky_node" /> is the wireless equivalent of a pipe endpoint. Norm
 
 One craft gives 2 nodes. Nodes have no internal buffer; they only pair same-line endpoints for transfer.
 
-In the node screen, each face can be disconnected, extract, or insert. Only connected faces participate in a line. The block model shows the main visual mode, but the actual behavior comes from the per-face settings.
+In the node screen, each face can be disconnected, extract, or insert. Only connected faces participate in a line, and the block appearance changes with its connections and extract faces.
 
 Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint.

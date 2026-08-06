@@ -166,7 +166,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         if (hovered == null) {
             return;
         }
-        graphics.renderComponentTooltip(font, List.of(hovered.stack().getDisplayName(),
+        graphics.renderComponentTooltip(font, List.of(hovered.stack().getHoverName(),
                 Component.translatable("screen.skylogistics.total_fluids", fullAmount(hovered.amount()))),
                 mouseX, mouseY);
     }
@@ -203,7 +203,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         List<FluidVaultBlockEntity.StoredFluid> result = new ArrayList<>();
         for (FluidVaultBlockEntity.StoredFluid fluid : vault.getStoredFluids(256)) {
             if (!query.isEmpty()
-                    && !fluid.stack().getDisplayName().getString().toLowerCase(Locale.ROOT).contains(query)) {
+                    && !fluid.stack().getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
                 continue;
             }
             result.add(fluid);
@@ -282,7 +282,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     }
 
     private static String fluidName(FluidVaultBlockEntity.StoredFluid fluid) {
-        return fluid.stack().getDisplayName().getString();
+        return fluid.stack().getHoverName().getString();
     }
 
     private static String fluidModId(FluidVaultBlockEntity.StoredFluid fluid) {

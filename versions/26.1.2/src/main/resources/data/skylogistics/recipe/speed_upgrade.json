@@ -7,7 +7,7 @@
   ],
   "key": {
     "S": "minecraft:sugar",
-    "R": "minecraft:redstone",
+    "R": "#c:dusts/redstone",
     "N": "skylogistics:chora_nectar"
   },
   "result": {
