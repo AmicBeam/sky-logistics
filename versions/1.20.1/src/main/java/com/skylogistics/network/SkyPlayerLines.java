@@ -88,7 +88,7 @@ public final class SkyPlayerLines extends SavedData {
             }
             case LAST -> index = playerLines.lines.size() - 1;
         }
-        return selectionAt(server, playerLines, index, displayFallback);
+        return selectionAt(server, playerLines, index, playerLines.lines.get(index).assignedName());
     }
 
     private LineSelection removeSelected(MinecraftServer server, Player player, UUID currentLineId,
