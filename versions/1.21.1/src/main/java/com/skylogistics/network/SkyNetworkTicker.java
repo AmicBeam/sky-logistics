@@ -429,7 +429,7 @@ public final class SkyNetworkTicker {
             }
             ItemStack sample = samples.get(sourceEndpoint.nextExternalItemCandidate(samples.size()));
             operations++;
-            LongItemResource resource = externalNetworkItemResourceForStack(sourceBlockEntity, sample);
+            LongItemResource resource = sourceLongEndpoint.resourceForStack(sample);
             if (resource.isEmpty()
                     || !sourceEndpoint.node().allowsItem(sourceEndpoint.direction(), resource.stack())) {
                 continue;
@@ -448,22 +448,6 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemSourceMiss(operations, candidates.itemSamples().size(), gameTime);
         }
         return operations;
-    }
-
-    private static LongItemResource externalNetworkItemResourceForStack(BlockEntity blockEntity, ItemStack sample) {
-        if (blockEntity instanceof SkyMEInterfaceBlockEntity) {
-            AppliedEnergisticsCompat.ItemResource resource = AppliedEnergisticsCompat.itemResourceForStack(blockEntity,
-                    sample);
-            return resource.isEmpty() ? LongItemResource.EMPTY
-                    : new LongItemResource(resource.stack(), resource.amount());
-        }
-        if (blockEntity instanceof SkyRSInterfaceBlockEntity) {
-            RefinedStorageCompat.ItemResource resource = RefinedStorageCompat.itemResourceForStack(blockEntity,
-                    sample);
-            return resource.isEmpty() ? LongItemResource.EMPTY
-                    : new LongItemResource(resource.stack(), resource.amount());
-        }
-        return LongItemResource.EMPTY;
     }
 
     private static boolean isDimensionItemEndpoint(CachedEndpoint endpoint) {
@@ -1197,6 +1181,10 @@ public final class SkyNetworkTicker {
     private interface LongItemEndpoint {
         LongItemResource resourceInSlot(int slot);
 
+        default LongItemResource resourceForStack(ItemStack stack) {
+            return LongItemResource.EMPTY;
+        }
+
         long insert(ItemStack stack, long amount, boolean simulate);
 
         long extract(int slot, ItemStack stack, long amount, boolean simulate);
@@ -1273,6 +1261,14 @@ public final class SkyNetworkTicker {
         }
 
         @Override
+        public LongItemResource resourceForStack(ItemStack stack) {
+            AppliedEnergisticsCompat.ItemResource resource = AppliedEnergisticsCompat.itemResourceForStack(
+                    blockEntity, stack);
+            return resource.isEmpty() ? LongItemResource.EMPTY
+                    : new LongItemResource(resource.stack(), resource.amount());
+        }
+
+        @Override
         public long insert(ItemStack stack, long amount, boolean simulate) {
             return AppliedEnergisticsCompat.insertItem(blockEntity, stack, amount, simulate);
         }
@@ -1293,6 +1289,14 @@ public final class SkyNetworkTicker {
         @Override
         public LongItemResource resourceInSlot(int slot) {
             return LongItemResource.EMPTY;
+        }
+
+        @Override
+        public LongItemResource resourceForStack(ItemStack stack) {
+            RefinedStorageCompat.ItemResource resource = RefinedStorageCompat.itemResourceForStack(blockEntity,
+                    stack);
+            return resource.isEmpty() ? LongItemResource.EMPTY
+                    : new LongItemResource(resource.stack(), resource.amount());
         }
 
         @Override
