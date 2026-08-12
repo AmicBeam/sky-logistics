@@ -13,7 +13,7 @@ Celestial logistics for Minecraft. Sky Logistics moves items, fluids, energy, an
 
 - **Wireless by design**: connect machines, vaults, and interfaces through named logistics lines instead of pipe runs. Items, fluids, and energy use the same line model, with optional cross-dimensional transfer.
 - **Simple local pipes**: item, fluid, and energy pipes automatically connect to nearby compatible containers. Connected pipes form bounded local lines and use the same transfer engine as logistics nodes without adding GUIs or hidden buffers.
-- **High throughput**: normal nodes process 1 stack/t and speed upgrades raise that to 2 stacks/t. Item and energy transfers use a 2.1B-class default per-operation cap, while direct Sky Logistics vault-to-vault transfers use a 9e18-class default cap.
+- **High throughput**: normal nodes process 1 stack/t and speed upgrades raise that to 2 stacks/t. Standard item and energy handlers use a 2.1B-class default per-operation cap, while direct transfers between long-capable storage endpoints such as Sky Logistics vaults, AE2, and Beyond Dimensions use a 9e18-class default cap.
 - **Server-friendly performance**: transfer work is scheduled with operation budgets, ready-line queues, hot slot tracking, capability caches, and endpoint backoff so large networks stay responsive without constantly scanning the world.
 - **Fast placement and setup**: node placement switches mode based on sneaking, and the Sky Configurator handles line management, copy/paste configuration, and offhand placement presets.
 - **Built-in high-stack storage**: Celestial Item Vaults and Celestial Fluid Vaults stack 9e18-class amounts per type in searchable terminal-style views, while type limits stay expandable and configurable.
