@@ -66,6 +66,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int SLOT_LIMIT_VALUE_X = 110;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
     private static final int SLOT_LIMIT_UP_X = 141;
+    private static final int BOTTOM_GROUP_Y = 216;
+    private static final int BOTTOM_GROUP_HEIGHT = 31;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -204,9 +206,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         drawStatPanels(graphics);
         ConfigPanel.drawContentPanel(graphics, leftPos + DETAIL_X, topPos + DETAIL_Y,
                 DETAIL_WIDTH, DETAIL_HEIGHT);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 216, 75, 31);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 87, topPos + 216, 75, 31);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 167, topPos + 216, 86, 31);
+        drawBottomFieldset(graphics, 8, 74, Component.translatable("screen.skylogistics.redstone"));
+        drawBottomFieldset(graphics, 86, 79, Component.translatable("screen.skylogistics.slot_limit"));
+        drawBottomFieldset(graphics, 169, 79, Component.translatable("screen.skylogistics.priority"));
     }
 
     @Override
@@ -232,14 +234,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
                 214, 55, ConfigPanel.MUTED);
         renderLineDetails(graphics, config);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
-                11, 215, ConfigPanel.MUTED, false);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
-                111, 215, ConfigPanel.MUTED, false);
+        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.redstone"),
+                45, 212, ConfigPanel.MUTED);
+        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.slot_limit"),
+                125, 212, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, slotLimitDisplay(config.slotLimit()),
                 SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.TEXT);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                193, 215, ConfigPanel.MUTED, false);
+        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.priority"),
+                208, 212, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.literal(String.valueOf(config.placement().priority())),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 6, ConfigPanel.TEXT);
     }
@@ -248,6 +250,24 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 48, 79, 20);
         ConfigPanel.drawContentPanel(graphics, leftPos + 90, topPos + 48, 80, 20);
         ConfigPanel.drawContentPanel(graphics, leftPos + 174, topPos + 48, 79, 20);
+    }
+
+    private void drawBottomFieldset(GuiGraphics graphics, int x, int width, Component legend) {
+        int absoluteX = leftPos + x;
+        int absoluteY = topPos + BOTTOM_GROUP_Y;
+        int legendWidth = font.width(legend);
+        int gapLeft = absoluteX + (width - legendWidth) / 2 - 3;
+        int gapRight = gapLeft + legendWidth + 6;
+        graphics.fill(absoluteX + 1, absoluteY + 1, absoluteX + width - 1,
+                absoluteY + BOTTOM_GROUP_HEIGHT - 1, ConfigPanel.PANEL);
+        graphics.fill(absoluteX, absoluteY, gapLeft, absoluteY + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(gapRight, absoluteY, absoluteX + width, absoluteY + 1, ConfigPanel.BORDER_DIM);
+        graphics.fill(absoluteX, absoluteY, absoluteX + 1, absoluteY + BOTTOM_GROUP_HEIGHT,
+                ConfigPanel.BORDER_DIM);
+        graphics.fill(absoluteX + width - 1, absoluteY, absoluteX + width,
+                absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
+        graphics.fill(absoluteX, absoluteY + BOTTOM_GROUP_HEIGHT - 1, absoluteX + width,
+                absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
     }
 
     private void drawCenteredLabel(GuiGraphics graphics, Component label, int centerX, int y, int color) {
