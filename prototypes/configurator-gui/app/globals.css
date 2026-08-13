@@ -116,9 +116,34 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 .empty-box::after { content: ""; width: 17px; height: 17px; border: 2px solid #6a6e6d; box-shadow: inset 2px 2px #0a0d0d; }
 .priority-box::after { content: ""; position: absolute; width: 40px; height: 22px; border: 2px solid #666b6a; }
 .priority-box { position: relative; color: #fff; }
-.torch { position: relative; }
-.torch i { width: 4px; height: 19px; background: #8d5f2c; border-right: 2px solid #3c2713; }
-.torch.lit i::before { content: ""; position: absolute; top: 7px; left: 17px; width: 9px; height: 7px; background: #ff1c0b; box-shadow: 0 -3px #ffec22, 3px 0 #ff7a0b; }
+.table-redstone-icon {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 27px;
+  background: url("/art/components/redstone-torch.png") center / 22px 27px no-repeat;
+  image-rendering: pixelated;
+}
+.table-redstone-icon.mode-有信号 {
+  filter: saturate(1.25) brightness(1.22);
+  box-shadow: 0 0 5px rgba(255, 58, 17, .6);
+}
+.table-redstone-icon.mode-无信号 { filter: saturate(.55) brightness(.55); }
+.table-redstone-icon.mode-忽略 { filter: saturate(.82) brightness(.86); }
+.table-redstone-icon.mode-禁用 { filter: grayscale(1) brightness(.6); }
+.table-redstone-icon b { display: none; }
+.table-redstone-icon.mode-禁用 b {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 27px;
+  height: 3px;
+  left: -2px;
+  top: 12px;
+  background: #b72720;
+  box-shadow: 0 1px #3e0907;
+  transform: rotate(-45deg);
+}
 .position { font-size: 14px !important; white-space: pre; }
 .world { font-size: 23px !important; }
 .world.earth { color: #4aa735; text-shadow: -5px 0 #2464b0, 4px 3px #143779; }
@@ -199,8 +224,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
   width: 22px;
   height: 27px;
   overflow: hidden;
-  background-image: url("/art/components/redstone-cycle-ignore.png");
-  background-position: -9px -3px;
+  background-image: url("/art/components/redstone-torch.png");
+  background-position: center;
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }

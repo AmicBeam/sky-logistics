@@ -15,12 +15,12 @@ const resourceOptions: Array<{ key: ResourceKey; label: string }> = [
 const redstoneModes: RedstoneMode[] = ["忽略", "有信号", "无信号", "禁用"];
 
 const entries = [
-  { dir: "↑", color: "green", flags: [1, 0, 1], priority: "0", redstone: true, pos: "12  64  -8", world: "earth" },
-  { dir: "↓", color: "cyan", flags: [1, 1, 0], priority: "-1", redstone: false, pos: "-32  70  15", world: "earth" },
-  { dir: "←", color: "amber", flags: [0, 0, 1], priority: "1", redstone: true, pos: "5  55  100", world: "orb" },
-  { dir: "→", color: "cyan", flags: [1, 1, 1], priority: "0", redstone: false, pos: "0  128  0", world: "orb" },
-  { dir: "↑", color: "green", flags: [1, 1, 0], priority: "2", redstone: false, pos: "18  72  11", world: "earth" },
-  { dir: "←", color: "amber", flags: [0, 1, 1], priority: "-2", redstone: true, pos: "-8  90  42", world: "orb" },
+  { dir: "↑", color: "green", flags: [1, 0, 1], priority: "0", redstone: "有信号" as RedstoneMode, pos: "12  64  -8", world: "earth" },
+  { dir: "↓", color: "cyan", flags: [1, 1, 0], priority: "-1", redstone: "禁用" as RedstoneMode, pos: "-32  70  15", world: "earth" },
+  { dir: "←", color: "amber", flags: [0, 0, 1], priority: "1", redstone: "无信号" as RedstoneMode, pos: "5  55  100", world: "orb" },
+  { dir: "→", color: "cyan", flags: [1, 1, 1], priority: "0", redstone: "忽略" as RedstoneMode, pos: "0  128  0", world: "orb" },
+  { dir: "↑", color: "green", flags: [1, 1, 0], priority: "2", redstone: "禁用" as RedstoneMode, pos: "18  72  11", world: "earth" },
+  { dir: "←", color: "amber", flags: [0, 1, 1], priority: "-2", redstone: "有信号" as RedstoneMode, pos: "-8  90  42", world: "orb" },
 ];
 
 function PixelButton({
@@ -216,7 +216,9 @@ export default function Home() {
                     <span className={`direction ${entry.color}`}>{entry.dir}</span>
                     {entry.flags.map((flag, flagIndex) => <span key={flagIndex} className={flag ? "check" : "empty-box"}>{flag ? "✓" : ""}</span>)}
                     <span className="priority-box">{entry.priority}</span>
-                    <span className={entry.redstone ? "torch lit" : "torch"}><i /></span>
+                    <span title={entry.redstone}>
+                      <i className={`table-redstone-icon mode-${entry.redstone}`} aria-hidden="true"><b /></i>
+                    </span>
                     <span className="position">{entry.pos}</span>
                     <span className={`world ${entry.world}`}>●</span>
                   </div>
