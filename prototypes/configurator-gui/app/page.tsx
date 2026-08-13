@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 type ResourceKey = "item" | "fluid" | "energy" | "auto";
 type RedstoneMode = "忽略" | "有信号" | "无信号" | "禁用";
+type TransferMode = "extract" | "insert";
 
 const resourceOptions: Array<{ key: ResourceKey; label: string }> = [
   { key: "item", label: "物品" },
@@ -13,14 +14,18 @@ const resourceOptions: Array<{ key: ResourceKey; label: string }> = [
 ];
 
 const redstoneModes: RedstoneMode[] = ["忽略", "有信号", "无信号", "禁用"];
+const transferModeLabels: Record<TransferMode, string> = {
+  extract: "抽取",
+  insert: "存入",
+};
 
 const entries = [
-  { dir: "↑", color: "green", flags: [1, 0, 1], priority: "0", redstone: "有信号" as RedstoneMode, pos: "12  64  -8", dimension: "minecraft:overworld" },
-  { dir: "↓", color: "cyan", flags: [1, 1, 0], priority: "-1", redstone: "禁用" as RedstoneMode, pos: "-32  70  15", dimension: "minecraft:overworld" },
-  { dir: "←", color: "amber", flags: [0, 0, 1], priority: "1", redstone: "无信号" as RedstoneMode, pos: "5  55  100", dimension: "minecraft:the_nether" },
-  { dir: "→", color: "cyan", flags: [1, 1, 1], priority: "0", redstone: "忽略" as RedstoneMode, pos: "0  128  0", dimension: "minecraft:the_end" },
-  { dir: "↑", color: "green", flags: [1, 1, 0], priority: "2", redstone: "禁用" as RedstoneMode, pos: "18  72  11", dimension: "twilightforest:twilight_forest" },
-  { dir: "←", color: "amber", flags: [0, 1, 1], priority: "-2", redstone: "有信号" as RedstoneMode, pos: "-8  90  42", dimension: "ad_astra:moon_orbit" },
+  { mode: "extract" as TransferMode, flags: [1, 0, 1], priority: "0", redstone: "有信号" as RedstoneMode, pos: "12  64  -8", dimension: "minecraft:overworld" },
+  { mode: "insert" as TransferMode, flags: [1, 1, 0], priority: "-1", redstone: "禁用" as RedstoneMode, pos: "-32  70  15", dimension: "minecraft:overworld" },
+  { mode: "extract" as TransferMode, flags: [0, 0, 1], priority: "1", redstone: "无信号" as RedstoneMode, pos: "5  55  100", dimension: "minecraft:the_nether" },
+  { mode: "insert" as TransferMode, flags: [1, 1, 1], priority: "0", redstone: "忽略" as RedstoneMode, pos: "0  128  0", dimension: "minecraft:the_end" },
+  { mode: "extract" as TransferMode, flags: [1, 1, 0], priority: "2", redstone: "禁用" as RedstoneMode, pos: "18  72  11", dimension: "twilightforest:twilight_forest" },
+  { mode: "insert" as TransferMode, flags: [0, 1, 1], priority: "-2", redstone: "有信号" as RedstoneMode, pos: "-8  90  42", dimension: "ad_astra:moon_orbit" },
 ];
 
 function PixelButton({
@@ -212,7 +217,7 @@ export default function Home() {
                 {visibleEntries.map((entry, index) => (
                   <div className="grid entry" key={`${detailScroll}-${index}`}>
                     <span><i className="device-cube">◆</i></span>
-                    <span className={`direction ${entry.color}`}>{entry.dir}</span>
+                    <span className={`transfer-mode mode-${entry.mode}`}>{transferModeLabels[entry.mode]}</span>
                     {entry.flags.map((flag, flagIndex) => <span key={flagIndex} className={flag ? "check" : "empty-box"}>{flag ? "✓" : ""}</span>)}
                     <span className="priority-box">{entry.priority}</span>
                     <span title={entry.redstone}>

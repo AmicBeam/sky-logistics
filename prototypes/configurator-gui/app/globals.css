@@ -118,10 +118,11 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 .grid.entry > span:first-child { border-left: 1px solid #344044; }
 .grid.entry.ghost { opacity: .18; border-bottom: 1px solid #344044; }
 .device-cube { font-style: normal; color: #777; text-shadow: 2px 2px #151515, -1px -1px #aaa; }
-.direction { font-size: 31px !important; font-weight: 800; }
-.direction.green, .check { color: #55c430; text-shadow: 2px 2px #194715; }
-.direction.cyan { color: #26b8d1; text-shadow: 2px 2px #095267; }
-.direction.amber { color: #ffb32b; text-shadow: 2px 2px #704b0a; }
+.transfer-mode { font-size: 13px !important; }
+/* Mirrors ConfiguratorScreen.modeColor / SkyNodeScreen.colorFor. */
+.transfer-mode.mode-extract { color: #ffb56b; }
+.transfer-mode.mode-insert { color: #7debff; }
+.check { color: #55c430; text-shadow: 2px 2px #194715; }
 .empty-box::after { content: ""; width: 17px; height: 17px; border: 2px solid #6a6e6d; box-shadow: inset 2px 2px #0a0d0d; }
 .priority-box::after { content: ""; position: absolute; width: 40px; height: 22px; border: 2px solid #666b6a; }
 .priority-box { position: relative; color: #fff; }
