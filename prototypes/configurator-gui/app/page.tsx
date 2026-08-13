@@ -181,7 +181,6 @@ export default function Home() {
           <div className="gui-scale" style={{ transform: `scale(${scale})` }}>
             <div className="gui" aria-label="天穹配置器交互模拟">
               <div className="title-row">
-                <span className="title-icon">▣</span>
                 <strong>天穹配置器</strong>
               </div>
 
