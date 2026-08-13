@@ -224,5 +224,15 @@
   "message.skylogistics.simple_pipe.insert": "insert",
   "message.skylogistics.simple_pipe.extract": "extract",
   "message.skylogistics.simple_pipe.disconnected": "Pipe connection disconnected",
-  "message.skylogistics.simple_pipe.reconnected": "Pipe connection reconnected"
+  "message.skylogistics.simple_pipe.reconnected": "Pipe connection reconnected",
+  "screen.skylogistics.stat.nodes": "Nodes %s",
+  "screen.skylogistics.stat.extract": "Extract %s",
+  "screen.skylogistics.stat.insert": "Insert %s",
+  "screen.skylogistics.detail.device": "Device",
+  "screen.skylogistics.detail.mode": "Mode",
+  "screen.skylogistics.detail.resources": "IFE",
+  "screen.skylogistics.detail.priority": "Priority",
+  "screen.skylogistics.detail.redstone": "RS",
+  "screen.skylogistics.detail.location": "Position / Dimension",
+  "screen.skylogistics.configurator.auto": "Auto"
 }

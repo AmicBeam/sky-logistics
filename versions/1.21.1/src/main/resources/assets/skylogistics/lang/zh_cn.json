@@ -224,5 +224,15 @@
   "message.skylogistics.simple_pipe.insert": "存入",
   "message.skylogistics.simple_pipe.extract": "抽取",
   "message.skylogistics.simple_pipe.disconnected": "管道连接已断开",
-  "message.skylogistics.simple_pipe.reconnected": "管道连接已恢复"
+  "message.skylogistics.simple_pipe.reconnected": "管道连接已恢复",
+  "screen.skylogistics.stat.nodes": "节点 %s",
+  "screen.skylogistics.stat.extract": "抽取 %s",
+  "screen.skylogistics.stat.insert": "存入 %s",
+  "screen.skylogistics.detail.device": "设备",
+  "screen.skylogistics.detail.mode": "模式",
+  "screen.skylogistics.detail.resources": "物流能",
+  "screen.skylogistics.detail.priority": "优先",
+  "screen.skylogistics.detail.redstone": "红石",
+  "screen.skylogistics.detail.location": "坐标 / 维度",
+  "screen.skylogistics.configurator.auto": "自动"
 }
