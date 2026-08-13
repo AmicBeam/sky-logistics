@@ -17,6 +17,10 @@
     {
       "name": "final",
       "operation": "strict 260x250 grid convergence plus repaired glyph pixels from round 2"
+    },
+    {
+      "name": "round-3",
+      "operation": "merged the separate redstone torch and ignore dropdown controls into one continuous button, then reconverged through 520x500 working resolution"
     }
   ],
   "dimensions": {
@@ -26,8 +30,8 @@
   },
   "validation": {
     "total4x4Blocks": 65000,
-    "uniform4x4Blocks": 62520,
-    "consistency": 0.9618461538461538,
+    "uniform4x4Blocks": 62510,
+    "consistency": 0.9616923076923077,
     "threshold": 0.9,
     "pass": true
   },
