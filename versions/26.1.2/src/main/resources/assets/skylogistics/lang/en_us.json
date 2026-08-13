@@ -234,5 +234,6 @@
   "screen.skylogistics.detail.priority": "Priority",
   "screen.skylogistics.detail.redstone": "RS",
   "screen.skylogistics.detail.location": "Position / Dimension",
-  "screen.skylogistics.configurator.auto": "Auto"
+  "screen.skylogistics.configurator.auto": "Auto",
+  "screen.skylogistics.configurator.line": "Line"
 }

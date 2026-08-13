@@ -206,19 +206,20 @@ export default function Home() {
 
               <div className="connections panel" onWheel={scrollDetails}>
                 <div className="section-heading">
-                  <span>线路连接面</span>
                   {entries.length > visibleRowCount && (
                     <span className="scroll-range">{detailScroll + 1}-{visibleRangeEnd}/{entries.length}</span>
                   )}
                 </div>
                 <div className="grid header">
-                  <span>设备</span><span>模式</span><span>物</span><span>流</span><span>能</span><span>优先</span><span>红石</span><span>坐标 / 维度</span>
+                  <span>设备</span><span>模式</span><span className="resource-header">资源</span><span>优先</span><span>红石</span><span>坐标 / 维度</span>
                 </div>
                 {visibleEntries.map((entry, index) => (
                   <div className="grid entry" key={`${detailScroll}-${index}`}>
                     <span><i className="device-cube">◆</i></span>
                     <span className={`transfer-mode mode-${entry.mode}`}>{transferModeLabels[entry.mode]}</span>
-                    {entry.flags.map((flag, flagIndex) => <span key={flagIndex} className={flag ? "check" : "empty-box"}>{flag ? "✓" : ""}</span>)}
+                    <span className="resource-flags">
+                      {entry.flags.map((flag, flagIndex) => <i key={flagIndex} className={flag ? "check" : "empty-box"}>{flag ? "✓" : ""}</i>)}
+                    </span>
                     <span className="priority-box">{entry.priority}</span>
                     <span title={entry.redstone}>
                       <i className={`table-redstone-icon mode-${entry.redstone}`} aria-hidden="true"><b /></i>

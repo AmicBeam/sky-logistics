@@ -40,17 +40,18 @@ import org.lwjgl.glfw.GLFW;
 
 public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu> {
     private static final String SKY_NECKLACE_ID = "skylogistics:sky_necklace";
+    private static final String CONFIGURATOR_TEXTURE_ROOT = "textures/gui/configurator/";
     private static final int LINE_NAME_LABEL_Y = 28;
     private static final int LINE_NAME_LABEL_GAP = 4;
-    private static final int LINE_NAME_EDIT_X = 46;
+    private static final int LINE_NAME_EDIT_X = 40;
     private static final int LINE_NAME_EDIT_Y = 24;
     private static final int LINE_NAME_EDIT_WIDTH = 90;
     private static final int LINE_NAME_EDIT_HEIGHT = 15;
     private static final int DETAIL_X = 8;
-    private static final int DETAIL_Y = 82;
+    private static final int DETAIL_Y = 72;
     private static final int DETAIL_WIDTH = 244;
-    private static final int DETAIL_HEIGHT = 91;
-    private static final int DETAIL_ROW_HEIGHT = 19;
+    private static final int DETAIL_HEIGHT = 101;
+    private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_HEADER_HEIGHT = 12;
     private static final int DETAIL_VISIBLE_ROWS = 4;
     private static final int DETAIL_ICON_X = DETAIL_X + 6;
@@ -64,7 +65,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int PRIORITY_VALUE_WIDTH = 34;
     private static final int PRIORITY_UP_X = 232;
     private static final int SLOT_LIMIT_ROW_Y = 222;
-    private static final int SLOT_LIMIT_LABEL_X = 90;
     private static final int SLOT_LIMIT_DOWN_X = 90;
     private static final int SLOT_LIMIT_VALUE_X = 112;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 34;
@@ -96,11 +96,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         typeButtons.clear();
         priorityButtons.clear();
         slotLimitButtons.clear();
-        addLineButton(leftPos + 166, topPos + 23, 17, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 185, topPos + 23, 17, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 204, topPos + 23, 17, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 223, topPos + 23, 17, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 242, topPos + 23, 16, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addLineButton(leftPos + 160, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 177, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 194, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 211, topPos + 23, 15, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 228, topPos + 23, 15, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
         lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
@@ -109,10 +109,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
-        addTypeButton(leftPos + CONTROL_START_X, topPos + 181, ResourceType.ITEMS);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 181, ResourceType.FLUIDS);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 181, ResourceType.ENERGY);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 181, ResourceType.AUTO);
+        addTypeButton(leftPos + CONTROL_START_X, topPos + 184, ResourceType.ITEMS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 184, ResourceType.FLUIDS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 184, ResourceType.ENERGY);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 184, ResourceType.AUTO);
         redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + CONTROL_START_X, topPos + 222));
         addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + SLOT_LIMIT_ROW_Y, -1, Component.literal("-"));
         addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + SLOT_LIMIT_ROW_Y, 1, Component.literal("+"));
@@ -216,12 +216,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         int lineIndex = menu.getLineIndex() + 1;
         int lineCount = Math.max(1, menu.getLineCount());
-        Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
+        Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
         graphics.drawString(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
                 LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
-                140, 28, ConfigPanel.TEXT, false);
+        graphics.drawCenteredString(font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.nodes", menu.getLineNodes()),
                 46, 55, ConfigPanel.MUTED);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.extract", menu.getLineInputs()),
@@ -347,8 +346,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
         List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.line_faces"),
-                DETAIL_X + DETAIL_WIDTH / 2, DETAIL_Y - 10, ConfigPanel.MUTED);
         if (entries.size() > DETAIL_VISIBLE_ROWS) {
             int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
             graphics.drawString(font, Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size()),
@@ -409,21 +406,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
-        int dark = 0xFF381010;
-        int red = 0xFFE32A20;
-        int bright = 0xFFFFD740;
-        int muted = 0xFF687176;
-        int line = switch (control) {
-            case HIGH -> red;
-            case LOW -> dark;
-            case IGNORE -> 0xFF9D3730;
-            case DISABLED -> muted;
-        };
-        graphics.fill(x + 4, y + 5, x + 6, y + 14, control == RedstoneControl.DISABLED ? muted : 0xFF8B5A2B);
-        graphics.fill(x + 2, y + 2, x + 8, y + 6, line);
-        if (control == RedstoneControl.HIGH) graphics.fill(x + 3, y + 1, x + 7, y + 3, bright);
-        else if (control == RedstoneControl.LOW) graphics.fill(x + 3, y + 2, x + 7, y + 4, dark);
-        else if (control == RedstoneControl.DISABLED) graphics.fill(x + 1, y + 7, x + 9, y + 9, 0xFFC5322A);
+        ResourceLocation texture = guiTexture("redstone_" + control.getSerializedName() + ".png");
+        int textureSize = control == RedstoneControl.DISABLED ? 16 : 18;
+        graphics.blit(texture, x, y, 0, 0, 14, 14, textureSize, textureSize);
+    }
+
+    private ResourceLocation guiTexture(String name) {
+        return ResourceLocation.fromNamespaceAndPath("skylogistics", CONFIGURATOR_TEXTURE_ROOT + name);
     }
 
     private boolean isOverDetails(double mouseX, double mouseY) {
@@ -770,7 +759,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final ResourceType type;
 
         private TypeToggleButton(int x, int y, ResourceType type) {
-            super(x, y, RESOURCE_BUTTON_WIDTH, 27, Component.translatable(type.translationKey));
+            super(x, y, RESOURCE_BUTTON_WIDTH, 21, Component.translatable(type.translationKey));
             this.type = type;
         }
 
@@ -791,54 +780,21 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             drawResourceButtonChrome(graphics, enabled);
-            drawResourceIcon(graphics, getX() + 5, getY() + 5, type, enabled);
-            graphics.drawString(font, getMessage(), getX() + 23, getY() + 10,
+            drawResourceIcon(graphics, getX() + 5, getY() + 2, type, enabled);
+            graphics.drawString(font, getMessage(), getX() + 25, getY() + 6,
                     enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED, false);
         }
 
         private void drawResourceButtonChrome(GuiGraphics graphics, boolean selected) {
             int border = selected ? 0xFFFFB228 : (active ? 0xFF59666A : ConfigPanel.BORDER_DIM);
             ConfigPanel.drawBox(graphics, getX(), getY(), width, height, 0xFF071D24, border);
-            graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + 13, 0xFF0B2931);
+            graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + 10, 0xFF0B2931);
         }
 
         private void drawResourceIcon(GuiGraphics graphics, int x, int y, ResourceType resource, boolean selected) {
-            int gray = 0xFF899397;
-            int color = selected ? switch (resource) {
-                case ITEMS -> 0xFFE59A20;
-                case FLUIDS -> 0xFF32AEDC;
-                case ENERGY -> 0xFFFFCA37;
-                case AUTO -> 0xFF5BC448;
-            } : gray;
-            int shadow = selected ? switch (resource) {
-                case ITEMS -> 0xFF70420D;
-                case FLUIDS -> 0xFF14536B;
-                case ENERGY -> 0xFF7B5B12;
-                case AUTO -> 0xFF285F25;
-            } : 0xFF3C4548;
-            switch (resource) {
-                case ITEMS -> {
-                    graphics.fill(x + 1, y + 3, x + 15, y + 16, shadow);
-                    graphics.fill(x + 2, y + 2, x + 14, y + 14, color);
-                    graphics.fill(x + 7, y + 6, x + 10, y + 12, 0xFFE7ECEC);
-                }
-                case FLUIDS -> {
-                    graphics.fill(x + 7, y + 1, x + 10, y + 5, color);
-                    graphics.fill(x + 4, y + 5, x + 13, y + 13, color);
-                    graphics.fill(x + 6, y + 12, x + 11, y + 16, shadow);
-                }
-                case ENERGY -> {
-                    graphics.fill(x + 8, y + 1, x + 13, y + 7, color);
-                    graphics.fill(x + 4, y + 7, x + 11, y + 11, color);
-                    graphics.fill(x + 5, y + 11, x + 9, y + 16, shadow);
-                }
-                case AUTO -> {
-                    graphics.fill(x + 3, y + 3, x + 14, y + 5, color);
-                    graphics.fill(x + 2, y + 5, x + 5, y + 14, color);
-                    graphics.fill(x + 4, y + 14, x + 14, y + 16, shadow);
-                    graphics.fill(x + 12, y + 5, x + 15, y + 14, shadow);
-                }
-            }
+            String name = resource.name().toLowerCase(java.util.Locale.ROOT);
+            ResourceLocation texture = guiTexture("resource_" + name + (selected ? "" : "_off") + "_small.png");
+            graphics.blit(texture, x, y, 0, 0, 18, 17, 18, 17);
         }
 
         private boolean isEnabled() {
