@@ -24,6 +24,6 @@ test("server-renders the configurator prototype shell", async () => {
   assert.match(html, /AmicBeam-0/);
   assert.match(html, /线路连接面/);
   assert.match(html, /红石/);
-  assert.match(html, /520 × 500/);
+  assert.match(html, /260 × 250/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });

@@ -170,7 +170,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">SKY LOGISTICS · INTERACTION PROTOTYPE</p>
           <h1>天穹配置器 GUI 原型</h1>
-          <p>按 520×500 美术交付稿模拟。点击控件可验证状态与交互，尚未写入模组代码。</p>
+          <p>按游戏内 260×250 逻辑尺寸显示。点击控件可验证状态与交互。</p>
         </div>
         <div className="toolbar" aria-label="原型预览工具">
           <span>预览倍率</span>
@@ -182,8 +182,8 @@ export default function Home() {
       </section>
 
       <section className="workspace">
-        <div className="canvas-wrap" style={{ width: 520 * scale, height: 500 * scale }}>
-          <div className="gui-scale" style={{ transform: `scale(${scale})` }}>
+        <div className="canvas-wrap" style={{ width: 260 * scale, height: 250 * scale }}>
+          <div className="gui-scale" style={{ transform: `scale(${scale / 2})` }}>
             <div className="gui" aria-label="天穹配置器交互模拟">
               <div className="title-row">
                 <strong>天穹配置器</strong>
@@ -279,7 +279,7 @@ export default function Home() {
           <strong>{lastAction}</strong>
           <p>数值按钮支持 Shift + 点击，每次增减 10。</p>
           <dl>
-            <div><dt>逻辑画布</dt><dd>520 × 500</dd></div>
+            <div><dt>显示尺寸</dt><dd>260 × 250</dd></div>
             <div><dt>线路</dt><dd>{lineIndex + 1} / {lines.length}</dd></div>
             <div><dt>连接范围</dt><dd>{detailScroll + 1}-{visibleRangeEnd} / {entries.length}</dd></div>
             <div><dt>红石</dt><dd>{redstone}</dd></div>
