@@ -77,14 +77,39 @@ function inset(x, y, w, h, active = false) {
   rect(x + 1, y + h - 1, w - 2, 1, active ? C.gold2 : C.steel3);
   rect(x + w - 1, y + 1, 1, h - 1, active ? C.gold1 : C.steel3);
 }
-function button(x, y, w, h, active = false) {
+function squareButton(x, y, w, h, active = false) {
+  // Reference-style compact control: black outer keyline, steel bevel,
+  // recessed dark face. Active pagination uses cyan, never gold.
   rect(x, y, w, h, C.void);
-  vfill(x + 1, y + 1, w - 2, h - 2, active ? [C.panel2, '#0b252e', C.ink] : [C.steel2, C.steel1, '#191d1e']);
-  rect(x + 1, y + 1, w - 2, 1, active ? C.gold3 : C.steel3);
-  rect(x + 1, y + 1, 1, h - 2, active ? C.gold2 : C.steel2);
-  rect(x + 1, y + h - 2, w - 2, 1, active ? C.gold0 : C.steel0);
+  rect(x + 1, y + 1, w - 2, h - 2, active ? C.cyan0 : C.steel2);
+  rect(x + 1, y + 1, w - 2, 1, active ? C.cyan2 : C.steel3);
+  rect(x + 1, y + 1, 1, h - 2, active ? C.cyan1 : C.steel3);
+  rect(x + 1, y + h - 2, w - 2, 1, active ? '#032b35' : C.steel0);
   rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
-  pixel(x + 2, y + 2, active ? C.gold2 : C.steel2);
+  vfill(x + 3, y + 3, w - 6, h - 6, active ? ['#12333a', '#082127', C.void] : ['#343839', '#242829', '#171a1b']);
+  rect(x + 3, y + 3, w - 6, 1, active ? C.cyan0 : '#5a5e5d');
+}
+function modeButton(x, y, w, h, active = false) {
+  // Wide cyan-black selector with the reference's clipped double border.
+  rect(x, y, w, h, C.void);
+  const hi = active ? C.gold3 : C.steel3;
+  const mid = active ? C.gold2 : C.edge1;
+  rect(x + 2, y, w - 4, 1, hi); rect(x + 1, y + 1, w - 2, 1, mid);
+  rect(x, y + 2, 1, h - 4, hi); rect(x + 1, y + 2, 1, h - 4, mid);
+  rect(x + 2, y + h - 1, w - 4, 1, active ? C.gold0 : C.steel0);
+  rect(x + w - 1, y + 2, 1, h - 4, active ? C.gold0 : C.steel0);
+  vfill(x + 3, y + 3, w - 6, h - 6, [C.panel2, '#0b2027', C.ink]);
+  rect(x + 3, y + 3, w - 6, 1, active ? C.gold1 : C.edge0);
+  pixel(x+1,y+1,hi); pixel(x+w-2,y+1,mid); pixel(x+1,y+h-2,mid);
+}
+function smallButton(x, y, w, h) {
+  rect(x, y, w, h, C.void);
+  rect(x + 1, y + 1, w - 2, h - 2, C.steel1);
+  rect(x + 1, y + 1, w - 2, 1, C.steel3);
+  rect(x + 1, y + 1, 1, h - 2, C.steel2);
+  rect(x + 1, y + h - 2, w - 2, 1, C.steel0);
+  rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
+  vfill(x + 3, y + 3, w - 6, h - 6, ['#303435', '#242829', '#191d1e']);
 }
 function tableCell(x, y, w, h) {
   rect(x, y, w, h, C.void);
@@ -168,8 +193,10 @@ async function main() {
   carvedFrame(1, 1, 258, 248); carvedFrame(5, 18, 250, 23); carvedFrame(5, 44, 250, 15);
   rect(7, 20, 246, 19, C.ink); rect(7, 46, 246, 11, C.panel);
   // Original title emblem, authored at logical resolution.
-  button(8, 7, 9, 9, true); rect(10, 9, 5, 5, C.gold1); rect(11, 10, 3, 3, C.gold3); pixel(12, 11, C.panel);
-  inset(38, 23, 96, 14); button(166, 23, 14, 14); button(183, 23, 14, 14); button(200, 23, 14, 14, true); button(217, 23, 14, 14); button(234, 23, 14, 14);
+  // Title emblem is its own gold device sprite, not a UI button.
+  rect(8,7,9,9,C.void); rect(9,7,7,1,C.gold2); rect(8,8,1,7,C.gold3); rect(9,15,7,1,C.gold0); rect(16,8,1,7,C.gold0);
+  rect(10,9,5,5,C.gold1); rect(11,10,3,3,C.gold3); pixel(12,11,C.panel); pixel(10,9,C.gold3); pixel(14,13,C.gold0);
+  inset(38, 23, 96, 14); squareButton(166, 23, 14, 14); squareButton(183, 23, 14, 14); squareButton(200, 23, 14, 14, true); squareButton(217, 23, 14, 14); squareButton(234, 23, 14, 14);
   // Pagination glyphs remain much finer than the table direction sprites.
   line(170,27,170,33,C.white); line(174,27,171,30,C.white); line(171,30,174,33,C.white);
   line(192,27,188,30,C.white); line(188,30,192,33,C.white);
@@ -195,7 +222,7 @@ async function main() {
     globe(236, cy - 4, row >= 2);
   }
   // Bottom selector row.
-  carvedFrame(5, 182, 250, 24); button(10, 186, 57, 17, true); button(72, 186, 57, 17); button(134, 186, 57, 17); button(196, 186, 54, 17);
+  carvedFrame(5, 182, 250, 24); modeButton(10, 186, 57, 17, true); modeButton(72, 186, 57, 17); modeButton(134, 186, 57, 17); modeButton(196, 186, 54, 17);
   chest(20, 189);
   // droplet, lightning, auto ring.
   droplet(81,188);
@@ -203,9 +230,9 @@ async function main() {
   autoRing(209,189);
   // Lower controls.
   carvedFrame(8, 210, 75, 31); carvedFrame(87, 210, 80, 31); carvedFrame(171, 210, 80, 31);
-  inset(15, 221, 17, 15); torch(21, 223); button(36, 221, 42, 15);
-  button(94, 221, 16, 15); inset(115, 221, 23, 15); button(143, 221, 16, 15); minus(99, 226); plus(148, 225);
-  button(178, 221, 16, 15); inset(199, 221, 23, 15); button(227, 221, 16, 15); minus(183, 226); plus(232, 225);
+  inset(15, 221, 17, 15); torch(21, 223); squareButton(36, 221, 42, 15);
+  smallButton(94, 221, 16, 15); inset(115, 221, 23, 15); smallButton(143, 221, 16, 15); minus(99, 226); plus(148, 225);
+  smallButton(178, 221, 16, 15); inset(199, 221, 23, 15); smallButton(227, 221, 16, 15); minus(183, 226); plus(232, 225);
   // Hand-placed material glints: intentional single logical pixels.
   for (const [x,y,c] of [[3,4,C.cyan2],[256,4,C.edge2],[3,245,C.edge2],[256,245,C.cyan2],[10,64,C.cyan1],[250,174,C.edge2],[68,187,C.gold3]]) pixel(x,y,c);
 
