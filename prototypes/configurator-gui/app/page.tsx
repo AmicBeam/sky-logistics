@@ -54,7 +54,7 @@ function PixelButton({
 export default function Home() {
   const [lines, setLines] = useState(["AmicBeam-0", "工厂主线", "跨维度仓储"]);
   const [lineIndex, setLineIndex] = useState(0);
-  const [detailPage, setDetailPage] = useState(0);
+  const [detailScroll, setDetailScroll] = useState(0);
   const [resources, setResources] = useState<Record<ResourceKey, boolean>>({
     item: true,
     fluid: false,
@@ -68,12 +68,17 @@ export default function Home() {
   const [showReference, setShowReference] = useState(false);
   const [lastAction, setLastAction] = useState("等待操作");
 
-  const pageCount = Math.ceil(entries.length / 4);
-  const visibleEntries = useMemo(() => entries.slice(detailPage * 4, detailPage * 4 + 4), [detailPage]);
+  const visibleRowCount = 4;
+  const maxDetailScroll = Math.max(0, entries.length - visibleRowCount);
+  const visibleEntries = useMemo(
+    () => entries.slice(detailScroll, detailScroll + visibleRowCount),
+    [detailScroll],
+  );
+  const visibleRangeEnd = Math.min(entries.length, detailScroll + visibleRowCount);
 
   const selectLine = (next: number) => {
     setLineIndex(next);
-    setDetailPage(0);
+    setDetailScroll(0);
     setLastAction(`切换到线路 ${next + 1}：${lines[next]}`);
   };
 
@@ -117,6 +122,19 @@ export default function Home() {
     setLastAction(`红石模式：${next}`);
   };
 
+  const scrollDetails = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (maxDetailScroll === 0 || event.deltaY === 0) return;
+    event.preventDefault();
+    const direction = Math.sign(event.deltaY);
+    setDetailScroll((current) => {
+      const next = Math.max(0, Math.min(maxDetailScroll, current + direction));
+      if (next !== current) {
+        setLastAction(`连接列表：${next + 1}-${Math.min(entries.length, next + visibleRowCount)}/${entries.length}`);
+      }
+      return next;
+    });
+  };
+
   const adjust = (
     setter: React.Dispatch<React.SetStateAction<number>>,
     label: string,
@@ -133,7 +151,7 @@ export default function Home() {
 
   const reset = () => {
     setLineIndex(0);
-    setDetailPage(0);
+    setDetailScroll(0);
     setResources({ item: true, fluid: false, energy: false, auto: false });
     setRedstone("忽略");
     setSlotLimit(0);
@@ -182,20 +200,18 @@ export default function Home() {
                 <div>节点&nbsp; 6</div><div>抽取&nbsp; 2</div><div>存入&nbsp; 4</div>
               </div>
 
-              <div className="connections panel">
+              <div className="connections panel" onWheel={scrollDetails}>
                 <div className="section-heading">
                   <span>线路连接面</span>
-                  <div className="page-controls">
-                    <span>{detailPage + 1}/{pageCount}</span>
-                    <PixelButton disabled={detailPage === 0} onClick={() => setDetailPage(detailPage - 1)}>‹</PixelButton>
-                    <PixelButton disabled={detailPage === pageCount - 1} onClick={() => setDetailPage(detailPage + 1)}>›</PixelButton>
-                  </div>
+                  {entries.length > visibleRowCount && (
+                    <span className="scroll-range">{detailScroll + 1}-{visibleRangeEnd}/{entries.length}</span>
+                  )}
                 </div>
                 <div className="grid header">
                   <span>设备</span><span>模式</span><span>物</span><span>流</span><span>能</span><span>优先</span><span>红石</span><span>坐标</span><span>维度</span>
                 </div>
                 {visibleEntries.map((entry, index) => (
-                  <div className="grid entry" key={`${detailPage}-${index}`}>
+                  <div className="grid entry" key={`${detailScroll}-${index}`}>
                     <span><i className="device-cube">◆</i></span>
                     <span className={`direction ${entry.color}`}>{entry.dir}</span>
                     {entry.flags.map((flag, flagIndex) => <span key={flagIndex} className={flag ? "check" : "empty-box"}>{flag ? "✓" : ""}</span>)}
@@ -257,7 +273,7 @@ export default function Home() {
           <dl>
             <div><dt>逻辑画布</dt><dd>520 × 500</dd></div>
             <div><dt>线路</dt><dd>{lineIndex + 1} / {lines.length}</dd></div>
-            <div><dt>连接页</dt><dd>{detailPage + 1} / {pageCount}</dd></div>
+            <div><dt>连接范围</dt><dd>{detailScroll + 1}-{visibleRangeEnd} / {entries.length}</dd></div>
             <div><dt>红石</dt><dd>{redstone}</dd></div>
           </dl>
         </aside>
