@@ -94,12 +94,6 @@ function tableCell(x, y, w, h) {
   rect(x + 1, y + h - 2, w - 2, 1, C.steel0);
   rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
   vfill(x + 3, y + 3, w - 6, h - 6, ['#282c2c', '#222627', '#1a1e1f']);
-  // Sparse authored-looking steel grain at the native resolution.
-  for (let yy = y + 4; yy < y + h - 3; yy++) for (let xx = x + 4; xx < x + w - 3; xx++) {
-    const n = (xx * 29 + yy * 47 + xx * yy * 3) % 97;
-    if (n === 0) pixel(xx, yy, '#303536');
-    if (n === 1 && yy > y + h / 2) pixel(xx, yy, '#15191a');
-  }
 }
 function check(x, y, on, color = C.green1) {
   if (!on) {

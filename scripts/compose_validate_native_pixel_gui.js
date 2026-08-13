@@ -6,6 +6,7 @@ const logicalPath = path.join(outDir, 'native-pixel-background-260x250.png');
 const backgroundPath = path.join(outDir, 'native-pixel-background-4x.png');
 const textPath = path.join(outDir, 'native-pixel-text-4x.png');
 const finalPath = path.join(outDir, 'native-pixel-final-4x.png');
+const lockPath = path.join(outDir, 'design-lock.json');
 
 async function raw(p) { return sharp(p).ensureAlpha().raw().toBuffer({ resolveWithObject: true }); }
 
@@ -25,9 +26,18 @@ async function main() {
   for (let i = 0; i < final.data.length && compositeExact; i += 4) {
     if (text.data[i+3] === 0) for (let c = 0; c < 4; c++) if (final.data[i+c] !== bg.data[i+c]) { compositeExact = false; break; }
   }
-  const report = { dimensions, strict4x, compositeExact, logical:[260,250], framebuffer:[1040,1000], provenance:'native logical drawing operations only; reference image was not a renderer input' };
+  const lock = require(path.resolve(lockPath));
+  const expected = {
+    outerFrame: [1,1,258,248], routeBar: [5,18,250,23], statsBar: [5,44,250,15],
+    connectionPanel: [5,62,250,116], connectionTable: [8,77,244,98], modeBar: [5,182,250,24],
+    redstonePanel: [8,210,75,31], reservePanel: [87,210,80,31], priorityPanel: [171,210,80,31],
+  };
+  const layoutLocked = Object.entries(expected).every(([key, value]) => JSON.stringify(lock.rectangles[key]) === JSON.stringify(value))
+    && JSON.stringify(lock.table.columnEdges) === JSON.stringify([9,37,63,84,106,128,158,181,227,251])
+    && JSON.stringify(lock.table.rowEdges) === JSON.stringify([87,108,129,150,171]);
+  const report = { dimensions, strict4x, compositeExact, layoutLocked, logical:[260,250], framebuffer:[1040,1000], provenance:'native logical drawing operations only; reference image was not a renderer input' };
   console.log(JSON.stringify(report));
-  if (!dimensions || !strict4x || !compositeExact) process.exitCode = 1;
+  if (!dimensions || !strict4x || !compositeExact || !layoutLocked) process.exitCode = 1;
 }
 
 main().catch((e) => { console.error(e); process.exitCode = 1; });

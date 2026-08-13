@@ -1,0 +1,37 @@
+{
+  "description": "Design-space lock for the reference-faithful 1040x1000 GUI. Coordinates are native 260x250 logical pixels.",
+  "canvas": { "logical": [260, 250], "scale": 4, "framebuffer": [1040, 1000] },
+  "palette": {
+    "background": "#02090c",
+    "panel": "#061116",
+    "panelRaised": "#242829",
+    "cyanShadow": "#10262e",
+    "cyanMid": "#244651",
+    "cyanHighlight": "#4b8992",
+    "steelDark": "#111516",
+    "steelMid": "#474b4b",
+    "steelHighlight": "#777c7a",
+    "activeGold": "#edaa2c"
+  },
+  "rectangles": {
+    "outerFrame": [1, 1, 258, 248],
+    "routeBar": [5, 18, 250, 23],
+    "statsBar": [5, 44, 250, 15],
+    "connectionPanel": [5, 62, 250, 116],
+    "connectionTable": [8, 77, 244, 98],
+    "modeBar": [5, 182, 250, 24],
+    "redstonePanel": [8, 210, 75, 31],
+    "reservePanel": [87, 210, 80, 31],
+    "priorityPanel": [171, 210, 80, 31]
+  },
+  "table": {
+    "columnEdges": [9, 37, 63, 84, 106, 128, 158, 181, 227, 251],
+    "rowEdges": [87, 108, 129, 150, 171]
+  },
+  "rules": [
+    "Do not move, resize, add, delete, or reorder controls.",
+    "Do not substitute icon subjects or arrow directions.",
+    "Do not add procedural texture or decorative elements.",
+    "Only the rendering medium may change to native logical pixels."
+  ]
+}
