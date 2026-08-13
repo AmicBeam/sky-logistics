@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 type ResourceKey = "item" | "fluid" | "energy" | "auto";
 type RedstoneMode = "忽略" | "有信号" | "无信号" | "禁用";
 
-const resourceOptions: Array<{ key: ResourceKey; icon: string; label: string }> = [
-  { key: "item", icon: "▣", label: "物品" },
-  { key: "fluid", icon: "♠", label: "流体" },
-  { key: "energy", icon: "ϟ", label: "能量" },
-  { key: "auto", icon: "◉", label: "自动" },
+const resourceOptions: Array<{ key: ResourceKey; label: string }> = [
+  { key: "item", label: "物品" },
+  { key: "fluid", label: "流体" },
+  { key: "energy", label: "能量" },
+  { key: "auto", label: "自动" },
 ];
 
 const redstoneModes: RedstoneMode[] = ["忽略", "有信号", "无信号", "禁用"];
@@ -216,7 +216,7 @@ export default function Home() {
                     active={resources[resource.key]}
                     onClick={() => toggleResource(resource.key, resource.label)}
                   >
-                    <span className={`resource-icon ${resource.key}`}>{resource.icon}</span>
+                    <span className={`resource-icon ${resource.key}`} aria-hidden="true" />
                     <span>{resource.label}</span>
                   </PixelButton>
                 ))}
@@ -226,7 +226,9 @@ export default function Home() {
                 <fieldset className="control-group redstone-control">
                   <legend>红石</legend>
                   <PixelButton className="redstone-cycle" onClick={cycleRedstone} title="点击循环红石模式">
-                    <span className={`tiny-torch mode-${redstone}`} />
+                    <span className={`redstone-mode-icon mode-${redstone}`} aria-hidden="true">
+                      <i />
+                    </span>
                     <span>{redstone}</span>
                   </PixelButton>
                 </fieldset>
