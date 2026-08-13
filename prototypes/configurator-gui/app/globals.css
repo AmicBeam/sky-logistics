@@ -104,9 +104,19 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 
 .grid { display: grid; grid-template-columns: 55px 55px 42px 42px 42px 61px 47px 138px; }
 .grid.header { height: 20px; color: #9babb0; font-size: 11px; text-align: center; align-items: center; background: #020c10; }
-.grid.entry { height: 42px; background: rgba(25, 31, 31, .82); }
-.grid.entry > span { display: grid; place-items: center; border: 2px solid #3e4443; border-top-color: #555a59; font-size: 17px; }
-.grid.entry.ghost { opacity: .18; border: 2px solid #3e4443; }
+.grid.entry {
+  height: 42px;
+  background: rgba(25, 31, 31, .82);
+  border-bottom: 1px solid #344044;
+}
+.grid.entry > span {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid #344044;
+  font-size: 17px;
+}
+.grid.entry > span:first-child { border-left: 1px solid #344044; }
+.grid.entry.ghost { opacity: .18; border-bottom: 1px solid #344044; }
 .device-cube { font-style: normal; color: #777; text-shadow: 2px 2px #151515, -1px -1px #aaa; }
 .direction { font-size: 31px !important; font-weight: 800; }
 .direction.green, .check { color: #55c430; text-shadow: 2px 2px #194715; }
