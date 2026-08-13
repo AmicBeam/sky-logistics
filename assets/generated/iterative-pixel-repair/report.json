@@ -21,6 +21,10 @@
     {
       "name": "round-3",
       "operation": "merged the separate redstone torch and ignore dropdown controls into one continuous button, then reconverged through 520x500 working resolution"
+    },
+    {
+      "name": "round-4",
+      "operation": "removed the remaining dropdown-arrow glyph because the project implements redstone as a click-to-cycle button, exported a real 520x500 working image and extracted button components"
     }
   ],
   "dimensions": {
@@ -30,8 +34,8 @@
   },
   "validation": {
     "total4x4Blocks": 65000,
-    "uniform4x4Blocks": 62510,
-    "consistency": 0.9616923076923077,
+    "uniform4x4Blocks": 62527,
+    "consistency": 0.9619538461538462,
     "threshold": 0.9,
     "pass": true
   },

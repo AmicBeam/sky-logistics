@@ -1,0 +1,201 @@
+{
+  "source": "final-working-520x500.png",
+  "canvas": [
+    520,
+    500
+  ],
+  "components": [
+    {
+      "name": "nav-first",
+      "type": "navigation",
+      "state": "enabled",
+      "bounds": [
+        326,
+        42,
+        33,
+        30
+      ],
+      "file": "nav-first.png"
+    },
+    {
+      "name": "nav-previous",
+      "type": "navigation",
+      "state": "enabled",
+      "bounds": [
+        362,
+        42,
+        31,
+        30
+      ],
+      "file": "nav-previous.png"
+    },
+    {
+      "name": "nav-next-active",
+      "type": "navigation",
+      "state": "active-current",
+      "bounds": [
+        398,
+        42,
+        32,
+        30
+      ],
+      "file": "nav-next-active.png"
+    },
+    {
+      "name": "nav-last",
+      "type": "navigation",
+      "state": "enabled",
+      "bounds": [
+        435,
+        42,
+        31,
+        30
+      ],
+      "file": "nav-last.png"
+    },
+    {
+      "name": "nav-close",
+      "type": "navigation-destructive",
+      "state": "enabled",
+      "bounds": [
+        470,
+        42,
+        31,
+        30
+      ],
+      "file": "nav-close.png"
+    },
+    {
+      "name": "page-previous",
+      "type": "navigation",
+      "state": "enabled",
+      "bounds": [
+        424,
+        123,
+        32,
+        27
+      ],
+      "file": "page-previous.png"
+    },
+    {
+      "name": "page-next",
+      "type": "navigation",
+      "state": "enabled",
+      "bounds": [
+        461,
+        123,
+        32,
+        27
+      ],
+      "file": "page-next.png"
+    },
+    {
+      "name": "resource-item-active",
+      "type": "resource-toggle",
+      "state": "active-selected",
+      "bounds": [
+        18,
+        370,
+        113,
+        40
+      ],
+      "file": "resource-item-active.png"
+    },
+    {
+      "name": "resource-fluid",
+      "type": "resource-toggle",
+      "state": "inactive-unselected",
+      "bounds": [
+        140,
+        370,
+        112,
+        40
+      ],
+      "file": "resource-fluid.png"
+    },
+    {
+      "name": "resource-energy",
+      "type": "resource-toggle",
+      "state": "inactive-unselected",
+      "bounds": [
+        262,
+        370,
+        112,
+        40
+      ],
+      "file": "resource-energy.png"
+    },
+    {
+      "name": "resource-auto",
+      "type": "resource-toggle",
+      "state": "inactive-unselected",
+      "bounds": [
+        383,
+        370,
+        115,
+        40
+      ],
+      "file": "resource-auto.png"
+    },
+    {
+      "name": "redstone-cycle-ignore",
+      "type": "redstone-cycle",
+      "state": "enabled-mode-ignore",
+      "bounds": [
+        28,
+        440,
+        124,
+        34
+      ],
+      "file": "redstone-cycle-ignore.png"
+    },
+    {
+      "name": "slot-decrease",
+      "type": "numeric-adjust",
+      "state": "enabled",
+      "bounds": [
+        184,
+        440,
+        34,
+        34
+      ],
+      "file": "slot-decrease.png"
+    },
+    {
+      "name": "slot-increase",
+      "type": "numeric-adjust",
+      "state": "enabled",
+      "bounds": [
+        279,
+        440,
+        34,
+        34
+      ],
+      "file": "slot-increase.png"
+    },
+    {
+      "name": "priority-decrease",
+      "type": "numeric-adjust",
+      "state": "enabled",
+      "bounds": [
+        350,
+        440,
+        34,
+        34
+      ],
+      "file": "priority-decrease.png"
+    },
+    {
+      "name": "priority-increase",
+      "type": "numeric-adjust",
+      "state": "enabled",
+      "bounds": [
+        458,
+        440,
+        27,
+        34
+      ],
+      "file": "priority-increase.png"
+    }
+  ]
+}
