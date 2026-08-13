@@ -79,7 +79,7 @@
   "tooltip.skylogistics.sky_necklace.priority": "Priority: %s",
   "tooltip.skylogistics.sky_node.filters": "Installed filter lists: %s",
   "tooltip.skylogistics.sky_node.filter_face": "%s face: %s, %s item / %s fluid",
-  "tooltip.skylogistics.speed_upgrade": "Install in a logistics node to raise its rate to 2 stacks/t.",
+  "tooltip.skylogistics.speed_upgrade": "Install in a logistics node to raise its rate to 2 slots/t.",
   "tooltip.skylogistics.dimension_upgrade": "Install in an input node to send to same-line targets in other dimensions.",
   "tooltip.skylogistics.offering_altar": "Works only at sky height %s or higher with a valid offering circle.",
   "tooltip.skylogistics.eulogia_crystal.uncharged": "Uncharged. Keep it at sky height %s or higher in your inventory or on a Sky Offering Table.",
