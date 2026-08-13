@@ -9,8 +9,8 @@ const rgba = Buffer.alloc(W * H * 4);
 
 const C = {
   void: '#02090c', ink: '#061116', panel: '#0b1b21', panel2: '#10262d',
-  edge0: '#142b32', edge1: '#28505a', edge2: '#4a8791', steel0: '#171a1b',
-  steel1: '#2b2f30', steel2: '#505555', steel3: '#8d9290', white: '#d9dfdc',
+  edge0: '#10262e', edge1: '#244651', edge2: '#4b8992', steel0: '#111516',
+  steel1: '#242829', steel2: '#474b4b', steel3: '#777c7a', white: '#d9dfdc',
   gold0: '#6d3b08', gold1: '#b5680d', gold2: '#edaa2c', gold3: '#ffd35c',
   cyan0: '#075267', cyan1: '#0e92af', cyan2: '#55d8e7', green0: '#245d0d',
   green1: '#55b928', green2: '#91e94f', red0: '#751313', red1: '#e72b24',
@@ -44,6 +44,16 @@ function frame(x, y, w, h, active = false) {
   pixel(x + 1, y + 1, hi); pixel(x + w - 2, y + 1, mid);
   pixel(x + 1, y + h - 2, mid); pixel(x + w - 2, y + h - 2, C.edge0);
 }
+function carvedFrame(x, y, w, h) {
+  // Narrow double cyan outline with clipped Minecraft-style corners.
+  rect(x + 2, y, w - 4, 1, C.edge2); rect(x + 1, y + 1, w - 2, 1, C.edge1);
+  rect(x, y + 2, 1, h - 4, C.edge2); rect(x + 1, y + 2, 1, h - 4, C.edge0);
+  rect(x + 2, y + h - 1, w - 4, 1, C.edge2); rect(x + 1, y + h - 2, w - 2, 1, C.edge0);
+  rect(x + w - 1, y + 2, 1, h - 4, C.edge2); rect(x + w - 2, y + 2, 1, h - 4, C.edge0);
+  pixel(x + 1, y + 1, C.edge2); pixel(x + w - 2, y + 1, C.edge2);
+  pixel(x + 1, y + h - 2, C.edge2); pixel(x + w - 2, y + h - 2, C.edge2);
+  rect(x + 3, y + 3, w - 6, 1, C.void); rect(x + 3, y + h - 4, w - 6, 1, C.edge0);
+}
 function inset(x, y, w, h, active = false) {
   rect(x, y, w, h, C.steel0); rect(x + 1, y + 1, w - 2, h - 2, C.steel1);
   rect(x + 2, y + 2, w - 4, h - 4, C.void);
@@ -51,8 +61,22 @@ function inset(x, y, w, h, active = false) {
   rect(x + w - 1, y + 1, 1, h - 1, active ? C.gold1 : C.steel3);
 }
 function button(x, y, w, h, active = false) {
-  rect(x, y, w, h, active ? C.panel2 : C.steel0); frame(x, y, w, h, active);
-  rect(x + 3, y + 3, w - 6, 1, active ? C.gold1 : C.steel2);
+  rect(x, y, w, h, C.void);
+  rect(x + 1, y + 1, w - 2, h - 2, active ? C.panel2 : C.steel1);
+  rect(x + 1, y + 1, w - 2, 1, active ? C.gold3 : C.steel3);
+  rect(x + 1, y + 1, 1, h - 2, active ? C.gold2 : C.steel2);
+  rect(x + 1, y + h - 2, w - 2, 1, active ? C.gold0 : C.steel0);
+  rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
+  pixel(x + 2, y + 2, active ? C.gold2 : C.steel2);
+}
+function tableCell(x, y, w, h) {
+  rect(x, y, w, h, C.void);
+  rect(x + 1, y + 1, w - 2, h - 2, C.steel1);
+  rect(x + 1, y + 1, w - 2, 1, C.steel3);
+  rect(x + 1, y + 1, 1, h - 2, C.steel2);
+  rect(x + 1, y + h - 2, w - 2, 1, C.steel0);
+  rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
+  rect(x + 3, y + 3, w - 6, h - 6, '#202526');
 }
 function check(x, y, on, color = C.green1) {
   rect(x, y, 8, 8, C.steel0); rect(x + 1, y + 1, 6, 6, C.void); pixel(x + 1, y + 2, C.steel3);
@@ -98,20 +122,23 @@ function minus(x, y, color = C.white) { rect(x, y + 2, 6, 2, color); }
 async function main() {
   rect(0, 0, W, H, C.void);
   // Outer carved frame and title band.
-  frame(1, 1, 258, 248); frame(5, 18, 250, 23); frame(5, 44, 250, 15);
-  rect(6, 19, 248, 21, C.ink); rect(6, 45, 248, 13, C.panel);
+  carvedFrame(1, 1, 258, 248); carvedFrame(5, 18, 250, 23); carvedFrame(5, 44, 250, 15);
+  rect(7, 20, 246, 19, C.ink); rect(7, 46, 246, 11, C.panel);
   // Original title emblem, authored at logical resolution.
   button(8, 7, 9, 9, true); rect(10, 9, 5, 5, C.gold1); rect(11, 10, 3, 3, C.gold3); pixel(12, 11, C.panel);
   inset(38, 23, 96, 14); inset(166, 23, 14, 14); inset(183, 23, 14, 14); button(200, 23, 14, 14, true); button(217, 23, 14, 14); button(234, 23, 14, 14);
   arrow(173, 30, 'left', C.white); arrow(190, 30, 'left', C.white); arrow(207, 30, 'right', C.white); arrow(224, 30, 'right', C.white);
   line(239, 27, 244, 32, C.red1); line(244, 27, 239, 32, C.red1);
   line(86, 45, 86, 58, C.edge1); line(170, 45, 170, 58, C.edge1);
-  // Main connection table shell.
-  frame(5, 62, 250, 116); rect(7, 64, 246, 112, C.ink);
-  frame(8, 77, 244, 98);
+  // Main connection table shell: cyan double frame outside, beveled steel table inside.
+  carvedFrame(5, 62, 250, 116); rect(7, 64, 246, 112, C.ink);
+  carvedFrame(8, 77, 244, 98);
   const cols = [9,37,63,84,106,128,158,181,227,251];
-  for (const x of cols) line(x, 87, x, 172, C.steel2);
-  for (const y of [87,108,129,150,172]) line(9, y, 242, y, C.steel2);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < cols.length - 1; col++) {
+      tableCell(cols[col], 87 + row * 21, cols[col + 1] - cols[col], 21);
+    }
+  }
   for (let row = 0; row < 4; row++) {
     const cy = 97 + row * 21;
     cube(17, cy - 5);
@@ -121,7 +148,7 @@ async function main() {
     globe(236, cy - 4, row >= 2);
   }
   // Bottom selector row.
-  frame(5, 182, 250, 24); button(10, 186, 57, 17, true); button(72, 186, 57, 17); button(134, 186, 57, 17); button(196, 186, 54, 17);
+  carvedFrame(5, 182, 250, 24); button(10, 186, 57, 17, true); button(72, 186, 57, 17); button(134, 186, 57, 17); button(196, 186, 54, 17);
   cube(20, 190); // chest-like gold selector
   rect(20, 190, 10, 8, C.gold1); rect(21, 189, 8, 2, C.gold2); rect(21, 193, 8, 1, C.gold3); inset(24, 193, 2, 3);
   // droplet, lightning, auto ring.
@@ -129,7 +156,7 @@ async function main() {
   line(151, 189, 146, 196, C.white); line(146, 196, 151, 196, C.white); line(151, 196, 147, 201, C.white);
   rect(211, 190, 8, 2, C.steel3); rect(209, 192, 2, 7, C.steel3); rect(219, 192, 2, 7, C.steel1); rect(211, 199, 8, 2, C.steel1);
   // Lower controls.
-  frame(8, 210, 75, 31); frame(87, 210, 80, 31); frame(171, 210, 80, 31);
+  carvedFrame(8, 210, 75, 31); carvedFrame(87, 210, 80, 31); carvedFrame(171, 210, 80, 31);
   inset(15, 221, 17, 15); torch(21, 223); button(36, 221, 42, 15);
   button(94, 221, 16, 15); inset(115, 221, 23, 15); button(143, 221, 16, 15); minus(99, 226); plus(148, 225);
   button(178, 221, 16, 15); inset(199, 221, 23, 15); button(227, 221, 16, 15); minus(183, 226); plus(232, 225);
