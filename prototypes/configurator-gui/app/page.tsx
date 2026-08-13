@@ -173,7 +173,7 @@ export default function Home() {
                 <span className="counter">{lineIndex + 1}/{lines.length}</span>
                 <PixelButton title="第一条线路" disabled={lineIndex === 0} onClick={() => selectLine(0)}>│‹</PixelButton>
                 <PixelButton title="上一条线路" disabled={lineIndex === 0} onClick={() => selectLine(lineIndex - 1)}>‹</PixelButton>
-                <PixelButton title="下一条线路；末尾时创建" active onClick={createNextLine}>›＋</PixelButton>
+                <PixelButton title="下一条线路；末尾时创建" onClick={createNextLine}>›＋</PixelButton>
                 <PixelButton title="最后一条线路" disabled={lineIndex === lines.length - 1} onClick={() => selectLine(lines.length - 1)}>›│</PixelButton>
                 <PixelButton title="删除当前线路" disabled={lines.length === 1} className="danger" onClick={deleteLine}>×</PixelButton>
               </div>

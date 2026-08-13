@@ -64,11 +64,20 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 .title-row { height: 27px; display: flex; align-items: center; gap: 10px; padding: 0 10px; color: #ffb229; font-size: 17px; letter-spacing: 1px; }
 .title-icon { color: #ffc13e; text-shadow: 2px 2px #68420b; }
 .panel { border: 2px solid #28454e; box-shadow: inset 0 0 0 1px #071013; }
-.route-row { height: 43px; display: grid; grid-template-columns: 56px 196px 55px repeat(5, 34px); gap: 4px; align-items: center; padding: 6px 7px; }
+.route-row {
+  height: 43px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 183px) 48px repeat(5, minmax(0, 31px));
+  gap: 4px;
+  align-items: center;
+  padding: 6px 7px;
+  overflow: hidden;
+}
 .label { color: #9cadb4; text-align: center; }
 .route-row input { width: 100%; min-width: 0; height: 29px; padding: 1px 7px; color: #e4e6e6; background: #020506; border: 2px solid #555554; outline: 0; }
 .route-row input:focus { border-color: #54aeb7; }
 .counter { text-align: center; color: #fff; }
+.route-row .pixel-button { width: 31px; min-width: 0; padding: 0 2px; }
 
 .pixel-button {
   min-width: 29px;
