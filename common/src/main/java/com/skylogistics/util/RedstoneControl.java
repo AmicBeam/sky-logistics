@@ -11,15 +11,19 @@ public enum RedstoneControl implements StringRepresentable {
 
     public static RedstoneControl byName(String name) {
         try {
-            return RedstoneControl.valueOf(name.toUpperCase(Locale.ROOT));
+            RedstoneControl control = RedstoneControl.valueOf(name.toUpperCase(Locale.ROOT));
+            return control == DISABLED ? IGNORE : control;
         } catch (IllegalArgumentException | NullPointerException exception) {
             return IGNORE;
         }
     }
 
     public RedstoneControl next() {
-        RedstoneControl[] values = values();
-        return values[(ordinal() + 1) % values.length];
+        return switch (this) {
+            case IGNORE, DISABLED -> HIGH;
+            case HIGH -> LOW;
+            case LOW -> IGNORE;
+        };
     }
 
     public String translationKey() {

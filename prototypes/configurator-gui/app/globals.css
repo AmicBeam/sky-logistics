@@ -145,20 +145,7 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 }
 .table-redstone-icon.mode-无信号 { filter: saturate(.55) brightness(.55); }
 .table-redstone-icon.mode-忽略 { filter: saturate(.82) brightness(.86); }
-.table-redstone-icon.mode-禁用 { filter: grayscale(1) brightness(.6); }
 .table-redstone-icon b { display: none; }
-.table-redstone-icon.mode-禁用 b {
-  position: absolute;
-  z-index: 2;
-  display: block;
-  width: 27px;
-  height: 3px;
-  left: -2px;
-  top: 12px;
-  background: #b72720;
-  box-shadow: 0 1px #3e0907;
-  transform: rotate(-45deg);
-}
 .location-cell {
   min-width: 0;
   padding: 3px 7px !important;
@@ -259,26 +246,12 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 .redstone-mode-icon.mode-忽略 { background-image: url("/art/icons/redstone-ignore.png"); }
 .redstone-mode-icon.mode-有信号 { background-image: url("/art/icons/redstone-high.png"); }
 .redstone-mode-icon.mode-无信号 { background-image: url("/art/icons/redstone-low.png"); }
-.redstone-mode-icon.mode-禁用 { background-image: url("/art/icons/redstone-disabled.png"); }
 .redstone-mode-icon i { display: none; }
 .redstone-mode-icon.mode-有信号 {
   filter: saturate(1.25) brightness(1.22);
   box-shadow: 0 0 6px rgba(255, 58, 17, .72);
 }
 .redstone-mode-icon.mode-无信号 { filter: saturate(.55) brightness(.55); }
-.redstone-mode-icon.mode-禁用 { filter: grayscale(1) brightness(.6); }
-.redstone-mode-icon.mode-禁用 i {
-  position: absolute;
-  z-index: 2;
-  display: block;
-  width: 27px;
-  height: 3px;
-  left: -2px;
-  top: 12px;
-  background: #b72720;
-  box-shadow: 0 1px #3e0907;
-  transform: rotate(-45deg);
-}
 .reference-overlay { position: absolute; z-index: 10; inset: 0; width: 520px; height: 500px; opacity: .48; pointer-events: none; image-rendering: pixelated; }
 
 .status-card { position: sticky; top: 24px; width: 240px; flex: 0 0 240px; padding: 19px; background: rgba(7, 22, 27, .86); border: 1px solid #274853; box-shadow: 7px 7px 0 #02090b; }

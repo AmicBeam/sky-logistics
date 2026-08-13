@@ -22,7 +22,7 @@ test("server-renders the configurator prototype shell", async () => {
   assert.match(html, /<title>天穹配置器 GUI 交互原型<\/title>/i);
   assert.match(html, /天穹配置器/);
   assert.match(html, /AmicBeam-0/);
-  assert.match(html, /线路连接一览/);
+  assert.doesNotMatch(html, /线路连接一览/);
   assert.match(html, /红石/);
   assert.match(html, /260 × 250/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);

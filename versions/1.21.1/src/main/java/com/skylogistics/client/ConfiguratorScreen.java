@@ -60,17 +60,18 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int CONTROL_START_X = 10;
     private static final int CONTROL_STEP_X = 61;
     private static final int RESOURCE_BUTTON_WIDTH = 56;
-    private static final int CONTROL_LEFT_WIDTH = 70;
-    private static final int PRIORITY_ROW_Y = 222;
-    private static final int PRIORITY_DOWN_X = 170;
-    private static final int PRIORITY_VALUE_X = 190;
-    private static final int PRIORITY_VALUE_WIDTH = 34;
+    private static final int CONTROL_LEFT_WIDTH = 64;
+    private static final int BOTTOM_CONTROL_Y = 223;
+    private static final int BOTTOM_CONTROL_HEIGHT = 17;
+    private static final int BOTTOM_CONTROL_WIDTH = 17;
+    private static final int PRIORITY_DOWN_X = 174;
+    private static final int PRIORITY_VALUE_X = 194;
+    private static final int PRIORITY_VALUE_WIDTH = 29;
     private static final int PRIORITY_UP_X = 226;
-    private static final int SLOT_LIMIT_ROW_Y = 222;
-    private static final int SLOT_LIMIT_DOWN_X = 90;
-    private static final int SLOT_LIMIT_VALUE_X = 110;
+    private static final int SLOT_LIMIT_DOWN_X = 91;
+    private static final int SLOT_LIMIT_VALUE_X = 111;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
-    private static final int SLOT_LIMIT_UP_X = 141;
+    private static final int SLOT_LIMIT_UP_X = 143;
     private static final int BOTTOM_GROUP_Y = 216;
     private static final int BOTTOM_GROUP_HEIGHT = 31;
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -117,11 +118,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 184, ResourceType.FLUIDS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 184, ResourceType.ENERGY);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 184, ResourceType.AUTO);
-        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + CONTROL_START_X, topPos + 222));
-        addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + SLOT_LIMIT_ROW_Y, -1, Component.literal("-"));
-        addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + SLOT_LIMIT_ROW_Y, 1, Component.literal("+"));
-        addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + PRIORITY_ROW_Y, -1, Component.literal("-"));
-        addPriorityButton(leftPos + PRIORITY_UP_X, topPos + PRIORITY_ROW_Y, 1, Component.literal("+"));
+        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 13, topPos + BOTTOM_CONTROL_Y));
+        addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
+        addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
+        addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
+        addPriorityButton(leftPos + PRIORITY_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -214,6 +215,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         drawBottomFieldset(graphics, 8, 74, Component.translatable("screen.skylogistics.redstone"));
         drawBottomFieldset(graphics, 86, 79, Component.translatable("screen.skylogistics.slot_limit"));
         drawBottomFieldset(graphics, 169, 79, Component.translatable("screen.skylogistics.priority"));
+        drawBottomValueBoxes(graphics);
     }
 
     @Override
@@ -244,11 +246,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.slot_limit"),
                 125, 212, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, slotLimitDisplay(config.slotLimit()),
-                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, SLOT_LIMIT_ROW_Y + 6, ConfigPanel.TEXT);
+                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.priority"),
                 208, 212, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.literal(String.valueOf(config.placement().priority())),
-                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 6, ConfigPanel.TEXT);
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
     }
 
     private void drawStatPanels(GuiGraphics graphics) {
@@ -273,6 +275,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
         graphics.fill(absoluteX, absoluteY + BOTTOM_GROUP_HEIGHT - 1, absoluteX + width,
                 absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
+    }
+
+    private void drawBottomValueBoxes(GuiGraphics graphics) {
+        ConfigPanel.drawBox(graphics, leftPos + SLOT_LIMIT_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                SLOT_LIMIT_VALUE_WIDTH, BOTTOM_CONTROL_HEIGHT, 0xFF020506, 0xFF636767);
+        ConfigPanel.drawBox(graphics, leftPos + PRIORITY_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                PRIORITY_VALUE_WIDTH, BOTTOM_CONTROL_HEIGHT, 0xFF020506, 0xFF636767);
     }
 
     private void drawCenteredLabel(GuiGraphics graphics, Component label, int centerX, int y, int color) {
@@ -375,8 +384,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
         List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
-        graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.connection_overview"),
-                DETAIL_X + 2, DETAIL_Y - 10, ConfigPanel.MUTED, false);
         if (entries.size() > DETAIL_VISIBLE_ROWS) {
             int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
             Component range = Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size());
@@ -439,7 +446,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
         ResourceLocation texture = guiTexture("redstone_" + control.getSerializedName() + ".png");
-        graphics.blit(texture, x, y, 0, 0, 14, 14, 16, 16);
+        graphics.blit(texture, x, y, 0, 0, 16, 16, 16, 16);
     }
 
     private ResourceLocation guiTexture(String name) {
@@ -698,7 +705,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private final class RedstoneButton extends AbstractButton {
         private RedstoneButton(int x, int y) {
-            super(x, y, CONTROL_LEFT_WIDTH, 20, Component.translatable("screen.skylogistics.redstone"));
+            super(x, y, CONTROL_LEFT_WIDTH, BOTTOM_CONTROL_HEIGHT, Component.translatable("screen.skylogistics.redstone"));
         }
 
         @Override
@@ -713,9 +720,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             ConfiguratorItem.ToolConfig config = config();
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            drawRedstoneIcon(graphics, getX() + 7, getY() + 2, control);
+            drawRedstoneIcon(graphics, getX() + 5, getY(), control);
             graphics.drawString(font, Component.translatable(control.translationKey()),
-                    getX() + 24, getY() + 6, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    getX() + 23, getY() + 4, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
         }
 
         @Override
@@ -728,7 +735,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private PriorityButton(int x, int y, int delta, Component message) {
-            super(x, y, 18, 20, message);
+            super(x, y, BOTTOM_CONTROL_WIDTH, BOTTOM_CONTROL_HEIGHT, message);
             this.delta = delta;
         }
 
@@ -746,7 +753,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -760,7 +767,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private SlotLimitButton(int x, int y, int delta, Component message) {
-            super(x, y, 18, 20, message);
+            super(x, y, BOTTOM_CONTROL_WIDTH, BOTTOM_CONTROL_HEIGHT, message);
             this.delta = delta;
         }
 
@@ -778,7 +785,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 6,
+            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
