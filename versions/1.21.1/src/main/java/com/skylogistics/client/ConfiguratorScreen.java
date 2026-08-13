@@ -47,6 +47,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int LINE_NAME_EDIT_Y = 24;
     private static final int LINE_NAME_EDIT_WIDTH = 90;
     private static final int LINE_NAME_EDIT_HEIGHT = 15;
+    private static final int CONTENT_X = 6;
+    private static final int CONTENT_WIDTH = 248;
     private static final int DETAIL_X = 8;
     private static final int DETAIL_Y = 72;
     private static final int DETAIL_WIDTH = 244;
@@ -205,10 +207,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 6, topPos + 20, 248, 24);
+        ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
         drawStatPanels(graphics);
-        ConfigPanel.drawContentPanel(graphics, leftPos + DETAIL_X, topPos + DETAIL_Y,
-                DETAIL_WIDTH, DETAIL_HEIGHT);
+        ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + DETAIL_Y,
+                CONTENT_WIDTH, DETAIL_HEIGHT);
         drawBottomFieldset(graphics, 8, 74, Component.translatable("screen.skylogistics.redstone"));
         drawBottomFieldset(graphics, 86, 79, Component.translatable("screen.skylogistics.slot_limit"));
         drawBottomFieldset(graphics, 169, 79, Component.translatable("screen.skylogistics.priority"));
@@ -250,9 +252,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void drawStatPanels(GuiGraphics graphics) {
-        ConfigPanel.drawContentPanel(graphics, leftPos + 7, topPos + 48, 79, 20);
+        ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 48, 80, 20);
         ConfigPanel.drawContentPanel(graphics, leftPos + 90, topPos + 48, 80, 20);
-        ConfigPanel.drawContentPanel(graphics, leftPos + 174, topPos + 48, 79, 20);
+        ConfigPanel.drawContentPanel(graphics, leftPos + 174, topPos + 48, 80, 20);
     }
 
     private void drawBottomFieldset(GuiGraphics graphics, int x, int width, Component legend) {
