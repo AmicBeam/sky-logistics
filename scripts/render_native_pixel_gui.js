@@ -30,10 +30,27 @@ function pixel(x, y, color) {
 function rect(x, y, w, h, color) {
   for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) pixel(xx, yy, color);
 }
+function vfill(x, y, w, h, colors) {
+  for (let yy = 0; yy < h; yy++) rect(x, y + yy, w, 1, colors[Math.min(colors.length - 1, Math.floor(yy * colors.length / h))]);
+}
 function line(x0, y0, x1, y1, color) {
   let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
   let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1, err = dx + dy;
   while (true) { pixel(x0, y0, color); if (x0 === x1 && y0 === y1) break; const e = 2 * err; if (e >= dy) { err += dy; x0 += sx; } if (e <= dx) { err += dx; y0 += sy; } }
+}
+function poly(points, color) {
+  const minY = Math.min(...points.map((p) => p[1]));
+  const maxY = Math.max(...points.map((p) => p[1]));
+  for (let y = minY; y <= maxY; y++) {
+    const xs = [];
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i], b = points[(i + 1) % points.length];
+      if (a[1] === b[1] || y < Math.min(a[1], b[1]) || y >= Math.max(a[1], b[1])) continue;
+      xs.push(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
+    }
+    xs.sort((a,b) => a-b);
+    for (let i = 0; i + 1 < xs.length; i += 2) rect(Math.ceil(xs[i]), y, Math.floor(xs[i+1]) - Math.ceil(xs[i]) + 1, 1, color);
+  }
 }
 function frame(x, y, w, h, active = false) {
   const hi = active ? C.gold3 : C.edge2, mid = active ? C.gold2 : C.edge1;
@@ -62,7 +79,7 @@ function inset(x, y, w, h, active = false) {
 }
 function button(x, y, w, h, active = false) {
   rect(x, y, w, h, C.void);
-  rect(x + 1, y + 1, w - 2, h - 2, active ? C.panel2 : C.steel1);
+  vfill(x + 1, y + 1, w - 2, h - 2, active ? [C.panel2, '#0b252e', C.ink] : [C.steel2, C.steel1, '#191d1e']);
   rect(x + 1, y + 1, w - 2, 1, active ? C.gold3 : C.steel3);
   rect(x + 1, y + 1, 1, h - 2, active ? C.gold2 : C.steel2);
   rect(x + 1, y + h - 2, w - 2, 1, active ? C.gold0 : C.steel0);
@@ -76,20 +93,27 @@ function tableCell(x, y, w, h) {
   rect(x + 1, y + 1, 1, h - 2, C.steel2);
   rect(x + 1, y + h - 2, w - 2, 1, C.steel0);
   rect(x + w - 2, y + 1, 1, h - 2, C.steel0);
-  rect(x + 3, y + 3, w - 6, h - 6, '#202526');
+  vfill(x + 3, y + 3, w - 6, h - 6, ['#282c2c', '#222627', '#1a1e1f']);
+  // Sparse authored-looking steel grain at the native resolution.
+  for (let yy = y + 4; yy < y + h - 3; yy++) for (let xx = x + 4; xx < x + w - 3; xx++) {
+    const n = (xx * 29 + yy * 47 + xx * yy * 3) % 97;
+    if (n === 0) pixel(xx, yy, '#303536');
+    if (n === 1 && yy > y + h / 2) pixel(xx, yy, '#15191a');
+  }
 }
 function check(x, y, on, color = C.green1) {
-  rect(x, y, 8, 8, C.steel0); rect(x + 1, y + 1, 6, 6, C.void); pixel(x + 1, y + 2, C.steel3);
-  if (!on) return;
-  pixel(x + 1, y + 4, color); pixel(x + 2, y + 5, color); pixel(x + 3, y + 6, color);
-  pixel(x + 4, y + 5, color); pixel(x + 5, y + 4, color); pixel(x + 6, y + 3, color);
-  pixel(x + 7, y + 2, color); pixel(x + 3, y + 5, C.green2); pixel(x + 5, y + 3, C.green2);
+  if (!on) {
+    rect(x, y, 8, 8, C.steel0); rect(x + 1, y + 1, 6, 6, C.steel3);
+    rect(x + 2, y + 2, 5, 5, C.steel1); rect(x + 3, y + 3, 3, 3, C.void); return;
+  }
+  // Standalone beveled checkmark, matching the reference's sprite treatment.
+  pixel(x, y + 4, C.green0); pixel(x + 1, y + 5, C.green0); pixel(x + 2, y + 6, C.green0);
+  pixel(x + 3, y + 5, C.green0); pixel(x + 4, y + 4, C.green0); pixel(x + 5, y + 3, C.green0); pixel(x + 6, y + 2, C.green0); pixel(x + 7, y + 1, C.green0);
+  pixel(x + 1, y + 3, color); pixel(x + 2, y + 4, color); pixel(x + 3, y + 4, color);
+  pixel(x + 4, y + 3, color); pixel(x + 5, y + 2, color); pixel(x + 6, y + 1, color); pixel(x + 7, y, C.green2);
 }
 function arrow(cx, cy, dir, color) {
-  const pts = dir === 'up' ? [[0,-5],[-4,0],[-2,0],[-2,5],[2,5],[2,0],[4,0]]
-    : dir === 'down' ? [[0,5],[-4,0],[-2,0],[-2,-5],[2,-5],[2,0],[4,0]]
-    : dir === 'left' ? [[-5,0],[0,-4],[0,-2],[5,-2],[5,2],[0,2],[0,4]]
-    : [[5,0],[0,-4],[0,-2],[-5,-2],[-5,2],[0,2],[0,4]];
+  const shadow = dir === 'up' || dir === 'left' ? C.void : C.steel0;
   for (let y = -5; y <= 5; y++) for (let x = -5; x <= 5; x++) {
     let inside = false;
     if (dir === 'up') inside = (y >= -5 && y <= 0 && Math.abs(x) <= y + 5) || (y > 0 && Math.abs(x) <= 2);
@@ -98,13 +122,23 @@ function arrow(cx, cy, dir, color) {
     if (dir === 'right') inside = (x <= 5 && x >= 0 && Math.abs(y) <= 5 - x) || (x < 0 && Math.abs(y) <= 2);
     if (inside) pixel(cx + x, cy + y, color);
   }
-  pixel(cx - (dir === 'right' ? 4 : 0), cy - (dir === 'down' ? 4 : 0), C.white);
+  // One-pixel light ridge and dark drop edge, authored on the logical grid.
+  if (dir === 'up') { line(cx,cy-5,cx-4,cy,C.green2); line(cx+3,cy+1,cx+3,cy+5,shadow); }
+  if (dir === 'down') { line(cx-4,cy,cx,cy+5,C.cyan2); line(cx+3,cy-4,cx+3,cy,shadow); }
+  if (dir === 'left') { line(cx-5,cy,cx,cy-4,C.gold3); line(cx+1,cy+3,cx+5,cy+3,shadow); }
+  if (dir === 'right') { line(cx,cy-4,cx+5,cy,C.cyan2); line(cx-4,cy+3,cx,cy+3,shadow); }
 }
 function cube(x, y) {
-  rect(x + 2, y + 2, 7, 7, C.steel1); line(x + 2, y + 2, x + 5, y, C.steel3); line(x + 5, y, x + 10, y + 2, C.steel2);
-  line(x + 9, y + 3, x + 9, y + 8, C.void); line(x + 5, y + 4, x + 5, y + 9, C.void);
-  line(x + 2, y + 2, x + 5, y + 4, C.white); line(x + 5, y + 4, x + 10, y + 2, C.steel3);
-  rect(x + 3, y + 5, 2, 3, C.steel2); pixel(x + 4, y + 6, C.gold3);
+  // 12x12 logistics block sprite with distinct top/left/right planes.
+  poly([[x+1,y+3],[x+5,y],[x+11,y+3],[x+6,y+6]], C.steel2);
+  poly([[x+1,y+3],[x+6,y+6],[x+6,y+11],[x+1,y+8]], C.steel1);
+  poly([[x+6,y+6],[x+11,y+3],[x+11,y+8],[x+6,y+11]], C.steel0);
+  line(x + 1, y + 3, x + 5, y, C.steel3); line(x + 5, y, x + 11, y + 3, C.steel2);
+  line(x + 2, y + 3, x + 5, y + 1, C.white); line(x + 5, y + 1, x + 10, y + 3, C.steel3);
+  line(x + 1, y + 3, x + 6, y + 6, C.steel3); line(x + 6, y + 6, x + 11, y + 3, C.steel2);
+  line(x + 6, y + 6, x + 6, y + 11, C.steel3); line(x + 11, y + 3, x + 11, y + 8, C.void);
+  rect(x + 3, y + 5, 2, 3, C.void); pixel(x + 4, y + 6, C.gold3); pixel(x + 4, y + 7, C.gold1);
+  pixel(x+2,y+7,C.steel3); pixel(x+8,y+8,C.steel1); pixel(x+9,y+9,C.void);
 }
 function torch(x, y) {
   rect(x + 2, y + 3, 2, 7, C.gold1); pixel(x + 3, y + 7, C.gold3);
@@ -115,6 +149,21 @@ function globe(x, y, purple = false) {
   rect(x + 2, y, 5, 1, a); rect(x, y + 2, 9, 5, a); rect(x + 2, y + 8, 5, 1, C.void);
   pixel(x + 1, y + 1, a); pixel(x + 7, y + 1, a); pixel(x + 1, y + 7, C.void); pixel(x + 7, y + 7, C.void);
   pixel(x + 3, y + 2, b); pixel(x + 4, y + 3, b); pixel(x + 2, y + 4, b); pixel(x + 5, y + 5, b); pixel(x + 4, y + 6, b);
+  pixel(x+2,y+2,purple?C.purple2:C.cyan2); pixel(x+1,y+3,C.white); pixel(x+6,y+7,purple?C.purple0:C.cyan0);
+}
+function chest(x, y) {
+  rect(x+1,y+2,10,8,C.gold0); rect(x+2,y+1,8,2,C.gold2); rect(x+1,y+4,10,1,C.gold3);
+  rect(x+2,y+5,8,4,C.gold1); rect(x+2,y+8,8,1,C.gold0); rect(x+5,y+4,2,4,C.steel0);
+  pixel(x+5,y+5,C.steel3); pixel(x+6,y+5,C.white); pixel(x+2,y+2,C.gold3); pixel(x+9,y+3,C.gold0);
+}
+function droplet(x,y) {
+  poly([[x+5,y],[x+1,y+6],[x+1,y+9],[x+3,y+11],[x+7,y+11],[x+9,y+9],[x+9,y+6]], C.steel2);
+  line(x+5,y,x+2,y+7,C.white); pixel(x+3,y+8,C.steel3); pixel(x+7,y+9,C.steel0);
+}
+function autoRing(x,y) {
+  rect(x+3,y,5,1,C.white); rect(x+1,y+2,1,6,C.steel3); rect(x+9,y+2,1,6,C.steel0); rect(x+3,y+9,5,1,C.steel1);
+  pixel(x+2,y+1,C.steel3); pixel(x+8,y+1,C.steel2); pixel(x+2,y+8,C.steel2); pixel(x+8,y+8,C.steel0);
+  rect(x+3,y+2,5,1,C.steel1); rect(x+3,y+7,5,1,C.steel2); pixel(x+3,y+3,C.steel2); pixel(x+7,y+6,C.steel0);
 }
 function plus(x, y, color = C.white) { rect(x + 2, y, 2, 6, color); rect(x, y + 2, 6, 2, color); }
 function minus(x, y, color = C.white) { rect(x, y + 2, 6, 2, color); }
@@ -126,8 +175,12 @@ async function main() {
   rect(7, 20, 246, 19, C.ink); rect(7, 46, 246, 11, C.panel);
   // Original title emblem, authored at logical resolution.
   button(8, 7, 9, 9, true); rect(10, 9, 5, 5, C.gold1); rect(11, 10, 3, 3, C.gold3); pixel(12, 11, C.panel);
-  inset(38, 23, 96, 14); inset(166, 23, 14, 14); inset(183, 23, 14, 14); button(200, 23, 14, 14, true); button(217, 23, 14, 14); button(234, 23, 14, 14);
-  arrow(173, 30, 'left', C.white); arrow(190, 30, 'left', C.white); arrow(207, 30, 'right', C.white); arrow(224, 30, 'right', C.white);
+  inset(38, 23, 96, 14); button(166, 23, 14, 14); button(183, 23, 14, 14); button(200, 23, 14, 14, true); button(217, 23, 14, 14); button(234, 23, 14, 14);
+  // Pagination glyphs remain much finer than the table direction sprites.
+  line(170,27,170,33,C.white); line(174,27,171,30,C.white); line(171,30,174,33,C.white);
+  line(192,27,188,30,C.white); line(188,30,192,33,C.white);
+  line(204,27,204,33,C.white); line(208,27,205,30,C.white); line(205,30,208,33,C.white);
+  line(221,27,225,30,C.white); line(225,30,221,33,C.white); line(226,27,226,33,C.white);
   line(239, 27, 244, 32, C.red1); line(244, 27, 239, 32, C.red1);
   line(86, 45, 86, 58, C.edge1); line(170, 45, 170, 58, C.edge1);
   // Main connection table shell: cyan double frame outside, beveled steel table inside.
@@ -149,12 +202,11 @@ async function main() {
   }
   // Bottom selector row.
   carvedFrame(5, 182, 250, 24); button(10, 186, 57, 17, true); button(72, 186, 57, 17); button(134, 186, 57, 17); button(196, 186, 54, 17);
-  cube(20, 190); // chest-like gold selector
-  rect(20, 190, 10, 8, C.gold1); rect(21, 189, 8, 2, C.gold2); rect(21, 193, 8, 1, C.gold3); inset(24, 193, 2, 3);
+  chest(20, 189);
   // droplet, lightning, auto ring.
-  for (let yy = 0; yy < 9; yy++) { const half = yy < 5 ? Math.floor(yy / 2) : Math.max(1, 4 - Math.floor((yy - 5) / 2)); rect(86 - half, 190 + yy, half * 2 + 1, 1, C.steel3); }
+  droplet(81,188);
   line(151, 189, 146, 196, C.white); line(146, 196, 151, 196, C.white); line(151, 196, 147, 201, C.white);
-  rect(211, 190, 8, 2, C.steel3); rect(209, 192, 2, 7, C.steel3); rect(219, 192, 2, 7, C.steel1); rect(211, 199, 8, 2, C.steel1);
+  autoRing(209,189);
   // Lower controls.
   carvedFrame(8, 210, 75, 31); carvedFrame(87, 210, 80, 31); carvedFrame(171, 210, 80, 31);
   inset(15, 221, 17, 15); torch(21, 223); button(36, 221, 42, 15);
