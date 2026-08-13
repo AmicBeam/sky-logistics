@@ -235,5 +235,6 @@
   "screen.skylogistics.detail.redstone": "红石",
   "screen.skylogistics.detail.location": "坐标 / 维度",
   "screen.skylogistics.configurator.auto": "自动",
-  "screen.skylogistics.configurator.line": "线路"
+  "screen.skylogistics.configurator.line": "线路",
+  "screen.skylogistics.configurator.connection_overview": "线路连接一览"
 }

@@ -152,6 +152,7 @@
   "screen.skylogistics.detail.location": "Position / Dimension",
   "screen.skylogistics.configurator.auto": "Auto",
   "screen.skylogistics.configurator.line": "Line",
+  "screen.skylogistics.configurator.connection_overview": "Connections",
   "screen.skylogistics.resource_short.items": "I",
   "screen.skylogistics.resource_short.fluids": "F",
   "screen.skylogistics.resource_short.energy": "E",

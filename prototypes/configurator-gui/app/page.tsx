@@ -206,6 +206,7 @@ export default function Home() {
 
               <div className="connections panel" onWheel={scrollDetails}>
                 <div className="section-heading">
+                  <span className="section-title">线路连接一览</span>
                   {entries.length > visibleRowCount && (
                     <span className="scroll-range">{detailScroll + 1}-{visibleRangeEnd}/{entries.length}</span>
                   )}

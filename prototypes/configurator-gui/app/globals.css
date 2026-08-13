@@ -100,6 +100,7 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
 .stats-row div { display: grid; place-items: center; border: 2px solid #254650; color: #aabac0; }
 .connections { height: 238px; padding: 0 5px 7px; }
 .section-heading { height: 38px; display: flex; align-items: center; justify-content: center; position: relative; color: #9db0b6; }
+.section-title { position: absolute; left: 8px; }
 .scroll-range { position: absolute; right: 8px; color: #a5b6bb; font-size: 12px; }
 
 .grid { display: grid; grid-template-columns: 55px 55px 126px 61px 47px 138px; }
@@ -250,11 +251,15 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
   width: 22px;
   height: 27px;
   overflow: hidden;
-  background-image: url("/art/components/redstone-torch.png");
+  background-size: 16px 16px;
   background-position: center;
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }
+.redstone-mode-icon.mode-忽略 { background-image: url("/art/icons/redstone-ignore.png"); }
+.redstone-mode-icon.mode-有信号 { background-image: url("/art/icons/redstone-high.png"); }
+.redstone-mode-icon.mode-无信号 { background-image: url("/art/icons/redstone-low.png"); }
+.redstone-mode-icon.mode-禁用 { background-image: url("/art/icons/redstone-disabled.png"); }
 .redstone-mode-icon i { display: none; }
 .redstone-mode-icon.mode-有信号 {
   filter: saturate(1.25) brightness(1.22);

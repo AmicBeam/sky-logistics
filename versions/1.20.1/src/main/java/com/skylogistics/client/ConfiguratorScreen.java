@@ -57,15 +57,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int RESOURCE_BUTTON_WIDTH = 56;
     private static final int CONTROL_LEFT_WIDTH = 70;
     private static final int PRIORITY_ROW_Y = 222;
-    private static final int PRIORITY_DOWN_X = 174;
-    private static final int PRIORITY_VALUE_X = 196;
+    private static final int PRIORITY_DOWN_X = 170;
+    private static final int PRIORITY_VALUE_X = 190;
     private static final int PRIORITY_VALUE_WIDTH = 34;
-    private static final int PRIORITY_UP_X = 232;
+    private static final int PRIORITY_UP_X = 226;
     private static final int SLOT_LIMIT_ROW_Y = 222;
     private static final int SLOT_LIMIT_DOWN_X = 90;
-    private static final int SLOT_LIMIT_VALUE_X = 112;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 34;
-    private static final int SLOT_LIMIT_UP_X = 148;
+    private static final int SLOT_LIMIT_VALUE_X = 110;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
+    private static final int SLOT_LIMIT_UP_X = 141;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -185,6 +185,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailIcon(x, y);
         if (entry != null) {
             graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry)), x, y);
+            return;
+        }
+        entry = hoveredDetailLocation(x, y);
+        if (entry != null) {
+            graphics.renderComponentTooltip(font, List.of(
+                    Component.literal(pos(entry.targetPos())),
+                    Component.literal(entry.dimension())), x, y);
             return;
         }
         super.renderTooltip(graphics, x, y);
@@ -343,10 +350,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void renderLineDetails(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
         List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
+        graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.connection_overview"),
+                DETAIL_X + 2, DETAIL_Y - 10, ConfigPanel.MUTED, false);
         if (entries.size() > DETAIL_VISIBLE_ROWS) {
             int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
-            graphics.drawString(font, Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size()),
-                    DETAIL_X + DETAIL_WIDTH - 42, DETAIL_Y - 10, ConfigPanel.MUTED, false);
+            Component range = Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size());
+            graphics.drawString(font, range, DETAIL_X + DETAIL_WIDTH - 3 - font.width(range),
+                    DETAIL_Y - 10, ConfigPanel.MUTED, false);
         }
         if (entries.isEmpty()) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces_empty"),
@@ -395,9 +405,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.device"),
                 DETAIL_X + 14, y, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.mode"),
-                DETAIL_X + 43, y, ConfigPanel.MUTED);
+                DETAIL_X + 38, y, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.resources"),
-                DETAIL_X + 75, y, ConfigPanel.MUTED);
+                DETAIL_X + 72, y, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.priority"),
                 DETAIL_X + 108, y, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.redstone"),
@@ -410,8 +420,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
         ResourceLocation texture = guiTexture("redstone_" + control.getSerializedName() + ".png");
-        int textureSize = control == RedstoneControl.DISABLED ? 16 : 18;
-        graphics.blit(texture, x, y, 0, 0, 14, 14, textureSize, textureSize);
+        graphics.blit(texture, x, y, 0, 0, 14, 14, 16, 16);
     }
 
     private ResourceLocation guiTexture(String name) {
@@ -465,6 +474,27 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             int x = leftPos + DETAIL_ICON_X;
             int y = topPos + DETAIL_Y + DETAIL_HEADER_HEIGHT + 1 + row * DETAIL_ROW_HEIGHT;
             if (mouseX >= x && mouseX < x + 16 && mouseY >= y && mouseY < y + 16) {
+                return entries.get(index);
+            }
+        }
+        return null;
+    }
+
+    private ConfiguratorLineDetailsPacket.Entry hoveredDetailLocation(double mouseX, double mouseY) {
+        ConfiguratorItem.ToolConfig config = config();
+        if (config == null) {
+            return null;
+        }
+        List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
+        int locationX = leftPos + DETAIL_X + 151;
+        for (int row = 0; row < DETAIL_VISIBLE_ROWS; row++) {
+            int index = detailScroll + row;
+            if (index >= entries.size()) {
+                break;
+            }
+            int y = topPos + DETAIL_Y + DETAIL_HEADER_HEIGHT + 1 + row * DETAIL_ROW_HEIGHT;
+            if (mouseX >= locationX && mouseX < leftPos + DETAIL_X + DETAIL_WIDTH
+                    && mouseY >= y && mouseY < y + DETAIL_ROW_HEIGHT) {
                 return entries.get(index);
             }
         }
@@ -694,7 +724,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private PriorityButton(int x, int y, int delta, Component message) {
-            super(x, y, 22, 20, message);
+            super(x, y, 18, 20, message);
             this.delta = delta;
         }
 
@@ -726,7 +756,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         private final int delta;
 
         private SlotLimitButton(int x, int y, int delta, Component message) {
-            super(x, y, 22, 20, message);
+            super(x, y, 18, 20, message);
             this.delta = delta;
         }
 
@@ -804,7 +834,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
 
         private void drawResourceIcon(GuiGraphics graphics, int x, int y, ResourceType resource, boolean selected) {
-            String name = resource.name().toLowerCase(java.util.Locale.ROOT);
+            String name = switch (resource) {
+                case ITEMS -> "item";
+                case FLUIDS -> "fluid";
+                case ENERGY -> "energy";
+                case AUTO -> "auto";
+            };
             ResourceLocation texture = guiTexture("resource_" + name + (selected ? "" : "_off") + "_small.png");
             graphics.blit(texture, x, y, 0, 0, 18, 17, 18, 17);
         }
