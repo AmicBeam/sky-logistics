@@ -1,0 +1,13 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 240,
+  "altar_tier": 2,
+  "main": {"ingredient": {"item": "skylogistics:chora_nectar"}},
+  "offerings": [
+    {"ingredient": {"item": "skylogistics:celestial_stone"}, "count": 4},
+    {"ingredient": {"tag": "c:dusts/redstone"}, "count": 2},
+    {"ingredient": {"tag": "c:gems/amethyst"}, "count": 2},
+    {"ingredient": {"tag": "c:chests/wooden"}, "count": 1}
+  ],
+  "result": {"id": "skylogistics:sky_distributor"}
+}

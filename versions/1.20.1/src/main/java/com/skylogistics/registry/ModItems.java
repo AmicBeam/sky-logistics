@@ -35,6 +35,8 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.SKY_DIMENSION_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> SKY_DISTRIBUTOR = ITEMS.register("sky_distributor",
+            () -> new BlockItem(ModBlocks.SKY_DISTRIBUTOR.get(), new Item.Properties()));
     public static final RegistryObject<Item> SIMPLE_ITEM_PIPE = ITEMS.register("simple_item_pipe",
             () -> new BlockItem(ModBlocks.SIMPLE_ITEM_PIPE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SIMPLE_FLUID_PIPE = ITEMS.register("simple_fluid_pipe",

@@ -187,6 +187,15 @@ public class SkyLogistics {
                 (blockEntity, side) -> TransferCompat.fluidResourceHandler(blockEntity.exposedFluidHandler()));
         event.registerBlockEntity(Capabilities.Energy.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
                 (blockEntity, side) -> TransferCompat.energyHandler(blockEntity.exposedEnergyHandler()));
+        event.registerBlockEntity(Capabilities.Item.BLOCK, ModBlockEntities.SKY_DISTRIBUTOR.get(),
+                (blockEntity, side) -> blockEntity.itemHandler() == null ? null
+                        : TransferCompat.itemResourceHandler(blockEntity.itemHandler()));
+        event.registerBlockEntity(Capabilities.Fluid.BLOCK, ModBlockEntities.SKY_DISTRIBUTOR.get(),
+                (blockEntity, side) -> blockEntity.fluidHandler() == null ? null
+                        : TransferCompat.fluidResourceHandler(blockEntity.fluidHandler()));
+        event.registerBlockEntity(Capabilities.Energy.BLOCK, ModBlockEntities.SKY_DISTRIBUTOR.get(),
+                (blockEntity, side) -> blockEntity.energyHandler() == null ? null
+                        : TransferCompat.energyHandler(blockEntity.energyHandler()));
         AppliedEnergisticsCompat.registerCapabilities(event, ModBlockEntities.SKY_ME_INTERFACE.get());
     }
 }

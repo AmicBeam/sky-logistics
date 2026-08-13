@@ -9,6 +9,7 @@ import com.skylogistics.block.OfferingTableBlock;
 import com.skylogistics.block.SkyDimensionInterfaceBlock;
 import com.skylogistics.block.SkyMEInterfaceBlock;
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.block.SkyDistributorBlock;
 import com.skylogistics.block.SkyRSInterfaceBlock;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.util.SimplePipeType;
@@ -43,6 +44,9 @@ public final class ModBlocks {
                     .strength(1.5F, 7.0F)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
+    public static final DeferredHolder<Block, SkyDistributorBlock> SKY_DISTRIBUTOR = BLOCKS.register("sky_distributor",
+            () -> new SkyDistributorBlock(blockProperties("sky_distributor", MapColor.COLOR_CYAN)
+                    .strength(2.5F, 7.0F).sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SimplePipeBlock> SIMPLE_ITEM_PIPE =
             simplePipe("simple_item_pipe", SimplePipeType.ITEM);

@@ -236,5 +236,7 @@
   "screen.skylogistics.detail.location": "Position / Dimension",
   "screen.skylogistics.configurator.auto": "Auto",
   "screen.skylogistics.configurator.line": "Line",
-  "screen.skylogistics.configurator.connection_overview": "Connections"
+  "screen.skylogistics.configurator.connection_overview": "Connections",
+  "block.skylogistics.sky_distributor": "Celestial Distributor",
+  "item.skylogistics.sky_distributor": "Celestial Distributor"
 }

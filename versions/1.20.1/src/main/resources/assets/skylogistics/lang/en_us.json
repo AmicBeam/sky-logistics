@@ -236,5 +236,7 @@
   "message.skylogistics.simple_pipe.insert": "insert",
   "message.skylogistics.simple_pipe.extract": "extract",
   "message.skylogistics.simple_pipe.disconnected": "Pipe connection disconnected",
-  "message.skylogistics.simple_pipe.reconnected": "Pipe connection reconnected"
+  "message.skylogistics.simple_pipe.reconnected": "Pipe connection reconnected",
+  "block.skylogistics.sky_distributor": "Celestial Distributor",
+  "item.skylogistics.sky_distributor": "Celestial Distributor"
 }

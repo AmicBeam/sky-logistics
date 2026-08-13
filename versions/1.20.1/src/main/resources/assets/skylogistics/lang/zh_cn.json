@@ -236,5 +236,7 @@
   "message.skylogistics.simple_pipe.insert": "存入",
   "message.skylogistics.simple_pipe.extract": "抽取",
   "message.skylogistics.simple_pipe.disconnected": "管道连接已断开",
-  "message.skylogistics.simple_pipe.reconnected": "管道连接已恢复"
+  "message.skylogistics.simple_pipe.reconnected": "管道连接已恢复",
+  "block.skylogistics.sky_distributor": "天穹分配器",
+  "item.skylogistics.sky_distributor": "天穹分配器"
 }

@@ -46,6 +46,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ITEM_VAULT.get());
                         output.accept(ModItems.FLUID_VAULT.get());
                         output.accept(ModItems.SKY_NODE.get());
+                        output.accept(ModItems.SKY_DISTRIBUTOR.get());
                         output.accept(ModItems.SIMPLE_ITEM_PIPE.get());
                         output.accept(ModItems.SIMPLE_FLUID_PIPE.get());
                         output.accept(ModItems.SIMPLE_ENERGY_PIPE.get());

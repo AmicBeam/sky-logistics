@@ -26,6 +26,7 @@ Typical setup: create a line with the configurator, place one node beside a sour
 ## Topics
 
 - [Simple Pipes](simple_pipes.md): build wired item, fluid, and energy lines; use a wrench for connections and the configurator for endpoints.
+- [Celestial Distributor](sky_distributor.md): fan item, fluid, and energy access across up to 16 touching containers.
 - [Sky Offerings](offerings.md): charge crystals, build offering circles, and make Chora Nectar.
 - [Logistics Network](logistics.md): connect nodes, vaults, filters, and external networks.
 - [Tools and Upgrades](tools.md): configure lines, copy settings, and extend throughput or dimensions.

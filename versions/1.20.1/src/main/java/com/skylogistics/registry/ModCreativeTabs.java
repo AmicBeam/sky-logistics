@@ -55,6 +55,7 @@ public final class ModCreativeTabs {
                             output.accept(ModItems.SKY_DIMENSION_INTERFACE.get());
                         }
                         output.accept(ModItems.SKY_NODE.get());
+                        output.accept(ModItems.SKY_DISTRIBUTOR.get());
                         output.accept(ModItems.SIMPLE_ITEM_PIPE.get());
                         output.accept(ModItems.SIMPLE_FLUID_PIPE.get());
                         output.accept(ModItems.SIMPLE_ENERGY_PIPE.get());

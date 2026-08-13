@@ -7,6 +7,7 @@
     "skylogistics:sky_rs_interface",
     "skylogistics:sky_dimension_interface",
     "skylogistics:sky_node",
+    "skylogistics:sky_distributor",
     "skylogistics:simple_item_pipe",
     "skylogistics:simple_fluid_pipe",
     "skylogistics:simple_energy_pipe",
