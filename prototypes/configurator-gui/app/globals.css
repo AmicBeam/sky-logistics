@@ -180,28 +180,28 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
   flex: 0 0 auto;
   width: 32px;
   height: 32px;
+  background-position: center;
   background-repeat: no-repeat;
+  background-size: contain;
+  filter: grayscale(1) brightness(.72);
   image-rendering: pixelated;
 }
 .resource-icon.item {
-  background-image: url("/art/components/resource-item.png");
-  background-position: -10px -4px;
+  background-image: url("/art/icons/resource-item.png");
 }
 .resource-icon.fluid {
   width: 27px;
-  background-image: url("/art/components/resource-fluid.png");
-  background-position: -10px -4px;
+  background-image: url("/art/icons/resource-fluid.png");
 }
 .resource-icon.energy {
   width: 29px;
-  background-image: url("/art/components/resource-energy.png");
-  background-position: -11px -4px;
+  background-image: url("/art/icons/resource-energy.png");
 }
 .resource-icon.auto {
   width: 31px;
-  background-image: url("/art/components/resource-auto.png");
-  background-position: -10px -4px;
+  background-image: url("/art/icons/resource-auto.png");
 }
+.resource-button.is-active .resource-icon { filter: none; }
 
 .bottom-row { display: grid; grid-template-columns: 148px 158px 158px; gap: 8px; height: 62px; }
 .control-group { min-width: 0; height: 62px; margin: 0; padding: 11px 8px 6px; display: flex; align-items: center; gap: 6px; border: 2px solid #274b55; }
