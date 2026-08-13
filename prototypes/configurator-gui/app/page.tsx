@@ -15,12 +15,12 @@ const resourceOptions: Array<{ key: ResourceKey; label: string }> = [
 const redstoneModes: RedstoneMode[] = ["忽略", "有信号", "无信号", "禁用"];
 
 const entries = [
-  { dir: "↑", color: "green", flags: [1, 0, 1], priority: "0", redstone: "有信号" as RedstoneMode, pos: "12  64  -8", world: "earth" },
-  { dir: "↓", color: "cyan", flags: [1, 1, 0], priority: "-1", redstone: "禁用" as RedstoneMode, pos: "-32  70  15", world: "earth" },
-  { dir: "←", color: "amber", flags: [0, 0, 1], priority: "1", redstone: "无信号" as RedstoneMode, pos: "5  55  100", world: "orb" },
-  { dir: "→", color: "cyan", flags: [1, 1, 1], priority: "0", redstone: "忽略" as RedstoneMode, pos: "0  128  0", world: "orb" },
-  { dir: "↑", color: "green", flags: [1, 1, 0], priority: "2", redstone: "禁用" as RedstoneMode, pos: "18  72  11", world: "earth" },
-  { dir: "←", color: "amber", flags: [0, 1, 1], priority: "-2", redstone: "有信号" as RedstoneMode, pos: "-8  90  42", world: "orb" },
+  { dir: "↑", color: "green", flags: [1, 0, 1], priority: "0", redstone: "有信号" as RedstoneMode, pos: "12  64  -8", dimension: "minecraft:overworld" },
+  { dir: "↓", color: "cyan", flags: [1, 1, 0], priority: "-1", redstone: "禁用" as RedstoneMode, pos: "-32  70  15", dimension: "minecraft:overworld" },
+  { dir: "←", color: "amber", flags: [0, 0, 1], priority: "1", redstone: "无信号" as RedstoneMode, pos: "5  55  100", dimension: "minecraft:the_nether" },
+  { dir: "→", color: "cyan", flags: [1, 1, 1], priority: "0", redstone: "忽略" as RedstoneMode, pos: "0  128  0", dimension: "minecraft:the_end" },
+  { dir: "↑", color: "green", flags: [1, 1, 0], priority: "2", redstone: "禁用" as RedstoneMode, pos: "18  72  11", dimension: "twilightforest:twilight_forest" },
+  { dir: "←", color: "amber", flags: [0, 1, 1], priority: "-2", redstone: "有信号" as RedstoneMode, pos: "-8  90  42", dimension: "ad_astra:moon_orbit" },
 ];
 
 function PixelButton({
@@ -207,7 +207,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="grid header">
-                  <span>设备</span><span>模式</span><span>物</span><span>流</span><span>能</span><span>优先</span><span>红石</span><span>坐标</span><span>维度</span>
+                  <span>设备</span><span>模式</span><span>物</span><span>流</span><span>能</span><span>优先</span><span>红石</span><span>坐标 / 维度</span>
                 </div>
                 {visibleEntries.map((entry, index) => (
                   <div className="grid entry" key={`${detailScroll}-${index}`}>
@@ -218,8 +218,10 @@ export default function Home() {
                     <span title={entry.redstone}>
                       <i className={`table-redstone-icon mode-${entry.redstone}`} aria-hidden="true"><b /></i>
                     </span>
-                    <span className="position">{entry.pos}</span>
-                    <span className={`world ${entry.world}`}>●</span>
+                    <span className="location-cell" title={`${entry.pos} · ${entry.dimension}`}>
+                      <strong>{entry.pos}</strong>
+                      <small>{entry.dimension}</small>
+                    </span>
                   </div>
                 ))}
                 {visibleEntries.length < 4 && Array.from({ length: 4 - visibleEntries.length }).map((_, index) => <div className="grid entry ghost" key={`ghost-${index}`} />)}
