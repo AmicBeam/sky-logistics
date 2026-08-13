@@ -219,7 +219,7 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
   background-image: url("/art/icons/resource-energy.png");
 }
 .resource-icon.auto {
-  width: 31px;
+  width: 34px;
   background-image: url("/art/icons/resource-auto.png");
 }
 .resource-button.is-active .resource-icon { filter: none; }

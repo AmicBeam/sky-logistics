@@ -10,7 +10,9 @@ const icons = [
   { name: "item", file: "resource-item-active.png", left: 8, top: 3, width: 35, height: 34, color: null },
   { name: "fluid", file: "resource-fluid.png", left: 8, top: 3, width: 29, height: 34, color: [50, 174, 220] },
   { name: "energy", file: "resource-energy.png", left: 8, top: 3, width: 31, height: 34, color: [255, 202, 55] },
-  { name: "auto", file: "resource-auto.png", left: 8, top: 3, width: 32, height: 34, color: [91, 196, 72] },
+  // The ring reaches farther right than the other icons. Keep the full 38px source
+  // width so the closing pixels are not mistaken for button background and clipped.
+  { name: "auto", file: "resource-auto.png", left: 8, top: 3, width: 38, height: 34, color: [91, 196, 72] },
 ];
 
 function colorDistance(pixel, background) {
