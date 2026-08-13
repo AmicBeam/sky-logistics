@@ -2,19 +2,20 @@ const sharp = require(process.argv[2]);
 
 const input = process.argv[3];
 const output = process.argv[4];
-const logicalSize = 314;
-const scale = 4;
+const requestedWidth = Number.parseInt(process.argv[5] || '314', 10);
+const requestedHeight = Number.parseInt(process.argv[6] || String(requestedWidth), 10);
+const scale = Number.parseInt(process.argv[7] || '4', 10);
 
 async function main() {
   // Materialize the logical raster before enlargement so Sharp cannot fuse
   // the two resize operations into one resampling pass.
   const logical = await sharp(input)
-    .resize(logicalSize, logicalSize, { fit: 'fill', kernel: 'nearest' })
+    .resize(requestedWidth, requestedHeight, { fit: 'fill', kernel: 'nearest' })
     .png()
     .toBuffer();
 
   await sharp(logical)
-    .resize(logicalSize * scale, logicalSize * scale, {
+    .resize(requestedWidth * scale, requestedHeight * scale, {
       fit: 'fill',
       kernel: 'nearest',
     })
