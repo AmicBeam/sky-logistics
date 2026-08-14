@@ -195,15 +195,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public long limitItemTransfer(long amount) {
-        return amount;
+        return super.limitItemTransfer(amount);
     }
 
     public long limitFluidTransfer(long amount) {
-        return amount;
+        return super.limitFluidTransfer(amount);
     }
 
     public long limitEnergyTransfer(long amount) {
-        return amount;
+        return super.limitEnergyTransfer(amount);
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {

@@ -1,9 +1,12 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.astages.AStagesTransferLimiter;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.UUID;
@@ -146,28 +149,33 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return false;
     }
 
+    public UUID getTransferOwnerId() {
+        return level instanceof ServerLevel serverLevel
+                ? SkyPlayerLines.ownerOf(serverLevel.getServer(), getLineId()) : null;
+    }
+
     public long limitItemTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.ITEMS, amount);
     }
 
     public long limitFluidTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.FLUIDS, amount);
     }
 
     public long limitEnergyTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.ENERGY, amount);
     }
 
     public long limitChemicalTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.CHEMICALS, amount);
     }
 
     public long limitManaTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.MANA, amount);
     }
 
     public long limitSourceTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.SOURCE, amount);
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
@@ -180,6 +188,12 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public boolean supportsSourceEndpoint(Direction direction) {
         return false;
+    }
+
+    private long limitAStages(TransferResource resource, long amount) {
+        return level instanceof ServerLevel serverLevel
+                ? AStagesTransferLimiter.limit(getTransferOwnerId(), resource, amount, serverLevel.getGameTime())
+                : amount;
     }
 
     public int nextItemStart(int slots) {

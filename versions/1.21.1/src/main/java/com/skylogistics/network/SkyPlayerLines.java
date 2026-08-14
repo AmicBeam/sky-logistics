@@ -21,12 +21,23 @@ public final class SkyPlayerLines extends SavedData {
     private static final String LINES = "Lines";
     private static final String LINE_ID = "Id";
     private static final String ASSIGNED_NAME = "AssignedName";
+    private static final String LINE_OWNERS = "LineOwners";
+    private static final String OWNER_ID = "OwnerId";
 
     private final Map<UUID, PlayerLines> players = new HashMap<>();
+    private final Map<UUID, UUID> lineOwners = new HashMap<>();
 
     public static SkyPlayerLines get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(SkyPlayerLines::new, SkyPlayerLines::load, null), DATA_NAME);
+    }
+
+    public static UUID ownerOf(MinecraftServer server, UUID lineId) {
+        return server == null || lineId == null ? null : get(server).lineOwners.get(lineId);
+    }
+
+    public static void claimOwner(MinecraftServer server, UUID lineId, Player player) {
+        if (server != null && lineId != null && player != null) get(server).claimOwner(lineId, player.getUUID());
     }
 
     public static LineSelection selection(MinecraftServer server, Player player, UUID currentLineId,
@@ -90,6 +101,7 @@ public final class SkyPlayerLines extends SavedData {
             }
             case LAST -> index = playerLines.lines.size() - 1;
         }
+        claimOwner(playerLines.lines.get(index).lineId(), player.getUUID());
         return selectionAt(server, playerLines, index, playerLines.lines.get(index).assignedName());
     }
 
@@ -108,7 +120,9 @@ public final class SkyPlayerLines extends SavedData {
     private PlayerLines playerLines(Player player) {
         PlayerLines lines = players.computeIfAbsent(player.getUUID(), ignored -> new PlayerLines());
         if (lines.lines.isEmpty()) {
-            lines.lines.add(createLine(player, List.of()));
+            LineEntry line = createLine(player, List.of());
+            lines.lines.add(line);
+            claimOwner(line.lineId(), player.getUUID());
             setDirty();
         }
         return lines;
@@ -137,6 +151,7 @@ public final class SkyPlayerLines extends SavedData {
             setDirty();
         }
         LineEntry line = playerLines.lines.get(index);
+        claimOwner(line.lineId(), player.getUUID());
         SkyLineNames.ensure(server, line.lineId(), line.assignedName(), displayFallback);
         return index;
     }
@@ -174,6 +189,14 @@ public final class SkyPlayerLines extends SavedData {
             playerTags.add(playerTag);
         }
         tag.put(PLAYERS, playerTags);
+        ListTag ownerTags = new ListTag();
+        for (Map.Entry<UUID, UUID> owner : lineOwners.entrySet()) {
+            CompoundTag ownerTag = new CompoundTag();
+            ownerTag.putUUID(LINE_ID, owner.getKey());
+            ownerTag.putUUID(OWNER_ID, owner.getValue());
+            ownerTags.add(ownerTag);
+        }
+        tag.put(LINE_OWNERS, ownerTags);
         return tag;
     }
 
@@ -202,10 +225,25 @@ public final class SkyPlayerLines extends SavedData {
                         validLineName(assignedName, ConfiguratorItem.lineName("Line", lineIndex))));
             }
             if (!playerLines.lines.isEmpty()) {
-                data.players.put(playerTag.getUUID(PLAYER_ID), playerLines);
+                UUID playerId = playerTag.getUUID(PLAYER_ID);
+                data.players.put(playerId, playerLines);
+                for (LineEntry line : playerLines.lines) data.lineOwners.putIfAbsent(line.lineId(), playerId);
+            }
+        }
+        if (tag.contains(LINE_OWNERS, Tag.TAG_LIST)) {
+            ListTag ownerTags = tag.getList(LINE_OWNERS, Tag.TAG_COMPOUND);
+            for (int i = 0; i < ownerTags.size(); i++) {
+                CompoundTag ownerTag = ownerTags.getCompound(i);
+                if (ownerTag.hasUUID(LINE_ID) && ownerTag.hasUUID(OWNER_ID)) {
+                    data.lineOwners.put(ownerTag.getUUID(LINE_ID), ownerTag.getUUID(OWNER_ID));
+                }
             }
         }
         return data;
+    }
+
+    private void claimOwner(UUID lineId, UUID playerId) {
+        if (lineOwners.putIfAbsent(lineId, playerId) == null) setDirty();
     }
 
     private static LineEntry createLine(Player player, List<LineEntry> existing) {

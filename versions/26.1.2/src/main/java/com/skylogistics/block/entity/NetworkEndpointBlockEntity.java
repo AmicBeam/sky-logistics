@@ -1,9 +1,12 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.astages.AStagesTransferLimiter;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
@@ -79,15 +82,25 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public int getItemSlotLimit(Direction direction) { return ITEM_SLOT_LIMIT_UNLIMITED; }
     public int getOperationRate() { return 1; }
     public boolean hasDimensionUpgrade() { return false; }
-    public long limitItemTransfer(long amount) { return amount; }
-    public long limitFluidTransfer(long amount) { return amount; }
-    public long limitEnergyTransfer(long amount) { return amount; }
-    public long limitChemicalTransfer(long amount) { return amount; }
-    public long limitManaTransfer(long amount) { return amount; }
-    public long limitSourceTransfer(long amount) { return amount; }
+    public UUID getTransferOwnerId() {
+        return level instanceof ServerLevel serverLevel
+                ? SkyPlayerLines.ownerOf(serverLevel.getServer(), getLineId()) : null;
+    }
+    public long limitItemTransfer(long amount) { return limitAStages(TransferResource.ITEMS, amount); }
+    public long limitFluidTransfer(long amount) { return limitAStages(TransferResource.FLUIDS, amount); }
+    public long limitEnergyTransfer(long amount) { return limitAStages(TransferResource.ENERGY, amount); }
+    public long limitChemicalTransfer(long amount) { return limitAStages(TransferResource.CHEMICALS, amount); }
+    public long limitManaTransfer(long amount) { return limitAStages(TransferResource.MANA, amount); }
+    public long limitSourceTransfer(long amount) { return limitAStages(TransferResource.SOURCE, amount); }
     public boolean supportsChemicalEndpoint(Direction direction) { return false; }
     public boolean supportsManaEndpoint(Direction direction) { return false; }
     public boolean supportsSourceEndpoint(Direction direction) { return false; }
+
+    private long limitAStages(TransferResource resource, long amount) {
+        return level instanceof ServerLevel serverLevel
+                ? AStagesTransferLimiter.limit(getTransferOwnerId(), resource, amount, serverLevel.getGameTime())
+                : amount;
+    }
 
     protected SkyDistributorBlockEntity distributor(Direction direction) {
         if (level == null || !level.isLoaded(getTargetPos(direction))) return null;

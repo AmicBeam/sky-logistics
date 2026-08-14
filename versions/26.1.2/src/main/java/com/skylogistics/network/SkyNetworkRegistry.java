@@ -893,6 +893,9 @@ public final class SkyNetworkRegistry {
                 index.pipeLineByPos.put(member, lineId);
             }
         }
+        for (Set<BlockPos> members : index.pipeMembers.values()) {
+            normalizePipeOwner(loadedNodes, members);
+        }
         for (BlockPos pos : rebuilt) {
             SimplePipeBlockEntity pipe = simplePipeAt(loadedNodes, pos);
             UUID lineId = index.pipeLineByPos.get(pos);
@@ -906,6 +909,24 @@ public final class SkyNetworkRegistry {
             Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes, BlockPos pos) {
         NetworkEndpointBlockEntity endpoint = loadedNodes.get(pos);
         return endpoint instanceof SimplePipeBlockEntity pipe ? pipe : null;
+    }
+
+    private static void normalizePipeOwner(Map<BlockPos, NetworkEndpointBlockEntity> loadedNodes,
+            Set<BlockPos> members) {
+        Map<UUID, Integer> counts = new HashMap<>();
+        for (BlockPos member : members) {
+            SimplePipeBlockEntity pipe = simplePipeAt(loadedNodes, member);
+            if (pipe != null && pipe.ownerId() != null) counts.merge(pipe.ownerId(), 1, Integer::sum);
+        }
+        UUID ownerId = counts.entrySet().stream()
+                .max(Comparator.<Map.Entry<UUID, Integer>>comparingInt(Map.Entry::getValue)
+                        .thenComparing(entry -> entry.getKey().toString(), Comparator.reverseOrder()))
+                .map(Map.Entry::getKey).orElse(null);
+        if (ownerId == null) return;
+        for (BlockPos member : members) {
+            SimplePipeBlockEntity pipe = simplePipeAt(loadedNodes, member);
+            if (pipe != null) pipe.assignOwnerId(ownerId);
+        }
     }
 
     private static void disconnectOverflowPipeEdges(ServerLevel level,

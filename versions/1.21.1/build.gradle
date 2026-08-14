@@ -105,6 +105,7 @@ sourceSets {
         resources.srcDir '../../common/src/main/resources'
     }
 }
+sourceSets.test.java.srcDir '../../common/src/test/java'
 
 def commonResourcesDir = file('../../common/src/main/resources').absolutePath
 def versionSkyMeTextures = [

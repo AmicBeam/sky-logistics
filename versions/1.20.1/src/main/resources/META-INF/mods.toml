@@ -54,3 +54,10 @@ mandatory=false
 versionRange="[0.7.5,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.skylogistics]]
+modId="astages"
+mandatory=false
+versionRange="[2.0.0,)"
+ordering="AFTER"
+side="SERVER"

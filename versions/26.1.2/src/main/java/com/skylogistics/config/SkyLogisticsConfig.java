@@ -1,5 +1,14 @@
 package com.skylogistics.config;
 
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.skylogistics.compat.astages.StageRateRules;
+import com.skylogistics.compat.astages.StageTransferRates;
+import com.skylogistics.compat.astages.TransferRates;
+import com.skylogistics.compat.astages.TransferResource;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
@@ -7,6 +16,9 @@ public final class SkyLogisticsConfig {
     public static final Server SERVER;
     public static final ModConfigSpec CLIENT_SPEC;
     public static final Client CLIENT;
+    private static List<? extends Object> cachedAStagesEntries;
+    private static TransferRates cachedAStagesInitial;
+    private static StageRateRules cachedAStagesRules;
 
     static {
         ModConfigSpec.Builder serverBuilder = new ModConfigSpec.Builder();
@@ -40,6 +52,57 @@ public final class SkyLogisticsConfig {
 
     public static int nodeEnergyTransferLimit() {
         return SERVER.nodeEnergyTransferLimit.get();
+    }
+
+    public static boolean enableAStagesTransferRates() {
+        return SERVER.enableAStagesTransferRates.get();
+    }
+
+    public static synchronized StageRateRules aStagesTransferRateRules() {
+        TransferRates initial = new TransferRates(SERVER.aStagesInitialItems.get(),
+                SERVER.aStagesInitialFluids.get(), SERVER.aStagesInitialChemicals.get(),
+                SERVER.aStagesInitialEnergy.get(), SERVER.aStagesInitialMana.get(),
+                SERVER.aStagesInitialSource.get());
+        List<? extends Object> entries = SERVER.aStagesStageRates.get();
+        if (cachedAStagesRules == null || cachedAStagesEntries != entries
+                || !initial.equals(cachedAStagesInitial)) {
+            Map<String, StageTransferRates> stages = new HashMap<>();
+            for (Object value : entries) {
+                UnmodifiableConfig entry = (UnmodifiableConfig) value;
+                String stage = entry.get("stage");
+                EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+                for (TransferResource resource : TransferResource.values()) {
+                    Number rate = entry.get(resource.configKey());
+                    if (rate != null) rates.put(resource, rate.longValue());
+                }
+                StageTransferRates parsed = new StageTransferRates(rates);
+                stages.merge(stage, parsed, StageTransferRates::mergeMax);
+            }
+            cachedAStagesEntries = entries;
+            cachedAStagesInitial = initial;
+            cachedAStagesRules = new StageRateRules(initial, stages);
+        }
+        return cachedAStagesRules;
+    }
+
+    private static boolean validAStagesStageRateEntry(Object value) {
+        if (!(value instanceof UnmodifiableConfig entry)) return false;
+        Object stage = entry.get("stage");
+        if (!(stage instanceof String text) || text.isBlank()) return false;
+        for (String key : entry.valueMap().keySet()) {
+            if ("stage".equals(key)) continue;
+            TransferResource resource = null;
+            for (TransferResource candidate : TransferResource.values()) {
+                if (candidate.configKey().equals(key)) {
+                    resource = candidate;
+                    break;
+                }
+            }
+            if (resource == null) return false;
+            Object rate = entry.get(key);
+            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
+        }
+        return true;
     }
 
     public static boolean enableSimpleItemPipe() {
@@ -222,6 +285,14 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue maxVaultFluidEntryNbtBytes;
         public final ModConfigSpec.IntValue nodeItemTransferLimit;
         public final ModConfigSpec.IntValue nodeEnergyTransferLimit;
+        public final ModConfigSpec.BooleanValue enableAStagesTransferRates;
+        public final ModConfigSpec.LongValue aStagesInitialItems;
+        public final ModConfigSpec.LongValue aStagesInitialFluids;
+        public final ModConfigSpec.LongValue aStagesInitialChemicals;
+        public final ModConfigSpec.LongValue aStagesInitialEnergy;
+        public final ModConfigSpec.LongValue aStagesInitialMana;
+        public final ModConfigSpec.LongValue aStagesInitialSource;
+        public final ModConfigSpec.ConfigValue<List<? extends Object>> aStagesStageRates;
         public final ModConfigSpec.IntValue serverOpsPerTick;
         public final ModConfigSpec.IntValue lineOpsPerTick;
         public final ModConfigSpec.IntValue endpointTargetAttempts;
@@ -294,6 +365,23 @@ public final class SkyLogisticsConfig {
             nodeEnergyTransferLimit = builder
                     .comment("Maximum energy moved by a logistics node per energy transfer operation.")
                     .defineInRange("nodeEnergyTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
+            builder.push("astages");
+            enableAStagesTransferRates = builder
+                    .comment("Whether AStages player stages limit and unlock per-operation transfer amounts. Requires AStages 2.x.")
+                    .define("enabled", false);
+            builder.push("initialRates");
+            aStagesInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
+            aStagesInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
+            builder.pop();
+            aStagesStageRates = builder
+                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, energy, mana, source.",
+                            "Example: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
+                    .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
+            builder.pop();
             enableSimpleItemPipe = builder
                     .comment("Whether simple item pipes connect to inventories and transfer items.")
                     .define("enableSimpleItemPipe", true);

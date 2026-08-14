@@ -87,3 +87,10 @@ type="optional"
 versionRange="[0.7.6,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="astages"
+type="optional"
+versionRange="[2.0.0,)"
+ordering="AFTER"
+side="SERVER"
