@@ -23,14 +23,15 @@ import net.neoforged.neoforge.items.IItemHandler;
 public class SkyDistributorBlockEntity extends BlockEntity {
     private static final int MAX_CONFIGURABLE_TARGETS = 64;
     private static final long RESCAN_INTERVAL = 100L;
-    private final DistributedItems[] items = new DistributedItems[Direction.values().length];
-    private final DistributedFluids[] fluids = new DistributedFluids[Direction.values().length];
-    private final DistributedEnergy[] energy = new DistributedEnergy[Direction.values().length];
-    private final TargetCache[] targetCaches = new TargetCache[Direction.values().length];
-    private final DiscoveryState[] targetDiscoveries = new DiscoveryState[Direction.values().length];
+    private static final Direction[] DIRECTIONS = Direction.values();
+    private final DistributedItems[] items = new DistributedItems[DIRECTIONS.length];
+    private final DistributedFluids[] fluids = new DistributedFluids[DIRECTIONS.length];
+    private final DistributedEnergy[] energy = new DistributedEnergy[DIRECTIONS.length];
+    private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
+    private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
-    private final boolean[] targetsDirty = new boolean[Direction.values().length];
-    private final long[] nextRescan = new long[Direction.values().length];
+    private final boolean[] targetsDirty = new boolean[DIRECTIONS.length];
+    private final long[] nextRescan = new long[DIRECTIONS.length];
     private Direction selectedSide = Direction.NORTH;
     private int itemInsertCursor;
     private int fluidInsertCursor;
@@ -54,6 +55,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final long[] rejectedFluidUntil = new long[MAX_CONFIGURABLE_TARGETS];
     private long operationBudgetTick = Long.MIN_VALUE;
     private int remainingOperations;
+    private long scanBudgetTick = Long.MIN_VALUE;
+    private int remainingScanOperations;
+    private int discoveryCursor;
     private ItemInsertPlan itemInsertPlan;
     private ItemExtractPlan itemExtractPlan;
     private FluidInsertPlan fluidInsertPlan;
@@ -131,7 +135,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             targetDiscoveries[index] = scan;
         }
         while (!scan.queue.isEmpty() && scan.found < maxTargets) {
-            if (!takeOperation()) return null;
+            if (!takeScanOperation()) return null;
             BlockPos pos = scan.queue.removeFirst();
             if (!scan.visited.add(pos) || scan.discovered.contains(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -186,9 +190,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     public IItemHandler itemHandler(Direction side) { return SkyLogisticsConfig.enableDistributorItems() ? items[side.ordinal()] : null; }
     public IFluidHandler fluidHandler(Direction side) { return SkyLogisticsConfig.enableDistributorFluids() ? fluids[side.ordinal()] : null; }
     public IEnergyStorage energyHandler(Direction side) { return SkyLogisticsConfig.enableDistributorEnergy() ? energy[side.ordinal()] : null; }
-    public boolean hasItemTargets(Direction side) { return SkyLogisticsConfig.enableDistributorItems() && !targets(side).items.isEmpty(); }
-    public boolean hasFluidTargets(Direction side) { return SkyLogisticsConfig.enableDistributorFluids() && !targets(side).fluids.isEmpty(); }
-    public boolean hasEnergyTargets(Direction side) { return SkyLogisticsConfig.enableDistributorEnergy() && !targets(side).energy.isEmpty(); }
+    public boolean hasItemTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorItems()
+                && (!targets(side).items.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
+    public boolean hasFluidTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorFluids()
+                && (!targets(side).fluids.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
+    public boolean hasEnergyTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorEnergy()
+                && (!targets(side).energy.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
     public List<TargetSnapshot> targetSnapshot() {
         TargetCache cache = targets(selectedSide);
         highlightSnapshot = createTargetSnapshot(cache);
@@ -261,6 +274,33 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         if (remainingOperations <= 0) return false;
         remainingOperations--;
         return true;
+    }
+
+    private boolean takeScanOperation() {
+        long now = gameTime();
+        if (scanBudgetTick != now) {
+            scanBudgetTick = now;
+            remainingScanOperations = SkyLogisticsConfig.distributorScanOpsPerTick();
+        }
+        if (remainingScanOperations <= 0) return false;
+        remainingScanOperations--;
+        return true;
+    }
+
+    public static void tick(net.minecraft.world.level.Level level, BlockPos pos, BlockState state,
+            SkyDistributorBlockEntity distributor) {
+        if (level.isClientSide) return;
+        distributor.continueDiscovery();
+    }
+
+    private void continueDiscovery() {
+        for (int offset = 0; offset < DIRECTIONS.length; offset++) {
+            int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
+            if (targetDiscoveries[index] == null) continue;
+            discoveryCursor = (index + 1) % DIRECTIONS.length;
+            refreshTargets(DIRECTIONS[index]);
+            return;
+        }
     }
 
     private void clearTransientCaches() {

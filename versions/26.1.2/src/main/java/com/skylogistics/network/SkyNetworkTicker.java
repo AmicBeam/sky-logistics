@@ -4,6 +4,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
+import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity.ExternalWhitelistCandidates;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
@@ -1090,6 +1091,10 @@ public final class SkyNetworkTicker {
 
     private static TargetItemSelection selectTargetItemSlot(CachedEndpoint endpoint, ItemHandler target,
             ItemStack stack, int checkBudget) {
+        if (endpoint.targetBlockEntity() instanceof SkyDistributorBlockEntity) {
+            endpoint.clearTargetItemCursor();
+            return new TargetItemSelection(simulateSingleTargetItemSlot(target, stack), 1, true);
+        }
         int slots = target.getSlots();
         if (slots == 1) {
             endpoint.clearTargetItemCursor();

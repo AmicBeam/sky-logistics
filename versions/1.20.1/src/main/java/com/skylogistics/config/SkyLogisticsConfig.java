@@ -121,6 +121,7 @@ public final class SkyLogisticsConfig {
     public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
+    public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
 
     public static int simpleItemPipeTransferRate() {
@@ -340,6 +341,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableDistributorFluids;
         public final ForgeConfigSpec.BooleanValue enableDistributorEnergy;
         public final ForgeConfigSpec.IntValue distributorMaxTargets;
+        public final ForgeConfigSpec.IntValue distributorScanOpsPerTick;
         public final ForgeConfigSpec.IntValue distributorOpsPerTick;
         public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
@@ -524,8 +526,11 @@ public final class SkyLogisticsConfig {
             distributorMaxTargets = builder
                     .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.")
                     .defineInRange("maxTargets", 16, 1, 64);
+            distributorScanOpsPerTick = builder
+                    .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.")
+                    .defineInRange("scanOpsPerTick", 16, 1, 4096);
             distributorOpsPerTick = builder
-                    .comment("Maximum target or internal slot probes one Celestial Distributor may perform per server tick.")
+                    .comment("Maximum transfer target or internal slot probes one Celestial Distributor may perform per server tick. BFS discovery uses scanOpsPerTick instead.")
                     .defineInRange("opsPerTick", 64, 1, 4096);
             builder.pop();
 
