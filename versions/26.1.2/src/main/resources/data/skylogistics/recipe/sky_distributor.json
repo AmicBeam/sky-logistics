@@ -2,7 +2,7 @@
   "type": "skylogistics:sky_offering",
   "duration": 240,
   "altar_tier": 2,
-  "main": {"ingredient": "skylogistics:chora_nectar"},
+  "main": {"ingredient": "skylogistics:eulogia_crystal", "charged": true},
   "offerings": [
     {"ingredient": "skylogistics:celestial_stone", "count": 4},
     {"ingredient": "#c:dusts/redstone", "count": 2},
