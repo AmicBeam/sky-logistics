@@ -48,6 +48,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FACE_BUTTON_WIDTH = 30;
     private static final int FACE_BUTTON_HEIGHT = 28;
     private static final int FACE_BUTTON_STEP = 29;
+    private static final int FACE_SELECTED_FILL = 0xFF24152E;
+    private static final int FACE_SELECTED_BORDER = 0xFFC78CFF;
+    private static final int FACE_SELECTED_MARK = 0xFFE2C2FF;
     private static final int RESOURCE_GROUP_Y = 48;
     private static final int RESOURCE_CONTROL_Y = 55;
     private static final int RESOURCE_GROUP_X = 5;
@@ -696,14 +699,20 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = direction == selectedFace;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            if (selected) {
+                ConfigPanel.drawBox(graphics, getX(), getY(), width, height,
+                        FACE_SELECTED_FILL, FACE_SELECTED_BORDER);
+                graphics.fill(getX() + 1, getY() + 1, getX() + 3, getY() + height - 1,
+                        FACE_SELECTED_MARK);
+            }
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
                     graphics.item(icon, getX() + 9, getY() + 5);
                 }
-                graphics.text(font, faceShortName(direction), getX() + 2, getY() + 2,
-                        active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                graphics.text(font, faceShortName(direction), getX() + 4, getY() + 2,
+                        active ? (selected ? FACE_SELECTED_MARK : ConfigPanel.TEXT) : ConfigPanel.MUTED, false);
                 int modeColor = colorFor(modeFor(node, direction));
                 graphics.fill(getX() + 5, getY() + height - 5, getX() + width - 5, getY() + height - 3, modeColor);
             }
