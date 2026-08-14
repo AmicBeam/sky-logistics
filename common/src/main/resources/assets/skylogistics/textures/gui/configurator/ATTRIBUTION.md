@@ -2,8 +2,8 @@
 
 - `redstone_high.png`, `redstone_low.png`, and `redstone_ignore.png` use
   Minecraft's redstone torch, unlit redstone torch, and redstone dust artwork.
-- `resource_*.png` and `resource_*_small.png` are Sky Logistics configurator
-  artwork derived from this project's approved HTML prototype.
+- `resource_*_small.png` icons are rasterized directly at their final 18x17
+  logical size from the project's deterministic SVG icon sources.
 
 The local state mapping is:
 
