@@ -20,4 +20,4 @@ Simulation builds a bounded transfer plan and execution reuses it without scanni
 
 Hold a Celestial Configurator and aim at the distributor to outline every target in its current cache in cyan. The client requests a snapshot immediately when the aimed distributor changes, then once every 20 ticks while aiming; rendering never scans containers every frame.
 
-It is made at a tier 2 altar with 1 charged Eulogia Crystal as the main ingredient and offerings of 4 Celestial Stone, 2 Redstone Dust, 2 Amethyst Shards, and 1 Chest.
+It is made at a tier 2 altar with 1 charged Eulogia Crystal as the main ingredient and offerings of 1 Celestial Stone, 2 Redstone Dust, 2 Amethyst Shards, and 1 Chest.

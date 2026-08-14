@@ -4,7 +4,7 @@
   "altar_tier": 2,
   "main": {"item": "skylogistics:eulogia_crystal", "charged": true},
   "offerings": [
-    {"item": "skylogistics:celestial_stone", "count": 4},
+    {"item": "skylogistics:celestial_stone", "count": 1},
     {"tag": "forge:dusts/redstone", "count": 2},
     {"tag": "forge:gems/amethyst", "count": 2},
     {"tag": "forge:chests/wooden", "count": 1}
