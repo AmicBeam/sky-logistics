@@ -39,36 +39,45 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
+    private static final int FACE_PANEL_X = -33;
+    private static final int FACE_PANEL_Y = 46;
+    private static final int FACE_PANEL_WIDTH = 33;
+    private static final int FACE_PANEL_HEIGHT = 177;
+    private static final int FACE_BUTTON_X = -31;
+    private static final int FACE_BUTTON_Y = 48;
+    private static final int FACE_BUTTON_WIDTH = 30;
+    private static final int FACE_BUTTON_HEIGHT = 28;
+    private static final int FACE_BUTTON_STEP = 29;
     private static final int RESOURCE_GROUP_Y = 48;
     private static final int RESOURCE_CONTROL_Y = 55;
-    private static final int RESOURCE_GROUP_X = 33;
-    private static final int MODE_GROUP_X = 143;
-    private static final int RESOURCE_MODE_GROUP_WIDTH = 106;
-    private static final int RESOURCE_BUTTON_WIDTH = 31;
-    private static final int RESOURCE_BUTTON_STEP = 34;
+    private static final int RESOURCE_GROUP_X = 5;
+    private static final int MODE_GROUP_X = 129;
+    private static final int RESOURCE_MODE_GROUP_WIDTH = 120;
+    private static final int RESOURCE_BUTTON_WIDTH = 35;
+    private static final int RESOURCE_BUTTON_STEP = 39;
     private static final int ADVANCED_GROUP_Y = 83;
     private static final int ADVANCED_CONTROL_Y = 90;
-    private static final int REDSTONE_GROUP_X = 33;
-    private static final int REDSTONE_GROUP_WIDTH = 68;
-    private static final int SLOT_LIMIT_GROUP_X = 105;
-    private static final int SLOT_LIMIT_GROUP_WIDTH = 72;
-    private static final int PRIORITY_GROUP_X = 181;
-    private static final int PRIORITY_GROUP_WIDTH = 68;
-    private static final int REDSTONE_CONTROL_X = 38;
-    private static final int ADVANCED_CONTROL_WIDTH = 58;
-    private static final int PRIORITY_BUTTON_WIDTH = 15;
-    private static final int SLOT_LIMIT_DOWN_X = 110;
-    private static final int SLOT_LIMIT_VALUE_X = 127;
+    private static final int REDSTONE_GROUP_X = 5;
+    private static final int REDSTONE_GROUP_WIDTH = 74;
+    private static final int SLOT_LIMIT_GROUP_X = 83;
+    private static final int SLOT_LIMIT_GROUP_WIDTH = 79;
+    private static final int PRIORITY_GROUP_X = 166;
+    private static final int PRIORITY_GROUP_WIDTH = 83;
+    private static final int REDSTONE_CONTROL_X = 10;
+    private static final int ADVANCED_CONTROL_WIDTH = 64;
+    private static final int PRIORITY_BUTTON_WIDTH = 17;
+    private static final int SLOT_LIMIT_DOWN_X = 88;
+    private static final int SLOT_LIMIT_VALUE_X = 108;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 31;
-    private static final int SLOT_LIMIT_UP_X = 160;
-    private static final int PRIORITY_DOWN_X = 186;
-    private static final int PRIORITY_VALUE_X = 203;
-    private static final int PRIORITY_VALUE_WIDTH = 25;
-    private static final int PRIORITY_UP_X = 230;
+    private static final int SLOT_LIMIT_UP_X = 142;
+    private static final int PRIORITY_DOWN_X = 171;
+    private static final int PRIORITY_VALUE_X = 191;
+    private static final int PRIORITY_VALUE_WIDTH = 31;
+    private static final int PRIORITY_UP_X = 225;
     private static final int UPGRADE_FILTER_GROUP_Y = 118;
-    private static final int UPGRADE_GROUP_X = 33;
-    private static final int FILTER_GROUP_X = 143;
-    private static final int UPGRADE_FILTER_GROUP_WIDTH = 106;
+    private static final int UPGRADE_GROUP_X = 5;
+    private static final int FILTER_GROUP_X = 129;
+    private static final int UPGRADE_FILTER_GROUP_WIDTH = 120;
     private static final int UPGRADE_FILTER_GROUP_HEIGHT = 27;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
@@ -126,24 +135,23 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addRenderableWidget(lineNameEdit);
 
         if (!singleEndpoint) {
-            int x = leftPos + 5;
-            int y = topPos + 48;
             for (int i = 0; i < FACE_ORDER.length; i++) {
                 Direction direction = FACE_ORDER[i];
-                FaceButton button = new FaceButton(x, y + i * 22, direction);
+                FaceButton button = new FaceButton(leftPos + FACE_BUTTON_X,
+                        topPos + FACE_BUTTON_Y + i * FACE_BUTTON_STEP, direction);
                 faceButtons.put(direction, button);
                 addRenderableWidget(button);
             }
         }
 
-        addTypeButton(leftPos + 38, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ITEMS);
-        addTypeButton(leftPos + 38 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.FLUIDS);
-        addTypeButton(leftPos + 38 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ENERGY);
-        addModeButton(leftPos + 148, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.NONE,
+        addTypeButton(leftPos + 10, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ITEMS);
+        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.FLUIDS);
+        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ENERGY);
+        addModeButton(leftPos + 134, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.NONE,
                 Component.translatable("button.skylogistics.none"));
-        addModeButton(leftPos + 148 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.INPUT,
+        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.INPUT,
                 Component.translatable("button.skylogistics.extract"));
-        addModeButton(leftPos + 148 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
+        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
         addAdvancedButton(new RedstoneButton(leftPos + REDSTONE_CONTROL_X, topPos + menu.screenY(ADVANCED_CONTROL_Y)));
         addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
@@ -253,6 +261,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        if (!menu.isSingleEndpoint()) {
+            drawFacePanel(graphics);
+        }
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + LINE_PANEL_X, topPos + LINE_PANEL_Y,
                 LINE_PANEL_WIDTH, 24);
@@ -570,6 +581,16 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
+    private void drawFacePanel(GuiGraphics graphics) {
+        int x = leftPos + FACE_PANEL_X;
+        int y = topPos + FACE_PANEL_Y;
+        graphics.fill(x, y, x + FACE_PANEL_WIDTH, y + FACE_PANEL_HEIGHT, ConfigPanel.BG);
+        graphics.fill(x, y, x + FACE_PANEL_WIDTH, y + 1, ConfigPanel.BORDER_ACTIVE);
+        graphics.fill(x, y, x + 1, y + FACE_PANEL_HEIGHT, ConfigPanel.BORDER_ACTIVE);
+        graphics.fill(x, y + FACE_PANEL_HEIGHT - 1, x + FACE_PANEL_WIDTH, y + FACE_PANEL_HEIGHT,
+                ConfigPanel.BORDER);
+    }
+
     private int colorFor(NodeFaceMode mode) {
         return switch (mode) {
             case INPUT -> 0xFFFFB56B;
@@ -660,7 +681,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final Direction direction;
 
         private FaceButton(int x, int y, Direction direction) {
-            super(x, y, 24, 20, faceName(direction));
+            super(x, y, FACE_BUTTON_WIDTH, FACE_BUTTON_HEIGHT, faceName(direction));
             this.direction = direction;
         }
 
@@ -684,12 +705,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
-                    graphics.renderItem(icon, getX() + 7, getY() + 2);
+                    graphics.renderItem(icon, getX() + 9, getY() + 5);
                 }
                 graphics.drawString(font, faceShortName(direction), getX() + 2, getY() + 2,
                         active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
                 int modeColor = colorFor(modeFor(node, direction));
-                graphics.fill(getX() + 4, getY() + height - 4, getX() + width - 4, getY() + height - 2, modeColor);
+                graphics.fill(getX() + 5, getY() + height - 5, getX() + width - 5, getY() + height - 3, modeColor);
             }
         }
 
