@@ -417,13 +417,13 @@ public final class SkyLogisticsConfig {
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
             serverOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations Sky Logistics may process per server tick.")
-                    .defineInRange("serverOpsPerTick", 2048, 1, 1_000_000);
+                    .defineInRange("serverOpsPerTick", 32_768, 1, 1_000_000);
             lineOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations one logistics line may consume per server tick.")
                     .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
             endpointTargetAttempts = builder
-                    .comment("Maximum receiving endpoints one source endpoint may try for one transfer candidate.")
-                    .defineInRange("endpointTargetAttempts", 1, 1, 1_000_000);
+                    .comment("Maximum receiving endpoints one source endpoint may try after failures for one transfer candidate. A successful transfer still stops immediately.")
+                    .defineInRange("endpointTargetAttempts", 4, 1, 1_000_000);
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
