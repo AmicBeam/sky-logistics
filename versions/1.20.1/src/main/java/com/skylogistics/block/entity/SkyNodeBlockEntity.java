@@ -648,9 +648,6 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (control == RedstoneControl.IGNORE) {
             return true;
         }
-        if (control == RedstoneControl.DISABLED) {
-            return false;
-        }
         boolean powered = isPoweredCached();
         return control == RedstoneControl.HIGH ? powered : !powered;
     }

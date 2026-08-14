@@ -37,7 +37,6 @@
   "tooltip.skylogistics.redstone.ignore": "Ignore",
   "tooltip.skylogistics.redstone.high": "High signal",
   "tooltip.skylogistics.redstone.low": "Low signal",
-  "tooltip.skylogistics.redstone.disabled": "Disabled",
   "tooltip.skylogistics.configurator.unbound": "Right-click to open the configurator.",
   "tooltip.skylogistics.configurator.line": "Line: %s",
   "tooltip.skylogistics.configurator.types": "Items: %s, Fluids: %s, Energy: %s",

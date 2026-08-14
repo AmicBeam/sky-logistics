@@ -6,24 +6,19 @@ import net.minecraft.util.StringRepresentable;
 public enum RedstoneControl implements StringRepresentable {
     IGNORE,
     HIGH,
-    LOW,
-    DISABLED;
+    LOW;
 
     public static RedstoneControl byName(String name) {
         try {
-            RedstoneControl control = RedstoneControl.valueOf(name.toUpperCase(Locale.ROOT));
-            return control == DISABLED ? IGNORE : control;
+            return RedstoneControl.valueOf(name.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException | NullPointerException exception) {
             return IGNORE;
         }
     }
 
     public RedstoneControl next() {
-        return switch (this) {
-            case IGNORE, DISABLED -> HIGH;
-            case HIGH -> LOW;
-            case LOW -> IGNORE;
-        };
+        RedstoneControl[] values = values();
+        return values[(ordinal() + 1) % values.length];
     }
 
     public String translationKey() {

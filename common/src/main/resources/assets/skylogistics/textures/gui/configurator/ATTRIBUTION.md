@@ -10,4 +10,3 @@ The local state mapping is:
 - Sky Logistics `IGNORE` -> unlit redstone dust
 - Sky Logistics `HIGH` -> lit redstone torch
 - Sky Logistics `LOW` -> unlit redstone torch
-- Legacy `DISABLED` values are read as `IGNORE` and are not exposed by the UI.
