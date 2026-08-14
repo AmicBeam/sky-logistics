@@ -388,7 +388,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
             Component range = Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size());
             graphics.drawString(font, range, DETAIL_X + DETAIL_WIDTH - 3 - font.width(range),
-                    DETAIL_Y - 10, ConfigPanel.MUTED, false);
+                    DETAIL_Y + DETAIL_HEIGHT + 1, ConfigPanel.MUTED, false);
         }
         if (entries.isEmpty()) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces_empty"),
