@@ -65,6 +65,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private Direction selectedFace = Direction.NORTH;
     private MoreButton moreButton;
     private EditBox lineNameEdit;
+    private EditBox exactQuantityEdit;
+    private boolean refreshingExactQuantity;
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private boolean advancedPanel;
@@ -141,6 +143,13 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 -1, Component.literal("-")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
                 1, Component.literal("+")));
+        exactQuantityEdit = new EditBox(font, leftPos + SLOT_LIMIT_DOWN_X,
+                topPos + menu.screenY(FIRST_DETAIL_ROW_Y), 66, 18,
+                Component.translatable("screen.skylogistics.exact_quantity"));
+        exactQuantityEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        exactQuantityEdit.setMaxLength(10);
+        exactQuantityEdit.setResponder(this::exactQuantityChanged);
+        addRenderableWidget(exactQuantityEdit);
 
     }
 
@@ -209,9 +218,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             button.active = !advancedPanel && selectedFaceActive;
         }
         for (AdvancedButton button : advancedButtons) {
-            button.visible = advancedPanel;
+            button.visible = advancedPanel && !(button instanceof SlotLimitButton && node.hasExactQuantityUpgrade());
             button.active = advancedPanel && selectedFaceActive && button.canUse(node);
         }
+        refreshExactQuantity(node);
         if (moreButton != null) {
             moreButton.active = selectedFaceActive;
             moreButton.setMessage(Component.translatable(advancedPanel
@@ -271,11 +281,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (advancedPanel) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.redstone"),
                     14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
-            graphics.drawString(font, Component.translatable("screen.skylogistics.slot_limit"),
+            graphics.drawString(font, Component.translatable(node.hasExactQuantityUpgrade()
+                            ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit"),
                     ADVANCED_RIGHT_LABEL_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
                     ConfigPanel.MUTED, false);
-            graphics.drawCenteredString(font, slotLimitDisplay(node.getItemSlotLimit(face)),
-                    SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
+            if (!node.hasExactQuantityUpgrade()) graphics.drawCenteredString(font,
+                    slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
                     menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.TEXT);
             graphics.drawString(font, Component.translatable(node.usesSingleEndpoint()
                             ? "screen.skylogistics.filter_slot"
@@ -366,6 +377,29 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             lineNameEditLine = node.getLineId();
             lineNameEdit.setValue(displayName);
         }
+    }
+
+    private void refreshExactQuantity(SkyNodeBlockEntity node) {
+        if (exactQuantityEdit == null) return;
+        boolean visible = advancedPanel && node.hasExactQuantityUpgrade();
+        exactQuantityEdit.visible = visible;
+        exactQuantityEdit.active = visible;
+        if (visible && !exactQuantityEdit.isFocused()) {
+            String value = String.valueOf(node.exactQuantity());
+            if (!value.equals(exactQuantityEdit.getValue())) {
+                refreshingExactQuantity = true;
+                exactQuantityEdit.setValue(value);
+                refreshingExactQuantity = false;
+            }
+        }
+    }
+
+    private void exactQuantityChanged(String value) {
+        if (refreshingExactQuantity || value.isEmpty()) return;
+        try {
+            long parsed = Long.parseLong(value);
+            ModNetworking.sendExactQuantity((int) Math.min(Integer.MAX_VALUE, Math.max(1L, parsed)));
+        } catch (NumberFormatException ignored) { }
     }
 
     private void commitLineNameEdit() {

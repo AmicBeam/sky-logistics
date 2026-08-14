@@ -17,7 +17,9 @@ Celestial logistics for Minecraft. Sky Logistics moves items, fluids, energy, an
 - **Server-friendly performance**: transfer work is scheduled with operation budgets, ready-line queues, hot slot tracking, capability caches, and endpoint backoff so large networks stay responsive without constantly scanning the world.
 - **Fast placement and setup**: node placement switches mode based on sneaking, and the Sky Configurator handles line management, copy/paste configuration, and offhand placement presets.
 - **Built-in high-stack storage**: Celestial Item Vaults and Celestial Fluid Vaults stack 9e18-class amounts per type in searchable terminal-style views, while type limits stay expandable and configurable.
-- **Inventory and backpack interaction**: the Sky Necklace adds portable transfer between logistics lines, the player inventory, and supported backpack inventories.
+- **Inventory and backpack interaction**: the Sky Necklace adds portable extract, insert, and maintain modes between logistics lines, the player inventory, and supported backpack inventories. Its two upgrade slots accept dimension and exact-quantity upgrades.
+- **Precise stock control**: the exact-quantity upgrade replaces matching-slot retention with an editable item total from 1 to `Integer.MAX_VALUE` on nodes and necklaces.
+- **Chemical filtering**: on Mekanism-capable versions, chemical ingredients can be dragged from JEI into ordinary filter lists and are enforced at both ends of chemical transfers.
 - **Mod integrations**: optional compatibility is available for Jade, JEI, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania on 1.20.1, and Ars Nouveau, plus high-throughput links for AE2, Refined Storage, and Beyond Dimensions depending on the Minecraft version.
 
 ## Requirements

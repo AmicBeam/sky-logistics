@@ -5,6 +5,7 @@ import com.skylogistics.compat.astages.AStagesTransferLimiter;
 import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.util.NodeFaceMode;
@@ -41,9 +42,19 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     private int itemCursor;
     private int fluidCursor;
     private final int[] targetCursors = new int[TargetResource.values().length];
+    private long lastTransferGameTime = Long.MIN_VALUE;
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+    }
+
+    public void recordRecentTransfer() {
+        if (level != null) lastTransferGameTime = level.getGameTime();
+    }
+
+    public boolean hasRecentTransfer() {
+        return level != null && lastTransferGameTime != Long.MIN_VALUE
+                && level.getGameTime() - lastTransferGameTime <= 40L;
     }
 
     @Override
@@ -118,6 +129,10 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public boolean allowsFluid(Direction direction, FluidStack stack) {
+        return true;
+    }
+
+    public boolean allowsChemical(Direction direction, ChemicalStackView stack) {
         return true;
     }
 

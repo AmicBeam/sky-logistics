@@ -86,6 +86,11 @@ final class MekanismChemicalCompat {
         }
 
         @Override
+        public String chemicalKey() {
+            return String.valueOf(mekanism.api.MekanismAPI.CHEMICAL_REGISTRY.getKey(stack.getChemical()));
+        }
+
+        @Override
         public Object rawStack() {
             return stack.copy();
         }

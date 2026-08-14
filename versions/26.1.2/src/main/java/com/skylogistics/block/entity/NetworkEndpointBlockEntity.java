@@ -29,9 +29,19 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     private int itemCursor;
     private int fluidCursor;
     private final int[] targetCursors = new int[TargetResource.values().length];
+    private long lastTransferGameTime = Long.MIN_VALUE;
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+    }
+
+    public void recordRecentTransfer() {
+        if (level != null) lastTransferGameTime = level.getGameTime();
+    }
+
+    public boolean hasRecentTransfer() {
+        return level != null && lastTransferGameTime != Long.MIN_VALUE
+                && level.getGameTime() - lastTransferGameTime <= 40L;
     }
 
     @Override

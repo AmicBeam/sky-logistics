@@ -159,6 +159,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         return selectedFace;
     }
 
+    public void setExactQuantity(Player player, int amount) {
+        if (player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity node
+                && node.hasExactQuantityUpgrade()) {
+            node.setExactQuantity(amount);
+            broadcastChanges();
+        }
+    }
+
     public void selectFace(Direction face) {
         selectedFace = face;
     }

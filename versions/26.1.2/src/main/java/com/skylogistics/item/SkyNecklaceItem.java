@@ -1,12 +1,14 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.SkyNecklaceMenu;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.StackData;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,6 +31,9 @@ public class SkyNecklaceItem extends Item {
     private static final String FILTER = "SkyNecklaceFilter";
     private static final String INSERT_SLOTS = "SkyNecklaceInsertSlots";
     private static final String PRIORITY = "SkyNecklacePriority";
+    private static final String UPGRADES = "SkyNecklaceUpgrades";
+    private static final String UPGRADE_SLOT = "Slot";
+    private static final String UPGRADE_STACK = "Stack";
 
     public SkyNecklaceItem(Properties properties) {
         super(properties);
@@ -76,6 +81,11 @@ public class SkyNecklaceItem extends Item {
                 insertSlotsDisplay(stack)).withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("tooltip.skylogistics.sky_necklace.priority",
                 priority(stack)).withStyle(ChatFormatting.GRAY));
+        if (hasDimensionUpgrade(stack)) tooltip.accept(Component.translatable(
+                "tooltip.skylogistics.sky_necklace.dimension_upgrade").withStyle(ChatFormatting.LIGHT_PURPLE));
+        if (hasExactQuantityUpgrade(stack)) tooltip.accept(Component.translatable(
+                "tooltip.skylogistics.sky_necklace.exact_quantity", exactQuantity(stack))
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
         if (!filter.isEmpty()) {
             FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);
         }
@@ -180,6 +190,73 @@ public class SkyNecklaceItem extends Item {
         return ConfiguratorItem.readLineId(necklace);
     }
 
+    public static boolean isUpgradeItem(ItemStack stack) {
+        return stack.is(ModItems.DIMENSION_UPGRADE.get()) || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get());
+    }
+
+    public static ItemStack getUpgrade(ItemStack necklace, int slot) {
+        if (slot < 0 || slot >= SkyNecklaceMenu.UPGRADE_SLOTS) return ItemStack.EMPTY;
+        CompoundTag tag = StackData.get(necklace);
+        if (tag == null || !tag.contains(UPGRADES)) return ItemStack.EMPTY;
+        ListTag upgrades = tag.getListOrEmpty(UPGRADES);
+        for (int i = 0; i < upgrades.size(); i++) {
+            CompoundTag entry = upgrades.getCompoundOrEmpty(i);
+            if (entry.getIntOr(UPGRADE_SLOT, -1) == slot) return StackData.loadItem(entry.getCompoundOrEmpty(UPGRADE_STACK));
+        }
+        return ItemStack.EMPTY;
+    }
+
+    public static void setUpgrade(ItemStack necklace, int slot, ItemStack upgrade) {
+        if (slot < 0 || slot >= SkyNecklaceMenu.UPGRADE_SLOTS) return;
+        ItemStack[] values = new ItemStack[SkyNecklaceMenu.UPGRADE_SLOTS];
+        for (int i = 0; i < values.length; i++) values[i] = getUpgrade(necklace, i);
+        values[slot] = isUpgradeItem(upgrade) ? upgrade.copyWithCount(1) : ItemStack.EMPTY;
+        StackData.update(necklace, tag -> {
+            ListTag list = new ListTag();
+            for (int i = 0; i < values.length; i++) {
+                if (values[i].isEmpty()) continue;
+                CompoundTag entry = new CompoundTag();
+                entry.putInt(UPGRADE_SLOT, i);
+                entry.put(UPGRADE_STACK, StackData.saveItem(values[i]));
+                list.add(entry);
+            }
+            tag.put(UPGRADES, list);
+        });
+    }
+
+    public static boolean canAcceptUpgrade(ItemStack necklace, int slot, ItemStack upgrade) {
+        if (!isUpgradeItem(upgrade) || !getUpgrade(necklace, slot).isEmpty()) return false;
+        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) {
+            ItemStack existing = getUpgrade(necklace, i);
+            if (!existing.isEmpty() && ItemStack.isSameItem(existing, upgrade)) return false;
+        }
+        return true;
+    }
+
+    public static boolean hasDimensionUpgrade(ItemStack necklace) { return hasUpgrade(necklace, ModItems.DIMENSION_UPGRADE.get()); }
+    public static boolean hasExactQuantityUpgrade(ItemStack necklace) { return hasUpgrade(necklace, ModItems.EXACT_QUANTITY_UPGRADE.get()); }
+    public static int exactQuantity(ItemStack necklace) {
+        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) {
+            ItemStack upgrade = getUpgrade(necklace, i);
+            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
+        }
+        return ExactQuantityUpgrade.DEFAULT;
+    }
+    public static void setExactQuantity(ItemStack necklace, int amount) {
+        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) {
+            ItemStack upgrade = getUpgrade(necklace, i);
+            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
+                ExactQuantityUpgrade.setAmount(upgrade, amount);
+                setUpgrade(necklace, i, upgrade);
+                return;
+            }
+        }
+    }
+    private static boolean hasUpgrade(ItemStack necklace, Item item) {
+        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) if (getUpgrade(necklace, i).is(item)) return true;
+        return false;
+    }
+
     private static int clampInsertSlots(int slots) {
         return Math.max(MIN_INSERT_SLOTS, Math.min(MAX_INSERT_SLOTS, slots));
     }
@@ -190,7 +267,8 @@ public class SkyNecklaceItem extends Item {
 
     public enum NecklaceMode {
         EXTRACT("screen.skylogistics.sky_necklace.mode.extract"),
-        INSERT("screen.skylogistics.sky_necklace.mode.insert");
+        INSERT("screen.skylogistics.sky_necklace.mode.insert"),
+        MAINTAIN("screen.skylogistics.sky_necklace.mode.maintain");
 
         private final String translationKey;
 

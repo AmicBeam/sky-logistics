@@ -111,9 +111,10 @@ public final class SkyNecklaceTicker {
                 continue;
             }
             SkyNecklaceItem.NecklaceMode mode = SkyNecklaceItem.mode(necklace);
-            if (mode == SkyNecklaceItem.NecklaceMode.EXTRACT) {
+            if (mode == SkyNecklaceItem.NecklaceMode.EXTRACT || mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
                 ACTIVE_EXTRACTORS.merge(lineId, 1, Integer::sum);
-            } else {
+            }
+            if (mode == SkyNecklaceItem.NecklaceMode.INSERT || mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
                 ACTIVE_INSERTERS.merge(lineId, 1, Integer::sum);
             }
             int priority = SkyNecklaceItem.priority(necklace);
@@ -127,7 +128,7 @@ public final class SkyNecklaceTicker {
                 active.update(player, necklace, lineId, mode, priority, itemWhitelist);
                 ACTIVE_NECKLACES.add(active);
                 TRANSFER_PLAYER_IDS.add(playerId);
-                if (mode == SkyNecklaceItem.NecklaceMode.INSERT) {
+                if (mode != SkyNecklaceItem.NecklaceMode.EXTRACT) {
                     ACTIVE_ITEM_INSERTERS.merge(lineId, 1, Integer::sum);
                 }
             }
@@ -138,10 +139,14 @@ public final class SkyNecklaceTicker {
             details.sort(Comparator.comparingInt(ActiveNecklaceDetail::priority).reversed());
         }
         for (ActiveNecklace active : ACTIVE_NECKLACES) {
-            if (active.mode() == SkyNecklaceItem.NecklaceMode.EXTRACT) {
-                tryExtract(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
-            } else {
-                tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
+            switch (active.mode()) {
+                case EXTRACT -> tryExtract(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(),
+                        gameTime, false, Integer.MAX_VALUE);
+                case INSERT -> tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(),
+                        gameTime, SkyNecklaceItem.hasExactQuantityUpgrade(active.necklace())
+                                ? SkyNecklaceItem.exactQuantity(active.necklace()) : 0);
+                case MAINTAIN -> tryMaintain(active.player(), active.necklace(), active.lineId(),
+                        active.itemWhitelist(), gameTime);
             }
         }
         EXTRACT_SLOT_CURSORS.keySet().removeIf(playerId -> !TRANSFER_PLAYER_IDS.contains(playerId));
@@ -166,8 +171,8 @@ public final class SkyNecklaceTicker {
         String textureValue = texture == null ? "" : texture.value();
         String textureSignature = texture != null && texture.hasSignature() ? texture.signature() : "";
         BlockPos pos = player.blockPosition().immutable();
-        NodeFaceMode faceMode = mode == SkyNecklaceItem.NecklaceMode.EXTRACT
-                ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT;
+        NodeFaceMode faceMode = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT
+                : mode == SkyNecklaceItem.NecklaceMode.INSERT ? NodeFaceMode.OUTPUT : NodeFaceMode.NONE;
         Object dimensionKey = player.level().dimension();
         PlayerDetailCache cached = PLAYER_DETAILS.get(profile.getId());
         ActiveNecklaceDetail cachedDetail = cached == null ? null : cached.detail();
@@ -213,12 +218,15 @@ public final class SkyNecklaceTicker {
     }
 
     private static void tryExtract(ServerPlayer player, ItemStack necklace, UUID lineId,
-            FilterListItem.CompiledFilter itemWhitelist, long gameTime) {
-        List<CachedEndpoint> targets = SkyNetworkRegistry.lineItemOutputs(player.server, player.level().dimension(), lineId);
+            FilterListItem.CompiledFilter itemWhitelist, long gameTime, boolean mainOnly, int maxExtract) {
+        List<CachedEndpoint> targets = SkyNecklaceItem.hasDimensionUpgrade(necklace)
+                ? SkyNetworkRegistry.globalItemOutputs(lineId)
+                : SkyNetworkRegistry.lineItemOutputs(player.server, player.level().dimension(), lineId);
         if (targets.isEmpty()) {
             return;
         }
-        List<IItemHandler> sources = sources(player);
+        List<IItemHandler> sources = mainOnly ? List.of(new PlayerMainInventoryHandler(player.getInventory(), null,
+                PlayerMainInventoryHandler.MAIN_SLOTS, 0)) : sources(player);
         int totalSlots = totalSlots(sources);
         if (totalSlots <= 0) {
             return;
@@ -226,13 +234,22 @@ public final class SkyNecklaceTicker {
         UUID playerId = player.getUUID();
         int scanBudget = Math.min(totalSlots, SkyLogisticsConfig.skyNecklaceSlotScansPerTick());
         int slotLimit = SkyNecklaceItem.insertSlots(necklace);
-        if (slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS && totalSlots <= scanBudget) {
+        boolean exact = SkyNecklaceItem.hasExactQuantityUpgrade(necklace);
+        if (exact && totalSlots <= scanBudget) {
+            int exactLimit = SkyNecklaceItem.exactQuantity(necklace);
+            long countResult = countMatchingItems(sources, itemWhitelist,
+                    exactLimit == Integer.MAX_VALUE ? Integer.MAX_VALUE : exactLimit + 1);
+            int current = unpackHigh(countResult);
+            if (current <= exactLimit) return;
+            maxExtract = Math.min(maxExtract, current - exactLimit);
+            scanBudget = Math.max(1, scanBudget - unpackLow(countResult));
+        } else if (!exact && slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS && totalSlots <= scanBudget) {
             long countResult = countMatchingSlots(sources, itemWhitelist, slotLimit + 1);
             if (unpackHigh(countResult) <= slotLimit) return;
             scanBudget = Math.max(1, scanBudget - unpackLow(countResult));
         }
         int cursor = Math.floorMod(EXTRACT_SLOT_CURSORS.getOrDefault(playerId, 0), totalSlots);
-        int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
+        int transferLimit = Math.min(SkyLogisticsConfig.nodeItemTransferLimit(), Math.max(1, maxExtract));
         int scanned = 0;
         while (scanned < scanBudget) {
             int flatIndex = (cursor + scanned) % totalSlots;
@@ -261,7 +278,7 @@ public final class SkyNecklaceTicker {
 
     private static List<IItemHandler> sources(ServerPlayer player) {
         List<IItemHandler> sources = new ArrayList<>();
-        sources.add(new PlayerMainInventoryHandler(player.getInventory(), null, PlayerMainInventoryHandler.MAIN_SLOTS));
+        sources.add(new PlayerMainInventoryHandler(player.getInventory(), null, PlayerMainInventoryHandler.MAIN_SLOTS, 0));
         sources.addAll(SophisticatedBackpacksCompat.carriedBackpackHandlers(player));
         return sources;
     }
@@ -293,6 +310,63 @@ public final class SkyNecklaceTicker {
         return totalSlots;
     }
 
+    private static long countMatchingItems(List<IItemHandler> sources, FilterListItem.CompiledFilter itemWhitelist,
+            int stopAt) {
+        long matching = 0L;
+        int checks = 0;
+        for (IItemHandler source : sources) {
+            for (int slot = 0; slot < source.getSlots(); slot++) {
+                checks++;
+                ItemStack stack = source.getStackInSlot(slot);
+                if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && itemWhitelist.matches(stack)) {
+                    matching += stack.getCount();
+                    if (matching >= stopAt) {
+                        return packInts((int) Math.min(Integer.MAX_VALUE, matching), checks);
+                    }
+                }
+            }
+        }
+        return packInts((int) Math.min(Integer.MAX_VALUE, matching), checks);
+    }
+
+    private static void tryMaintain(ServerPlayer player, ItemStack necklace, UUID lineId,
+            FilterListItem.CompiledFilter itemWhitelist, long gameTime) {
+        int configured = SkyNecklaceItem.hasExactQuantityUpgrade(necklace)
+                ? SkyNecklaceItem.exactQuantity(necklace) : SkyNecklaceItem.insertSlots(necklace);
+        if (configured <= 0) return;
+        boolean exact = SkyNecklaceItem.hasExactQuantityUpgrade(necklace);
+        int stopAt = configured == Integer.MAX_VALUE ? Integer.MAX_VALUE : configured + 1;
+        int current = exact ? countMatchingItems(player.getInventory(), itemWhitelist, stopAt)
+                : countMatchingMainSlots(player.getInventory(), itemWhitelist, stopAt);
+        if (current < configured) {
+            tryInsert(player, necklace, lineId, itemWhitelist, gameTime, exact ? configured : 0);
+        } else if (current > configured) {
+            int excess = exact ? current - configured : Integer.MAX_VALUE;
+            tryExtract(player, necklace, lineId, itemWhitelist, gameTime, true, excess);
+        }
+    }
+
+    private static int countMatchingMainSlots(Inventory inventory, FilterListItem.CompiledFilter filter, int stopAt) {
+        int count = 0;
+        for (int slot = 0; slot < PlayerMainInventoryHandler.MAIN_SLOTS; slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && filter.matches(stack) && ++count >= stopAt) break;
+        }
+        return count;
+    }
+
+    private static int countMatchingItems(Inventory inventory, FilterListItem.CompiledFilter filter, int stopAt) {
+        long count = 0L;
+        for (int slot = 0; slot < PlayerMainInventoryHandler.MAIN_SLOTS; slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && !shouldSkipSourceStack(stack) && filter.matches(stack)) {
+                count += stack.getCount();
+                if (count >= stopAt) break;
+            }
+        }
+        return (int) Math.min(Integer.MAX_VALUE, count);
+    }
+
     private static long handlerSlotAt(List<IItemHandler> sources, int flatIndex) {
         int offset = flatIndex;
         for (int sourceIndex = 0; sourceIndex < sources.size(); sourceIndex++) {
@@ -307,13 +381,15 @@ public final class SkyNecklaceTicker {
     }
 
     private static void tryInsert(ServerPlayer player, ItemStack necklace, UUID lineId,
-            FilterListItem.CompiledFilter itemWhitelist, long gameTime) {
-        List<CachedEndpoint> sources = SkyNetworkRegistry.lineItemInputs(player.server, player.level().dimension(), lineId);
+            FilterListItem.CompiledFilter itemWhitelist, long gameTime, int exactLimit) {
+        List<CachedEndpoint> sources = SkyNecklaceItem.hasDimensionUpgrade(necklace)
+                ? SkyNetworkRegistry.globalItemInputs(player.server, lineId)
+                : SkyNetworkRegistry.lineItemInputs(player.server, player.level().dimension(), lineId);
         if (sources.isEmpty()) {
             return;
         }
         IItemHandler target = new PlayerMainInventoryHandler(player.getInventory(), itemWhitelist,
-                SkyNecklaceItem.insertSlots(necklace));
+                SkyNecklaceItem.insertSlots(necklace), exactLimit);
         UUID playerId = player.getUUID();
         int sourceCursor = Math.floorMod(INSERT_ENDPOINT_CURSORS.getOrDefault(playerId, 0), sources.size());
         int slotScanBudget = SkyLogisticsConfig.skyNecklaceSlotScansPerTick();
@@ -585,13 +661,15 @@ public final class SkyNecklaceTicker {
         private final Inventory inventory;
         private final FilterListItem.CompiledFilter insertFilter;
         private final int insertSlotLimit;
+        private final int exactItemLimit;
 
         private PlayerMainInventoryHandler(Inventory inventory, FilterListItem.CompiledFilter insertFilter,
-                int insertSlotLimit) {
+                int insertSlotLimit, int exactItemLimit) {
             this.inventory = inventory;
             this.insertFilter = insertFilter;
             this.insertSlotLimit = Math.max(SkyNecklaceItem.MIN_INSERT_SLOTS,
                     Math.min(MAIN_SLOTS, insertSlotLimit));
+            this.exactItemLimit = Math.max(0, exactItemLimit);
         }
 
         @Override
@@ -611,11 +689,16 @@ public final class SkyNecklaceTicker {
             }
             ItemStack existing = inventory.getItem(slot);
             int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+            int exactRemaining = Integer.MAX_VALUE;
+            if (exactItemLimit > 0) {
+                exactRemaining = exactItemLimit - matchingWhitelistItems();
+                if (exactRemaining <= 0) return stack;
+            }
             if (isInsertLimited() && matchingWhitelistSlots() >= insertSlotLimit) {
                 return stack;
             }
             if (existing.isEmpty()) {
-                int inserted = Math.min(limit, stack.getCount());
+                int inserted = Math.min(Math.min(limit, exactRemaining), stack.getCount());
                 if (!simulate) {
                     ItemStack copy = stack.copyWithCount(inserted);
                     inventory.setItem(slot, copy);
@@ -626,7 +709,7 @@ public final class SkyNecklaceTicker {
             if (!ItemStack.isSameItemSameComponents(existing, stack)) {
                 return stack;
             }
-            int inserted = Math.min(limit - existing.getCount(), stack.getCount());
+            int inserted = Math.min(Math.min(limit - existing.getCount(), exactRemaining), stack.getCount());
             if (inserted <= 0) {
                 return stack;
             }
@@ -686,6 +769,15 @@ public final class SkyNecklaceTicker {
                 matching++;
             }
             return matching;
+        }
+
+        private int matchingWhitelistItems() {
+            long matching = 0L;
+            for (int slot = 0; slot < MAIN_SLOTS; slot++) {
+                ItemStack stack = inventory.getItem(slot);
+                if (!stack.isEmpty() && insertFilter != null && insertFilter.matches(stack)) matching += stack.getCount();
+            }
+            return (int) Math.min(Integer.MAX_VALUE, matching);
         }
 
         private static ItemStack remainder(ItemStack original, int inserted) {

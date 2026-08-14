@@ -19,6 +19,7 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
+        registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
         registrar.playToServer(RequestSkyOfferingRecipesPacket.TYPE, RequestSkyOfferingRecipesPacket.STREAM_CODEC,
                 RequestSkyOfferingRecipesPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
@@ -46,6 +47,10 @@ public final class ModNetworking {
 
     public static void sendMenuAction(int action) {
         ClientPacketDistributor.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendExactQuantity(int amount) {
+        ClientPacketDistributor.sendToServer(new ExactQuantityPacket(amount));
     }
 
     public static void requestSkyOfferingRecipes() {

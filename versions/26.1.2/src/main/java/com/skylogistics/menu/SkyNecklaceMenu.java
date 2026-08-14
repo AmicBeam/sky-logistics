@@ -21,7 +21,9 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class SkyNecklaceMenu extends AbstractContainerMenu {
-    private static final int FILTER_SLOT = 0;
+    public static final int UPGRADE_SLOTS = 2;
+    private static final int FILTER_SLOT = UPGRADE_SLOTS;
+    public static final int UPGRADE_SLOT_X = 164;
     public static final int FILTER_LABEL_X = 166;
     public static final int FILTER_SLOT_X = 200;
     public static final int FILTER_SLOT_Y = 55;
@@ -31,6 +33,21 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
     private final Player player;
     private int lineIndex;
     private int lineCount = 1;
+    private final Container upgradeContainer = new SimpleContainer(UPGRADE_SLOTS) {
+        @Override public ItemStack getItem(int slot) { return SkyNecklaceItem.getUpgrade(necklace(), slot); }
+        @Override public void setItem(int slot, ItemStack stack) {
+            SkyNecklaceItem.setUpgrade(necklace(), slot, stack);
+            setChanged();
+        }
+        @Override public ItemStack removeItem(int slot, int amount) {
+            ItemStack current = getItem(slot);
+            if (current.isEmpty() || amount <= 0) return ItemStack.EMPTY;
+            setItem(slot, ItemStack.EMPTY);
+            return current;
+        }
+        @Override public ItemStack removeItemNoUpdate(int slot) { return removeItem(slot, 1); }
+        @Override public void setChanged() { player.getInventory().setChanged(); }
+    };
     private final Container filterContainer = new SimpleContainer(1) {
         @Override
         public ItemStack getItem(int slot) {
@@ -74,6 +91,15 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                 lineCount = value;
             }
         });
+        for (int slot = 0; slot < UPGRADE_SLOTS; slot++) {
+            final int upgradeSlot = slot;
+            addSlot(new Slot(upgradeContainer, slot, UPGRADE_SLOT_X + slot * 18, FILTER_SLOT_Y) {
+                @Override public boolean mayPlace(ItemStack stack) {
+                    return SkyNecklaceItem.canAcceptUpgrade(necklace(), upgradeSlot, stack);
+                }
+                @Override public int getMaxStackSize() { return 1; }
+            });
+        }
         addSlot(new Slot(filterContainer, 0, FILTER_SLOT_X, FILTER_SLOT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -129,11 +155,23 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             return ItemStack.EMPTY;
         }
         ItemStack original = slot.getItem();
+        if (index < UPGRADE_SLOTS) {
+            ItemStack moved = original.copy();
+            if (!moveItemStackTo(moved, FILTER_SLOT + 1, slots.size(), true)) return ItemStack.EMPTY;
+            upgradeContainer.setItem(index, ItemStack.EMPTY);
+            return original.copy();
+        }
         if (index == FILTER_SLOT) {
             setFilter(ItemStack.EMPTY);
             return ItemStack.EMPTY;
         }
-        if (FilterListItem.isFilterItem(original)) {
+        if (SkyNecklaceItem.isUpgradeItem(original)) {
+            ItemStack moved = original.copy();
+            if (moveItemStackTo(moved, 0, UPGRADE_SLOTS, false)) {
+                original.setCount(moved.getCount());
+                slot.setChanged();
+            }
+        } else if (FilterListItem.isFilterItem(original)) {
             setFilter(original);
             return ItemStack.EMPTY;
         }
@@ -171,6 +209,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             }
             case MenuAction.MODE_EXTRACT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.EXTRACT);
             case MenuAction.MODE_INSERT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.INSERT);
+            case MenuAction.MODE_MAINTAIN -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.MAINTAIN);
             case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> SkyNecklaceItem.adjustInsertSlots(stack, -1);
             case MenuAction.NECKLACE_INSERT_SLOTS_UP -> SkyNecklaceItem.adjustInsertSlots(stack, 1);
             case MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST -> SkyNecklaceItem.adjustInsertSlots(stack, -10);
@@ -199,6 +238,15 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                     playerLineSelection(config).assignedName());
         }
         broadcastChanges();
+    }
+
+    public void setExactQuantity(Player player, int amount) {
+        ItemStack stack = necklace();
+        if (SkyNecklaceItem.hasExactQuantityUpgrade(stack)) {
+            SkyNecklaceItem.setExactQuantity(stack, amount);
+            player.getInventory().setChanged();
+            broadcastChanges();
+        }
     }
 
     @Override

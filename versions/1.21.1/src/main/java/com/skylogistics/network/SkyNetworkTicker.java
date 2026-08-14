@@ -374,6 +374,9 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordItemSlotRejected(slot, gameTime);
                 continue;
             }
+            int exactExcess = exactExtractionExcess(sourceNode, sourceEndpoint.direction(), source);
+            if (exactExcess == 0) continue;
+            if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
             MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, targets,
@@ -805,6 +808,7 @@ public final class SkyNetworkTicker {
 
     private static SlotLimitCheck checkExtractionSlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
             IItemHandler source, int checkBudget) {
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) return SlotLimitCheck.ALLOWED;
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
         int matchingSlots = 0;
@@ -823,12 +827,35 @@ public final class SkyNetworkTicker {
         return new SlotLimitCheck(true, checks, true);
     }
 
+    private static int exactExtractionExcess(NetworkEndpointBlockEntity endpoint,
+            net.minecraft.core.Direction direction, IItemHandler handler) {
+        if (!(endpoint instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) return -1;
+        long total = 0L;
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack stack = handler.getStackInSlot(slot);
+            if (!stack.isEmpty() && node.allowsItem(direction, stack)) total += stack.getCount();
+        }
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, total - node.exactQuantity()));
+    }
+
+    private static int exactInsertionRemaining(NetworkEndpointBlockEntity endpoint,
+            net.minecraft.core.Direction direction, IItemHandler handler) {
+        if (!(endpoint instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) return -1;
+        long total = 0L;
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack stack = handler.getStackInSlot(slot);
+            if (!stack.isEmpty() && node.allowsItem(direction, stack)) total += stack.getCount();
+        }
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, (long) node.exactQuantity() - total));
+    }
+
     private static SlotLimitCheck checkInsertionSlotLimit(CachedEndpoint endpoint, IItemHandler target,
             ItemStack candidate, int checkBudget) {
         if (target == null) {
             return SlotLimitCheck.ALLOWED;
         }
         NetworkEndpointBlockEntity node = endpoint.node();
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) return SlotLimitCheck.ALLOWED;
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
@@ -946,7 +973,11 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 if (slotLimitCheck.blocked()) continue;
-                TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, simulated,
+                int exactRemaining = exactInsertionRemaining(targetEndpoint.node(), targetEndpoint.direction(), target);
+                if (exactRemaining == 0) continue;
+                ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
+                        ? simulated.copyWithCount(exactRemaining) : simulated;
+                TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer,
                         Math.max(1, budget - operations + 1));
                 operations += Math.max(0, selection.checks() - 1);
                 TargetItemSlot targetSlot = selection.slot();
@@ -2019,6 +2050,7 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
+            if (!sourceNode.allowsChemical(sourceEndpoint.direction(), simulated)) continue;
             foundCandidate = true;
             sourceEndpoint.recordChemicalCandidateFound();
             MoveResult result = tryMoveChemical(sourceEndpoint, source, tank, simulated, targets,
@@ -2121,6 +2153,7 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 targetAttempts++;
+                if (!targetEndpoint.node().allowsChemical(targetEndpoint.direction(), simulated)) continue;
                 ChemicalHandlerBridge target = targetEndpoint.chemicalHandler(gameTime);
                 if (target == null) {
                     continue;

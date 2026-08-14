@@ -82,6 +82,13 @@ public class FilterListMenu extends AbstractContainerMenu {
         }
     }
 
+    public void setGhostChemical(int slot, String chemical) {
+        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
+            FilterListItem.setChemicalFilter(filterStack(), slot, chemical);
+            broadcastChanges();
+        }
+    }
+
     @Override
     public boolean stillValid(Player player) {
         return player.getItemInHand(hand).is(ModItems.FILTER_LIST.get());
@@ -174,6 +181,7 @@ public class FilterListMenu extends AbstractContainerMenu {
             ItemStack current = getItem(slot);
             FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
+            FilterListItem.setChemicalFilter(stack(), slot, "");
             return current;
         }
 
@@ -188,6 +196,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setCount(1);
             }
             FilterListItem.setFilter(stack(), slot, ghost);
+            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
             }
@@ -200,6 +209,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setAmount(1);
             }
             FilterListItem.setFluidFilter(stack(), slot, ghost);
+            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             }

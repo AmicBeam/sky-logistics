@@ -45,10 +45,22 @@ public final class ModNetworking {
                 DistributorTargetsRequestPacket::decode, DistributorTargetsRequestPacket::handle);
         CHANNEL.registerMessage(10, DistributorTargetsPacket.class, DistributorTargetsPacket::encode,
                 DistributorTargetsPacket::decode, DistributorTargetsPacket::handle);
+        CHANNEL.registerMessage(11, ExactQuantityPacket.class, ExactQuantityPacket::encode,
+                ExactQuantityPacket::decode, ExactQuantityPacket::handle);
+        CHANNEL.registerMessage(12, ChemicalFilterPacket.class, ChemicalFilterPacket::encode,
+                ChemicalFilterPacket::decode, ChemicalFilterPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         CHANNEL.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendExactQuantity(int amount) {
+        CHANNEL.sendToServer(new ExactQuantityPacket(amount));
+    }
+
+    public static void sendChemicalFilter(int slot, String chemical) {
+        CHANNEL.sendToServer(new ChemicalFilterPacket(slot, chemical));
     }
 
     public static void sendLineRename(String lineName) {

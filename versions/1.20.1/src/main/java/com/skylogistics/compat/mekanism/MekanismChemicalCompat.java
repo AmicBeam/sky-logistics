@@ -211,6 +211,11 @@ final class MekanismChemicalCompat {
         }
 
         @Override
+        public String chemicalKey() {
+            return kind.name().toLowerCase(java.util.Locale.ROOT) + ":" + stack.getTypeRegistryName();
+        }
+
+        @Override
         public Object rawStack() {
             return stack.copy();
         }

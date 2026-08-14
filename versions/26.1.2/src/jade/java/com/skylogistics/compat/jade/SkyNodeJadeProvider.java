@@ -36,17 +36,23 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putString("LineName", node.getLineName());
         data.putBoolean("SpeedUpgrade", node.hasSpeedUpgrade());
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
+        data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
+        data.putBoolean("Active", node.hasRecentTransfer());
         return data;
     }
 
     private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
         tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getStringOr("LineName", "")));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
-                upgradeSummary(data.getBooleanOr("SpeedUpgrade", false), data.getBooleanOr("DimensionUpgrade", false))));
+                upgradeSummary(data.getBooleanOr("SpeedUpgrade", false), data.getBooleanOr("DimensionUpgrade", false),
+                        data.getBooleanOr("ExactUpgrade", false))));
+        tooltip.add(Component.translatable("jade.skylogistics.recent_status",
+                Component.translatable(data.getBooleanOr("Active", false)
+                        ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
     }
 
-    private static Component upgradeSummary(boolean speed, boolean dimension) {
-        if (!speed && !dimension) {
+    private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact) {
+        if (!speed && !dimension && !exact) {
             return Component.translatable("jade.skylogistics.upgrade_none");
         }
         var summary = Component.empty();
@@ -58,6 +64,10 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 summary.append(Component.literal(", "));
             }
             summary.append(Component.translatable("jade.skylogistics.upgrade_dimension_name"));
+        }
+        if (exact) {
+            if (speed || dimension) summary.append(Component.literal(", "));
+            summary.append(Component.translatable("jade.skylogistics.upgrade_exact_name"));
         }
         return summary;
     }

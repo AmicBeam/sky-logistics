@@ -7,10 +7,12 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -279,6 +281,21 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return !hasWhitelist || whitelistMatched;
     }
 
+    @Override
+    public boolean allowsChemical(Direction direction, ChemicalStackView stack) {
+        boolean hasWhitelist = false;
+        boolean whitelistMatched = false;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (!compiled.hasChemicalRules()) continue;
+            if (compiled.whitelist()) {
+                hasWhitelist = true;
+                whitelistMatched |= compiled.matchesChemical(stack);
+            } else if (!compiled.matchesChemical(stack)) return false;
+        }
+        return !hasWhitelist || whitelistMatched;
+    }
+
     public ItemStack getUpgrade(int slot) {
         if (slot < 0 || slot >= upgrades.size()) {
             return ItemStack.EMPTY;
@@ -479,6 +496,25 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasUpgrade(ModItems.DIMENSION_UPGRADE.get());
     }
 
+    public boolean hasExactQuantityUpgrade() { return hasUpgrade(ModItems.EXACT_QUANTITY_UPGRADE.get()); }
+
+    public int exactQuantity() {
+        for (ItemStack upgrade : upgrades) if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
+        return ExactQuantityUpgrade.DEFAULT;
+    }
+
+    public void setExactQuantity(int amount) {
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            ItemStack upgrade = upgrades.get(slot);
+            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
+                ItemStack copy = upgrade.copy();
+                ExactQuantityUpgrade.setAmount(copy, amount);
+                setUpgrade(slot, copy);
+                return;
+            }
+        }
+    }
+
     public boolean hasUpgrade(Item item) {
         for (ItemStack upgrade : upgrades) {
             if (!upgrade.isEmpty() && upgrade.is(item)) {
@@ -490,7 +526,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public static boolean isUpgradeItem(ItemStack stack) {
         return stack.is(ModItems.SPEED_UPGRADE.get())
-                || stack.is(ModItems.DIMENSION_UPGRADE.get());
+                || stack.is(ModItems.DIMENSION_UPGRADE.get())
+                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get());
     }
 
     public static boolean isFaceFilterItem(ItemStack stack) {

@@ -18,6 +18,8 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
+        registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
+        registrar.playToServer(ChemicalFilterPacket.TYPE, ChemicalFilterPacket.STREAM_CODEC, ChemicalFilterPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
                 ItemVaultSnapshotPacket::handle);
         registrar.playToClient(FluidVaultSnapshotPacket.TYPE, FluidVaultSnapshotPacket.STREAM_CODEC,
@@ -39,6 +41,14 @@ public final class ModNetworking {
 
     public static void sendMenuAction(int action) {
         PacketDistributor.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendExactQuantity(int amount) {
+        PacketDistributor.sendToServer(new ExactQuantityPacket(amount));
+    }
+
+    public static void sendChemicalFilter(int slot, String chemical) {
+        PacketDistributor.sendToServer(new ChemicalFilterPacket(slot, chemical));
     }
 
     public static void sendLineRename(String lineName) {

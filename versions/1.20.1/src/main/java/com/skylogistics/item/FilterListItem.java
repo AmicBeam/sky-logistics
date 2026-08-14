@@ -1,6 +1,7 @@
 package com.skylogistics.item;
 
 import com.skylogistics.menu.FilterListMenu;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.storage.FluidStackKey;
 import java.util.ArrayList;
@@ -31,6 +32,8 @@ public class FilterListItem extends Item {
     public static final int FILTER_SLOTS = 18;
     private static final String FILTERS = "Filters";
     private static final String FLUID_FILTERS = "FluidFilters";
+    private static final String CHEMICAL_FILTERS = "ChemicalFilters";
+    private static final String CHEMICAL = "Chemical";
     private static final String SLOT = "Slot";
     private static final String STACK = "Stack";
     private static final String FLUID = "Fluid";
@@ -71,6 +74,10 @@ public class FilterListItem extends Item {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.fluids", fluids, FILTER_SLOTS)
                     .withStyle(ChatFormatting.AQUA));
         }
+        int chemicals = countChemicalFilters(stack);
+        if (chemicals > 0) tooltip.add(Component.translatable(
+                "tooltip.skylogistics.filter_list.chemicals", chemicals, FILTER_SLOTS)
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
         if (showFilterContents()) {
             appendFilterContents(stack, tooltip, false);
         } else {
@@ -174,18 +181,58 @@ public class FilterListItem extends Item {
         }
     }
 
+    public static String getChemicalFilter(ItemStack stack, int slot) {
+        if (slot < 0 || slot >= FILTER_SLOTS) return "";
+        CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(CHEMICAL_FILTERS, Tag.TAG_LIST)) return "";
+        ListTag filters = tag.getList(CHEMICAL_FILTERS, Tag.TAG_COMPOUND);
+        for (int i = 0; i < filters.size(); i++) {
+            CompoundTag entry = filters.getCompound(i);
+            if (entry.getInt(SLOT) == slot) return entry.getString(CHEMICAL);
+        }
+        return "";
+    }
+
+    public static List<String> getChemicalFilters(ItemStack stack) {
+        List<String> result = new ArrayList<>(java.util.Collections.nCopies(FILTER_SLOTS, ""));
+        for (int slot = 0; slot < FILTER_SLOTS; slot++) result.set(slot, getChemicalFilter(stack, slot));
+        return result;
+    }
+
+    public static void setChemicalFilter(ItemStack stack, int slot, String chemical) {
+        if (slot < 0 || slot >= FILTER_SLOTS) return;
+        List<String> values = getChemicalFilters(stack);
+        values.set(slot, chemical == null ? "" : chemical);
+        ListTag entries = new ListTag();
+        for (int i = 0; i < values.size(); i++) {
+            if (values.get(i).isEmpty()) continue;
+            CompoundTag entry = new CompoundTag();
+            entry.putInt(SLOT, i);
+            entry.putString(CHEMICAL, values.get(i));
+            entries.add(entry);
+        }
+        stack.getOrCreateTag().put(CHEMICAL_FILTERS, entries);
+        if (!values.get(slot).isEmpty()) {
+            setFilter(stack, slot, ItemStack.EMPTY);
+            setFluidFilter(stack, slot, FluidStack.EMPTY);
+        }
+    }
+
     public static ItemStack getDisplayFilter(ItemStack stack, int slot) {
         ItemStack item = getFilter(stack, slot);
         if (!item.isEmpty()) {
             return item;
         }
-        return fluidDisplayStack(getFluidFilter(stack, slot));
+        ItemStack fluid = fluidDisplayStack(getFluidFilter(stack, slot));
+        if (!fluid.isEmpty()) return fluid;
+        return getChemicalFilter(stack, slot).isEmpty() ? ItemStack.EMPTY : Items.GLASS_BOTTLE.getDefaultInstance();
     }
 
     public static void clearFilters(ItemStack stack) {
         if (stack.hasTag()) {
             stack.getTag().remove(FILTERS);
             stack.getTag().remove(FLUID_FILTERS);
+            stack.getTag().remove(CHEMICAL_FILTERS);
             stack.getTag().remove("FilterMode");
             stack.getTag().remove("Attributes");
             stack.getTag().remove("MatchAllAttributes");
@@ -212,8 +259,15 @@ public class FilterListItem extends Item {
         return count;
     }
 
+    public static int countChemicalFilters(ItemStack stack) {
+        int count = 0;
+        for (String key : getChemicalFilters(stack)) if (!key.isEmpty()) count++;
+        return count;
+    }
+
     public static boolean hasAnyFilters(ItemStack stack) {
-        return countFilters(stack) + countFluidFilters(stack) + TagFilterListItem.countTags(stack) > 0;
+        return countFilters(stack) + countFluidFilters(stack) + countChemicalFilters(stack)
+                + TagFilterListItem.countTags(stack) > 0;
     }
 
     public static boolean isFilterItem(ItemStack stack) {
@@ -249,6 +303,7 @@ public class FilterListItem extends Item {
         boolean added = false;
         List<ItemStack> filters = getFilters(stack);
         List<FluidStack> fluidFilters = getFluidFilters(stack);
+        List<String> chemicalFilters = getChemicalFilters(stack);
         for (int slot = 0; slot < FILTER_SLOTS; slot++) {
             ItemStack filter = filters.get(slot);
             if (!filter.isEmpty()) {
@@ -260,6 +315,12 @@ public class FilterListItem extends Item {
             if (!fluid.isEmpty()) {
                 tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entry.fluid" + suffix,
                         slot + 1, fluid.getDisplayName()).withStyle(ChatFormatting.AQUA));
+                added = true;
+            }
+            String chemical = chemicalFilters.get(slot);
+            if (!chemical.isEmpty()) {
+                tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entry.chemical" + suffix,
+                        slot + 1, chemical).withStyle(ChatFormatting.LIGHT_PURPLE));
                 added = true;
             }
         }
@@ -354,11 +415,13 @@ public class FilterListItem extends Item {
             copy.setAmount(1);
             fluidEntries.add(new CompiledFilter.FluidEntry(copy));
         }
-        if (entries.isEmpty() && fluidEntries.isEmpty()) {
+        Set<String> chemicalKeys = new HashSet<>();
+        for (String key : getChemicalFilters(filterList)) if (!key.isEmpty()) chemicalKeys.add(key);
+        if (entries.isEmpty() && fluidEntries.isEmpty() && chemicalKeys.isEmpty()) {
             return CompiledFilter.ALLOW_ALL;
         }
         return CompiledFilter.list(whitelist, nbt, durability, entries.toArray(CompiledFilter.Entry[]::new),
-                fluidEntries.toArray(CompiledFilter.FluidEntry[]::new));
+                fluidEntries.toArray(CompiledFilter.FluidEntry[]::new), chemicalKeys);
     }
 
     private static boolean matchesItemSample(ItemStack sample, ItemStack candidate, boolean matchNbt,
@@ -439,7 +502,7 @@ public class FilterListItem extends Item {
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
         private static final List<TagKey<Item>> NO_TAG_ENTRIES = List.of();
         public static final CompiledFilter ALLOW_ALL = new CompiledFilter(Mode.ALLOW_ALL, true, false, false,
-                NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, null, null);
+                NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, null, null, Set.of());
 
         private final Mode mode;
         private final boolean whitelist;
@@ -450,10 +513,11 @@ public class FilterListItem extends Item {
         private final List<TagKey<Item>> tagEntries;
         private final Set<ItemFilterKey> itemKeys;
         private final Set<FluidStackKey> fluidKeys;
+        private final Set<String> chemicalKeys;
 
         private CompiledFilter(Mode mode, boolean whitelist, boolean matchNbt, boolean matchDurability,
                 Entry[] entries, FluidEntry[] fluidEntries, List<TagKey<Item>> tagEntries, Set<ItemFilterKey> itemKeys,
-                Set<FluidStackKey> fluidKeys) {
+                Set<FluidStackKey> fluidKeys, Set<String> chemicalKeys) {
             this.mode = mode;
             this.whitelist = whitelist;
             this.matchNbt = matchNbt;
@@ -463,18 +527,20 @@ public class FilterListItem extends Item {
             this.tagEntries = tagEntries;
             this.itemKeys = itemKeys;
             this.fluidKeys = fluidKeys;
+            this.chemicalKeys = chemicalKeys;
         }
 
         private static CompiledFilter list(boolean whitelist, boolean matchNbt, boolean matchDurability, Entry[] entries,
-                FluidEntry[] fluidEntries) {
+                FluidEntry[] fluidEntries, Set<String> chemicalKeys) {
             return new CompiledFilter(Mode.LIST, whitelist, matchNbt, matchDurability, entries, fluidEntries,
-                    NO_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
+                    NO_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries),
+                    Set.copyOf(chemicalKeys));
         }
 
         private static CompiledFilter tagList(boolean whitelist, List<TagKey<Item>> tagEntries) {
             return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES,
                     List.copyOf(tagEntries),
-                    null, null);
+                    null, null, Set.of());
         }
 
         public boolean matches(ItemStack candidate) {
@@ -567,6 +633,14 @@ public class FilterListItem extends Item {
 
         public boolean hasFluidRules() {
             return mode == Mode.LIST && fluidEntries.length > 0;
+        }
+
+        public boolean hasChemicalRules() { return !chemicalKeys.isEmpty(); }
+
+        public boolean matchesChemical(ChemicalStackView candidate) {
+            if (mode != Mode.LIST || chemicalKeys.isEmpty()) return true;
+            if (candidate == null || candidate.isEmpty()) return false;
+            return whitelist == chemicalKeys.contains(candidate.chemicalKey());
         }
 
         public List<FluidStack> fluidSamples() {

@@ -213,6 +213,16 @@ public final class SkyNetworkRegistry {
                 LineIndex::priorityItemOutputs);
     }
 
+    public static synchronized List<CachedEndpoint> globalItemInputs(MinecraftServer server, UUID lineId) {
+        rebuildDirty(server);
+        List<CachedEndpoint> result = new ArrayList<>();
+        for (DimensionIndex index : DIMENSIONS.values()) {
+            LineIndex line = index.lines.get(lineId);
+            if (line != null) result.addAll(line.itemInputsView());
+        }
+        return result;
+    }
+
     public static synchronized List<CachedEndpoint> globalFluidOutputs(UUID lineId) {
         return activateGlobalOutputs(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
                 LineIndex::priorityFluidOutputs);
@@ -2081,6 +2091,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemSuccess() {
+            node.recordRecentTransfer();
             itemFailures = 0;
             itemRetryAfter = 0L;
             itemSourceMisses = 0;
@@ -2375,6 +2386,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordFluidSuccess() {
+            node.recordRecentTransfer();
             fluidFailures = 0;
             fluidRetryAfter = 0L;
             fluidSourceMisses = 0;
@@ -2541,6 +2553,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordChemicalSuccess() {
+            node.recordRecentTransfer();
             chemicalFailures = 0;
             chemicalRetryAfter = 0L;
             chemicalSourceMisses = 0;
@@ -2691,6 +2704,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordEnergySuccess() {
+            node.recordRecentTransfer();
             energyFailures = 0;
             energyRetryAfter = 0L;
         }
@@ -2701,6 +2715,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordManaSuccess() {
+            node.recordRecentTransfer();
             manaFailures = 0;
             manaRetryAfter = 0L;
         }
@@ -2711,6 +2726,7 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordSourceSuccess() {
+            node.recordRecentTransfer();
             sourceFailures = 0;
             sourceRetryAfter = 0L;
         }
