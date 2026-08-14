@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -32,7 +32,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.itemVault();
 
     private EditBox searchBox;
-    private Button sortButton;
+    private AbstractButton sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private ItemVaultBlockEntity cachedVault;
@@ -53,14 +53,12 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
                     setSortMode(sortMode.next());
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
-                })
-                .bounds(leftPos + 128, topPos + 22, 60, 18)
-                .build());
+                }));
     }
 
     @Override

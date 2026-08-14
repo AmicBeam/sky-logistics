@@ -38,6 +38,10 @@ final class ConfigPanel {
         return new ActionButton(x, y, width, label, action);
     }
 
+    static AbstractButton button(int x, int y, int width, int height, Component label, Runnable onPress) {
+        return new StyledButton(x, y, width, height, label, onPress);
+    }
+
     static void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, BG);
         graphics.fill(x, y, x + width, y + 1, BORDER_ACTIVE);
@@ -112,6 +116,34 @@ final class ConfigPanel {
             drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
                     getY() + 6, active ? TEXT : MUTED);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private static final class StyledButton extends AbstractButton {
+        private final Runnable onPress;
+
+        private StyledButton(int x, int y, int width, int height, Component label, Runnable onPress) {
+            super(x, y, width, height, label);
+            this.onPress = onPress;
+        }
+
+        @Override
+        public void onPress() {
+            if (active) {
+                onPress.run();
+            }
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
+            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + (height - 8) / 2, active ? TEXT : MUTED);
         }
 
         @Override

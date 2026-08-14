@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -33,7 +33,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.fluidVault();
 
     private EditBox searchBox;
-    private Button sortButton;
+    private AbstractButton sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private FluidVaultBlockEntity cachedVault;
@@ -54,14 +54,12 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
                     setSortMode(sortMode.next());
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
-                })
-                .bounds(leftPos + 128, topPos + 22, 60, 18)
-                .build());
+                }));
     }
 
     @Override
