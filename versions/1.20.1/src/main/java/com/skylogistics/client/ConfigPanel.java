@@ -2,11 +2,13 @@ package com.skylogistics.client;
 
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.util.AmountFormatter;
+import com.skylogistics.util.RedstoneControl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 final class ConfigPanel {
     static final int BG = 0xF0101D24;
@@ -25,6 +27,8 @@ final class ConfigPanel {
     static final int SLOT_DIVIDER = 0xFF2B4C57;
     static final int SLOT_SHADOW = 0xFF142A33;
     static final int SLOT_FILL = 0xFF24424C;
+    static final int FIELDSET_HEIGHT = 31;
+    static final int STEPPER_HEIGHT = 17;
     private static final int SLOT_LOCKED_DIVIDER = 0xFF172830;
     private static final int SLOT_LOCKED_SHADOW = 0xFF071016;
     private static final int SLOT_LOCKED_FILL = 0xFF0A141A;
@@ -57,6 +61,40 @@ final class ConfigPanel {
         graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
         graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
         graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
+    }
+
+    static void drawFieldset(GuiGraphics graphics, int x, int y, int width, int legendWidth) {
+        int gapLeft = x + (width - legendWidth) / 2 - 3;
+        int gapRight = gapLeft + legendWidth + 6;
+        graphics.fill(x + 1, y + 1, x + width - 1, y + FIELDSET_HEIGHT - 1, PANEL);
+        graphics.fill(x, y, gapLeft, y + 1, BORDER_DIM);
+        graphics.fill(gapRight, y, x + width, y + 1, BORDER_DIM);
+        graphics.fill(x, y, x + 1, y + FIELDSET_HEIGHT, BORDER_DIM);
+        graphics.fill(x + width - 1, y, x + width, y + FIELDSET_HEIGHT, 0xFF142C35);
+        graphics.fill(x, y + FIELDSET_HEIGHT - 1, x + width, y + FIELDSET_HEIGHT, 0xFF142C35);
+    }
+
+    static void drawStepperValue(GuiGraphics graphics, int x, int y, int width) {
+        drawBox(graphics, x, y, width, STEPPER_HEIGHT, 0xFF020506, 0xFF636767);
+    }
+
+    static void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
+        ResourceLocation texture = new ResourceLocation("skylogistics",
+                "textures/gui/configurator/redstone_" + control.getSerializedName() + ".png");
+        graphics.blit(texture, x, y, 0, 0, 16, 16, 16, 16);
+    }
+
+    static void drawImageButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
+            boolean active, boolean selected, int selectedBorder) {
+        int border = selected ? selectedBorder : (active ? 0xFF59666A : BORDER_DIM);
+        drawBox(graphics, x, y, width, height, 0xFF071D24, border);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + 10, 0xFF0B2931);
+    }
+
+    static void drawResourceIcon(GuiGraphics graphics, int x, int y, String name, boolean selected) {
+        ResourceLocation texture = new ResourceLocation("skylogistics", "textures/gui/configurator/resource_"
+                + name + (selected ? "" : "_off") + "_small.png");
+        graphics.blit(texture, x, y, 0, 0, 18, 17, 18, 17);
     }
 
     static void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,

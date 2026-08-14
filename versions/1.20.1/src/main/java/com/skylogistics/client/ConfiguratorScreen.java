@@ -59,7 +59,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int RESOURCE_BUTTON_WIDTH = 56;
     private static final int CONTROL_LEFT_WIDTH = 64;
     private static final int BOTTOM_CONTROL_Y = 223;
-    private static final int BOTTOM_CONTROL_HEIGHT = 17;
+    private static final int BOTTOM_CONTROL_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
     private static final int BOTTOM_CONTROL_WIDTH = 17;
     private static final int PRIORITY_DOWN_X = 174;
     private static final int PRIORITY_VALUE_X = 194;
@@ -70,7 +70,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
     private static final int SLOT_LIMIT_UP_X = 143;
     private static final int BOTTOM_GROUP_Y = 216;
-    private static final int BOTTOM_GROUP_HEIGHT = 31;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -257,28 +256,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void drawBottomFieldset(GuiGraphics graphics, int x, int width, Component legend) {
-        int absoluteX = leftPos + x;
-        int absoluteY = topPos + BOTTOM_GROUP_Y;
-        int legendWidth = font.width(legend);
-        int gapLeft = absoluteX + (width - legendWidth) / 2 - 3;
-        int gapRight = gapLeft + legendWidth + 6;
-        graphics.fill(absoluteX + 1, absoluteY + 1, absoluteX + width - 1,
-                absoluteY + BOTTOM_GROUP_HEIGHT - 1, ConfigPanel.PANEL);
-        graphics.fill(absoluteX, absoluteY, gapLeft, absoluteY + 1, ConfigPanel.BORDER_DIM);
-        graphics.fill(gapRight, absoluteY, absoluteX + width, absoluteY + 1, ConfigPanel.BORDER_DIM);
-        graphics.fill(absoluteX, absoluteY, absoluteX + 1, absoluteY + BOTTOM_GROUP_HEIGHT,
-                ConfigPanel.BORDER_DIM);
-        graphics.fill(absoluteX + width - 1, absoluteY, absoluteX + width,
-                absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
-        graphics.fill(absoluteX, absoluteY + BOTTOM_GROUP_HEIGHT - 1, absoluteX + width,
-                absoluteY + BOTTOM_GROUP_HEIGHT, 0xFF142C35);
+        ConfigPanel.drawFieldset(graphics, leftPos + x, topPos + BOTTOM_GROUP_Y, width, font.width(legend));
     }
 
     private void drawBottomValueBoxes(GuiGraphics graphics) {
-        ConfigPanel.drawBox(graphics, leftPos + SLOT_LIMIT_VALUE_X, topPos + BOTTOM_CONTROL_Y,
-                SLOT_LIMIT_VALUE_WIDTH, BOTTOM_CONTROL_HEIGHT, 0xFF020506, 0xFF636767);
-        ConfigPanel.drawBox(graphics, leftPos + PRIORITY_VALUE_X, topPos + BOTTOM_CONTROL_Y,
-                PRIORITY_VALUE_WIDTH, BOTTOM_CONTROL_HEIGHT, 0xFF020506, 0xFF636767);
+        ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                SLOT_LIMIT_VALUE_WIDTH);
+        ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                PRIORITY_VALUE_WIDTH);
     }
 
     private void drawCenteredLabel(GuiGraphics graphics, Component label, int centerX, int y, int color) {
@@ -448,8 +433,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
-        ResourceLocation texture = guiTexture("redstone_" + control.getSerializedName() + ".png");
-        graphics.blit(texture, x, y, 0, 0, 16, 16, 16, 16);
+        ConfigPanel.drawRedstoneIcon(graphics, x, y, control);
     }
 
     private ResourceLocation guiTexture(String name) {
@@ -850,27 +834,20 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
-            drawResourceButtonChrome(graphics, enabled);
-            drawResourceIcon(graphics, getX() + 5, getY() + 2, type, enabled);
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height,
+                    active, enabled, 0xFFFFB228);
+            ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), enabled);
             graphics.drawString(font, getMessage(), getX() + 25, getY() + 6,
                     enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED, false);
         }
 
-        private void drawResourceButtonChrome(GuiGraphics graphics, boolean selected) {
-            int border = selected ? 0xFFFFB228 : (active ? 0xFF59666A : ConfigPanel.BORDER_DIM);
-            ConfigPanel.drawBox(graphics, getX(), getY(), width, height, 0xFF071D24, border);
-            graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + 10, 0xFF0B2931);
-        }
-
-        private void drawResourceIcon(GuiGraphics graphics, int x, int y, ResourceType resource, boolean selected) {
-            String name = switch (resource) {
+        private String resourceName(ResourceType resource) {
+            return switch (resource) {
                 case ITEMS -> "item";
                 case FLUIDS -> "fluid";
                 case ENERGY -> "energy";
                 case AUTO -> "auto";
             };
-            ResourceLocation texture = guiTexture("resource_" + name + (selected ? "" : "_off") + "_small.png");
-            graphics.blit(texture, x, y, 0, 0, 18, 17, 18, 17);
         }
 
         private boolean isEnabled() {

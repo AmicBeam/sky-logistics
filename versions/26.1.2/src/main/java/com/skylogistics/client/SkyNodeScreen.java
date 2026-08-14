@@ -26,32 +26,49 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
-    private static final int LINE_NAME_LABEL_Y = 12;
+    private static final int LINE_PANEL_X = 3;
+    private static final int LINE_PANEL_Y = 20;
+    private static final int LINE_PANEL_WIDTH = 248;
+    private static final int LINE_NAME_LABEL_Y = 28;
     private static final int LINE_NAME_LABEL_GAP = 4;
-    private static final int LINE_NAME_EDIT_X = 146;
-    private static final int LINE_NAME_EDIT_Y = 7;
-    private static final int LINE_NAME_EDIT_WIDTH = 92;
-    private static final int LINE_NAME_EDIT_HEIGHT = 16;
+    private static final int LINE_NAME_EDIT_X = 37;
+    private static final int LINE_NAME_EDIT_Y = 24;
+    private static final int LINE_NAME_EDIT_WIDTH = 90;
+    private static final int LINE_NAME_EDIT_HEIGHT = 15;
+    private static final int LINE_COUNT_CENTER_X = 144;
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
-    private static final int FIRST_DETAIL_ROW_Y = 100;
-    private static final int SECOND_DETAIL_ROW_Y = 126;
-    private static final int DETAIL_LABEL_OFFSET_Y = 6;
-    private static final int ADVANCED_CONTROL_X = 48;
-    private static final int ADVANCED_CONTROL_WIDTH = 76;
-    private static final int ADVANCED_RIGHT_LABEL_X = 138;
-    private static final int PRIORITY_BUTTON_WIDTH = 20;
-    private static final int PRIORITY_DOWN_X = ADVANCED_CONTROL_X;
-    private static final int PRIORITY_UP_X = 104;
-    private static final int PRIORITY_VALUE_X = PRIORITY_DOWN_X + PRIORITY_BUTTON_WIDTH;
-    private static final int PRIORITY_VALUE_WIDTH = PRIORITY_UP_X - PRIORITY_VALUE_X;
-    private static final int SLOT_LIMIT_DOWN_X = SkyNodeMenu.FACE_FILTER_SLOT_X;
-    private static final int SLOT_LIMIT_VALUE_X = SLOT_LIMIT_DOWN_X + PRIORITY_BUTTON_WIDTH;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 26;
-    private static final int SLOT_LIMIT_UP_X = SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH;
-    private static final int MORE_BUTTON_X = 162;
-    private static final int EXTERNAL_EXTRACT_HINT_Y = SkyNodeMenu.UPGRADE_ROW_Y + 20;
+    private static final int RESOURCE_GROUP_Y = 88;
+    private static final int RESOURCE_CONTROL_Y = 95;
+    private static final int RESOURCE_GROUP_X = 5;
+    private static final int MODE_GROUP_X = 129;
+    private static final int RESOURCE_MODE_GROUP_WIDTH = 120;
+    private static final int RESOURCE_BUTTON_WIDTH = 35;
+    private static final int RESOURCE_BUTTON_STEP = 39;
+    private static final int ADVANCED_GROUP_Y = 123;
+    private static final int ADVANCED_CONTROL_Y = 130;
+    private static final int REDSTONE_GROUP_X = 5;
+    private static final int REDSTONE_GROUP_WIDTH = 74;
+    private static final int SLOT_LIMIT_GROUP_X = 83;
+    private static final int STEPPER_GROUP_WIDTH = 79;
+    private static final int PRIORITY_GROUP_X = 166;
+    private static final int REDSTONE_CONTROL_X = 10;
+    private static final int ADVANCED_CONTROL_WIDTH = 64;
+    private static final int PRIORITY_BUTTON_WIDTH = 17;
+    private static final int SLOT_LIMIT_DOWN_X = 88;
+    private static final int SLOT_LIMIT_VALUE_X = 108;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
+    private static final int SLOT_LIMIT_UP_X = 140;
+    private static final int PRIORITY_DOWN_X = 171;
+    private static final int PRIORITY_VALUE_X = 191;
+    private static final int PRIORITY_VALUE_WIDTH = 29;
+    private static final int PRIORITY_UP_X = 223;
+    private static final int UPGRADE_FILTER_GROUP_Y = 158;
+    private static final int UPGRADE_GROUP_X = 5;
+    private static final int FILTER_GROUP_X = 129;
+    private static final int UPGRADE_FILTER_GROUP_WIDTH = 120;
+    private static final int EXTERNAL_EXTRACT_HINT_Y = 192;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -62,13 +79,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private Boolean localFluidsEnabled;
     private Boolean localEnergyEnabled;
     private Direction selectedFace = Direction.NORTH;
-    private MoreButton moreButton;
     private EditBox lineNameEdit;
     private EditBox exactQuantityEdit;
     private boolean refreshingExactQuantity;
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
-    private boolean advancedPanel;
     private Direction tagFilterRejectedFace;
     private int tagFilterRejectedSlot = -1;
     private ItemStack tagFilterRejectedPrevious = ItemStack.EMPTY;
@@ -95,11 +110,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         menu.selectFace(selectedFace);
         ModNetworking.sendMenuAction(MenuAction.faceSelect(selectedFace));
 
-        addLineButton(leftPos + 116, topPos + 29, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 141, topPos + 29, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 164, topPos + 29, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 191, topPos + 29, 22, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 216, topPos + 29, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addLineButton(leftPos + 157, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 174, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 191, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 208, topPos + 23, 15, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 225, topPos + 23, 15, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
         lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
@@ -119,30 +134,26 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             }
         }
 
-        addTypeButton(leftPos + 54, topPos + menu.screenY(100), ResourceType.ITEMS);
-        addTypeButton(leftPos + 108, topPos + menu.screenY(100), ResourceType.FLUIDS);
-        addTypeButton(leftPos + 162, topPos + menu.screenY(100), ResourceType.ENERGY);
-        addModeButton(leftPos + 54, topPos + menu.screenY(126), 48, NodeFaceMode.NONE,
+        addTypeButton(leftPos + 10, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ITEMS);
+        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.FLUIDS);
+        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ENERGY);
+        addModeButton(leftPos + 134, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.NONE,
                 Component.translatable("button.skylogistics.none"));
-        addModeButton(leftPos + 108, topPos + menu.screenY(126), 48, NodeFaceMode.INPUT,
+        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.INPUT,
                 Component.translatable("button.skylogistics.extract"));
-        addModeButton(leftPos + 162, topPos + menu.screenY(126), 48, NodeFaceMode.OUTPUT,
+        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
-        int moreWidth = 48;
-        moreButton = new MoreButton(leftPos + MORE_BUTTON_X, topPos + menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y),
-                moreWidth);
-        addRenderableWidget(moreButton);
-        addAdvancedButton(new RedstoneButton(leftPos + ADVANCED_CONTROL_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y)));
-        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+        addAdvancedButton(new RedstoneButton(leftPos + REDSTONE_CONTROL_X, topPos + menu.screenY(ADVANCED_CONTROL_Y)));
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 -1, Component.literal("-")));
-        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + menu.screenY(FIRST_DETAIL_ROW_Y),
+        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 1, Component.literal("+")));
-        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 -1, Component.literal("-")));
-        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(SECOND_DETAIL_ROW_Y),
+        addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 1, Component.literal("+")));
-        exactQuantityEdit = new EditBox(font, leftPos + SLOT_LIMIT_DOWN_X,
-                topPos + menu.screenY(FIRST_DETAIL_ROW_Y), 66, 18,
+        exactQuantityEdit = new EditBox(font, leftPos + SLOT_LIMIT_VALUE_X,
+                topPos + menu.screenY(ADVANCED_CONTROL_Y), SLOT_LIMIT_VALUE_WIDTH, ConfigPanel.STEPPER_HEIGHT,
                 Component.translatable("screen.skylogistics.exact_quantity"));
         exactQuantityEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
         exactQuantityEdit.setMaxLength(10);
@@ -171,7 +182,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private void addAdvancedButton(AdvancedButton button) {
         advancedButtons.add(button);
-        button.visible = advancedPanel;
         addRenderableWidget(button);
     }
 
@@ -207,25 +217,17 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         boolean selectedFaceActive = hasTargetBlock(node, selectedFace);
         boolean resourceControlsActive = selectedFaceActive && modeFor(node, selectedFace) != NodeFaceMode.NONE;
         for (TypeToggleButton button : typeButtons) {
-            button.visible = !advancedPanel;
-            button.active = !advancedPanel && resourceControlsActive;
+            button.active = resourceControlsActive;
         }
-        menu.setFaceFilterSlotsActive(advancedPanel && selectedFaceActive);
+        menu.setFaceFilterSlotsActive(selectedFaceActive);
         for (ModeButton button : modeButtons) {
-            button.visible = !advancedPanel;
-            button.active = !advancedPanel && selectedFaceActive;
+            button.active = selectedFaceActive;
         }
         for (AdvancedButton button : advancedButtons) {
-            button.visible = advancedPanel && !(button instanceof SlotLimitButton && node.hasExactQuantityUpgrade());
-            button.active = advancedPanel && selectedFaceActive && button.canUse(node);
+            button.visible = !(button instanceof SlotLimitButton && node.hasExactQuantityUpgrade());
+            button.active = selectedFaceActive && button.canUse(node);
         }
         refreshExactQuantity(node);
-        if (moreButton != null) {
-            moreButton.active = selectedFaceActive;
-            moreButton.setMessage(Component.translatable(advancedPanel
-                    ? "button.skylogistics.basic"
-                    : "button.skylogistics.more"));
-        }
         if (localItemsEnabled != null && node.isItemsEnabled(selectedFace) == localItemsEnabled) {
             localItemsEnabled = null;
         }
@@ -244,60 +246,84 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        ConfigPanel.drawContentPanel(graphics, leftPos + LINE_PANEL_X, topPos + LINE_PANEL_Y,
+                LINE_PANEL_WIDTH, 24);
+        SkyNodeBlockEntity node = node();
+        ConfigPanel.drawFieldset(graphics, leftPos + RESOURCE_GROUP_X, topPos + menu.screenY(RESOURCE_GROUP_Y),
+                RESOURCE_MODE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.resources")));
+        ConfigPanel.drawFieldset(graphics, leftPos + MODE_GROUP_X, topPos + menu.screenY(RESOURCE_GROUP_Y),
+                RESOURCE_MODE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.mode_label")));
+        if (node != null) {
+            Component slotLegend = Component.translatable(node.hasExactQuantityUpgrade()
+                    ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit");
+            int groupY = topPos + menu.screenY(ADVANCED_GROUP_Y);
+            ConfigPanel.drawFieldset(graphics, leftPos + REDSTONE_GROUP_X, groupY,
+                    REDSTONE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.redstone")));
+            ConfigPanel.drawFieldset(graphics, leftPos + SLOT_LIMIT_GROUP_X, groupY,
+                    STEPPER_GROUP_WIDTH, font.width(slotLegend));
+            ConfigPanel.drawFieldset(graphics, leftPos + PRIORITY_GROUP_X, groupY,
+                    STEPPER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.priority")));
+            if (!node.hasExactQuantityUpgrade()) {
+                ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X,
+                        topPos + menu.screenY(ADVANCED_CONTROL_Y), SLOT_LIMIT_VALUE_WIDTH);
+            }
+            ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X,
+                    topPos + menu.screenY(ADVANCED_CONTROL_Y), PRIORITY_VALUE_WIDTH);
+        }
+        int slotGroupY = topPos + menu.screenY(UPGRADE_FILTER_GROUP_Y);
+        ConfigPanel.drawFieldset(graphics, leftPos + UPGRADE_GROUP_X, slotGroupY,
+                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.upgrade_slots")));
+        ConfigPanel.drawFieldset(graphics, leftPos + FILTER_GROUP_X, slotGroupY,
+                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable(node != null && node.usesSingleEndpoint()
+                        ? "screen.skylogistics.filter_slot" : "screen.skylogistics.face_filters")));
         renderMenuSlotBackgrounds(graphics);
     }
 
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         SkyNodeBlockEntity node = node();
-        graphics.text(font, title, 14, 10, ConfigPanel.ACCENT, false);
+        graphics.text(font, title, 10, 7, ConfigPanel.ACCENT, false);
         if (node == null) {
             graphics.text(font, Component.translatable("screen.skylogistics.missing_node"),
-                    14, 34, ConfigPanel.MUTED, false);
+                    10, 28, ConfigPanel.MUTED, false);
             return;
         }
         int lineIndex = menu.getLineIndex() + 1;
         int lineCount = Math.max(1, menu.getLineCount());
-        Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
+        Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
         graphics.text(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
                 LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
-        graphics.text(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
-                14, 34, ConfigPanel.TEXT, false);
+        graphics.centeredText(font, Component.literal(lineIndex + "/" + lineCount),
+                LINE_COUNT_CENTER_X, 28, ConfigPanel.TEXT);
 
         Direction face = selectedFace;
-        if (!node.usesSingleEndpoint()) {
-            graphics.text(font, Component.translatable("screen.skylogistics.current_face",
-                    faceName(face), targetName(node, face)), 14, 88, ConfigPanel.TEXT, false);
-        }
-        if (advancedPanel) {
-            graphics.text(font, Component.translatable("screen.skylogistics.redstone"),
-                    14, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
-            graphics.text(font, Component.translatable(node.hasExactQuantityUpgrade()
-                            ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit"),
-                    ADVANCED_RIGHT_LABEL_X, menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
-                    ConfigPanel.MUTED, false);
-            if (!node.hasExactQuantityUpgrade()) graphics.centeredText(font,
-                    slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
-                    menu.screenY(FIRST_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.TEXT);
-            graphics.text(font, Component.translatable(node.usesSingleEndpoint()
-                            ? "screen.skylogistics.filter_slot"
-                            : "screen.skylogistics.face_filters"),
-                    ADVANCED_RIGHT_LABEL_X, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
-                    ConfigPanel.MUTED, false);
-            graphics.text(font, Component.translatable("screen.skylogistics.priority"),
-                    14, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y, ConfigPanel.MUTED, false);
-            graphics.centeredText(font, Component.literal(String.valueOf(node.getPriority(face))),
-                    PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, menu.screenY(SECOND_DETAIL_ROW_Y) + DETAIL_LABEL_OFFSET_Y,
-                    ConfigPanel.TEXT);
-        } else {
-            graphics.text(font, Component.translatable("screen.skylogistics.resources"),
-                    14, menu.screenY(106), ConfigPanel.MUTED, false);
-            graphics.text(font, Component.translatable("screen.skylogistics.mode_label"),
-                    14, menu.screenY(132), ConfigPanel.MUTED, false);
-        }
-        graphics.text(font, Component.translatable("screen.skylogistics.upgrade_slots"),
-                14, menu.screenY(SkyNodeMenu.UPGRADE_ROW_Y) + 5, ConfigPanel.MUTED, false);
+        graphics.centeredText(font, Component.translatable("screen.skylogistics.resources"),
+                RESOURCE_GROUP_X + RESOURCE_MODE_GROUP_WIDTH / 2,
+                menu.screenY(RESOURCE_GROUP_Y) - 4, ConfigPanel.MUTED);
+        graphics.centeredText(font, Component.translatable("screen.skylogistics.mode_label"),
+                MODE_GROUP_X + RESOURCE_MODE_GROUP_WIDTH / 2,
+                menu.screenY(RESOURCE_GROUP_Y) - 4, ConfigPanel.MUTED);
+        int legendY = menu.screenY(ADVANCED_GROUP_Y) - 4;
+        graphics.centeredText(font, Component.translatable("screen.skylogistics.redstone"),
+                REDSTONE_GROUP_X + REDSTONE_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
+        graphics.centeredText(font, Component.translatable(node.hasExactQuantityUpgrade()
+                        ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit"),
+                SLOT_LIMIT_GROUP_X + STEPPER_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
+        if (!node.hasExactQuantityUpgrade()) graphics.centeredText(font,
+                slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
+                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
+        graphics.centeredText(font, Component.translatable("screen.skylogistics.priority"),
+                PRIORITY_GROUP_X + STEPPER_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
+        graphics.centeredText(font, Component.literal(String.valueOf(node.getPriority(face))),
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2,
+                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
+        int slotLegendY = menu.screenY(UPGRADE_FILTER_GROUP_Y) - 4;
+        graphics.centeredText(font, Component.translatable("screen.skylogistics.upgrade_slots"),
+                UPGRADE_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
+        graphics.centeredText(font, Component.translatable(node.usesSingleEndpoint()
+                        ? "screen.skylogistics.filter_slot" : "screen.skylogistics.face_filters"),
+                FILTER_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
         Component externalExtractHint = externalExtractHint(node, face);
         if (externalExtractHint != null) {
             graphics.text(font, externalExtractHint, 14, menu.screenY(EXTERNAL_EXTRACT_HINT_Y),
@@ -386,7 +412,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private void refreshExactQuantity(SkyNodeBlockEntity node) {
         if (exactQuantityEdit == null) return;
-        boolean visible = advancedPanel && node.hasExactQuantityUpgrade();
+        boolean visible = node.hasExactQuantityUpgrade();
         exactQuantityEdit.visible = visible;
         exactQuantityEdit.active = visible;
         if (visible && !exactQuantityEdit.isFocused()) {
@@ -467,7 +493,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             if (!attempted.isEmpty() && !SkyNodeBlockEntity.isFaceFilterItem(attempted)) {
                 return;
             }
-        } else if (advancedPanel && shiftDown && SkyNodeBlockEntity.isFaceFilterItem(slot.getItem())) {
+        } else if (shiftDown && SkyNodeBlockEntity.isFaceFilterItem(slot.getItem())) {
             targetSlot = 0;
             attempted = slot.getItem();
         } else {
@@ -669,7 +695,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final int action;
 
         private LineButton(int x, int y, int width, Component message, int action) {
-            super(x, y, width, 18, message);
+            super(x, y, width, 17, message);
             this.action = action;
         }
 
@@ -707,7 +733,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final NodeFaceMode mode;
 
         private ModeButton(int x, int y, int width, NodeFaceMode mode, Component message) {
-            super(x, y, width, 20, message);
+            super(x, y, width, 21, message);
             this.mode = mode;
         }
 
@@ -729,38 +755,19 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
-            if (selected) {
-                graphics.fill(getX() + 4, getY() + height - 4, getX() + width - 4, getY() + height - 2,
-                        colorFor(mode));
+            int accent = mode == NodeFaceMode.INPUT ? 0xFF72D13B
+                    : mode == NodeFaceMode.OUTPUT ? 0xFF36B4D2 : ConfigPanel.BORDER_ACTIVE;
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
+            int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
+            if (mode == NodeFaceMode.NONE) {
+                ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, "auto", active && selected);
+            } else {
+                drawModeArrow(graphics, getX() + 2, getY() + 2, mode == NodeFaceMode.INPUT, iconColor);
             }
-            int textColor = active ? ConfigPanel.TEXT : ConfigPanel.MUTED;
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6, textColor);
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            defaultButtonNarrationText(output);
-        }
-    }
-
-    private final class MoreButton extends AbstractButton {
-        private MoreButton(int x, int y, int width) {
-            super(x, y, width, 18, Component.translatable("button.skylogistics.more"));
-        }
-
-        @Override
-        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
-            advancedPanel = !advancedPanel;
-            SkyNodeBlockEntity node = node();
-            menu.setFaceFilterSlotsActive(advancedPanel && node != null && hasTargetBlock(node, selectedFace));
-        }
-
-        @Override
-        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, advancedPanel);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 5,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            if (font.width(getMessage()) <= width - 21) {
+                graphics.text(font, getMessage(), getX() + 20, getY() + 7,
+                        active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+            }
         }
 
         @Override
@@ -799,7 +806,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private final class RedstoneButton extends AdvancedButton {
         private RedstoneButton(int x, int y) {
-            super(x, y, ADVANCED_CONTROL_WIDTH, 18, Component.translatable("screen.skylogistics.redstone"));
+            super(x, y, ADVANCED_CONTROL_WIDTH, ConfigPanel.STEPPER_HEIGHT,
+                    Component.translatable("screen.skylogistics.redstone"));
         }
 
         @Override
@@ -813,13 +821,25 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected Component dynamicMessage(SkyNodeBlockEntity node) {
             return Component.translatable(node.getRedstoneControl(selectedFace).translationKey());
         }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            SkyNodeBlockEntity node = node();
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            if (node == null) {
+                return;
+            }
+            ConfigPanel.drawRedstoneIcon(graphics, getX() + 5, getY(), node.getRedstoneControl(selectedFace));
+            graphics.text(font, dynamicMessage(node), getX() + 23, getY() + 4,
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+        }
     }
 
     private final class PriorityButton extends AdvancedButton {
         private final int delta;
 
         private PriorityButton(int x, int y, int delta, Component message) {
-            super(x, y, PRIORITY_BUTTON_WIDTH, 18, message);
+            super(x, y, PRIORITY_BUTTON_WIDTH, ConfigPanel.STEPPER_HEIGHT, message);
             this.delta = delta;
         }
 
@@ -841,7 +861,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final int delta;
 
         private SlotLimitButton(int x, int y, int delta, Component message) {
-            super(x, y, PRIORITY_BUTTON_WIDTH, 18, message);
+            super(x, y, PRIORITY_BUTTON_WIDTH, ConfigPanel.STEPPER_HEIGHT, message);
             this.delta = delta;
         }
 
@@ -875,7 +895,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final ResourceType type;
 
         private TypeToggleButton(int x, int y, ResourceType type) {
-            super(x, y, 48, 20, Component.translatable(type.translationKey));
+            super(x, y, RESOURCE_BUTTON_WIDTH, 21, Component.translatable(type.translationKey));
             this.type = type;
         }
 
@@ -908,9 +928,21 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean enabled = node != null && active && isEnabled(node);
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, enabled);
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
-                    enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, enabled,
+                    ConfigPanel.ACCENT);
+            ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, resourceName(), enabled);
+            if (font.width(getMessage()) <= width - 21) {
+                graphics.text(font, getMessage(), getX() + 20, getY() + 7,
+                        enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+            }
+        }
+
+        private String resourceName() {
+            return switch (type) {
+                case ITEMS -> "item";
+                case FLUIDS -> "fluid";
+                case ENERGY -> "energy";
+            };
         }
 
         private boolean isEnabled(SkyNodeBlockEntity node) {
@@ -924,6 +956,20 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void updateWidgetNarration(NarrationElementOutput output) {
             defaultButtonNarrationText(output);
+        }
+    }
+
+    private static void drawModeArrow(GuiGraphicsExtractor graphics, int x, int y, boolean up, int color) {
+        if (up) {
+            graphics.fill(x + 8, y + 2, x + 10, y + 4, color);
+            graphics.fill(x + 6, y + 4, x + 12, y + 6, color);
+            graphics.fill(x + 4, y + 6, x + 14, y + 8, color);
+            graphics.fill(x + 8, y + 8, x + 10, y + 15, color);
+        } else {
+            graphics.fill(x + 8, y + 2, x + 10, y + 9, color);
+            graphics.fill(x + 4, y + 9, x + 14, y + 11, color);
+            graphics.fill(x + 6, y + 11, x + 12, y + 13, color);
+            graphics.fill(x + 8, y + 13, x + 10, y + 15, color);
         }
     }
 }
