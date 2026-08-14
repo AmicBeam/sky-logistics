@@ -14,6 +14,7 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.BudgetedScanCursors;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.SimplePipeType;
@@ -186,6 +187,14 @@ public final class SkyNetworkRegistry {
         if (line != null) {
             line.refreshPriorityOutputs(pos);
             refreshGlobalLineIds(Set.of(line.lineId()));
+        }
+    }
+
+    private static void resetTargetScans(UUID lineId) {
+        for (DimensionIndex index : DIMENSIONS.values()) {
+            LineIndex line = index.lines.get(lineId);
+            if (line == null) continue;
+            for (CachedEndpoint endpoint : line.inputs()) endpoint.clearTargetScans();
             wakeLine(line);
         }
     }
@@ -805,6 +814,7 @@ public final class SkyNetworkRegistry {
 
     private static void refreshGlobalLineIds(Set<UUID> lineIds) {
         for (UUID lineId : lineIds) {
+            resetTargetScans(lineId);
             refreshGlobalOutputIfActive(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, lineId,
                     LineIndex::priorityItemOutputs);
             refreshGlobalOutputIfActive(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
@@ -1366,6 +1376,7 @@ public final class SkyNetworkRegistry {
         }
 
         private void addInput(CachedEndpoint endpoint) {
+            endpoint.clearTargetScans();
             inputs.add(endpoint);
             inputResourceMask |= addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs,
                     energyInputs, manaInputs, sourceInputs, true);
@@ -1597,6 +1608,11 @@ public final class SkyNetworkRegistry {
         private long[] rejectedChemicalAcceptUntil;
         private int[] rejectedChemicalAcceptFailures;
         private int rejectedChemicalAcceptCursor;
+        private BudgetedScanCursors<ItemStackKey> itemTargetScanCursors;
+        private BudgetedScanCursors<FluidStackKey> fluidTargetScanCursors;
+        private BudgetedScanCursors<String> chemicalTargetScanCursors;
+        private final int[] resourceTargetScanCursors =
+                new int[NetworkEndpointBlockEntity.TargetResource.values().length];
         private boolean chemicalSupported;
         private boolean manaSupported;
         private boolean sourceSupported;
@@ -2239,6 +2255,24 @@ public final class SkyNetworkRegistry {
             rejectedItemAcceptUntil[index] = gameTime + delay(failures);
         }
 
+        public int itemTargetScanStart(ItemStackKey key, int targetCount) {
+            if (itemTargetScanCursors == null) {
+                itemTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            return itemTargetScanCursors.start(key, targetCount);
+        }
+
+        public void resumeItemTargetScan(ItemStackKey key, int nextIndex, int targetCount) {
+            if (itemTargetScanCursors == null) {
+                itemTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            itemTargetScanCursors.resumeAt(key, nextIndex, targetCount);
+        }
+
+        public void resetItemTargetScan(ItemStackKey key) {
+            if (itemTargetScanCursors != null) itemTargetScanCursors.reset(key);
+        }
+
         public int nextPreferredItemSlot(int slots, long gameTime, int firstTriedSlot, int secondTriedSlot) {
             if (preferredItemSlots == null) return -1;
             for (int i = 0; i < preferredItemSlots.length; i++) {
@@ -2406,6 +2440,24 @@ public final class SkyNetworkRegistry {
             rejectedFluidAcceptUntil[index] = gameTime + delay(failures);
         }
 
+        public int fluidTargetScanStart(FluidStackKey key, int targetCount) {
+            if (fluidTargetScanCursors == null) {
+                fluidTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            return fluidTargetScanCursors.start(key, targetCount);
+        }
+
+        public void resumeFluidTargetScan(FluidStackKey key, int nextIndex, int targetCount) {
+            if (fluidTargetScanCursors == null) {
+                fluidTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            fluidTargetScanCursors.resumeAt(key, nextIndex, targetCount);
+        }
+
+        public void resetFluidTargetScan(FluidStackKey key) {
+            if (fluidTargetScanCursors != null) fluidTargetScanCursors.reset(key);
+        }
+
         public int nextPreferredFluidTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
             if (preferredFluidTanks == null) return -1;
             for (int i = 0; i < preferredFluidTanks.length; i++) {
@@ -2561,6 +2613,46 @@ public final class SkyNetworkRegistry {
             int failures = Math.min(rejectedChemicalAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
             rejectedChemicalAcceptFailures[index] = failures;
             rejectedChemicalAcceptUntil[index] = gameTime + delay(failures);
+        }
+
+        public int chemicalTargetScanStart(ChemicalStackView key, int targetCount) {
+            if (chemicalTargetScanCursors == null) {
+                chemicalTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            return chemicalTargetScanCursors.start(key.chemicalKey(), targetCount);
+        }
+
+        public void resumeChemicalTargetScan(ChemicalStackView key, int nextIndex, int targetCount) {
+            if (chemicalTargetScanCursors == null) {
+                chemicalTargetScanCursors = new BudgetedScanCursors<>(SkyLogisticsConfig.rejectedAcceptCacheSize());
+            }
+            chemicalTargetScanCursors.resumeAt(key.chemicalKey(), nextIndex, targetCount);
+        }
+
+        public void resetChemicalTargetScan(ChemicalStackView key) {
+            if (chemicalTargetScanCursors != null) chemicalTargetScanCursors.reset(key.chemicalKey());
+        }
+
+        public int resourceTargetScanStart(NetworkEndpointBlockEntity.TargetResource resource, int targetCount) {
+            return targetCount <= 0 ? 0
+                    : Math.floorMod(resourceTargetScanCursors[resource.ordinal()], targetCount);
+        }
+
+        public void resumeResourceTargetScan(NetworkEndpointBlockEntity.TargetResource resource, int nextIndex,
+                int targetCount) {
+            resourceTargetScanCursors[resource.ordinal()] =
+                    targetCount <= 0 ? 0 : Math.floorMod(nextIndex, targetCount);
+        }
+
+        public void resetResourceTargetScan(NetworkEndpointBlockEntity.TargetResource resource) {
+            resourceTargetScanCursors[resource.ordinal()] = 0;
+        }
+
+        public void clearTargetScans() {
+            if (itemTargetScanCursors != null) itemTargetScanCursors.clear();
+            if (fluidTargetScanCursors != null) fluidTargetScanCursors.clear();
+            if (chemicalTargetScanCursors != null) chemicalTargetScanCursors.clear();
+            for (int i = 0; i < resourceTargetScanCursors.length; i++) resourceTargetScanCursors[i] = 0;
         }
 
         public int nextPreferredChemicalTank(int tanks, long gameTime, int firstTriedTank, int secondTriedTank) {
@@ -2751,6 +2843,7 @@ public final class SkyNetworkRegistry {
             itemHandler = null;
             clearItemSlotCaches();
             clearRejectedItemAccepts();
+            if (itemTargetScanCursors != null) itemTargetScanCursors.clear();
         }
 
         private void clearFluidCache() {
@@ -2758,6 +2851,7 @@ public final class SkyNetworkRegistry {
             fluidHandler = null;
             clearFluidTankCaches();
             clearRejectedFluidAccepts();
+            if (fluidTargetScanCursors != null) fluidTargetScanCursors.clear();
         }
 
         private void clearChemicalCache() {
@@ -2767,23 +2861,27 @@ public final class SkyNetworkRegistry {
             chemicalHandlerValidateAt = 0L;
             clearChemicalTankCaches();
             clearRejectedChemicalAccepts();
+            if (chemicalTargetScanCursors != null) chemicalTargetScanCursors.clear();
         }
 
         private void clearEnergyCache() {
             recordCapabilityPresent(CAPABILITY_ENERGY);
             energyHandler = null;
+            resetResourceTargetScan(NetworkEndpointBlockEntity.TargetResource.ENERGY);
         }
 
         private void clearManaCache() {
             recordCapabilityPresent(CAPABILITY_MANA);
             manaHandler = null;
             manaHandlerValidateAt = 0L;
+            resetResourceTargetScan(NetworkEndpointBlockEntity.TargetResource.MANA);
         }
 
         private void clearSourceCache() {
             recordCapabilityPresent(CAPABILITY_SOURCE);
             sourceHandler = null;
             sourceHandlerValidateAt = 0L;
+            resetResourceTargetScan(NetworkEndpointBlockEntity.TargetResource.SOURCE);
         }
 
         private void clearRejectedItems() {

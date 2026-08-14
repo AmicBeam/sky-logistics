@@ -34,7 +34,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private Direction selectedSide = Direction.NORTH;
     private int itemInsertCursor;
     private int fluidInsertCursor;
-    private int energyInsertCursor;
+    private int energyReceiveCursor;
+    private int energyExtractCursor;
+    private int energySnapshotCursor;
+    private int energySnapshotScanned;
+    private long energyStoredAccumulator;
+    private long energyCapacityAccumulator;
+    private boolean energyCanExtractAccumulator;
+    private boolean energyCanReceiveAccumulator;
     private final int[] itemExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
     private final int[] fluidExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
     private final int[] itemInsertSlotCursors = new int[MAX_CONFIGURABLE_TARGETS];
@@ -88,12 +95,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void refreshTargets(Direction side) {
         int index = side.ordinal();
         TargetCache cache = discoverTargets(side);
+        boolean resetScan = selectedSide != side || !cache.equals(targetCaches[index]);
         targetCaches[index] = cache;
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
         selectedSide = side;
         highlightSnapshot = createTargetSnapshot(cache);
-        clearSelectedSideCaches();
+        if (resetScan) clearSelectedSideCaches();
     }
 
     private TargetCache targets(Direction side) {
@@ -213,6 +221,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energyReceivePlan = null;
         energyExtractPlan = null;
         energySnapshotTick = Long.MIN_VALUE;
+        itemInsertCursor = 0;
+        fluidInsertCursor = 0;
+        energyReceiveCursor = 0;
+        energyExtractCursor = 0;
+        energySnapshotCursor = 0;
+        energySnapshotScanned = 0;
+        energyStoredAccumulator = 0L;
+        energyCapacityAccumulator = 0L;
+        energyCanExtractAccumulator = false;
+        energyCanReceiveAccumulator = false;
     }
 
     private void prepareOperationBudget() {
@@ -340,6 +358,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     visibleItemSlots[target] = sourceSlot;
                     return sourceSlot;
                 }
+                itemExtractCursors[target] = sourceSlot + 1;
             }
             visibleItemSlots[target] = -1;
             return -1;
@@ -360,23 +379,30 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int share = (int)(((long)stack.getCount() + all.size() - 1L) / all.size());
                 for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
                     int target = (start + offset) % all.size();
-                    if (isRejected(target, stack)) continue;
                     if (!takeOperation()) break;
+                    itemInsertCursor = target + 1;
+                    if (isRejected(target, stack)) continue;
                     ItemHandler handler = item(all.get(target));
                     if (handler == null || handler.getSlots() == 0) continue;
                     int slots = handler.getSlots();
                     int slotStart = Math.floorMod(itemInsertSlotCursors[target], slots);
                     boolean fullyScanned = true;
                     for (int checked = 0; checked < slots; checked++) {
-                        if (!takeOperation()) { fullyScanned = false; break; }
+                        if (!takeOperation()) {
+                            itemInsertCursor = target;
+                            fullyScanned = false;
+                            break;
+                        }
                         int slot = (slotStart + checked) % slots;
                         ItemStack offer = stack.copy(); offer.setCount(share);
                         ItemStack rejected = handler.insertItem(slot, offer, true);
                         int accepted = offer.getCount() - rejected.getCount();
                         if (accepted > 0) { moves.add(new ItemMove(target, slot, accepted)); break; }
+                        itemInsertSlotCursors[target] = slot + 1;
                     }
                     if (fullyScanned && (moves.isEmpty() || moves.get(moves.size() - 1).target != target)) {
-                        rejectedItems[target] = stack.copyWithCount(1);
+                        rejectedItems[target] = stack.copy();
+                        rejectedItems[target].setCount(1);
                         rejectedItemUntil[target] = gameTime() + 5L;
                     }
                 }
@@ -410,7 +436,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     rejectedItems[move.target] = null;
                 }
             }
-            if (inserted > 0 && !all.isEmpty()) itemInsertCursor = (itemInsertCursor + 1) % all.size();
             return inserted;
         }
     }
@@ -442,6 +467,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     visibleFluids[tank] = stack.copy();
                     return stack;
                 }
+                fluidExtractCursors[tank] = sourceTank + 1;
             }
             visibleFluidTanks[tank] = -1;
             return FluidStack.EMPTY;
@@ -487,9 +513,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int share = (int)(((long)resource.getAmount() + all.size() - 1L) / all.size());
                 for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
                     int target = (start + offset) % all.size();
+                    if (!takeOperation()) break;
+                    fluidInsertCursor = target + 1;
                     if (rejectedFluids[target] != null && gameTime() < rejectedFluidUntil[target]
                             && sameFluidType(rejectedFluids[target], resource)) continue;
-                    if (!takeOperation()) break;
                     FluidHandler handler = fluid(all.get(target));
                     if (handler == null) continue;
                     FluidStack offer = resource.copy(); offer.setAmount(share);
@@ -519,7 +546,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 inserted += moved;
                 if (moved > 0) rejectedFluids[move.target] = null;
             }
-            if (inserted > 0 && !all.isEmpty()) fluidInsertCursor = (fluidInsertCursor + 1) % all.size();
             return inserted;
         }
 
@@ -527,9 +553,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).fluids;
             List<FluidMove> moves = new ArrayList<>();
             int remaining = resource.getAmount();
+            int start = all.isEmpty() ? 0 : Math.floorMod(fluidInsertCursor, all.size());
             for (int offset = 0; offset < all.size() && remaining > 0; offset++) {
                 if (!takeOperation()) break;
-                int target = Math.floorMod(fluidInsertCursor + offset, all.size());
+                int target = (start + offset) % all.size();
+                fluidInsertCursor = target + 1;
                 FluidHandler handler = fluid(all.get(target));
                 if (handler == null) continue;
                 FluidStack request = resource.copy(); request.setAmount(remaining);
@@ -556,7 +584,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     visibleFluids[move.target] = null;
                 }
             }
-            if (!result.isEmpty() && !all.isEmpty()) fluidInsertCursor = (fluidInsertCursor + 1) % all.size();
             return result;
         }
     }
@@ -591,12 +618,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).energy;
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty() && amount > 0) {
-                int start = Math.floorMod(energyInsertCursor, all.size());
+                int cursor = receive ? energyReceiveCursor : energyExtractCursor;
+                int start = Math.floorMod(cursor, all.size());
                 int candidateLimit = Math.min(amount, all.size());
                 int share = (int)(((long)amount + all.size() - 1L) / all.size());
                 for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
                     if (!takeOperation()) break;
                     int target = (start + offset) % all.size();
+                    if (receive) energyReceiveCursor = target + 1;
+                    else energyExtractCursor = target + 1;
                     EnergyStorage handler = energy(all.get(target));
                     if (handler == null) continue;
                     int accepted = receive ? handler.receiveEnergy(share, true) : handler.extractEnergy(share, true);
@@ -619,7 +649,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int offer = Math.min(move.amount, amount - moved);
                 moved += receive ? handler.receiveEnergy(offer, false) : handler.extractEnergy(offer, false);
             }
-            if (moved > 0 && !all.isEmpty()) energyInsertCursor = (energyInsertCursor + 1) % all.size();
             energySnapshotTick = Long.MIN_VALUE;
             return moved;
         }
@@ -627,22 +656,36 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private void refreshEnergySnapshot() {
             long now = gameTime();
             if (energySnapshotTick == now) return;
-            long stored = 0L, capacity = 0L;
-            boolean canExtract = false, canReceive = false;
-            for (Target target : targets(side).energy) {
+            List<Target> all = targets(side).energy;
+            while (energySnapshotScanned < all.size()) {
                 if (!takeOperation()) break;
+                Target target = all.get(Math.floorMod(energySnapshotCursor, all.size()));
+                energySnapshotCursor++;
+                energySnapshotScanned++;
                 EnergyStorage handler = energy(target);
                 if (handler == null) continue;
-                stored += handler.getEnergyStored();
-                capacity += handler.getMaxEnergyStored();
-                canExtract |= handler.canExtract();
-                canReceive |= handler.canReceive();
+                energyStoredAccumulator += handler.getEnergyStored();
+                energyCapacityAccumulator += handler.getMaxEnergyStored();
+                energyCanExtractAccumulator |= handler.canExtract();
+                energyCanReceiveAccumulator |= handler.canReceive();
             }
-            energyStoredSnapshot = (int)Math.min(Integer.MAX_VALUE, stored);
-            energyCapacitySnapshot = (int)Math.min(Integer.MAX_VALUE, capacity);
-            energyCanExtractSnapshot = canExtract;
-            energyCanReceiveSnapshot = canReceive;
+            if (energySnapshotScanned >= all.size()) {
+                energyStoredSnapshot = (int)Math.min(Integer.MAX_VALUE, energyStoredAccumulator);
+                energyCapacitySnapshot = (int)Math.min(Integer.MAX_VALUE, energyCapacityAccumulator);
+                energyCanExtractSnapshot = energyCanExtractAccumulator;
+                energyCanReceiveSnapshot = energyCanReceiveAccumulator;
+                resetEnergySnapshotScan();
+            }
             energySnapshotTick = now;
+        }
+
+        private void resetEnergySnapshotScan() {
+            energySnapshotCursor = 0;
+            energySnapshotScanned = 0;
+            energyStoredAccumulator = 0L;
+            energyCapacityAccumulator = 0L;
+            energyCanExtractAccumulator = false;
+            energyCanReceiveAccumulator = false;
         }
     }
 }
