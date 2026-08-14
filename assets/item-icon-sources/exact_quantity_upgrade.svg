@@ -7,7 +7,7 @@
   <path fill="#b4e2e8" fill-opacity=".75" d="M4 2h1v1H4zm7 0h1v1h-1z"/>
 
   <!-- A compact number-sign: exact, countable quantity rather than transfer speed. -->
-  <path fill="#32845c" d="M7 5h1v2h1V5h1v2h1v1h-1v1h1v1h-1v2H9v-2H8v2H7v-2H6V9h1V8H6V7h1z"/>
-  <path fill="#79e6a5" d="M6 6h1V5h1v2h1V5h1v2h1v1h-1v1h1v1h-1v1H9v-1H8v1H7v-1H6V9h1V8H6zm2 2v1h1V8z"/>
-  <path fill="#b0f4c8" d="M7 5h1v1H7zm2 0h1v1H9z"/>
+  <path fill="#79e6a5" d="M6 5h1v1h2V5h1v1h1v1h-1v2h1v1h-1v1H9v-1H7v1H6v-1H5V9h1V7H5V6h1zm1 2v2h2V7z"/>
+  <path fill="#b0f4c8" d="M6 5h1v1H6zm3 0h1v1H9z"/>
+  <path fill="#32845c" d="M6 10h1v1H6zm3 0h1v1H9z"/>
 </svg>
