@@ -219,6 +219,12 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             setFocused(null);
             return true;
         }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            exactQuantityEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -227,6 +233,11 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         if (lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
+            setFocused(null);
+        }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && !exactQuantityEdit.isMouseOver(mouseX, mouseY)) {
+            exactQuantityEdit.setFocused(false);
             setFocused(null);
         }
         return super.mouseClicked(mouseX, mouseY, button);

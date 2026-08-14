@@ -332,6 +332,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             setFocused(null);
             return true;
         }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            exactQuantityEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -340,6 +346,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
+            setFocused(null);
+        }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && !exactQuantityEdit.isMouseOver(mouseX, mouseY)) {
+            exactQuantityEdit.setFocused(false);
             setFocused(null);
         }
         updateTagFilterWarningFromClick(mouseX, mouseY, hasShiftDown());
