@@ -64,14 +64,18 @@ final class ConfigPanel {
     }
 
     static void drawFieldset(GuiGraphics graphics, int x, int y, int width, int legendWidth) {
+        drawFieldset(graphics, x, y, width, legendWidth, FIELDSET_HEIGHT);
+    }
+
+    static void drawFieldset(GuiGraphics graphics, int x, int y, int width, int legendWidth, int height) {
         int gapLeft = x + (width - legendWidth) / 2 - 3;
         int gapRight = gapLeft + legendWidth + 6;
-        graphics.fill(x + 1, y + 1, x + width - 1, y + FIELDSET_HEIGHT - 1, PANEL);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, PANEL);
         graphics.fill(x, y, gapLeft, y + 1, BORDER_DIM);
         graphics.fill(gapRight, y, x + width, y + 1, BORDER_DIM);
-        graphics.fill(x, y, x + 1, y + FIELDSET_HEIGHT, BORDER_DIM);
-        graphics.fill(x + width - 1, y, x + width, y + FIELDSET_HEIGHT, 0xFF142C35);
-        graphics.fill(x, y + FIELDSET_HEIGHT - 1, x + width, y + FIELDSET_HEIGHT, 0xFF142C35);
+        graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
+        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
+        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
     }
 
     static void drawStepperValue(GuiGraphics graphics, int x, int y, int width) {

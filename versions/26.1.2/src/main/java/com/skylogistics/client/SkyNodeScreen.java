@@ -26,9 +26,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
-    private static final int LINE_PANEL_X = 3;
+    private static final int LINE_PANEL_X = 5;
     private static final int LINE_PANEL_Y = 20;
-    private static final int LINE_PANEL_WIDTH = 248;
+    private static final int LINE_PANEL_WIDTH = 244;
     private static final int LINE_NAME_LABEL_Y = 28;
     private static final int LINE_NAME_LABEL_GAP = 4;
     private static final int LINE_NAME_EDIT_X = 37;
@@ -39,36 +39,37 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
-    private static final int RESOURCE_GROUP_Y = 88;
-    private static final int RESOURCE_CONTROL_Y = 95;
-    private static final int RESOURCE_GROUP_X = 5;
-    private static final int MODE_GROUP_X = 129;
-    private static final int RESOURCE_MODE_GROUP_WIDTH = 120;
-    private static final int RESOURCE_BUTTON_WIDTH = 35;
-    private static final int RESOURCE_BUTTON_STEP = 39;
-    private static final int ADVANCED_GROUP_Y = 123;
-    private static final int ADVANCED_CONTROL_Y = 130;
-    private static final int REDSTONE_GROUP_X = 5;
-    private static final int REDSTONE_GROUP_WIDTH = 74;
-    private static final int SLOT_LIMIT_GROUP_X = 83;
-    private static final int STEPPER_GROUP_WIDTH = 79;
-    private static final int PRIORITY_GROUP_X = 166;
-    private static final int REDSTONE_CONTROL_X = 10;
-    private static final int ADVANCED_CONTROL_WIDTH = 64;
-    private static final int PRIORITY_BUTTON_WIDTH = 17;
-    private static final int SLOT_LIMIT_DOWN_X = 88;
-    private static final int SLOT_LIMIT_VALUE_X = 108;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
-    private static final int SLOT_LIMIT_UP_X = 140;
-    private static final int PRIORITY_DOWN_X = 171;
-    private static final int PRIORITY_VALUE_X = 191;
-    private static final int PRIORITY_VALUE_WIDTH = 29;
-    private static final int PRIORITY_UP_X = 223;
-    private static final int UPGRADE_FILTER_GROUP_Y = 158;
-    private static final int UPGRADE_GROUP_X = 5;
-    private static final int FILTER_GROUP_X = 129;
-    private static final int UPGRADE_FILTER_GROUP_WIDTH = 120;
-    private static final int EXTERNAL_EXTRACT_HINT_Y = 192;
+    private static final int RESOURCE_GROUP_Y = 48;
+    private static final int RESOURCE_CONTROL_Y = 55;
+    private static final int RESOURCE_GROUP_X = 33;
+    private static final int MODE_GROUP_X = 143;
+    private static final int RESOURCE_MODE_GROUP_WIDTH = 106;
+    private static final int RESOURCE_BUTTON_WIDTH = 31;
+    private static final int RESOURCE_BUTTON_STEP = 34;
+    private static final int ADVANCED_GROUP_Y = 83;
+    private static final int ADVANCED_CONTROL_Y = 90;
+    private static final int REDSTONE_GROUP_X = 33;
+    private static final int REDSTONE_GROUP_WIDTH = 68;
+    private static final int SLOT_LIMIT_GROUP_X = 105;
+    private static final int SLOT_LIMIT_GROUP_WIDTH = 72;
+    private static final int PRIORITY_GROUP_X = 181;
+    private static final int PRIORITY_GROUP_WIDTH = 68;
+    private static final int REDSTONE_CONTROL_X = 38;
+    private static final int ADVANCED_CONTROL_WIDTH = 58;
+    private static final int PRIORITY_BUTTON_WIDTH = 15;
+    private static final int SLOT_LIMIT_DOWN_X = 110;
+    private static final int SLOT_LIMIT_VALUE_X = 127;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 31;
+    private static final int SLOT_LIMIT_UP_X = 160;
+    private static final int PRIORITY_DOWN_X = 186;
+    private static final int PRIORITY_VALUE_X = 203;
+    private static final int PRIORITY_VALUE_WIDTH = 25;
+    private static final int PRIORITY_UP_X = 230;
+    private static final int UPGRADE_FILTER_GROUP_Y = 118;
+    private static final int UPGRADE_GROUP_X = 33;
+    private static final int FILTER_GROUP_X = 143;
+    private static final int UPGRADE_FILTER_GROUP_WIDTH = 106;
+    private static final int UPGRADE_FILTER_GROUP_HEIGHT = 27;
     private final EnumMap<Direction, NodeFaceMode> localFaceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FaceButton> faceButtons = new EnumMap<>(Direction.class);
     private final List<LineButton> lineButtons = new ArrayList<>();
@@ -124,24 +125,24 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addRenderableWidget(lineNameEdit);
 
         if (!singleEndpoint) {
-            int x = leftPos + 14;
+            int x = leftPos + 5;
             int y = topPos + 48;
             for (int i = 0; i < FACE_ORDER.length; i++) {
                 Direction direction = FACE_ORDER[i];
-                FaceButton button = new FaceButton(x + i * 37, y, direction);
+                FaceButton button = new FaceButton(x, y + i * 22, direction);
                 faceButtons.put(direction, button);
                 addRenderableWidget(button);
             }
         }
 
-        addTypeButton(leftPos + 10, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ITEMS);
-        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.FLUIDS);
-        addTypeButton(leftPos + 10 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ENERGY);
-        addModeButton(leftPos + 134, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.NONE,
+        addTypeButton(leftPos + 38, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ITEMS);
+        addTypeButton(leftPos + 38 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.FLUIDS);
+        addTypeButton(leftPos + 38 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), ResourceType.ENERGY);
+        addModeButton(leftPos + 148, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.NONE,
                 Component.translatable("button.skylogistics.none"));
-        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.INPUT,
+        addModeButton(leftPos + 148 + RESOURCE_BUTTON_STEP, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.INPUT,
                 Component.translatable("button.skylogistics.extract"));
-        addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
+        addModeButton(leftPos + 148 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
         addAdvancedButton(new RedstoneButton(leftPos + REDSTONE_CONTROL_X, topPos + menu.screenY(ADVANCED_CONTROL_Y)));
         addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
@@ -260,9 +261,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             ConfigPanel.drawFieldset(graphics, leftPos + REDSTONE_GROUP_X, groupY,
                     REDSTONE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.redstone")));
             ConfigPanel.drawFieldset(graphics, leftPos + SLOT_LIMIT_GROUP_X, groupY,
-                    STEPPER_GROUP_WIDTH, font.width(slotLegend));
+                    SLOT_LIMIT_GROUP_WIDTH, font.width(slotLegend));
             ConfigPanel.drawFieldset(graphics, leftPos + PRIORITY_GROUP_X, groupY,
-                    STEPPER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.priority")));
+                    PRIORITY_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.priority")));
             if (!node.hasExactQuantityUpgrade()) {
                 ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X,
                         topPos + menu.screenY(ADVANCED_CONTROL_Y), SLOT_LIMIT_VALUE_WIDTH);
@@ -272,10 +273,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         int slotGroupY = topPos + menu.screenY(UPGRADE_FILTER_GROUP_Y);
         ConfigPanel.drawFieldset(graphics, leftPos + UPGRADE_GROUP_X, slotGroupY,
-                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.upgrade_slots")));
+                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.upgrade_slots")),
+                UPGRADE_FILTER_GROUP_HEIGHT);
         ConfigPanel.drawFieldset(graphics, leftPos + FILTER_GROUP_X, slotGroupY,
                 UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable(node != null && node.usesSingleEndpoint()
-                        ? "screen.skylogistics.filter_slot" : "screen.skylogistics.face_filters")));
+                        ? "screen.skylogistics.filter_slot" : "screen.skylogistics.face_filters")),
+                UPGRADE_FILTER_GROUP_HEIGHT);
         renderMenuSlotBackgrounds(graphics);
     }
 
@@ -287,6 +290,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             graphics.text(font, Component.translatable("screen.skylogistics.missing_node"),
                     10, 28, ConfigPanel.MUTED, false);
             return;
+        }
+        Component externalExtractHint = externalExtractHint(node, selectedFace);
+        if (externalExtractHint != null) {
+            graphics.text(font, externalExtractHint, imageWidth - 10 - font.width(externalExtractHint), 7,
+                    0xFFFF9A8A, false);
         }
         int lineIndex = menu.getLineIndex() + 1;
         int lineCount = Math.max(1, menu.getLineCount());
@@ -309,12 +317,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 REDSTONE_GROUP_X + REDSTONE_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.translatable(node.hasExactQuantityUpgrade()
                         ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit"),
-                SLOT_LIMIT_GROUP_X + STEPPER_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
+                SLOT_LIMIT_GROUP_X + SLOT_LIMIT_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         if (!node.hasExactQuantityUpgrade()) graphics.centeredText(font,
                 slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
                 menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.priority"),
-                PRIORITY_GROUP_X + STEPPER_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
+                PRIORITY_GROUP_X + PRIORITY_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.literal(String.valueOf(node.getPriority(face))),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2,
                 menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
@@ -324,11 +332,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         graphics.centeredText(font, Component.translatable(node.usesSingleEndpoint()
                         ? "screen.skylogistics.filter_slot" : "screen.skylogistics.face_filters"),
                 FILTER_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
-        Component externalExtractHint = externalExtractHint(node, face);
-        if (externalExtractHint != null) {
-            graphics.text(font, externalExtractHint, 14, menu.screenY(EXTERNAL_EXTRACT_HINT_Y),
-                    0xFFFF9A8A, false);
-        }
     }
 
     @Override
@@ -652,7 +655,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private final Direction direction;
 
         private FaceButton(int x, int y, Direction direction) {
-            super(x, y, 32, 32, faceName(direction));
+            super(x, y, 24, 20, faceName(direction));
             this.direction = direction;
         }
 
@@ -676,12 +679,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
-                    graphics.item(icon, getX() + 10, getY() + 7);
+                    graphics.item(icon, getX() + 7, getY() + 2);
                 }
-                graphics.text(font, faceShortName(direction), getX() + 3, getY() + 3,
+                graphics.text(font, faceShortName(direction), getX() + 2, getY() + 2,
                         active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
                 int modeColor = colorFor(modeFor(node, direction));
-                graphics.fill(getX() + 6, getY() + height - 5, getX() + width - 6, getY() + height - 3, modeColor);
+                graphics.fill(getX() + 4, getY() + height - 4, getX() + width - 4, getY() + height - 2, modeColor);
             }
         }
 
@@ -755,19 +758,17 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
-            int accent = mode == NodeFaceMode.INPUT ? 0xFF72D13B
+            int accent = mode == NodeFaceMode.INPUT ? 0xFFFFA52D
                     : mode == NodeFaceMode.OUTPUT ? 0xFF36B4D2 : ConfigPanel.BORDER_ACTIVE;
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
             int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
             if (mode == NodeFaceMode.NONE) {
-                ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, "auto", active && selected);
+                drawDisabledModeIcon(graphics, getX() + 2, getY() + 2, iconColor);
             } else {
                 drawModeArrow(graphics, getX() + 2, getY() + 2, mode == NodeFaceMode.INPUT, iconColor);
             }
-            if (font.width(getMessage()) <= width - 21) {
-                graphics.text(font, getMessage(), getX() + 20, getY() + 7,
-                        active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
-            }
+            graphics.text(font, compactText(getMessage()), getX() + 20, getY() + 7,
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
         }
 
         @Override
@@ -931,10 +932,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, enabled,
                     ConfigPanel.ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, resourceName(), enabled);
-            if (font.width(getMessage()) <= width - 21) {
-                graphics.text(font, getMessage(), getX() + 20, getY() + 7,
-                        enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
-            }
+            graphics.text(font, compactText(getMessage()), getX() + 20, getY() + 7,
+                    enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
         }
 
         private String resourceName() {
@@ -971,5 +970,22 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             graphics.fill(x + 6, y + 11, x + 12, y + 13, color);
             graphics.fill(x + 8, y + 13, x + 10, y + 15, color);
         }
+    }
+
+    private static void drawDisabledModeIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {
+        graphics.fill(x + 7, y + 3, x + 13, y + 5, color);
+        graphics.fill(x + 5, y + 5, x + 7, y + 12, color);
+        graphics.fill(x + 13, y + 5, x + 15, y + 12, color);
+        graphics.fill(x + 7, y + 12, x + 13, y + 14, color);
+        graphics.fill(x + 5, y + 4, x + 8, y + 7, color);
+        graphics.fill(x + 7, y + 6, x + 10, y + 9, color);
+        graphics.fill(x + 9, y + 8, x + 12, y + 11, color);
+        graphics.fill(x + 11, y + 10, x + 14, y + 13, color);
+    }
+
+    private static Component compactText(Component component) {
+        String value = component.getString();
+        if (value.isEmpty()) return Component.empty();
+        return Component.literal(value.substring(0, value.offsetByCodePoints(0, 1)));
     }
 }
