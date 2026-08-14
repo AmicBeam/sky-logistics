@@ -40,7 +40,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private static final int MODE_GROUP_Y = 48;
     private static final int MODE_GROUP_WIDTH = 244;
     private static final int MODE_BUTTON_ROW_Y = 55;
-    private static final int MODE_BUTTON_X = 10;
+    private static final int MODE_BUTTON_X = 12;
     private static final int MODE_BUTTON_WIDTH = 74;
     private static final int MODE_BUTTON_STEP = 78;
     private static final int BOTTOM_GROUP_Y = 118;
@@ -50,12 +50,12 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private static final int BOTTOM_GROUP_WIDTH = 120;
     private static final int SLOT_DOWN_X = 14;
     private static final int SLOT_VALUE_X = 34;
-    private static final int SLOT_VALUE_WIDTH = 63;
-    private static final int SLOT_UP_X = 100;
+    private static final int SLOT_VALUE_WIDTH = 62;
+    private static final int SLOT_UP_X = 99;
     private static final int PRIORITY_DOWN_X = 138;
     private static final int PRIORITY_VALUE_X = 158;
-    private static final int PRIORITY_VALUE_WIDTH = 63;
-    private static final int PRIORITY_UP_X = 224;
+    private static final int PRIORITY_VALUE_WIDTH = 62;
+    private static final int PRIORITY_UP_X = 223;
     private static final int ADJUST_BUTTON_WIDTH = 17;
     private static final int ADJUST_BUTTON_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
     private static final int MAINTAIN_ACCENT = 0xFFB06CFF;

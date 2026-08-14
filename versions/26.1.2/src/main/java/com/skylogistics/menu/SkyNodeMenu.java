@@ -30,7 +30,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     public static final int PLAYER_INVENTORY_LABEL_Y = 10_000;
     public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 0;
     private static final int UPGRADE_SLOT_X = 47;
-    private static final int PLAYER_INVENTORY_X = 46;
+    private static final int PLAYER_INVENTORY_X = 47;
     private static final int PLAYER_INVENTORY_Y = 151;
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST

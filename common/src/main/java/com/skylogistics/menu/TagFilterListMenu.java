@@ -18,9 +18,9 @@ import net.minecraft.world.item.ItemStack;
 
 public class TagFilterListMenu extends AbstractContainerMenu {
     private static final int SAMPLE_SLOT = 0;
-    public static final int SAMPLE_SLOT_X = 31;
+    public static final int SAMPLE_SLOT_X = 32;
     public static final int SAMPLE_SLOT_Y = 25;
-    private static final int PLAYER_INVENTORY_X = 31;
+    private static final int PLAYER_INVENTORY_X = 32;
     private static final int PLAYER_INVENTORY_Y = 158;
 
     private final InteractionHand hand;

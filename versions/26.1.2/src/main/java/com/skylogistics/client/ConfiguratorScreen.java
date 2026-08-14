@@ -59,21 +59,21 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_VISIBLE_ROWS = 4;
     private static final int DETAIL_ICON_X = DETAIL_X + 6;
-    private static final int CONTROL_START_X = 10;
-    private static final int CONTROL_STEP_X = 61;
+    private static final int CONTROL_START_X = 12;
+    private static final int CONTROL_STEP_X = 60;
     private static final int RESOURCE_BUTTON_WIDTH = 56;
     private static final int CONTROL_LEFT_WIDTH = 64;
     private static final int BOTTOM_CONTROL_Y = 223;
     private static final int BOTTOM_CONTROL_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
     private static final int BOTTOM_CONTROL_WIDTH = 17;
-    private static final int PRIORITY_DOWN_X = 174;
-    private static final int PRIORITY_VALUE_X = 194;
+    private static final int PRIORITY_DOWN_X = 176;
+    private static final int PRIORITY_VALUE_X = 196;
     private static final int PRIORITY_VALUE_WIDTH = 29;
-    private static final int PRIORITY_UP_X = 226;
-    private static final int SLOT_LIMIT_DOWN_X = 91;
-    private static final int SLOT_LIMIT_VALUE_X = 111;
+    private static final int PRIORITY_UP_X = 228;
+    private static final int SLOT_LIMIT_DOWN_X = 93;
+    private static final int SLOT_LIMIT_VALUE_X = 113;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
-    private static final int SLOT_LIMIT_UP_X = 143;
+    private static final int SLOT_LIMIT_UP_X = 145;
     private static final int BOTTOM_GROUP_Y = 216;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
@@ -117,7 +117,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 184, ResourceType.FLUIDS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 184, ResourceType.ENERGY);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 184, ResourceType.AUTO);
-        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 13, topPos + BOTTOM_CONTROL_Y));
+        redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 15, topPos + BOTTOM_CONTROL_Y));
         addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
         addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
         addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
@@ -204,9 +204,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
         drawStatPanels(graphics);
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + DETAIL_Y, CONTENT_WIDTH, DETAIL_HEIGHT);
-        drawBottomFieldset(graphics, 8, 74, Component.translatable("screen.skylogistics.redstone"));
-        drawBottomFieldset(graphics, 86, 79, Component.translatable("screen.skylogistics.slot_limit"));
-        drawBottomFieldset(graphics, 169, 79, Component.translatable("screen.skylogistics.priority"));
+        drawBottomFieldset(graphics, 10, 74, Component.translatable("screen.skylogistics.redstone"));
+        drawBottomFieldset(graphics, 88, 79, Component.translatable("screen.skylogistics.slot_limit"));
+        drawBottomFieldset(graphics, 171, 79, Component.translatable("screen.skylogistics.priority"));
         drawBottomValueBoxes(graphics);
     }
 
@@ -234,13 +234,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 214, 55, ConfigPanel.MUTED);
         renderLineDetails(graphics, config);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.redstone"),
-                45, 212, ConfigPanel.MUTED);
+                47, 212, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.slot_limit"),
-                125, 212, ConfigPanel.MUTED);
+                127, 212, ConfigPanel.MUTED);
         graphics.centeredText(font, slotLimitDisplay(config.slotLimit()),
                 SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.priority"),
-                208, 212, ConfigPanel.MUTED);
+                210, 212, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.literal(String.valueOf(config.placement().priority())),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
     }

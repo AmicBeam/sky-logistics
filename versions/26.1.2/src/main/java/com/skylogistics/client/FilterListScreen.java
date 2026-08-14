@@ -14,14 +14,14 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
-    private static final int FILTER_GRID_X = 31;
+    private static final int FILTER_GRID_X = 32;
     private static final int FILTER_GRID_Y = 25;
     private static final int FILTER_COLUMNS = 9;
     private static final int FILTER_SLOT_STEP = 18;
     private static final int FILTER_SLOT_SIZE = 18;
     private static final int FILTER_ROWS = (FilterListItem.FILTER_SLOTS + FILTER_COLUMNS - 1) / FILTER_COLUMNS;
     private static final int FILTER_PANEL_PADDING = 6;
-    private static final int FILTER_PANEL_X = FILTER_GRID_X - FILTER_PANEL_PADDING;
+    private static final int FILTER_PANEL_X = 25;
     private static final int FILTER_PANEL_Y = FILTER_GRID_Y - FILTER_PANEL_PADDING;
     private static final int FILTER_PANEL_WIDTH = FILTER_COLUMNS * FILTER_SLOT_STEP + FILTER_PANEL_PADDING * 2;
     private static final int FILTER_PANEL_HEIGHT = FILTER_ROWS * FILTER_SLOT_STEP + FILTER_PANEL_PADDING * 2;

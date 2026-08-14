@@ -23,7 +23,7 @@ import net.minecraft.world.item.ItemStack;
 public class SkyNecklaceMenu extends AbstractContainerMenu {
     public static final int UPGRADE_SLOTS = 2;
     private static final int FILTER_SLOT = UPGRADE_SLOTS;
-    public static final int UPGRADE_SLOT_X = 47;
+    public static final int UPGRADE_SLOT_X = 48;
     public static final int FILTER_SLOT_X = 181;
     public static final int FILTER_SLOT_Y = 90;
     private static final int PLAYER_INVENTORY_Y = 158;
@@ -135,7 +135,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
                 return 1;
             }
         });
-        addPlayerInventory(inventory, 44, PLAYER_INVENTORY_Y);
+        addPlayerInventory(inventory, 47, PLAYER_INVENTORY_Y);
     }
 
     public InteractionHand getHand() {

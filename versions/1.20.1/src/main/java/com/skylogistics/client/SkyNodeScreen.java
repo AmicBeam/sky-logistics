@@ -40,11 +40,11 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
-    private static final int FACE_PANEL_X = -33;
+    private static final int FACE_PANEL_X = -34;
     private static final int FACE_PANEL_Y = 46;
-    private static final int FACE_PANEL_WIDTH = 33;
+    private static final int FACE_PANEL_WIDTH = 34;
     private static final int FACE_PANEL_HEIGHT = 177;
-    private static final int FACE_BUTTON_X = -31;
+    private static final int FACE_BUTTON_X = -32;
     private static final int FACE_BUTTON_Y = 48;
     private static final int FACE_BUTTON_WIDTH = 30;
     private static final int FACE_BUTTON_HEIGHT = 28;
@@ -54,8 +54,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int RESOURCE_GROUP_X = 5;
     private static final int MODE_GROUP_X = 129;
     private static final int RESOURCE_MODE_GROUP_WIDTH = 120;
-    private static final int RESOURCE_BUTTON_WIDTH = 35;
-    private static final int RESOURCE_BUTTON_STEP = 39;
+    private static final int RESOURCE_BUTTON_WIDTH = 34;
+    private static final int RESOURCE_BUTTON_STEP = 38;
     private static final int ADVANCED_GROUP_Y = 83;
     private static final int ADVANCED_CONTROL_Y = 90;
     private static final int REDSTONE_GROUP_X = 5;
@@ -67,14 +67,14 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int REDSTONE_CONTROL_X = 10;
     private static final int ADVANCED_CONTROL_WIDTH = 64;
     private static final int PRIORITY_BUTTON_WIDTH = 17;
-    private static final int SLOT_LIMIT_DOWN_X = 88;
-    private static final int SLOT_LIMIT_VALUE_X = 108;
+    private static final int SLOT_LIMIT_DOWN_X = 87;
+    private static final int SLOT_LIMIT_VALUE_X = 107;
     private static final int SLOT_LIMIT_VALUE_WIDTH = 31;
-    private static final int SLOT_LIMIT_UP_X = 142;
-    private static final int PRIORITY_DOWN_X = 171;
-    private static final int PRIORITY_VALUE_X = 191;
+    private static final int SLOT_LIMIT_UP_X = 141;
+    private static final int PRIORITY_DOWN_X = 172;
+    private static final int PRIORITY_VALUE_X = 192;
     private static final int PRIORITY_VALUE_WIDTH = 31;
-    private static final int PRIORITY_UP_X = 225;
+    private static final int PRIORITY_UP_X = 226;
     private static final int UPGRADE_FILTER_GROUP_Y = 118;
     private static final int UPGRADE_GROUP_X = 5;
     private static final int FILTER_GROUP_X = 129;

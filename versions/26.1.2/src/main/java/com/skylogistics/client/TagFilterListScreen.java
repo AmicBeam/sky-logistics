@@ -32,6 +32,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private static final int TAG_ROW_WIDTH = TAG_PANEL_WIDTH - 12;
     private static final int TAG_ROW_HEIGHT = 11;
     private static final int CONTROL_Y = 134;
+    private static final int RESOURCE_BUTTON_X = 52;
+    private static final int SEGMENT_GROUP_X = 102;
     private static final int SEGMENT_WIDTH = 21;
     private static final int ACTION_BUTTON_SIZE = 20;
     private static final int DROPDOWN_ROW_HEIGHT = 12;
@@ -71,14 +73,14 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             tagButtons[slot] = button;
             addRenderableWidget(button);
         }
-        int controlX = leftPos + 75;
+        int controlX = leftPos + SEGMENT_GROUP_X;
         whitelistAllowButton = addRenderableWidget(ConfigPanel.actionButton(controlX, topPos + CONTROL_Y,
                 SEGMENT_WIDTH, Component.empty(), MenuAction.FILTER_SET_WHITELIST));
         whitelistDenyButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH,
                 topPos + CONTROL_Y, SEGMENT_WIDTH, Component.empty(), MenuAction.FILTER_SET_BLACKLIST));
         clearButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH * 2 + 8,
                 topPos + CONTROL_Y, ACTION_BUTTON_SIZE, Component.empty(), MenuAction.FILTER_CLEAR));
-        resourceButton = addRenderableWidget(new ResourceButton(leftPos + 25, topPos + CONTROL_Y));
+        resourceButton = addRenderableWidget(new ResourceButton(leftPos + RESOURCE_BUTTON_X, topPos + CONTROL_Y));
         refreshEdit(false);
     }
 

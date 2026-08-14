@@ -37,7 +37,7 @@ public class FluidVaultMenu extends AbstractContainerMenu {
             vault.addViewer(inventory.player);
             lastSyncedVaultVersion = vault.getSyncVersion();
         }
-        addPlayerInventory(inventory, 17, 138);
+        addPlayerInventory(inventory, 18, 138);
     }
 
     public BlockPos getPos() {

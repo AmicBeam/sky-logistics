@@ -25,7 +25,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 
 public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final int GRID_X = 8;
-    private static final int CENTERED_GRID_X = 17;
+    private static final int CENTERED_GRID_X = 18;
     private static final int GRID_Y = 44;
     private static final int GRID_COLUMNS = 9;
     private static final int GRID_ROWS = 4;
