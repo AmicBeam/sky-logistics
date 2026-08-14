@@ -5,9 +5,11 @@ import com.skylogistics.block.ExternalNetworkInterfaceBlock;
 import com.skylogistics.block.FluidVaultBlock;
 import com.skylogistics.block.ItemVaultBlock;
 import com.skylogistics.block.SkyNodeBlock;
+import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
@@ -18,6 +20,7 @@ public class SkyLogisticsJadePlugin implements IWailaPlugin {
     @Override
     public void register(IWailaCommonRegistration registration) {
         registration.registerBlockDataProvider(SkyNodeJadeProvider.INSTANCE, SkyNodeBlockEntity.class);
+        registration.registerBlockDataProvider(SimplePipeJadeProvider.INSTANCE, SimplePipeBlockEntity.class);
         registration.registerBlockDataProvider(ItemVaultJadeProvider.INSTANCE, ItemVaultBlockEntity.class);
         registration.registerBlockDataProvider(FluidVaultJadeProvider.INSTANCE, FluidVaultBlockEntity.class);
     }
@@ -26,6 +29,7 @@ public class SkyLogisticsJadePlugin implements IWailaPlugin {
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerBlockComponent(SkyNodeJadeProvider.INSTANCE, SkyNodeBlock.class);
         registration.registerBlockComponent(SkyNodeJadeProvider.INSTANCE, ExternalNetworkInterfaceBlock.class);
+        registration.registerBlockComponent(SimplePipeJadeProvider.INSTANCE, SimplePipeBlock.class);
         registration.registerBlockComponent(ItemVaultJadeProvider.INSTANCE, ItemVaultBlock.class);
         registration.registerBlockComponent(FluidVaultJadeProvider.INSTANCE, FluidVaultBlock.class);
     }

@@ -43,11 +43,13 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private AbstractButton whitelistAllowButton;
     private AbstractButton whitelistDenyButton;
     private AbstractButton clearButton;
+    private AbstractButton resourceButton;
     private EditBox tagEdit;
     private int selectedTagSlot;
     private boolean tagEditWasFocused;
     private boolean dropdownOpen;
     private int dropdownScroll;
+    private boolean editingFluid;
 
     public TagFilterListScreen(TagFilterListMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 224, 242);
@@ -76,6 +78,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
                 topPos + CONTROL_Y, SEGMENT_WIDTH, Component.empty(), MenuAction.FILTER_SET_BLACKLIST));
         clearButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH * 2 + 8,
                 topPos + CONTROL_Y, ACTION_BUTTON_SIZE, Component.empty(), MenuAction.FILTER_CLEAR));
+        resourceButton = addRenderableWidget(new ResourceButton(leftPos + 25, topPos + CONTROL_Y));
         refreshEdit(false);
     }
 
@@ -209,7 +212,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         tagEditWasFocused = focused;
         boolean hasOptions = !sampleTags().isEmpty();
         tagEdit.setEditable(!hasOptions);
-        String tag = menu.getTag(selectedTagSlot);
+        String tag = menu.getTag(selectedTagSlot, editingFluid);
         if (force || hasOptions || !focused) {
             tagEdit.setValue(tag);
         }
@@ -220,15 +223,15 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             return;
         }
         String normalized = TagFilterListItem.normalizeTag(tagEdit.getValue());
-        if (!normalized.equals(menu.getTag(selectedTagSlot))) {
-            menu.setTag(selectedTagSlot, normalized);
-            ModNetworking.sendTagFilterTag(selectedTagSlot, normalized);
+        if (!normalized.equals(menu.getTag(selectedTagSlot, editingFluid))) {
+            menu.setTag(selectedTagSlot, normalized, editingFluid);
+            ModNetworking.sendTagFilterTag(selectedTagSlot, normalized, editingFluid);
         }
         tagEdit.setValue(normalized);
     }
 
     private List<String> sampleTags() {
-        return menu.sampleTags();
+        return editingFluid ? List.of() : menu.sampleTags();
     }
 
     private void drawScreenBackground(GuiGraphicsExtractor graphics) {
@@ -269,8 +272,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     private void selectDropdownOption(int option) {
         String tag = sampleTags().get(option);
-        menu.setTag(selectedTagSlot, tag);
-        ModNetworking.sendTagFilterTag(selectedTagSlot, tag);
+        menu.setTag(selectedTagSlot, tag, editingFluid);
+        ModNetworking.sendTagFilterTag(selectedTagSlot, tag, editingFluid);
         tagEdit.setValue(tag);
         dropdownOpen = false;
     }
@@ -430,6 +433,38 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         return font.plainSubstrByWidth(text, Math.max(0, width - font.width("..."))) + "...";
     }
 
+    private final class ResourceButton extends AbstractButton {
+        private ResourceButton(int x, int y) {
+            super(x, y, 44, 20, resourceButtonText());
+        }
+
+        @Override
+        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+            commitEdit();
+            editingFluid = !editingFluid;
+            dropdownOpen = false;
+            setMessage(resourceButtonText());
+            refreshEdit(true);
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
+            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
+                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private Component resourceButtonText() {
+        return Component.translatable(editingFluid
+                ? "screen.skylogistics.tag_filter_list.fluid" : "screen.skylogistics.tag_filter_list.item");
+    }
+
     private final class TagSlotButton extends AbstractButton {
         private final int slot;
 
@@ -452,7 +487,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             boolean selected = selectedTagSlot == slot;
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
             String prefix = (slot + 1) + ". ";
-            String tag = menu.getTag(slot);
+            String tag = menu.getTag(slot, editingFluid);
             String text = prefix + (tag.isBlank() ? "-" : "#" + tag);
             graphics.text(font, trimToWidth(text, width - 6), getX() + 3, getY() + 2,
                     selected ? ConfigPanel.ACCENT : ConfigPanel.TEXT, false);

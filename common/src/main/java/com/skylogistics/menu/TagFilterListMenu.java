@@ -93,16 +93,25 @@ public class TagFilterListMenu extends AbstractContainerMenu {
         return TagFilterListItem.getTag(filterStack(), slot);
     }
 
+    public String getTag(int slot, boolean fluid) {
+        return fluid ? TagFilterListItem.getFluidTag(filterStack(), slot) : getTag(slot);
+    }
+
     public boolean isWhitelist() {
         return TagFilterListItem.isWhitelist(filterStack());
     }
 
     public void setTag(int slot, String tag) {
+        setTag(slot, tag, false);
+    }
+
+    public void setTag(int slot, String tag, boolean fluid) {
         ItemStack stack = filterStack();
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }
-        TagFilterListItem.setTag(stack, slot, tag);
+        if (fluid) TagFilterListItem.setFluidTag(stack, slot, tag);
+        else TagFilterListItem.setTag(stack, slot, tag);
         syncHeldStack(stack);
         broadcastChanges();
     }

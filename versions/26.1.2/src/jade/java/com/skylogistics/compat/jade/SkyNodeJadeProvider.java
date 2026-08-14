@@ -1,6 +1,7 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import snownee.jade.api.BlockAccessor;
@@ -28,7 +29,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 return;
             }
         }
-        appendNodeTooltip(tooltip, data);
+        appendNodeTooltip(tooltip, data, accessor.getPlayer(), accessor.getLevel().registryAccess());
     }
 
     private static CompoundTag writeNodeData(SkyNodeBlockEntity node) {
@@ -38,10 +39,12 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
         data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
         data.putBoolean("Active", node.hasRecentTransfer());
+        if (node.getLevel() != null) data.put("Filters", JadeFilterTooltip.write(node, node.getLevel().registryAccess()));
         return data;
     }
 
-    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
+    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data,
+            net.minecraft.world.entity.player.Player player, net.minecraft.core.HolderLookup.Provider registries) {
         tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getStringOr("LineName", "")));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBooleanOr("SpeedUpgrade", false), data.getBooleanOr("DimensionUpgrade", false),
@@ -49,6 +52,8 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         tooltip.add(Component.translatable("jade.skylogistics.recent_status",
                 Component.translatable(data.getBooleanOr("Active", false)
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
+        CompoundTag filters = data.getCompoundOrEmpty("Filters");
+        for (Direction direction : Direction.values()) JadeFilterTooltip.append(tooltip, filters, direction, player, registries);
     }
 
     private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact) {

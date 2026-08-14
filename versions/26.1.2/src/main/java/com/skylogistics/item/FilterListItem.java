@@ -28,6 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -218,7 +219,8 @@ public class FilterListItem extends Item {
     }
 
     public static boolean hasAnyFilters(ItemStack stack) {
-        return countFilters(stack) + countFluidFilters(stack) + TagFilterListItem.countTags(stack) > 0;
+        return countFilters(stack) + countFluidFilters(stack) + TagFilterListItem.countTags(stack)
+                + TagFilterListItem.countFluidTags(stack) > 0;
     }
 
     public static boolean isFilterItem(ItemStack stack) {
@@ -334,10 +336,11 @@ public class FilterListItem extends Item {
         }
         if (TagFilterListItem.isTagFilterList(filterList)) {
             List<TagKey<Item>> tagKeys = TagFilterListItem.getTagKeys(filterList);
-            if (tagKeys.isEmpty()) {
+            List<TagKey<Fluid>> fluidTagKeys = TagFilterListItem.getFluidTagKeys(filterList);
+            if (tagKeys.isEmpty() && fluidTagKeys.isEmpty()) {
                 return CompiledFilter.ALLOW_ALL;
             }
-            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys);
+            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys, fluidTagKeys);
         }
         boolean whitelist = isWhitelist(filterList);
         List<ItemStack> filters = getFilters(filterList);
@@ -445,8 +448,9 @@ public class FilterListItem extends Item {
         private static final Entry[] NO_ENTRIES = new Entry[0];
         private static final FluidEntry[] NO_FLUID_ENTRIES = new FluidEntry[0];
         private static final List<TagKey<Item>> NO_TAG_ENTRIES = List.of();
+        private static final List<TagKey<Fluid>> NO_FLUID_TAG_ENTRIES = List.of();
         public static final CompiledFilter ALLOW_ALL = new CompiledFilter(Mode.ALLOW_ALL, true, false, false,
-                NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, null, null);
+                NO_ENTRIES, NO_FLUID_ENTRIES, NO_TAG_ENTRIES, NO_FLUID_TAG_ENTRIES, null, null);
 
         private final Mode mode;
         private final boolean whitelist;
@@ -455,12 +459,13 @@ public class FilterListItem extends Item {
         private final Entry[] entries;
         private final FluidEntry[] fluidEntries;
         private final List<TagKey<Item>> tagEntries;
+        private final List<TagKey<Fluid>> fluidTagEntries;
         private final Set<ItemFilterKey> itemKeys;
         private final Set<FluidStackKey> fluidKeys;
 
         private CompiledFilter(Mode mode, boolean whitelist, boolean matchNbt, boolean matchDurability,
-                Entry[] entries, FluidEntry[] fluidEntries, List<TagKey<Item>> tagEntries, Set<ItemFilterKey> itemKeys,
-                Set<FluidStackKey> fluidKeys) {
+                Entry[] entries, FluidEntry[] fluidEntries, List<TagKey<Item>> tagEntries,
+                List<TagKey<Fluid>> fluidTagEntries, Set<ItemFilterKey> itemKeys, Set<FluidStackKey> fluidKeys) {
             this.mode = mode;
             this.whitelist = whitelist;
             this.matchNbt = matchNbt;
@@ -468,6 +473,7 @@ public class FilterListItem extends Item {
             this.entries = entries;
             this.fluidEntries = fluidEntries;
             this.tagEntries = tagEntries;
+            this.fluidTagEntries = fluidTagEntries;
             this.itemKeys = itemKeys;
             this.fluidKeys = fluidKeys;
         }
@@ -475,13 +481,14 @@ public class FilterListItem extends Item {
         private static CompiledFilter list(boolean whitelist, boolean matchNbt, boolean matchDurability, Entry[] entries,
                 FluidEntry[] fluidEntries) {
             return new CompiledFilter(Mode.LIST, whitelist, matchNbt, matchDurability, entries, fluidEntries,
-                    NO_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability), compileFluidKeys(fluidEntries));
+                    NO_TAG_ENTRIES, NO_FLUID_TAG_ENTRIES, compileItemKeys(entries, matchNbt, matchDurability),
+                    compileFluidKeys(fluidEntries));
         }
 
-        private static CompiledFilter tagList(boolean whitelist, List<TagKey<Item>> tagEntries) {
+        private static CompiledFilter tagList(boolean whitelist, List<TagKey<Item>> tagEntries,
+                List<TagKey<Fluid>> fluidTagEntries) {
             return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES,
-                    List.copyOf(tagEntries),
-                    null, null);
+                    List.copyOf(tagEntries), List.copyOf(fluidTagEntries), null, null);
         }
 
         public boolean matches(ItemStack candidate) {
@@ -529,7 +536,7 @@ public class FilterListItem extends Item {
         }
 
         public boolean matchesFluid(FluidStack candidate) {
-            if (mode != Mode.LIST || fluidEntries.length == 0) {
+            if (mode != Mode.LIST || fluidEntries.length == 0 && fluidTagEntries.isEmpty()) {
                 return true;
             }
             if (candidate.isEmpty()) {
@@ -537,6 +544,11 @@ public class FilterListItem extends Item {
             }
             boolean matched = fluidKeys == null ? matchesFluidEntries(candidate)
                     : fluidKeys.contains(FluidStackKey.of(candidate));
+            if (!matched) {
+                for (TagKey<Fluid> tag : fluidTagEntries) {
+                    if (candidate.getFluid().builtInRegistryHolder().is(tag)) { matched = true; break; }
+                }
+            }
             return whitelist == matched;
         }
 
@@ -573,8 +585,10 @@ public class FilterListItem extends Item {
         }
 
         public boolean hasFluidRules() {
-            return mode == Mode.LIST && fluidEntries.length > 0;
+            return mode == Mode.LIST && (fluidEntries.length > 0 || !fluidTagEntries.isEmpty());
         }
+
+        public List<TagKey<Fluid>> fluidTags() { return fluidTagEntries; }
 
         public List<FluidStack> fluidSamples() {
             if (fluidEntries.length == 0) {

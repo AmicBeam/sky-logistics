@@ -6,6 +6,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.SimplePipeConnection;
@@ -20,6 +21,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -276,6 +278,9 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         if (level != null && !level.isClientSide) {
             BlockState state = getBlockState();
             level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
+            if (level instanceof ServerLevel serverLevel) {
+                SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, worldPosition);
+            }
         }
     }
 

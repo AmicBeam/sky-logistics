@@ -10,6 +10,7 @@ import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.InteractionResults;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeGeometry;
+import com.skylogistics.util.SimplePipeEndpointTargeting;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
@@ -410,7 +411,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     public static Direction targetedContainerEndpoint(BlockState state, Level level, BlockPos pos,
             BlockHitResult hit) {
         Vec3 local = hit.getLocation().subtract(pos.getX(), pos.getY(), pos.getZ());
-        Direction direction = SimplePipeGeometry.endpointDirection(local.x, local.y, local.z);
+        Direction direction = SimplePipeEndpointTargeting.endpointDirection(local.x, local.y, local.z);
         return direction != null && connectionFromState(level, pos, state, direction).isContainer()
                 ? direction : null;
     }

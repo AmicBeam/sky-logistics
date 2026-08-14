@@ -23,12 +23,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluid;
 
 public class TagFilterListItem extends Item {
     public static final int TAG_SLOTS = 6;
     public static final int MAX_TAG_LENGTH = 96;
     private static final String SAMPLE = "Sample";
     private static final String TAGS = "ItemTags";
+    private static final String FLUID_TAGS = "FluidTags";
     private static final String SLOT = "Slot";
     private static final String TAG_ID = "Tag";
     private static final String WHITELIST = "Whitelist";
@@ -58,6 +60,8 @@ public class TagFilterListItem extends Item {
                         : "screen.skylogistics.filter_blacklist")).withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.entries", countTags(stack), TAG_SLOTS)
                 .withStyle(ChatFormatting.GRAY));
+        tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.fluid_entries",
+                countFluidTags(stack), TAG_SLOTS).withStyle(ChatFormatting.GRAY));
         ItemStack sample = getSample(stack);
         if (!sample.isEmpty()) {
             tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.sample", sample.getHoverName())
@@ -130,6 +134,15 @@ public class TagFilterListItem extends Item {
         saveTags(stack, tags);
     }
 
+    public static String getFluidTag(ItemStack stack, int slot) { return getTag(stack, slot, FLUID_TAGS); }
+    public static void setFluidTag(ItemStack stack, int slot, String tag) {
+        if (slot < 0 || slot >= TAG_SLOTS) return;
+        List<String> tags = getFluidTags(stack);
+        tags.set(slot, normalizeTag(tag));
+        saveTags(stack, tags, FLUID_TAGS);
+    }
+    public static List<String> getFluidTags(ItemStack stack) { return getTags(stack, FLUID_TAGS); }
+
     public static List<String> getTags(ItemStack stack) {
         ArrayList<String> tags = new ArrayList<>(TAG_SLOTS);
         for (int i = 0; i < TAG_SLOTS; i++) {
@@ -160,8 +173,17 @@ public class TagFilterListItem extends Item {
         return count;
     }
 
+    public static int countFluidTags(ItemStack stack) {
+        int count = 0;
+        for (String tag : getFluidTags(stack)) if (!tag.isBlank()) count++;
+        return count;
+    }
+
     public static void clearTags(ItemStack stack) {
-        StackData.update(stack, tag -> tag.remove(TAGS));
+        StackData.update(stack, tag -> {
+            tag.remove(TAGS);
+            tag.remove(FLUID_TAGS);
+        });
     }
 
     public static void appendFilterContents(ItemStack stack, Consumer<Component> tooltip, boolean indented) {
@@ -178,6 +200,15 @@ public class TagFilterListItem extends Item {
                 added = true;
             }
         }
+        List<String> fluidTags = getFluidTags(stack);
+        for (int slot = 0; slot < TAG_SLOTS; slot++) {
+            String tag = fluidTags.get(slot);
+            if (!tag.isBlank()) {
+                tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.fluid_entry" + suffix,
+                        slot + 1, "#" + tag).withStyle(ChatFormatting.AQUA));
+                added = true;
+            }
+        }
         if (!added) {
             tooltip.accept(Component.translatable("tooltip.skylogistics.filter_list.empty" + suffix)
                     .withStyle(ChatFormatting.DARK_GRAY));
@@ -191,6 +222,15 @@ public class TagFilterListItem extends Item {
             if (id != null) {
                 keys.add(TagKey.create(Registries.ITEM, id));
             }
+        }
+        return keys;
+    }
+
+    public static List<TagKey<Fluid>> getFluidTagKeys(ItemStack stack) {
+        ArrayList<TagKey<Fluid>> keys = new ArrayList<>();
+        for (String tag : getFluidTags(stack)) {
+            Identifier id = Identifier.tryParse(tag);
+            if (id != null) keys.add(TagKey.create(Registries.FLUID, id));
         }
         return keys;
     }
@@ -228,6 +268,29 @@ public class TagFilterListItem extends Item {
     }
 
     private static void saveTags(ItemStack stack, List<String> tags) {
+        saveTags(stack, tags, TAGS);
+    }
+
+    private static String getTag(ItemStack stack, int slot, String key) {
+        if (slot < 0 || slot >= TAG_SLOTS) return "";
+        return getTags(stack, key).get(slot);
+    }
+
+    private static List<String> getTags(ItemStack stack, String key) {
+        ArrayList<String> tags = new ArrayList<>(TAG_SLOTS);
+        for (int i = 0; i < TAG_SLOTS; i++) tags.add("");
+        CompoundTag data = StackData.get(stack);
+        if (data == null || !data.contains(key)) return tags;
+        ListTag entries = data.getListOrEmpty(key);
+        for (int i = 0; i < entries.size(); i++) {
+            CompoundTag entry = entries.getCompoundOrEmpty(i);
+            int slot = entry.getIntOr(SLOT, 0);
+            if (slot >= 0 && slot < TAG_SLOTS) tags.set(slot, normalizeTag(entry.getStringOr(TAG_ID, "")));
+        }
+        return tags;
+    }
+
+    private static void saveTags(ItemStack stack, List<String> tags, String key) {
         ListTag entries = new ListTag();
         for (int slot = 0; slot < Math.min(TAG_SLOTS, tags.size()); slot++) {
             String tag = normalizeTag(tags.get(slot));
@@ -239,6 +302,6 @@ public class TagFilterListItem extends Item {
             entry.putString(TAG_ID, tag);
             entries.add(entry);
         }
-        StackData.update(stack, data -> data.put(TAGS, entries));
+        StackData.update(stack, data -> data.put(key, entries));
     }
 }

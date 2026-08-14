@@ -1,6 +1,7 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import snownee.jade.api.BlockAccessor;
@@ -28,7 +29,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 return;
             }
         }
-        appendNodeTooltip(tooltip, data);
+        appendNodeTooltip(tooltip, data, accessor.getPlayer());
     }
 
     @Override
@@ -45,10 +46,11 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
         data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
         data.putBoolean("Active", node.hasRecentTransfer());
+        data.put("Filters", JadeFilterTooltip.write(node));
         return data;
     }
 
-    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
+    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data, net.minecraft.world.entity.player.Player player) {
         tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"),
@@ -56,6 +58,8 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         tooltip.add(Component.translatable("jade.skylogistics.recent_status",
                 Component.translatable(data.getBoolean("Active")
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
+        CompoundTag filters = data.getCompound("Filters");
+        for (Direction direction : Direction.values()) JadeFilterTooltip.append(tooltip, filters, direction, player);
     }
 
     private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact) {

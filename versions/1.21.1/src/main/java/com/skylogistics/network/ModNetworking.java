@@ -68,7 +68,11 @@ public final class ModNetworking {
     }
 
     public static void sendTagFilterTag(int slot, String tag) {
-        PacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag));
+        sendTagFilterTag(slot, tag, false);
+    }
+
+    public static void sendTagFilterTag(int slot, String tag, boolean fluid) {
+        PacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag, fluid));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {
