@@ -1,11 +1,11 @@
 {
   "type": "minecraft:crafting_shaped",
-  "pattern": ["SRS", "ACA", "SRS"],
+  "pattern": ["PLP", "ACA", "PLP"],
   "key": {
-    "S": "#c:stones",
-    "R": "#c:dusts/redstone",
+    "P": "minecraft:prismarine",
+    "L": "#c:gems/lapis",
     "A": "#c:gems/amethyst",
-    "C": "#c:chests/wooden"
+    "C": "minecraft:comparator"
   },
   "result": {"id": "skylogistics:sky_distributor", "count": 1}
 }

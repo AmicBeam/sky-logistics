@@ -20,4 +20,4 @@ Simulation builds a bounded transfer plan and execution reuses it without scanni
 
 Hold a Celestial Configurator and aim at the distributor to outline every target in its current cache in cyan. The client requests a snapshot immediately when the aimed distributor changes, then once every 20 ticks while aiming; rendering never scans containers every frame.
 
-It is available early from a crafting table using 4 ordinary stone blocks, 2 Redstone Dust, 2 Amethyst Shards, and 1 wooden Chest. No altar, Eulogia Crystal, or Celestial Stone is required.
+Craft it with Prismarine in the four corners, Lapis Lazuli above and below, Amethyst Shards on both sides, and a Redstone Comparator in the center. No altar, Eulogia Crystal, or Celestial Stone is required.
