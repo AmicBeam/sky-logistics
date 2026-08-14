@@ -72,7 +72,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     public SkyNecklaceScreen(SkyNecklaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = 252;
+        imageHeight = 242;
         inventoryLabelY = 10_000;
     }
 

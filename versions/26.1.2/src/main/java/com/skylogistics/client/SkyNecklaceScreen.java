@@ -70,7 +70,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private UUID lineNameEditLine;
 
     public SkyNecklaceScreen(SkyNecklaceMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, 254, 252);
+        super(menu, inventory, title, 254, 242);
         inventoryLabelY = 10_000;
     }
 
