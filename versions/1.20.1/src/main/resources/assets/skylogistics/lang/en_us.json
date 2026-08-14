@@ -229,6 +229,7 @@
   "config.jade.plugin_skylogistics.item_vault": "Celestial Item Vault",
   "config.jade.plugin_skylogistics.fluid_vault": "Celestial Fluid Vault",
   "jade.skylogistics.line_name": "Line: %s",
+  "jade.skylogistics.resources": "Resources: %s",
   "jade.skylogistics.line_info": "Line: %s",
   "jade.skylogistics.upgrades": "Upgrades: %s",
   "jade.skylogistics.status": "Status: %s",

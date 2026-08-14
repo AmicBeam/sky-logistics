@@ -229,6 +229,7 @@
   "config.jade.plugin_skylogistics.item_vault": "天穹物品库",
   "config.jade.plugin_skylogistics.fluid_vault": "天穹流体库",
   "jade.skylogistics.line_name": "线路：%s",
+  "jade.skylogistics.resources": "资源：%s",
   "jade.skylogistics.line_info": "线路：%s",
   "jade.skylogistics.upgrades": "升级：%s",
   "jade.skylogistics.status": "状态：%s",

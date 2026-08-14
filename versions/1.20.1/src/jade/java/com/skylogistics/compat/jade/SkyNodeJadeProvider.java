@@ -1,6 +1,7 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -46,12 +47,26 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
         data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
         data.putBoolean("Active", node.hasRecentTransfer());
+        boolean items = false;
+        boolean fluids = false;
+        boolean energy = false;
+        for (Direction direction : Direction.values()) {
+            if (node.getFaceMode(direction) == NodeFaceMode.NONE) continue;
+            items |= node.isItemsEnabled(direction);
+            fluids |= node.isFluidsEnabled(direction);
+            energy |= node.isEnergyEnabled(direction);
+        }
+        data.putBoolean("Items", items);
+        data.putBoolean("Fluids", fluids);
+        data.putBoolean("Energy", energy);
         data.put("Filters", JadeFilterTooltip.write(node));
         return data;
     }
 
     private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data, net.minecraft.world.entity.player.Player player) {
         tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
+        tooltip.add(Component.translatable("jade.skylogistics.resources",
+                resourceSummary(data.getBoolean("Items"), data.getBoolean("Fluids"), data.getBoolean("Energy"))));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"),
                         data.getBoolean("ExactUpgrade"))));
@@ -60,6 +75,15 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
         CompoundTag filters = data.getCompound("Filters");
         for (Direction direction : Direction.values()) JadeFilterTooltip.append(tooltip, filters, direction, player);
+    }
+
+    private static Component resourceSummary(boolean items, boolean fluids, boolean energy) {
+        return Component.empty()
+                .append(items ? Component.translatable("screen.skylogistics.resource_short.items") : Component.literal("-"))
+                .append("/")
+                .append(fluids ? Component.translatable("screen.skylogistics.resource_short.fluids") : Component.literal("-"))
+                .append("/")
+                .append(energy ? Component.translatable("screen.skylogistics.resource_short.energy") : Component.literal("-"));
     }
 
     private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact) {
