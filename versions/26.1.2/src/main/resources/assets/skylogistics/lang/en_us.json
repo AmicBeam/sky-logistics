@@ -83,6 +83,8 @@
   "tooltip.skylogistics.sky_necklace.insert_slots": "Slots: %s",
   "tooltip.skylogistics.sky_necklace.insert_slots_hint": "Limits matching inventory slots; hold Shift to adjust by 10.",
   "tooltip.skylogistics.sky_necklace.priority": "Priority: %s",
+  "tooltip.skylogistics.sky_necklace.dimension_upgrade": "Dimension upgrade installed",
+  "tooltip.skylogistics.sky_necklace.exact_quantity": "Exact quantity: %s",
   "tooltip.skylogistics.sky_node.filters": "Installed filter lists: %s",
   "tooltip.skylogistics.sky_node.filter_face": "%s face: %s, %s item / %s fluid",
   "tooltip.skylogistics.speed_upgrade": "Install in a logistics node to raise its rate to 2 slots/t.",
