@@ -465,7 +465,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     int slotStart = Math.floorMod(itemInsertSlotCursors[target], slots);
                     boolean fullyScanned = true;
                     for (int checked = 0; checked < slots; checked++) {
-                        if (!takeOperation()) {
+                        if (checked > 0 && !takeOperation()) {
                             itemInsertCursor = target;
                             fullyScanned = false;
                             break;
