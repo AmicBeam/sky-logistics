@@ -20,9 +20,9 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
-    private static final int LINE_PANEL_X = 3;
+    private static final int LINE_PANEL_X = 5;
     private static final int LINE_PANEL_Y = 20;
-    private static final int LINE_PANEL_WIDTH = 248;
+    private static final int LINE_PANEL_WIDTH = 244;
     private static final int LINE_NAME_LABEL_Y = 28;
     private static final int LINE_NAME_LABEL_GAP = 4;
     private static final int LINE_NAME_EDIT_X = 37;
@@ -45,9 +45,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private static final int MODE_BUTTON_STEP = 78;
     private static final int BOTTOM_GROUP_Y = 118;
     private static final int BOTTOM_CONTROL_Y = 125;
-    private static final int SLOT_GROUP_X = 9;
-    private static final int PRIORITY_GROUP_X = 133;
-    private static final int BOTTOM_GROUP_WIDTH = 112;
+    private static final int SLOT_GROUP_X = 5;
+    private static final int PRIORITY_GROUP_X = 129;
+    private static final int BOTTOM_GROUP_WIDTH = 120;
     private static final int SLOT_DOWN_X = 14;
     private static final int SLOT_VALUE_X = 34;
     private static final int SLOT_VALUE_WIDTH = 63;
