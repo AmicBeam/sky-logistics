@@ -60,6 +60,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private int remainingScanOperations;
     private int discoveryCursor;
     private ItemInsertPlan itemInsertPlan;
+    private boolean itemInsertPlanAwaitingExecution;
     private ItemExtractPlan itemExtractPlan;
     private FluidInsertPlan fluidInsertPlan;
     private FluidDrainPlan fluidDrainPlan;
@@ -241,6 +242,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         Arrays.fill(rejectedFluids, null);
         Arrays.fill(rejectedFluidUntil, 0L);
         itemInsertPlan = null;
+        itemInsertPlanAwaitingExecution = false;
         itemExtractPlan = null;
         fluidInsertPlan = null;
         fluidDrainPlan = null;
@@ -268,6 +270,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         Arrays.fill(visibleFluidTanks, -2);
         Arrays.fill(visibleFluids, null);
         itemInsertPlan = null;
+        itemInsertPlanAwaitingExecution = false;
         itemExtractPlan = null;
         fluidInsertPlan = null;
         fluidDrainPlan = null;
@@ -320,6 +323,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private static boolean sameItem(ItemStack first, ItemStack second) {
         return first.getCount() == second.getCount() && ItemStack.isSameItemSameTags(first, second);
+    }
+
+    private static boolean sameItemType(ItemStack first, ItemStack second) {
+        return ItemStack.isSameItemSameTags(first, second);
     }
 
     private static boolean sameFluid(FluidStack first, FluidStack second) {
@@ -380,13 +387,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
             if (stack.isEmpty()) return ItemStack.EMPTY;
-            ItemInsertPlan plan = matchingItemInsertPlan(stack);
+            ItemInsertPlan plan = matchingItemInsertPlan(stack, simulate);
             if (plan == null) plan = buildItemInsertPlan(stack);
             ItemStack remaining = stack.copy();
             if (simulate) {
+                itemInsertPlanAwaitingExecution = true;
                 remaining.shrink(plan.accepted);
                 return remaining;
             }
+            itemInsertPlanAwaitingExecution = false;
             int inserted = executeItemInsertPlan(plan, stack);
             remaining.shrink(inserted);
             itemInsertPlan = null;
@@ -435,10 +444,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return -1;
         }
 
-        private ItemInsertPlan matchingItemInsertPlan(ItemStack stack) {
+        private ItemInsertPlan matchingItemInsertPlan(ItemStack stack, boolean simulate) {
             prepareOperationBudget();
-            return itemInsertPlan != null && itemInsertPlan.tick == gameTime()
-                    && sameItem(itemInsertPlan.request, stack) ? itemInsertPlan : null;
+            if (itemInsertPlan == null || itemInsertPlan.tick != gameTime()
+                    || !sameItemType(itemInsertPlan.request, stack)) return null;
+            if (simulate) return sameItem(itemInsertPlan.request, stack) ? itemInsertPlan : null;
+            return itemInsertPlanAwaitingExecution && stack.getCount() <= itemInsertPlan.accepted
+                    ? itemInsertPlan : null;
         }
 
         private ItemInsertPlan buildItemInsertPlan(ItemStack stack) {
@@ -502,9 +514,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int moved = offer.getCount() - rejected.getCount();
                 if (moved > 0) {
                     inserted += moved;
-                    itemInsertSlotCursors[move.target] = move.slot + 1;
+                    itemInsertSlotCursors[move.target] = rejected.isEmpty() ? move.slot : move.slot + 1;
                     visibleItemSlots[move.target] = -2;
                     rejectedItems[move.target] = null;
+                } else {
+                    itemInsertSlotCursors[move.target] = move.slot + 1;
                 }
             }
             return inserted;
