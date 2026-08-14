@@ -30,7 +30,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> items);
     private final LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(() -> fluids);
     private final LazyOptional<IEnergyStorage> energyCapability = LazyOptional.of(() -> energy);
-    private List<Target> targets = List.of();
+    private TargetCache targetCache = TargetCache.EMPTY;
     private boolean targetsDirty = true;
     private long nextRescan;
     private int itemInsertCursor;
@@ -47,35 +47,46 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         targetsDirty = true;
     }
 
-    private List<Target> targets() {
-        if (level == null) return List.of();
-        long now = level.getGameTime();
-        if (targetsDirty || now >= nextRescan) {
-            targets = discoverTargets();
-            targetsDirty = false;
-            nextRescan = now + RESCAN_INTERVAL;
-        }
-        return targets;
+    public void refreshTargets() {
+        if (level == null) return;
+        targetCache = discoverTargets();
+        targetsDirty = false;
+        nextRescan = level.getGameTime() + RESCAN_INTERVAL;
     }
 
-    private List<Target> discoverTargets() {
+    private TargetCache targets() {
+        if (level == null) return TargetCache.EMPTY;
+        long now = level.getGameTime();
+        if (targetsDirty || now >= nextRescan) {
+            refreshTargets();
+        }
+        return targetCache;
+    }
+
+    private TargetCache discoverTargets() {
         int maxTargets = SkyLogisticsConfig.distributorMaxTargets();
-        List<Target> found = new ArrayList<>(maxTargets);
+        List<Target> itemTargets = new ArrayList<>(maxTargets);
+        List<Target> fluidTargets = new ArrayList<>(maxTargets);
+        List<Target> energyTargets = new ArrayList<>(maxTargets);
+        int found = 0;
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         Set<BlockPos> visited = new HashSet<>();
         visited.add(worldPosition);
         for (Direction direction : Direction.values()) queue.add(worldPosition.relative(direction));
-        while (!queue.isEmpty() && found.size() < maxTargets) {
+        while (!queue.isEmpty() && found < maxTargets) {
             BlockPos pos = queue.removeFirst();
             if (!visited.add(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity == null || blockEntity instanceof SkyDistributorBlockEntity) continue;
             Target target = inspect(pos, blockEntity);
             if (!target.usable()) continue;
-            found.add(target);
+            found++;
+            if (target.items) itemTargets.add(target);
+            if (target.fluids) fluidTargets.add(target);
+            if (target.energy) energyTargets.add(target);
             for (Direction direction : Direction.values()) queue.addLast(pos.relative(direction));
         }
-        return List.copyOf(found);
+        return new TargetCache(List.copyOf(itemTargets), List.copyOf(fluidTargets), List.copyOf(energyTargets));
     }
 
     private Target inspect(BlockPos pos, BlockEntity blockEntity) {
@@ -162,12 +173,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         boolean usable() { return items || fluids || energy; }
     }
 
+    private record TargetCache(List<Target> items, List<Target> fluids, List<Target> energy) {
+        private static final TargetCache EMPTY = new TargetCache(List.of(), List.of(), List.of());
+    }
+
     private final class DistributedItems implements IItemHandler {
         @Override public int getSlots() {
             if (!SkyLogisticsConfig.enableDistributorItems()) return 0;
-            List<Target> all = targets();
-            for (Target target : all) if (target.items) return all.size();
-            return 0;
+            return targets().items.size();
         }
         @Override public ItemStack getStackInSlot(int slot) {
             IItemHandler handler = handler(slot);
@@ -181,7 +194,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
             if (stack.isEmpty()) return ItemStack.EMPTY;
-            List<Target> all = targets();
+            List<Target> all = targets().items;
             ItemStack remaining = stack.copy();
             if (all.isEmpty()) return remaining;
             int start = Math.floorMod(itemInsertCursor, all.size());
@@ -216,7 +229,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public int getSlotLimit(int slot) { return 64; }
         @Override public boolean isItemValid(int slot, ItemStack stack) { return true; }
         private IItemHandler handler(int slot) {
-            List<Target> all = targets();
+            List<Target> all = targets().items;
             return slot < 0 || slot >= all.size() ? null : item(all.get(slot));
         }
         private boolean canAccept(IItemHandler handler, ItemStack stack) {
@@ -238,9 +251,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final class DistributedFluids implements IFluidHandler {
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;
-            List<Target> all = targets();
-            for (Target target : all) if (target.fluids) return all.size();
-            return 0;
+            return targets().fluids.size();
         }
         @Override public FluidStack getFluidInTank(int tank) {
             IFluidHandler handler = handler(tank);
@@ -256,7 +267,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean isFluidValid(int tank, FluidStack stack) { return true; }
         @Override public int fill(FluidStack resource, FluidAction action) {
             if (resource.isEmpty()) return 0;
-            List<Target> all = targets(); int remaining = resource.getAmount();
+            List<Target> all = targets().fluids; int remaining = resource.getAmount();
             if (all.isEmpty()) return 0;
             int start = Math.floorMod(fluidInsertCursor, all.size()); int viable = 0;
             for (Target target : all) { IFluidHandler h = fluid(target); if (h != null && h.fill(resource, FluidAction.SIMULATE) > 0) viable++; }
@@ -284,12 +295,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             for (int i = 0; i < getTanks(); i++) { FluidStack visible = getFluidInTank(i); if (!visible.isEmpty()) { FluidStack request = visible.copy(); request.setAmount(maxDrain); return drain(request, action); } }
             return FluidStack.EMPTY;
         }
-        private IFluidHandler handler(int tank) { List<Target> all = targets(); return tank < 0 || tank >= all.size() ? null : fluid(all.get(tank)); }
+        private IFluidHandler handler(int tank) { List<Target> all = targets().fluids; return tank < 0 || tank >= all.size() ? null : fluid(all.get(tank)); }
     }
 
     private final class DistributedEnergy implements IEnergyStorage {
         @Override public int receiveEnergy(int maxReceive, boolean simulate) {
-            List<Target> all = targets(); if (all.isEmpty()) return 0; int remaining = maxReceive; int start = Math.floorMod(energyInsertCursor, all.size()); int viable = 0;
+            List<Target> all = targets().energy; if (all.isEmpty()) return 0; int remaining = maxReceive; int start = Math.floorMod(energyInsertCursor, all.size()); int viable = 0;
             for (Target target : all) { IEnergyStorage h = energy(target); if (h != null && h.receiveEnergy(maxReceive, true) > 0) viable++; }
             for (int i = 0, left = viable; i < all.size() && remaining > 0 && left > 0; i++) {
                 IEnergyStorage h = energy(all.get((start + i) % all.size())); if (h == null || h.receiveEnergy(remaining, true) <= 0) continue;
@@ -299,14 +310,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return maxReceive - remaining;
         }
         @Override public int extractEnergy(int maxExtract, boolean simulate) {
-            List<Target> all = targets(); if (all.isEmpty()) return 0; int remaining = maxExtract; int start = Math.floorMod(energyInsertCursor, all.size());
+            List<Target> all = targets().energy; if (all.isEmpty()) return 0; int remaining = maxExtract; int start = Math.floorMod(energyInsertCursor, all.size());
             for (int i = 0; i < all.size() && remaining > 0; i++) { IEnergyStorage h = energy(all.get((start + i) % all.size())); if (h != null) remaining -= h.extractEnergy(remaining, simulate); }
             if (!simulate && remaining != maxExtract && !all.isEmpty()) energyInsertCursor = (start + 1) % all.size();
             return maxExtract - remaining;
         }
-        @Override public int getEnergyStored() { long sum = 0; for (Target t : targets()) { IEnergyStorage h = energy(t); if (h != null) sum += h.getEnergyStored(); } return (int)Math.min(Integer.MAX_VALUE, sum); }
-        @Override public int getMaxEnergyStored() { long sum = 0; for (Target t : targets()) { IEnergyStorage h = energy(t); if (h != null) sum += h.getMaxEnergyStored(); } return (int)Math.min(Integer.MAX_VALUE, sum); }
-        @Override public boolean canExtract() { for (Target t : targets()) { IEnergyStorage h = energy(t); if (h != null && h.canExtract()) return true; } return false; }
-        @Override public boolean canReceive() { for (Target t : targets()) { IEnergyStorage h = energy(t); if (h != null && h.canReceive()) return true; } return false; }
+        @Override public int getEnergyStored() { long sum = 0; for (Target t : targets().energy) { IEnergyStorage h = energy(t); if (h != null) sum += h.getEnergyStored(); } return (int)Math.min(Integer.MAX_VALUE, sum); }
+        @Override public int getMaxEnergyStored() { long sum = 0; for (Target t : targets().energy) { IEnergyStorage h = energy(t); if (h != null) sum += h.getMaxEnergyStored(); } return (int)Math.min(Integer.MAX_VALUE, sum); }
+        @Override public boolean canExtract() { for (Target t : targets().energy) { IEnergyStorage h = energy(t); if (h != null && h.canExtract()) return true; } return false; }
+        @Override public boolean canReceive() { for (Target t : targets().energy) { IEnergyStorage h = energy(t); if (h != null && h.canReceive()) return true; } return false; }
     }
 }

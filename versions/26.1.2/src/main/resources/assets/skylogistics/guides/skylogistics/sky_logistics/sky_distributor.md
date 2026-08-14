@@ -14,6 +14,6 @@ The Celestial Distributor is a zero-buffer item, fluid, and energy capability pr
 
 Incoming resources are divided as evenly as possible among targets that can accept them. A rotating cursor maintains fairness when node or pipe budgets split a transfer across ticks. Extraction aggregates every target without requiring an even split.
 
-The target list is cached. Neighbor changes invalidate it immediately, and a 100-tick safety validation handles capability changes. Item, fluid, and energy proxying can each be disabled in the server config.
+Placement immediately runs one BFS and splits its result into immutable item, fluid, and energy target caches. Neighbor changes invalidate them immediately, while a 100-tick lazy safety validation handles capability changes. Item, fluid, and energy proxying can each be disabled in the server config.
 
 It is made at a tier 2 altar with 1 charged Eulogia Crystal as the main ingredient and offerings of 4 Celestial Stone, 2 Redstone Dust, 2 Amethyst Shards, and 1 Chest.
