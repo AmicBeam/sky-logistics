@@ -38,7 +38,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Aim at an item or fluid pipe's machine-facing endpoint and right-click with a Sky Filter List or Sky Tag Filter List to copy its rules without consuming the list. The filter applies only to that endpoint, in both extract and insert mode. Sneak-right-click the endpoint with an empty hand to clear it. Energy pipes do not accept filters. With Jade installed, aim at the endpoint to see its filter; sneak to expand the contents."
+      "text": "Aim at an item or fluid pipe's machine-facing endpoint and right-click with a Sky Filter List or Sky Tag Filter List to copy its rules without consuming the list. The filter applies only to that endpoint, in both extract and insert mode. Sneak-right-click the endpoint with an empty hand to clear it. Energy pipes do not accept filters. With Jade installed, aim at the endpoint to see its transfer status and filter; sneak to expand the contents."
     },
     {
       "type": "patchouli:text",

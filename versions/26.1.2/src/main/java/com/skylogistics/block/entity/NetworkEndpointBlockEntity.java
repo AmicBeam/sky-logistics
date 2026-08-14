@@ -12,6 +12,7 @@ import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import java.util.Arrays;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -30,9 +31,11 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     private int fluidCursor;
     private final int[] targetCursors = new int[TargetResource.values().length];
     private long lastTransferGameTime = Long.MIN_VALUE;
+    private final long[] lastTransferGameTimeByDirection = new long[Direction.values().length];
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+        Arrays.fill(lastTransferGameTimeByDirection, Long.MIN_VALUE);
     }
 
     public void recordRecentTransfer() {
@@ -42,6 +45,19 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean hasRecentTransfer() {
         return level != null && lastTransferGameTime != Long.MIN_VALUE
                 && level.getGameTime() - lastTransferGameTime <= 40L;
+    }
+
+    public void recordRecentTransfer(Direction direction) {
+        recordRecentTransfer();
+        if (level != null && direction != null) {
+            lastTransferGameTimeByDirection[direction.ordinal()] = level.getGameTime();
+        }
+    }
+
+    public boolean hasRecentTransfer(Direction direction) {
+        if (level == null || direction == null) return false;
+        long lastTransfer = lastTransferGameTimeByDirection[direction.ordinal()];
+        return lastTransfer != Long.MIN_VALUE && level.getGameTime() - lastTransfer <= 40L;
     }
 
     @Override

@@ -49,7 +49,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBooleanOr("SpeedUpgrade", false), data.getBooleanOr("DimensionUpgrade", false),
                         data.getBooleanOr("ExactUpgrade", false))));
-        tooltip.add(Component.translatable("jade.skylogistics.recent_status",
+        tooltip.add(Component.translatable("jade.skylogistics.status",
                 Component.translatable(data.getBooleanOr("Active", false)
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
         CompoundTag filters = data.getCompoundOrEmpty("Filters");

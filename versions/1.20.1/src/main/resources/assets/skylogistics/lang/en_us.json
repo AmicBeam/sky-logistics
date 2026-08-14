@@ -229,7 +229,7 @@
   "jade.skylogistics.line_name": "Line: %s",
   "jade.skylogistics.line_info": "Line: %s",
   "jade.skylogistics.upgrades": "Upgrades: %s",
-  "jade.skylogistics.recent_status": "Recent status: %s",
+  "jade.skylogistics.status": "Status: %s",
   "jade.skylogistics.status_active": "Transferring",
   "jade.skylogistics.status_idle": "Idle",
   "jade.skylogistics.upgrade_exact_name": "Exact Quantity",

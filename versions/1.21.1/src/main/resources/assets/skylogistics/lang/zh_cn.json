@@ -217,7 +217,7 @@
   "jade.skylogistics.line_name": "线路：%s",
   "jade.skylogistics.line_info": "线路：%s",
   "jade.skylogistics.upgrades": "升级：%s",
-  "jade.skylogistics.recent_status": "近期状态：%s",
+  "jade.skylogistics.status": "状态：%s",
   "jade.skylogistics.status_active": "正在传输",
   "jade.skylogistics.status_idle": "空闲",
   "jade.skylogistics.upgrade_exact_name": "精确数量",
