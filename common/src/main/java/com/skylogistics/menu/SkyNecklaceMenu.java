@@ -25,7 +25,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
     private static final int FILTER_SLOT = UPGRADE_SLOTS;
     public static final int UPGRADE_SLOT_X = 47;
     public static final int FILTER_SLOT_X = 181;
-    public static final int FILTER_SLOT_Y = 55;
+    public static final int FILTER_SLOT_Y = 90;
     private static final int PLAYER_INVENTORY_Y = 158;
 
     private final InteractionHand hand;
