@@ -560,11 +560,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointItemHandler(direction, gameTime);
     }
 
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointFluidHandler(direction, gameTime);
     }
 
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
@@ -572,7 +572,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointEnergyHandler(direction, gameTime);
     }
 
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
@@ -755,12 +755,14 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasItemHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasItemTargets();
         return target != null && target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide)
                 .map(handler -> handler.getSlots() > 0)
                 .orElse(false);
     }
 
     private static boolean hasFluidHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasFluidTargets();
         return target != null && target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide)
                 .map(handler -> handler.getTanks() > 0)
                 .orElse(false);
@@ -775,6 +777,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasEnergyHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasEnergyTargets();
         return target != null && target.getCapability(ForgeCapabilities.ENERGY, accessSide)
                 .map(SkyNodeBlockEntity::isUsableEnergyStorage)
                 .orElse(false);

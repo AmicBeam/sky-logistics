@@ -562,11 +562,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointItemHandler(direction, gameTime);
     }
 
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointFluidHandler(direction, gameTime);
     }
 
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
@@ -574,7 +574,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointEnergyHandler(direction, gameTime);
     }
 
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
@@ -756,11 +756,17 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasItemHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasItemTargets();
+        }
         IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide);
         return handler != null && handler.getSlots() > 0;
     }
 
     private boolean hasFluidHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasFluidTargets();
+        }
         IFluidHandler handler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide);
         return handler != null && handler.getTanks() > 0;
     }
@@ -774,6 +780,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasEnergyTargets();
+        }
         IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
         return storage != null && isUsableEnergyStorage(storage);
     }

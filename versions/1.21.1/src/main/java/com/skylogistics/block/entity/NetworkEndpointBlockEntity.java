@@ -55,10 +55,19 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public BlockPos getTargetPos(Direction direction) { return worldPosition.relative(direction); }
     public Direction getAccessSide(Direction direction) { return direction.getOpposite(); }
-    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) { return null; }
-    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) { return null; }
+    public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.itemHandler();
+    }
+    public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.fluidHandler();
+    }
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) { return null; }
-    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) { return null; }
+    public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.energyHandler();
+    }
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) { return null; }
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) { return null; }
     public boolean allowsItem(Direction direction, ItemStack stack) { return true; }
@@ -79,6 +88,12 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean supportsChemicalEndpoint(Direction direction) { return false; }
     public boolean supportsManaEndpoint(Direction direction) { return false; }
     public boolean supportsSourceEndpoint(Direction direction) { return false; }
+
+    protected SkyDistributorBlockEntity distributor(Direction direction) {
+        if (level == null || !level.isLoaded(getTargetPos(direction))) return null;
+        return level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor
+                ? distributor : null;
+    }
 
     public int nextItemStart(int slots) {
         if (slots <= 0) return 0;

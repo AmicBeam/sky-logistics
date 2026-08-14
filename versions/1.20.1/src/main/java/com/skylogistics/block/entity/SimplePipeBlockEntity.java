@@ -53,6 +53,13 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         if (target == null) {
             return false;
         }
+        if (target instanceof SkyDistributorBlockEntity distributor) {
+            return switch (type) {
+                case ITEM -> distributor.hasItemTargets();
+                case FLUID -> distributor.hasFluidTargets();
+                case ENERGY -> distributor.hasEnergyTargets();
+            };
+        }
         return switch (type) {
             case ITEM -> target.getCapability(ForgeCapabilities.ITEM_HANDLER, side)
                     .map(handler -> handler.getSlots() > 0).orElse(false);

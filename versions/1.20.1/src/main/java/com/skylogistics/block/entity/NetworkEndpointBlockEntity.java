@@ -78,11 +78,13 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.itemHandler();
     }
 
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.fluidHandler();
     }
 
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
@@ -90,7 +92,8 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.energyHandler();
     }
 
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
@@ -99,6 +102,12 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
         return null;
+    }
+
+    protected SkyDistributorBlockEntity distributor(Direction direction) {
+        if (level == null || !level.isLoaded(getTargetPos(direction))) return null;
+        return level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor
+                ? distributor : null;
     }
 
     public boolean allowsItem(Direction direction, ItemStack stack) {
