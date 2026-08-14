@@ -4,10 +4,10 @@
   "category": "skylogistics:simple_pipes",
   "sortnum": 1,
   "pages": [
-    {"type":"patchouli:text","text":"The Celestial Distributor is a zero-buffer capability proxy. Starting at adjacent blocks, it follows chains of valid containers and selects at most 16 targets. Air, ordinary blocks, and blocks without item, fluid, or energy capabilities stop the search. Distributors never chain through each other."},
+    {"type":"patchouli:text","text":"The Celestial Distributor is a zero-buffer capability proxy. Starting at adjacent blocks, it follows chains of valid containers and selects up to 16 targets by default. Air, ordinary blocks, and blocks without item, fluid, or energy capabilities stop the search. Distributors never chain through each other."},
     {"type":"patchouli:text","text":"Incoming items, fluids, and energy are divided as evenly as possible among targets that can accept them, beginning at a rotating cursor. Pipe and node budgets may spread one batch across several ticks; cursor rotation provides long-term fairness."},
     {"type":"patchouli:text","text":"Extraction views all targets as one endpoint and does not enforce equal shares. The distributor has no slots, tanks, energy buffer, or hidden inventory. Simple pipes and logistics nodes recognize it directly."},
     {"type":"patchouli:spotlight","item":"skylogistics:sky_distributor","text":"Tier 2 offering: place 1 charged Eulogia Crystal on the altar, then offer 4 Celestial Stone, 2 Redstone Dust, 2 Amethyst Shards, and 1 Chest. Default duration: 240 ticks."},
-    {"type":"patchouli:text","text":"Performance: the target list is cached and rebuilt only after neighbor changes or a low-frequency safety validation. Discovery is hard-capped at 16 containers and never crosses non-containers. Servers can disable item, fluid, and energy proxying independently."}
+    {"type":"patchouli:text","text":"Performance: the target list is cached and rebuilt only after neighbor changes or a low-frequency safety validation. Discovery is capped by [distributor].maxTargets (range 1–64) and never crosses non-containers. Servers can disable item, fluid, and energy proxying independently."}
   ]
 }

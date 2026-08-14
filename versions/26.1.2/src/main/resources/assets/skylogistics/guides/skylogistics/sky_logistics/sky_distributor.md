@@ -10,7 +10,7 @@ item_ids:
 
 # Celestial Distributor
 
-The Celestial Distributor is a zero-buffer item, fluid, and energy capability proxy. Starting from its six neighbors, it follows only blocks that are themselves valid containers, stopping at air, ordinary blocks, capability-free block entities, and other distributors. It exposes at most 16 targets.
+The Celestial Distributor is a zero-buffer item, fluid, and energy capability proxy. Starting from its six neighbors, it follows only blocks that are themselves valid containers, stopping at air, ordinary blocks, capability-free block entities, and other distributors. It exposes at most 16 targets by default; servers can set `[distributor].maxTargets` from 1 to 64.
 
 Incoming resources are divided as evenly as possible among targets that can accept them. A rotating cursor maintains fairness when node or pipe budgets split a transfer across ticks. Extraction aggregates every target without requiring an even split.
 

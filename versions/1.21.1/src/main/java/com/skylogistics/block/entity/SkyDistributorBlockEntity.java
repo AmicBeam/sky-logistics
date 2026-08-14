@@ -20,7 +20,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 
 /** A zero-buffer, bounded capability fan-out over a cached cluster of adjacent containers. */
 public class SkyDistributorBlockEntity extends BlockEntity {
-    private static final int MAX_TARGETS = 16;
+    private static final int MAX_CONFIGURABLE_TARGETS = 64;
     private static final long RESCAN_INTERVAL = 100L;
     private final DistributedItems items = new DistributedItems();
     private final DistributedFluids fluids = new DistributedFluids();
@@ -31,8 +31,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private int itemInsertCursor;
     private int fluidInsertCursor;
     private int energyInsertCursor;
-    private final int[] itemExtractCursors = new int[MAX_TARGETS];
-    private final int[] fluidExtractCursors = new int[MAX_TARGETS];
+    private final int[] itemExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
+    private final int[] fluidExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
 
     public SkyDistributorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SKY_DISTRIBUTOR.get(), pos, state);
@@ -54,12 +54,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private List<Target> discoverTargets() {
-        List<Target> found = new ArrayList<>(MAX_TARGETS);
+        int maxTargets = SkyLogisticsConfig.distributorMaxTargets();
+        List<Target> found = new ArrayList<>(maxTargets);
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         Set<BlockPos> visited = new HashSet<>();
         visited.add(worldPosition);
         for (Direction direction : Direction.values()) queue.add(worldPosition.relative(direction));
-        while (!queue.isEmpty() && found.size() < MAX_TARGETS) {
+        while (!queue.isEmpty() && found.size() < maxTargets) {
             BlockPos pos = queue.removeFirst();
             if (!visited.add(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);

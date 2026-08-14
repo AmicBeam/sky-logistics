@@ -57,6 +57,7 @@ public final class SkyLogisticsConfig {
     public static boolean enableDistributorItems() { return SERVER.enableDistributorItems.get(); }
     public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
+    public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
 
     public static int simpleItemPipeTransferRate() {
         return SERVER.simpleItemPipeTransferRate.get();
@@ -266,6 +267,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableDistributorItems;
         public final ForgeConfigSpec.BooleanValue enableDistributorFluids;
         public final ForgeConfigSpec.BooleanValue enableDistributorEnergy;
+        public final ForgeConfigSpec.IntValue distributorMaxTargets;
         public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleEnergyPipeTransferRate;
@@ -303,15 +305,6 @@ public final class SkyLogisticsConfig {
             enableSimpleEnergyPipe = builder
                     .comment("Whether simple energy pipes connect to FE storages and transfer energy.")
                     .define("enableSimpleEnergyPipe", true);
-            enableDistributorItems = builder
-                    .comment("Whether Celestial Distributors proxy and distribute item storage.")
-                    .define("enableDistributorItems", true);
-            enableDistributorFluids = builder
-                    .comment("Whether Celestial Distributors proxy and distribute fluid storage.")
-                    .define("enableDistributorFluids", true);
-            enableDistributorEnergy = builder
-                    .comment("Whether Celestial Distributors proxy and distribute energy storage.")
-                    .define("enableDistributorEnergy", true);
             simpleItemPipeTransferRate = builder
                     .comment("Maximum items moved by each extracting simple item pipe per tick. A transfer still uses at most one source slot and one target slot.")
                     .defineInRange("simpleItemPipeTransferRate", 64, 1, Integer.MAX_VALUE);
@@ -426,6 +419,21 @@ public final class SkyLogisticsConfig {
             transferRetryMaxTicks = builder
                     .comment("Ticks to wait after the fourth and later consecutive failed transfer attempts.")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
+            builder.pop();
+
+            builder.push("distributor");
+            enableDistributorItems = builder
+                    .comment("Whether Celestial Distributors proxy and distribute item storage.")
+                    .define("enableItems", true);
+            enableDistributorFluids = builder
+                    .comment("Whether Celestial Distributors proxy and distribute fluid storage.")
+                    .define("enableFluids", true);
+            enableDistributorEnergy = builder
+                    .comment("Whether Celestial Distributors proxy and distribute energy storage.")
+                    .define("enableEnergy", true);
+            distributorMaxTargets = builder
+                    .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.")
+                    .defineInRange("maxTargets", 16, 1, 64);
             builder.pop();
 
             builder.push("necklaces");
