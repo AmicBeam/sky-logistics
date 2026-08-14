@@ -65,15 +65,16 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
     private static <I> List<Target<I>> chemicalTargets(FilterListScreen gui) {
         List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-            targets.add((Target<I>) new ChemicalTarget(gui.getFilterSlotArea(slot), slot));
+            targets.add((Target<I>) new ChemicalTarget(gui, gui.getFilterSlotArea(slot), slot));
         }
         return targets;
     }
 
-    private record ChemicalTarget(Rect2i area, int slot) implements Target<ChemicalStack> {
+    private record ChemicalTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<ChemicalStack> {
         @Override public Rect2i getArea() { return area; }
         @Override public void accept(ChemicalStack ingredient) {
             String key = String.valueOf(mekanism.api.MekanismAPI.CHEMICAL_REGISTRY.getKey(ingredient.getChemical()));
+            gui.setGhostChemicalPreview(slot, key);
             ModNetworking.sendChemicalFilter(slot, key);
         }
     }

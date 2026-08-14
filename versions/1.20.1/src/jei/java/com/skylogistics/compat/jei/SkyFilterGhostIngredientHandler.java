@@ -71,15 +71,18 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
     private static <I> List<Target<I>> chemicalTargets(FilterListScreen gui, String kind) {
         List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
         for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-            targets.add((Target<I>) new ChemicalTarget(gui.getFilterSlotArea(slot), slot, kind));
+            targets.add((Target<I>) new ChemicalTarget(gui, gui.getFilterSlotArea(slot), slot, kind));
         }
         return targets;
     }
 
-    private record ChemicalTarget(Rect2i area, int slot, String kind) implements Target<ChemicalStack<?>> {
+    private record ChemicalTarget(FilterListScreen gui, Rect2i area, int slot, String kind)
+            implements Target<ChemicalStack<?>> {
         @Override public Rect2i getArea() { return area; }
         @Override public void accept(ChemicalStack<?> ingredient) {
-            ModNetworking.sendChemicalFilter(slot, kind + ":" + ingredient.getTypeRegistryName());
+            String chemical = kind + ":" + ingredient.getTypeRegistryName();
+            gui.setGhostChemicalPreview(slot, chemical);
+            ModNetworking.sendChemicalFilter(slot, chemical);
         }
     }
 

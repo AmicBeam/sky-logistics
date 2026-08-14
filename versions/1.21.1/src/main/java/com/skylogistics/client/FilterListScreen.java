@@ -158,6 +158,10 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         menu.setGhostFluid(slot, stack);
     }
 
+    public void setGhostChemicalPreview(int slot, String chemical) {
+        menu.setGhostChemical(slot, chemical);
+    }
+
     private static int filterSlotX(int slot) {
         return FILTER_GRID_X + (slot % FILTER_COLUMNS) * FILTER_SLOT_STEP;
     }

@@ -84,7 +84,7 @@ public class FilterListMenu extends AbstractContainerMenu {
 
     public void setGhostChemical(int slot, String chemical) {
         if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
-            FilterListItem.setChemicalFilter(filterStack(), slot, chemical);
+            filters.setChemicalGhost(slot, chemical);
             broadcastChanges();
         }
     }
@@ -213,6 +213,11 @@ public class FilterListMenu extends AbstractContainerMenu {
             if (ghost.isEmpty()) {
                 FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             }
+            setChanged();
+        }
+
+        private void setChemicalGhost(int slot, String chemical) {
+            FilterListItem.setChemicalFilter(stack(), slot, chemical);
             setChanged();
         }
 
