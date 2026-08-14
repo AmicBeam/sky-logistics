@@ -23,9 +23,8 @@ import net.minecraft.world.item.ItemStack;
 public class SkyNecklaceMenu extends AbstractContainerMenu {
     public static final int UPGRADE_SLOTS = 2;
     private static final int FILTER_SLOT = UPGRADE_SLOTS;
-    public static final int UPGRADE_SLOT_X = 164;
-    public static final int FILTER_LABEL_X = 166;
-    public static final int FILTER_SLOT_X = 200;
+    public static final int UPGRADE_SLOT_X = 47;
+    public static final int FILTER_SLOT_X = 181;
     public static final int FILTER_SLOT_Y = 55;
     private static final int PLAYER_INVENTORY_Y = 158;
 

@@ -179,7 +179,6 @@
   "screen.skylogistics.sky_necklace.mode.insert": "存入",
   "screen.skylogistics.sky_necklace.mode.maintain": "维持",
   "screen.skylogistics.exact_quantity": "数量",
-  "screen.skylogistics.sky_necklace.item_only": "仅物品 / 仅白名单 / 同维度",
   "screen.skylogistics.sky_necklace.insert_slots": "槽数",
   "screen.skylogistics.sky_necklace.insert_slots_value": "%s",
   "screen.skylogistics.sky_necklace.needs_whitelist": "需要至少包含一个物品项的白名单。",

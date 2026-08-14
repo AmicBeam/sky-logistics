@@ -191,7 +191,6 @@
   "screen.skylogistics.sky_necklace.mode.insert": "Insert",
   "screen.skylogistics.sky_necklace.mode.maintain": "Maintain",
   "screen.skylogistics.exact_quantity": "Amount",
-  "screen.skylogistics.sky_necklace.item_only": "Items / whitelist / same dimension",
   "screen.skylogistics.sky_necklace.insert_slots": "Slots",
   "screen.skylogistics.sky_necklace.insert_slots_value": "%s",
   "screen.skylogistics.sky_necklace.needs_whitelist": "Requires a whitelist with at least one item entry.",
