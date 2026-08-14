@@ -1,13 +1,11 @@
 {
-  "type": "skylogistics:sky_offering",
-  "duration": 240,
-  "altar_tier": 2,
-  "main": {"item": "skylogistics:eulogia_crystal", "charged": true},
-  "offerings": [
-    {"item": "skylogistics:celestial_stone", "count": 1},
-    {"tag": "forge:dusts/redstone", "count": 2},
-    {"tag": "forge:gems/amethyst", "count": 2},
-    {"tag": "forge:chests/wooden", "count": 1}
-  ],
-  "result": {"item": "skylogistics:sky_distributor"}
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["SRS", "ACA", "SRS"],
+  "key": {
+    "S": {"tag": "forge:stone"},
+    "R": {"tag": "forge:dusts/redstone"},
+    "A": {"tag": "forge:gems/amethyst"},
+    "C": {"tag": "forge:chests/wooden"}
+  },
+  "result": {"item": "skylogistics:sky_distributor", "count": 1}
 }
