@@ -109,7 +109,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
@@ -213,7 +213,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         ConfiguratorItem.ToolConfig config = config();
-        graphics.text(font, title, 10, 7, ConfigPanel.ACCENT, false);
+        graphics.text(font, title, 10, 7, ConfigPanel.TEXT, false);
         if (config == null) {
             graphics.text(font, Component.translatable("screen.skylogistics.configurator.unbound"),
                     10, 52, ConfigPanel.MUTED, false);
@@ -238,11 +238,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.centeredText(font, Component.translatable("screen.skylogistics.slot_limit"),
                 127, 212, ConfigPanel.MUTED);
         graphics.centeredText(font, slotLimitDisplay(config.slotLimit()),
-                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
+                SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.priority"),
                 210, 212, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.literal(String.valueOf(config.placement().priority())),
-                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
     }
 
     private void drawStatPanels(GuiGraphicsExtractor graphics) {
@@ -386,7 +386,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             ConfiguratorLineDetailsPacket.Entry entry = entries.get(index);
             int y = DETAIL_Y + DETAIL_HEADER_HEIGHT + 1 + row * DETAIL_ROW_HEIGHT;
             if (row > 0) {
-                graphics.fill(DETAIL_X + 1, y - 2, DETAIL_X + DETAIL_WIDTH - 1, y - 1, 0xFF344044);
+                graphics.fill(DETAIL_X + 1, y - 2, DETAIL_X + DETAIL_WIDTH - 1, y - 1,
+                        ConfigPanel.BORDER_DIM);
             }
             ItemStack icon = targetIcon(entry);
             if (icon.isEmpty()) {
@@ -420,7 +421,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.centeredText(font, Component.translatable("screen.skylogistics.detail.redstone"), DETAIL_X + 137, y, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.detail.location"), DETAIL_X + 197, y, ConfigPanel.MUTED);
         graphics.fill(DETAIL_X + 1, DETAIL_Y + DETAIL_HEADER_HEIGHT - 1,
-                DETAIL_X + DETAIL_WIDTH - 1, DETAIL_Y + DETAIL_HEADER_HEIGHT, 0xFF344044);
+                DETAIL_X + DETAIL_WIDTH - 1, DETAIL_Y + DETAIL_HEADER_HEIGHT, ConfigPanel.BORDER_DIM);
     }
 
     private void drawRedstoneIcon(GuiGraphicsExtractor graphics, int x, int y, RedstoneControl control) {
@@ -571,12 +572,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private int modeColor(ConfiguratorLineDetailsPacket.Entry entry) {
         if (entry.maintainMode()) {
-            return 0xFFB65CFF;
+            return ConfigPanel.MAINTAIN_ACCENT;
         }
         NodeFaceMode mode = entry.mode();
         return switch (mode) {
-            case INPUT -> 0xFFFFB56B;
-            case OUTPUT -> 0xFF7DEBFF;
+            case INPUT -> ConfigPanel.EXTRACT_ACCENT;
+            case OUTPUT -> ConfigPanel.INSERT_ACCENT;
             case NONE -> ConfigPanel.MUTED;
         };
     }
@@ -822,7 +823,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height,
-                    active, enabled, 0xFFFFB228);
+                    active, enabled, ConfigPanel.RESOURCE_ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), enabled);
             graphics.text(font, getMessage(), getX() + 25, getY() + 6,
                     enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED, false);

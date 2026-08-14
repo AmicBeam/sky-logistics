@@ -58,7 +58,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private static final int PRIORITY_UP_X = 223;
     private static final int ADJUST_BUTTON_WIDTH = 17;
     private static final int ADJUST_BUTTON_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
-    private static final int MAINTAIN_ACCENT = 0xFFB06CFF;
+    private static final int MAINTAIN_ACCENT = ConfigPanel.MAINTAIN_ACCENT;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<InsertSlotsButton> insertSlotsButtons = new ArrayList<>();
@@ -92,7 +92,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
         addModeButton(leftPos + MODE_BUTTON_X, topPos + MODE_BUTTON_ROW_Y, MODE_BUTTON_WIDTH, SkyNecklaceItem.NecklaceMode.EXTRACT,
@@ -202,7 +202,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemStack stack = stack();
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
-        graphics.drawString(font, title, 10, TITLE_ROW_Y, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, 10, TITLE_ROW_Y, ConfigPanel.TEXT, false);
         if (config == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.unbound"),
                     10, 28, ConfigPanel.MUTED, false);
@@ -229,16 +229,16 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
                 SLOT_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
         if (!SkyNecklaceItem.hasExactQuantityUpgrade(stack)) {
             graphics.drawCenteredString(font, SkyNecklaceItem.insertSlotsDisplay(stack),
-                    SLOT_VALUE_X + SLOT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
+                    SLOT_VALUE_X + SLOT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         }
         graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.priority"),
                 PRIORITY_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
         graphics.drawCenteredString(font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
-                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.TEXT);
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         if (!SkyNecklaceItem.hasValidItemWhitelist(stack)) {
             Component warning = Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist");
             graphics.drawString(font, warning, imageWidth - 10 - font.width(warning), TITLE_ROW_Y,
-                    0xFFFF9A8A, false);
+                    0xFFB84343, false);
         }
     }
 
@@ -451,8 +451,8 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            int accent = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? 0xFFFFA52D
-                    : mode == SkyNecklaceItem.NecklaceMode.INSERT ? 0xFF36B4D2 : MAINTAIN_ACCENT;
+            int accent = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? ConfigPanel.EXTRACT_ACCENT
+                    : mode == SkyNecklaceItem.NecklaceMode.INSERT ? ConfigPanel.INSERT_ACCENT : MAINTAIN_ACCENT;
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
             net.minecraft.client.gui.Font buttonFont = Minecraft.getInstance().font;
             int contentX = getX() + (width - 20 - buttonFont.width(getMessage())) / 2;

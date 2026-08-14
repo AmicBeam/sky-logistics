@@ -103,7 +103,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemVaultBlockEntity vault = vault();
-        graphics.drawString(font, title, 8, 8, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, 8, 8, ConfigPanel.TEXT, false);
         if (vault == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.missing_vault"), 8, 48,
                     ConfigPanel.MUTED, false);

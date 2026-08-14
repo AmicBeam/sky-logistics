@@ -31,8 +31,8 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     private static final int CONTROL_GROUP_GAP = 8;
     private static final int ACTION_BUTTON_SIZE = 20;
     private static final int CONTROL_ROW_WIDTH = SEGMENT_GROUP_WIDTH * 3 + CONTROL_GROUP_GAP * 3 + ACTION_BUTTON_SIZE;
-    private static final int COLOR_ALLOW = 0xFF8FEF8A;
-    private static final int COLOR_DENY = 0xFFFF7979;
+    private static final int COLOR_ALLOW = 0xFF3F8F3F;
+    private static final int COLOR_DENY = 0xFFB84343;
     private AbstractButton whitelistAllowButton;
     private AbstractButton whitelistDenyButton;
     private AbstractButton nbtIgnoreButton;
@@ -112,7 +112,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
             int y = topPos + filterSlotY(slot);
             ConfigPanel.drawSlotBackground(graphics, x, y);
             if (menu.isFluidFilter(slot)) {
-                graphics.fill(x + 12, y + 12, x + 17, y + 17, 0xFF3FCBFF);
+                graphics.fill(x + 12, y + 12, x + 17, y + 17, ConfigPanel.INSERT_ACCENT);
             }
         }
         renderMenuSlotBackgrounds(graphics);
@@ -120,7 +120,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
 
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        graphics.text(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.ACCENT, false);
+        graphics.text(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
     }
 
     @Override
@@ -277,7 +277,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         int color = selected ? (allow ? COLOR_ALLOW : COLOR_DENY) : ConfigPanel.MUTED;
         int x = button.getX();
         int y = button.getY();
-        int listColor = selected ? color : 0xFF6E8D95;
+        int listColor = selected ? color : ConfigPanel.MUTED;
         graphics.fill(x + 5, y + 5, x + 13, y + 6, listColor);
         graphics.fill(x + 5, y + 9, x + 12, y + 10, listColor);
         graphics.fill(x + 5, y + 13, x + 11, y + 14, listColor);
@@ -292,7 +292,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         if (button == null) {
             return;
         }
-        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : 0xFF6E8D95;
+        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : ConfigPanel.MUTED;
         int x = button.getX();
         int y = button.getY();
         graphics.fill(x + 6, y + 4, x + 14, y + 5, color);
@@ -310,7 +310,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         if (button == null) {
             return;
         }
-        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : 0xFF6E8D95;
+        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : ConfigPanel.MUTED;
         int x = button.getX();
         int y = button.getY();
         graphics.fill(x + 7, y + 4, x + 13, y + 5, color);

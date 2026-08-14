@@ -39,8 +39,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private static final int ACTION_BUTTON_SIZE = 20;
     private static final int DROPDOWN_ROW_HEIGHT = 12;
     private static final int DROPDOWN_VISIBLE_ROWS = 5;
-    private static final int COLOR_ALLOW = 0xFF8FEF8A;
-    private static final int COLOR_DENY = 0xFFFF7979;
+    private static final int COLOR_ALLOW = 0xFF3F8F3F;
+    private static final int COLOR_DENY = 0xFFB84343;
 
     private final TagSlotButton[] tagButtons = new TagSlotButton[TagFilterListItem.TAG_SLOTS];
     private AbstractButton whitelistAllowButton;
@@ -67,7 +67,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         tagEdit = new EditBox(font, leftPos + EDIT_X, topPos + EDIT_Y, EDIT_WIDTH, EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.tag_filter_list.tag"));
         tagEdit.setMaxLength(TagFilterListItem.MAX_TAG_LENGTH);
-        tagEdit.setTextColor(ConfigPanel.TEXT);
+        tagEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         tagEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(tagEdit);
         for (int slot = 0; slot < TagFilterListItem.TAG_SLOTS; slot++) {
@@ -117,7 +117,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.tag_filter_list.sample"),
                 31, 17, ConfigPanel.MUTED, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.tag_filter_list.tags"),
@@ -300,7 +300,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             int rowY = y + 1 + row * DROPDOWN_ROW_HEIGHT;
             boolean hovered = hoveredDropdownOption(mouseX, mouseY) == index;
             if (hovered) {
-                graphics.fill(x + 1, rowY, x + EDIT_WIDTH - 1, rowY + DROPDOWN_ROW_HEIGHT, 0x553E8B99);
+                graphics.fill(x + 1, rowY, x + EDIT_WIDTH - 1, rowY + DROPDOWN_ROW_HEIGHT, 0x553A8D99);
             }
             graphics.drawString(font, trimToWidth("#" + options.get(index), EDIT_WIDTH - 8),
                     x + 4, rowY + 2, hovered ? ConfigPanel.ACCENT : ConfigPanel.TEXT, false);

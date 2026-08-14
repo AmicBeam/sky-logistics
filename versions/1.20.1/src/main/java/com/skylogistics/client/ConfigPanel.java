@@ -11,29 +11,36 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 final class ConfigPanel {
-    static final int BG = 0xF0101D24;
-    static final int BORDER = 0xFF3E8B99;
-    static final int BORDER_ACTIVE = 0xFF68D7E5;
-    static final int TEXT = 0xFFE8FBFF;
-    static final int MUTED = 0xFF8FB7C1;
-    static final int ACCENT = 0xFFFFE59A;
-    static final int PANEL = 0xFF0B151B;
-    static final int PANEL_SOFT = 0x99101B22;
-    static final int BUTTON = 0xFF0D1D25;
-    static final int BUTTON_DISABLED = 0xFF101820;
-    static final int BUTTON_SELECTED = 0xFF12343C;
-    static final int BUTTON_SELECTED_SOFT = 0xFF122930;
-    static final int BORDER_DIM = 0xFF24454F;
-    static final int SLOT_DIVIDER = 0xFF2B4C57;
-    static final int SLOT_SHADOW = 0xFF142A33;
-    static final int SLOT_FILL = 0xFF24424C;
+    static final int BG = 0xFFC6C6C6;
+    static final int BORDER = 0xFF373737;
+    static final int BORDER_ACTIVE = 0xFF3A8D99;
+    static final int TEXT = 0xFF404040;
+    static final int FIELD_TEXT = 0xFFFFFFFF;
+    static final int MUTED = 0xFF707070;
+    static final int ACCENT = 0xFF9C711C;
+    static final int RESOURCE_ACCENT = 0xFFB58A2E;
+    static final int EXTRACT_ACCENT = 0xFFB87524;
+    static final int INSERT_ACCENT = 0xFF2F7F8C;
+    static final int MAINTAIN_ACCENT = 0xFF75658F;
+    static final int PANEL = 0xFFB6B6B6;
+    static final int PANEL_SOFT = 0x99B6B6B6;
+    static final int BUTTON = 0xFF9E9E9E;
+    static final int BUTTON_DISABLED = 0xFF858585;
+    static final int BUTTON_SELECTED = 0xFF8FB8BE;
+    static final int BUTTON_SELECTED_SOFT = 0xFFA9BFC2;
+    static final int BORDER_DIM = 0xFF777777;
+    static final int SLOT_SHADOW = 0xFF373737;
+    static final int SLOT_FILL = 0xFF8B8B8B;
     static final int FIELDSET_HEIGHT = 31;
     static final int STEPPER_HEIGHT = 17;
-    private static final int SLOT_LOCKED_DIVIDER = 0xFF172830;
-    private static final int SLOT_LOCKED_SHADOW = 0xFF071016;
-    private static final int SLOT_LOCKED_FILL = 0xFF0A141A;
-    private static final int SLOT_HIGHLIGHT = 0x444D6D78;
-    private static final int SLOT_LOCKED_HIGHLIGHT = 0x221A3038;
+    private static final int PANEL_HIGHLIGHT = 0xFFFFFFFF;
+    private static final int PANEL_SHADOW = 0xFF555555;
+    private static final int BUTTON_HIGHLIGHT = 0xFFD8D8D8;
+    private static final int BUTTON_SHADOW = 0xFF555555;
+    private static final int SLOT_LOCKED_SHADOW = 0xFF555555;
+    private static final int SLOT_LOCKED_FILL = 0xFF707070;
+    private static final int SLOT_HIGHLIGHT = 0xFFFFFFFF;
+    private static final int SLOT_LOCKED_HIGHLIGHT = 0xFFB0B0B0;
 
     private ConfigPanel() {
     }
@@ -48,19 +55,16 @@ final class ConfigPanel {
 
     static void drawPanel(GuiGraphics graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, BG);
-        graphics.fill(x, y, x + width, y + 1, BORDER_ACTIVE);
-        graphics.fill(x, y + height - 1, x + width, y + height, BORDER);
-        graphics.fill(x, y, x + 1, y + height, BORDER_ACTIVE);
-        graphics.fill(x + width - 1, y, x + width, y + height, BORDER);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, 0x223DE6F5);
+        graphics.fill(x, y, x + width, y + 1, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + 1, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y + height - 1, x + width, y + height, PANEL_SHADOW);
+        graphics.fill(x + width - 1, y, x + width, y + height, PANEL_SHADOW);
     }
 
     static void drawContentPanel(GuiGraphics graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + height, PANEL);
-        graphics.fill(x, y, x + width, y + 1, BORDER_DIM);
-        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
-        graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
+        graphics.fill(x, y, x + width, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + width - 1, y + height - 1, PANEL_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, PANEL);
     }
 
     static void drawFieldset(GuiGraphics graphics, int x, int y, int width, int legendWidth) {
@@ -71,15 +75,17 @@ final class ConfigPanel {
         int gapLeft = x + (width - legendWidth) / 2 - 3;
         int gapRight = gapLeft + legendWidth + 6;
         graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, PANEL);
-        graphics.fill(x, y, gapLeft, y + 1, BORDER_DIM);
-        graphics.fill(gapRight, y, x + width, y + 1, BORDER_DIM);
-        graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
-        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
+        graphics.fill(x, y, gapLeft, y + 1, PANEL_SHADOW);
+        graphics.fill(gapRight, y, x + width, y + 1, PANEL_SHADOW);
+        graphics.fill(x, y, x + 1, y + height, PANEL_SHADOW);
+        graphics.fill(x + width - 1, y, x + width, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y + height - 1, x + width, y + height, PANEL_HIGHLIGHT);
     }
 
     static void drawStepperValue(GuiGraphics graphics, int x, int y, int width) {
-        drawBox(graphics, x, y, width, STEPPER_HEIGHT, 0xFF020506, 0xFF636767);
+        graphics.fill(x, y, x + width, y + STEPPER_HEIGHT, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + width - 1, y + STEPPER_HEIGHT - 1, PANEL_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + STEPPER_HEIGHT - 1, 0xFF101010);
     }
 
     static void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
@@ -90,9 +96,12 @@ final class ConfigPanel {
 
     static void drawImageButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
             boolean active, boolean selected, int selectedBorder) {
-        int border = selected ? selectedBorder : (active ? 0xFF59666A : BORDER_DIM);
-        drawBox(graphics, x, y, width, height, 0xFF071D24, border);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 10, 0xFF0B2931);
+        int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
+        drawBeveledButton(graphics, x, y, width, height, fill, selected);
+        if (selected) {
+            graphics.fill(x, y, x + width, y + 1, selectedBorder);
+            graphics.fill(x, y, x + 1, y + height, selectedBorder);
+        }
     }
 
     static void drawResourceIcon(GuiGraphics graphics, int x, int y, String name, boolean selected) {
@@ -104,10 +113,22 @@ final class ConfigPanel {
     static void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
             boolean active, boolean selected) {
         int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
-        int border = selected ? BORDER_ACTIVE : (active ? BORDER : BORDER_DIM);
-        drawBox(graphics, x, y, width, height, fill, border);
+        drawBeveledButton(graphics, x, y, width, height, fill, selected);
         if (selected) {
-            graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, ACCENT);
+            graphics.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, BORDER_ACTIVE);
+        }
+    }
+
+    private static void drawBeveledButton(GuiGraphics graphics, int x, int y, int width, int height,
+            int fill, boolean pressed) {
+        if (pressed) {
+            graphics.fill(x, y, x + width, y + height, BUTTON_HIGHLIGHT);
+            graphics.fill(x, y, x + width - 1, y + height - 1, BUTTON_SHADOW);
+            graphics.fill(x + 2, y + 2, x + width - 1, y + height - 1, fill);
+        } else {
+            graphics.fill(x, y, x + width, y + height, BUTTON_SHADOW);
+            graphics.fill(x, y, x + width - 1, y + height - 1, BUTTON_HIGHLIGHT);
+            graphics.fill(x + 1, y + 1, x + width - 2, y + height - 2, fill);
         }
     }
 
@@ -117,17 +138,15 @@ final class ConfigPanel {
     }
 
     static void drawSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_DIVIDER);
-        graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_HIGHLIGHT);
+        graphics.fill(x - 1, y - 1, x + 16, y + 16, SLOT_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
-        graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
     }
 
     static void drawLockedSlotBackground(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_LOCKED_DIVIDER);
-        graphics.fill(x, y, x + 17, y + 17, SLOT_LOCKED_SHADOW);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_LOCKED_HIGHLIGHT);
+        graphics.fill(x - 1, y - 1, x + 16, y + 16, SLOT_LOCKED_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_LOCKED_FILL);
-        graphics.fill(x, y, x + 16, y + 1, SLOT_LOCKED_HIGHLIGHT);
     }
 
     static String yesNo(boolean value) {

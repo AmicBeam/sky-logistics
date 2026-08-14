@@ -48,9 +48,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FACE_BUTTON_WIDTH = 30;
     private static final int FACE_BUTTON_HEIGHT = 28;
     private static final int FACE_BUTTON_STEP = 29;
-    private static final int FACE_SELECTED_FILL = 0xFF24152E;
-    private static final int FACE_SELECTED_BORDER = 0xFFC78CFF;
-    private static final int FACE_SELECTED_MARK = 0xFFE2C2FF;
+    private static final int FACE_SELECTED_FILL = ConfigPanel.BUTTON_SELECTED_SOFT;
+    private static final int FACE_SELECTED_BORDER = ConfigPanel.BORDER_ACTIVE;
+    private static final int FACE_SELECTED_MARK = ConfigPanel.INSERT_ACCENT;
     private static final int RESOURCE_GROUP_Y = 48;
     private static final int RESOURCE_CONTROL_Y = 55;
     private static final int RESOURCE_GROUP_X = 5;
@@ -132,7 +132,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
@@ -299,7 +299,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         SkyNodeBlockEntity node = node();
-        graphics.text(font, title, 10, 7, ConfigPanel.ACCENT, false);
+        graphics.text(font, title, 10, 7, ConfigPanel.TEXT, false);
         if (node == null) {
             graphics.text(font, Component.translatable("screen.skylogistics.missing_node"),
                     10, 28, ConfigPanel.MUTED, false);
@@ -308,7 +308,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         Component externalExtractHint = externalExtractHint(node, selectedFace);
         if (externalExtractHint != null) {
             graphics.text(font, externalExtractHint, imageWidth - 10 - font.width(externalExtractHint), 7,
-                    0xFFFF9A8A, false);
+                    0xFFB84343, false);
         }
         int lineIndex = menu.getLineIndex() + 1;
         int lineCount = Math.max(1, menu.getLineCount());
@@ -334,12 +334,12 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 SLOT_LIMIT_GROUP_X + SLOT_LIMIT_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         if (!node.hasExactQuantityUpgrade()) graphics.centeredText(font,
                 slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
-                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
+                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.FIELD_TEXT);
         graphics.centeredText(font, Component.translatable("screen.skylogistics.priority"),
                 PRIORITY_GROUP_X + PRIORITY_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         graphics.centeredText(font, Component.literal(String.valueOf(node.getPriority(face))),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2,
-                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.TEXT);
+                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.FIELD_TEXT);
         int slotLegendY = menu.screenY(UPGRADE_FILTER_GROUP_Y) - 4;
         graphics.centeredText(font, Component.translatable("screen.skylogistics.upgrade_slots"),
                 UPGRADE_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
@@ -591,8 +591,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     private int colorFor(NodeFaceMode mode) {
         return switch (mode) {
-            case INPUT -> 0xFFFFB56B;
-            case OUTPUT -> 0xFF7DEBFF;
+            case INPUT -> ConfigPanel.EXTRACT_ACCENT;
+            case OUTPUT -> ConfigPanel.INSERT_ACCENT;
             case NONE -> ConfigPanel.MUTED;
         };
     }
@@ -788,8 +788,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
-            int accent = mode == NodeFaceMode.INPUT ? 0xFFFFA52D
-                    : mode == NodeFaceMode.OUTPUT ? 0xFF36B4D2 : ConfigPanel.BORDER_ACTIVE;
+            int accent = mode == NodeFaceMode.INPUT ? ConfigPanel.EXTRACT_ACCENT
+                    : mode == NodeFaceMode.OUTPUT ? ConfigPanel.INSERT_ACCENT : ConfigPanel.BORDER_ACTIVE;
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
             int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
             if (mode == NodeFaceMode.NONE) {
