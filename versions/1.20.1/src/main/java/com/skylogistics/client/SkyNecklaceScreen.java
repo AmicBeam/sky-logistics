@@ -453,15 +453,17 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             int accent = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? 0xFFFFA52D
                     : mode == SkyNecklaceItem.NecklaceMode.INSERT ? 0xFF36B4D2 : MAINTAIN_ACCENT;
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
+            net.minecraft.client.gui.Font buttonFont = Minecraft.getInstance().font;
+            int contentX = getX() + (width - 20 - buttonFont.width(getMessage())) / 2;
             int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
             if (mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
-                ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2,
+                ConfigPanel.drawResourceIcon(graphics, contentX, getY() + 2,
                         selected ? "auto_purple" : "auto", selected);
             } else {
-                drawModeArrow(graphics, getX() + 2, getY() + 2,
+                drawModeArrow(graphics, contentX, getY() + 2,
                         mode == SkyNecklaceItem.NecklaceMode.EXTRACT, iconColor);
             }
-            graphics.drawString(Minecraft.getInstance().font, getMessage(), getX() + 22,
+            graphics.drawString(buttonFont, getMessage(), contentX + 20,
                     getY() + 7, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
         }
 
