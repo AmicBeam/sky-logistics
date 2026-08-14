@@ -792,14 +792,14 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasItemHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasItemTargets();
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasItemTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide)
                 .map(handler -> handler.getSlots() > 0)
                 .orElse(false);
     }
 
     private static boolean hasFluidHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasFluidTargets();
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasFluidTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide)
                 .map(handler -> handler.getTanks() > 0)
                 .orElse(false);
@@ -814,7 +814,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasEnergyHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasEnergyTargets();
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasEnergyTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.ENERGY, accessSide)
                 .map(SkyNodeBlockEntity::isUsableEnergyStorage)
                 .orElse(false);

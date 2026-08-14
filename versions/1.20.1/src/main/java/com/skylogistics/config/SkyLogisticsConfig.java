@@ -120,7 +120,6 @@ public final class SkyLogisticsConfig {
     public static boolean enableDistributorItems() { return SERVER.enableDistributorItems.get(); }
     public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
-    public static boolean distributorSearchAllSides() { return SERVER.distributorSearchAllSides.get(); }
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
 
@@ -340,7 +339,6 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableDistributorItems;
         public final ForgeConfigSpec.BooleanValue enableDistributorFluids;
         public final ForgeConfigSpec.BooleanValue enableDistributorEnergy;
-        public final ForgeConfigSpec.BooleanValue distributorSearchAllSides;
         public final ForgeConfigSpec.IntValue distributorMaxTargets;
         public final ForgeConfigSpec.IntValue distributorOpsPerTick;
         public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
@@ -523,9 +521,6 @@ public final class SkyLogisticsConfig {
             enableDistributorEnergy = builder
                     .comment("Whether Celestial Distributors proxy and distribute energy storage.")
                     .define("enableEnergy", true);
-            distributorSearchAllSides = builder
-                    .comment("Whether Celestial Distributors may search every face of a container instead of inheriting the face used to reach it.")
-                    .define("searchAllSides", false);
             distributorMaxTargets = builder
                     .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.")
                     .defineInRange("maxTargets", 16, 1, 64);

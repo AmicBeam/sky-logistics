@@ -63,9 +63,9 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     public static boolean hasCapability(Level level, BlockPos pos, Direction side, SimplePipeType type) {
         if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) {
             return switch (type) {
-                case ITEM -> distributor.hasItemTargets();
-                case FLUID -> distributor.hasFluidTargets();
-                case ENERGY -> distributor.hasEnergyTargets();
+                case ITEM -> distributor.hasItemTargets(side);
+                case FLUID -> distributor.hasFluidTargets(side);
+                case ENERGY -> distributor.hasEnergyTargets(side);
             };
         }
         return switch (type) {

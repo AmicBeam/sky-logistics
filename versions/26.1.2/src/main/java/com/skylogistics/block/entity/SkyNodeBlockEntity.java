@@ -793,7 +793,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private boolean hasItemHandler(BlockPos targetPos, Direction accessSide) {
         if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasItemTargets();
+            return distributor.hasItemTargets(accessSide);
         }
         ResourceHandler<ItemResource> handler = level.getCapability(Capabilities.Item.BLOCK, targetPos, accessSide);
         return handler != null && handler.size() > 0;
@@ -801,7 +801,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private boolean hasFluidHandler(BlockPos targetPos, Direction accessSide) {
         if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasFluidTargets();
+            return distributor.hasFluidTargets(accessSide);
         }
         ResourceHandler<FluidResource> handler = level.getCapability(Capabilities.Fluid.BLOCK, targetPos, accessSide);
         return handler != null && handler.size() > 0;
@@ -817,7 +817,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {
         if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasEnergyTargets();
+            return distributor.hasEnergyTargets(accessSide);
         }
         EnergyHandler storage = level.getCapability(Capabilities.Energy.BLOCK, targetPos, accessSide);
         return storage != null && isUsableEnergyStorage(TransferCompat.energyStorage(storage));

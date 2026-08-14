@@ -10,11 +10,11 @@ item_ids:
 
 # Celestial Distributor
 
-The Celestial Distributor is a zero-buffer item, fluid, and energy routing proxy used only by Sky Logistics simple pipes and logistics nodes. It exposes no general Forge/NeoForge capabilities, so vanilla hoppers and third-party pipes do not connect. Starting from its six neighbors, it follows containers whose contacting face is valid and inherits the access face used to reach each container. Servers may enable `[distributor].searchAllSides` to scan every face and select any available one. Air, ordinary blocks, capability-free block entities, and other distributors stop the search. It exposes at most 16 targets by default; servers can set `[distributor].maxTargets` from 1 to 64.
+The Celestial Distributor is a zero-buffer item, fluid, and energy routing proxy used only by Sky Logistics simple pipes and logistics nodes. It exposes no general Forge/NeoForge capabilities, so vanilla hoppers and third-party pipes do not connect. Starting from its six neighbors, it follows containers only. Every bound container is queried through the same face used by the pipe or node to access the distributor; BFS paths and cursors never change that face. Air, ordinary blocks, blocks without a usable capability on that inherited face, and other distributors stop the search. It exposes at most 16 targets by default; servers can set `[distributor].maxTargets` from 1 to 64.
 
 Incoming resources are divided as evenly as possible among targets that can accept them. A rotating cursor maintains fairness when node or pipe budgets split a transfer across ticks. Extraction aggregates every target without requiring an even split.
 
-Placement immediately runs one BFS and splits its result into immutable item, fluid, and energy target caches. Neighbor changes invalidate them immediately, while a 100-tick lazy safety validation handles capability changes. Item, fluid, and energy proxying can each be disabled in the server config.
+Each actually connected face has its own target cache. Placement prewarms only faces that already have an adjacent Sky Logistics pipe or node; other faces scan lazily on first use, avoiding six unconditional BFS runs. Neighbor changes invalidate every face cache, while a 100-tick lazy safety validation handles capability changes. Changing faces discards face-specific transient plans without resetting the distributor's shared per-tick operation budget. Item, fluid, and energy proxying can each be disabled in the server config.
 
 Simulation builds a bounded transfer plan and execution reuses it without scanning again. `[distributor].opsPerTick` limits target and internal-slot probes per distributor; unused resources remain at the source and the network continues from its cursor on a later tick.
 

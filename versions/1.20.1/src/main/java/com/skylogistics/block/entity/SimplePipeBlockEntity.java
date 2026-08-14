@@ -65,9 +65,9 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         }
         if (target instanceof SkyDistributorBlockEntity distributor) {
             return switch (type) {
-                case ITEM -> distributor.hasItemTargets();
-                case FLUID -> distributor.hasFluidTargets();
-                case ENERGY -> distributor.hasEnergyTargets();
+                case ITEM -> distributor.hasItemTargets(side);
+                case FLUID -> distributor.hasFluidTargets(side);
+                case ENERGY -> distributor.hasEnergyTargets(side);
             };
         }
         return switch (type) {
