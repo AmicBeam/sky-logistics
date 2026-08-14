@@ -118,14 +118,14 @@ final class ConfigPanel {
     }
 
     static void drawSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_DIVIDER);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_DIVIDER);
         graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
         graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
     }
 
     static void drawLockedSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_LOCKED_DIVIDER);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_LOCKED_DIVIDER);
         graphics.fill(x, y, x + 17, y + 17, SLOT_LOCKED_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_LOCKED_FILL);
         graphics.fill(x, y, x + 16, y + 1, SLOT_LOCKED_HIGHLIGHT);
