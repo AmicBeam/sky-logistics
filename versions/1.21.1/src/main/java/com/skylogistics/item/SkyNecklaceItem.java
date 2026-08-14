@@ -55,15 +55,13 @@ public class SkyNecklaceItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
-        NecklaceMode mode = mode(stack);
         tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.mode",
-                Component.translatable(mode.translationKey())).withStyle(
-                        mode == NecklaceMode.MAINTAIN ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.AQUA));
+                Component.translatable(mode(stack).translationKey())).withStyle(ChatFormatting.AQUA));
         if (config == null) {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.unbound").withStyle(ChatFormatting.GRAY));
         } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.line", config.lineName())
-                    .withStyle(ChatFormatting.GRAY));
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         ItemStack filter = filterList(stack);
         if (filter.isEmpty()) {
@@ -86,7 +84,7 @@ public class SkyNecklaceItem extends Item {
         }
         if (hasExactQuantityUpgrade(stack)) {
             tooltip.add(Component.translatable("tooltip.skylogistics.sky_necklace.exact_quantity",
-                    exactQuantity(stack)).withStyle(ChatFormatting.GRAY));
+                    exactQuantity(stack)).withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         if (!filter.isEmpty()) {
             FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);

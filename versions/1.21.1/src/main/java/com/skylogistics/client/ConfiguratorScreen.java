@@ -404,8 +404,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             int priorityX = DETAIL_X + 94;
             int redstoneX = DETAIL_X + 124;
             int locationX = DETAIL_X + 151;
-            graphics.drawString(font, Component.translatable(entry.mode().translationKey()),
-                    modeX, y + 4, modeColor(entry.mode()), false);
+            graphics.drawString(font, detailMode(entry), modeX, y + 4, modeColor(entry), false);
             graphics.drawString(font, resourceFlags(entry), resourceX, y + 4, ConfigPanel.TEXT, false);
             graphics.drawCenteredString(font, Component.literal(String.valueOf(entry.priority())),
                     priorityX + 14, y + 4, ConfigPanel.TEXT);
@@ -451,7 +450,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         String displayName = entry.displayName().isEmpty() || isSkyNecklaceEntry(entry)
                 ? ""
                 : entry.displayName() + " ";
-        return Component.translatable(entry.mode().translationKey()).getString() + " "
+        return detailMode(entry).getString() + " "
                 + displayName + resourceFlags(entry) + " P" + entry.priority() + " "
                 + Component.translatable(entry.redstoneControl().translationKey()).getString();
     }
@@ -568,7 +567,17 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return icon;
     }
 
-    private int modeColor(NodeFaceMode mode) {
+    private Component detailMode(ConfiguratorLineDetailsPacket.Entry entry) {
+        return Component.translatable(entry.maintainMode()
+                ? "screen.skylogistics.sky_necklace.mode.maintain"
+                : entry.mode().translationKey());
+    }
+
+    private int modeColor(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (entry.maintainMode()) {
+            return 0xFFB65CFF;
+        }
+        NodeFaceMode mode = entry.mode();
         return switch (mode) {
             case INPUT -> 0xFFFFB56B;
             case OUTPUT -> 0xFF7DEBFF;

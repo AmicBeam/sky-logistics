@@ -181,6 +181,7 @@ public final class SkyNecklaceTicker {
         String textureValue = texture == null ? "" : texture.getValue();
         String textureSignature = texture != null && texture.hasSignature() ? texture.getSignature() : "";
         BlockPos pos = player.blockPosition().immutable();
+        boolean maintainMode = mode == SkyNecklaceItem.NecklaceMode.MAINTAIN;
         NodeFaceMode faceMode = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? NodeFaceMode.INPUT
                 : mode == SkyNecklaceItem.NecklaceMode.INSERT ? NodeFaceMode.OUTPUT : NodeFaceMode.NONE;
         Object dimensionKey = player.level().dimension();
@@ -191,12 +192,13 @@ public final class SkyNecklaceTicker {
                 && cachedDetail.profileTexture().equals(textureValue)
                 && cachedDetail.profileTextureSignature().equals(textureSignature)
                 && cachedDetail.pos().equals(pos) && cachedDetail.mode() == faceMode
+                && cachedDetail.maintainMode() == maintainMode
                 && cachedDetail.priority() == priority) {
             return cachedDetail;
         }
         String dimension = player.level().dimension().location().toString();
         ActiveNecklaceDetail detail = new ActiveNecklaceDetail(profile.getId(), profile.getName(), textureValue,
-                textureSignature, dimension, pos, faceMode, priority);
+                textureSignature, dimension, pos, faceMode, maintainMode, priority);
         PLAYER_DETAILS.put(profile.getId(), new PlayerDetailCache(dimensionKey, detail));
         return detail;
     }
@@ -711,7 +713,7 @@ public final class SkyNecklaceTicker {
 
     public record ActiveNecklaceDetail(UUID profileId, String playerName, String profileTexture,
                                        String profileTextureSignature, String dimension, BlockPos pos,
-                                       NodeFaceMode mode, int priority) {
+                                       NodeFaceMode mode, boolean maintainMode, int priority) {
     }
 
     private static final class PlayerMainInventoryHandler implements IItemHandler {

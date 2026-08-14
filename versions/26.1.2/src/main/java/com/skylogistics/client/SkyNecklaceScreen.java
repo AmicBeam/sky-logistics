@@ -427,7 +427,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
             graphics.centeredText(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, mode == SkyNecklaceItem.NecklaceMode.MAINTAIN ? 0xFFB65CFF : ConfigPanel.TEXT);
+                    getY() + 6, ConfigPanel.TEXT);
         }
 
         @Override
