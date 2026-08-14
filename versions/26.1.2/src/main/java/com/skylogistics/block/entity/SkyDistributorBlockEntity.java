@@ -26,6 +26,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedFluids fluids = new DistributedFluids();
     private final DistributedEnergy energy = new DistributedEnergy();
     private TargetCache targetCache = TargetCache.EMPTY;
+    private List<TargetSnapshot> highlightSnapshot = List.of();
     private boolean targetsDirty = true;
     private long nextRescan;
     private int itemInsertCursor;
@@ -45,6 +46,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     public void refreshTargets() {
         if (level == null) return;
         targetCache = discoverTargets();
+        highlightSnapshot = createTargetSnapshot(targetCache);
         targetsDirty = false;
         nextRescan = level.getGameTime() + RESCAN_INTERVAL;
     }
@@ -131,6 +133,21 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     public ItemHandler itemHandler() { return SkyLogisticsConfig.enableDistributorItems() ? items : null; }
     public FluidHandler fluidHandler() { return SkyLogisticsConfig.enableDistributorFluids() ? fluids : null; }
     public EnergyStorage energyHandler() { return SkyLogisticsConfig.enableDistributorEnergy() ? energy : null; }
+
+    public List<TargetSnapshot> targetSnapshot() {
+        targets();
+        return highlightSnapshot;
+    }
+
+    private static List<TargetSnapshot> createTargetSnapshot(TargetCache cache) {
+        java.util.LinkedHashMap<BlockPos, Integer> masks = new java.util.LinkedHashMap<>();
+        cache.items.forEach(target -> masks.merge(target.pos, 1, (left, right) -> left | right));
+        cache.fluids.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
+        cache.energy.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
+        return masks.entrySet().stream().map(entry -> new TargetSnapshot(entry.getKey(), entry.getValue())).toList();
+    }
+
+    public record TargetSnapshot(BlockPos pos, int resourceMask) {}
 
     private record Target(BlockPos pos, Direction itemSide, Direction fluidSide, Direction energySide,
             boolean items, boolean fluids, boolean energy) {

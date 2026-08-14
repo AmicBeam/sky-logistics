@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -37,6 +38,10 @@ public final class ModNetworking {
         registrar.playToClient(LineNamePacket.TYPE, LineNamePacket.STREAM_CODEC, LineNamePacket::handle);
         registrar.playToServer(TagFilterEditPacket.TYPE, TagFilterEditPacket.STREAM_CODEC,
                 TagFilterEditPacket::handle);
+        registrar.playToServer(DistributorTargetsRequestPacket.TYPE, DistributorTargetsRequestPacket.STREAM_CODEC,
+                DistributorTargetsRequestPacket::handle);
+        registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
+                DistributorTargetsPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -53,6 +58,10 @@ public final class ModNetworking {
 
     public static void sendLineRename(String lineName) {
         ClientPacketDistributor.sendToServer(new LineRenamePacket(lineName));
+    }
+
+    public static void requestDistributorTargets(BlockPos distributorPos) {
+        ClientPacketDistributor.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {

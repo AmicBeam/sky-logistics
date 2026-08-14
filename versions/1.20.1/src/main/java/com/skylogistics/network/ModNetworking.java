@@ -2,6 +2,7 @@ package com.skylogistics.network;
 
 import com.skylogistics.SkyLogistics;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -40,6 +41,10 @@ public final class ModNetworking {
                 LineNamePacket::handle);
         CHANNEL.registerMessage(8, TagFilterEditPacket.class, TagFilterEditPacket::encode,
                 TagFilterEditPacket::decode, TagFilterEditPacket::handle);
+        CHANNEL.registerMessage(9, DistributorTargetsRequestPacket.class, DistributorTargetsRequestPacket::encode,
+                DistributorTargetsRequestPacket::decode, DistributorTargetsRequestPacket::handle);
+        CHANNEL.registerMessage(10, DistributorTargetsPacket.class, DistributorTargetsPacket::encode,
+                DistributorTargetsPacket::decode, DistributorTargetsPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -48,6 +53,10 @@ public final class ModNetworking {
 
     public static void sendLineRename(String lineName) {
         CHANNEL.sendToServer(new LineRenamePacket(lineName));
+    }
+
+    public static void requestDistributorTargets(BlockPos distributorPos) {
+        CHANNEL.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
