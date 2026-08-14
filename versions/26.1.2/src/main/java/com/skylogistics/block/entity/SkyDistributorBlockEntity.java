@@ -28,6 +28,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedFluids[] fluids = new DistributedFluids[Direction.values().length];
     private final DistributedEnergy[] energy = new DistributedEnergy[Direction.values().length];
     private final TargetCache[] targetCaches = new TargetCache[Direction.values().length];
+    private final DiscoveryState[] targetDiscoveries = new DiscoveryState[Direction.values().length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
     private final boolean[] targetsDirty = new boolean[Direction.values().length];
     private final long[] nextRescan = new long[Direction.values().length];
@@ -79,6 +80,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
     public void invalidateTargets() {
         Arrays.fill(targetsDirty, true);
+        Arrays.fill(targetDiscoveries, null);
         clearTransientCaches();
     }
 
@@ -95,6 +97,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void refreshTargets(Direction side) {
         int index = side.ordinal();
         TargetCache cache = discoverTargets(side);
+        if (cache == null) {
+            nextRescan[index] = level.getGameTime() + 1L;
+            return;
+        }
         boolean resetScan = selectedSide != side || !cache.equals(targetCaches[index]);
         targetCaches[index] = cache;
         targetsDirty[index] = false;
@@ -117,31 +123,32 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private TargetCache discoverTargets(Direction inheritedSide) {
         int maxTargets = SkyLogisticsConfig.distributorMaxTargets();
-        List<Target> itemTargets = new ArrayList<>(maxTargets);
-        List<Target> fluidTargets = new ArrayList<>(maxTargets);
-        List<Target> energyTargets = new ArrayList<>(maxTargets);
-        int found = 0;
-        ArrayDeque<BlockPos> queue = new ArrayDeque<>();
-        Set<BlockPos> visited = new HashSet<>();
-        Set<BlockPos> discovered = new HashSet<>();
-        for (Direction direction : Direction.values())
-            queue.add(worldPosition.relative(direction));
-        while (!queue.isEmpty() && found < maxTargets) {
-            BlockPos pos = queue.removeFirst();
-            if (!visited.add(pos) || discovered.contains(pos) || !level.hasChunkAt(pos)) continue;
+        int index = inheritedSide.ordinal();
+        DiscoveryState scan = targetDiscoveries[index];
+        if (scan == null || scan.maxTargets != maxTargets) {
+            scan = new DiscoveryState(maxTargets);
+            for (Direction direction : Direction.values()) scan.queue.add(worldPosition.relative(direction));
+            targetDiscoveries[index] = scan;
+        }
+        while (!scan.queue.isEmpty() && scan.found < maxTargets) {
+            if (!takeOperation()) return null;
+            BlockPos pos = scan.queue.removeFirst();
+            if (!scan.visited.add(pos) || scan.discovered.contains(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity == null || blockEntity instanceof SkyDistributorBlockEntity) continue;
             Target target = inspect(pos, inheritedSide);
             if (!target.usable()) continue;
-            discovered.add(pos);
-            found++;
-            if (target.items) itemTargets.add(target);
-            if (target.fluids) fluidTargets.add(target);
-            if (target.energy) energyTargets.add(target);
+            scan.discovered.add(pos);
+            scan.found++;
+            if (target.items) scan.itemTargets.add(target);
+            if (target.fluids) scan.fluidTargets.add(target);
+            if (target.energy) scan.energyTargets.add(target);
             for (Direction direction : Direction.values())
-                queue.addLast(pos.relative(direction));
+                scan.queue.addLast(pos.relative(direction));
         }
-        return new TargetCache(List.copyOf(itemTargets), List.copyOf(fluidTargets), List.copyOf(energyTargets));
+        targetDiscoveries[index] = null;
+        return new TargetCache(List.copyOf(scan.itemTargets), List.copyOf(scan.fluidTargets),
+                List.copyOf(scan.energyTargets));
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
@@ -282,6 +289,24 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private record TargetCache(List<Target> items, List<Target> fluids, List<Target> energy) {
         private static final TargetCache EMPTY = new TargetCache(List.of(), List.of(), List.of());
+    }
+
+    private static final class DiscoveryState {
+        private final int maxTargets;
+        private final List<Target> itemTargets;
+        private final List<Target> fluidTargets;
+        private final List<Target> energyTargets;
+        private final ArrayDeque<BlockPos> queue = new ArrayDeque<>();
+        private final Set<BlockPos> visited = new HashSet<>();
+        private final Set<BlockPos> discovered = new HashSet<>();
+        private int found;
+
+        private DiscoveryState(int maxTargets) {
+            this.maxTargets = maxTargets;
+            itemTargets = new ArrayList<>(maxTargets);
+            fluidTargets = new ArrayList<>(maxTargets);
+            energyTargets = new ArrayList<>(maxTargets);
+        }
     }
 
     private record ItemMove(int target, int slot, int amount) {}

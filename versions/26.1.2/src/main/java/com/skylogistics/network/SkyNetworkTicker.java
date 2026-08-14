@@ -46,6 +46,10 @@ import net.neoforged.neoforge.fluids.FluidStack;
 public final class SkyNetworkTicker {
     private static final Map<CachedEndpoint, LongItemEndpointCache> LONG_ITEM_ENDPOINTS = new WeakHashMap<>();
     private static final Map<CachedEndpoint, LongFluidEndpointCache> LONG_FLUID_ENDPOINTS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, ExactItemScan> SOURCE_EXACT_ITEM_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, ExactItemScan> TARGET_EXACT_ITEM_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, SlotLimitScan> SOURCE_SLOT_LIMIT_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, SlotLimitScan> TARGET_SLOT_LIMIT_SCANS = new WeakHashMap<>();
 
     private SkyNetworkTicker() {
     }
@@ -53,6 +57,10 @@ public final class SkyNetworkTicker {
     public static void clear() {
         LONG_ITEM_ENDPOINTS.clear();
         LONG_FLUID_ENDPOINTS.clear();
+        SOURCE_EXACT_ITEM_SCANS.clear();
+        TARGET_EXACT_ITEM_SCANS.clear();
+        SOURCE_SLOT_LIMIT_SCANS.clear();
+        TARGET_SLOT_LIMIT_SCANS.clear();
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
@@ -333,11 +341,22 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
-        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceNode, sourceEndpoint.direction(), source,
-                budget);
+        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceEndpoint, source, budget);
         int operations = extractionSlotLimit.checks();
         if (!extractionSlotLimit.complete()) return operations;
         if (extractionSlotLimit.blocked()) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return operations;
+        }
+        ExactItemScanResult exactScan = scanExactItems(sourceEndpoint, source,
+                Math.max(0, budget - operations), SOURCE_EXACT_ITEM_SCANS);
+        operations += exactScan.checks();
+        if (!exactScan.complete()) return operations;
+        int exactExcess = exactScan.total() < 0L ? -1
+                : (int)Math.min(Integer.MAX_VALUE,
+                        Math.max(0L, exactScan.total() - ((SkyNodeBlockEntity)sourceNode).exactQuantity()));
+        if (exactExcess == 0) {
+            SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemFailure(gameTime);
             return operations;
         }
@@ -374,8 +393,6 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordItemSlotRejected(slot, gameTime);
                 continue;
             }
-            int exactExcess = exactExtractionExcess(sourceNode, sourceEndpoint.direction(), source);
-            if (exactExcess == 0) continue;
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
@@ -388,6 +405,10 @@ public final class SkyNetworkTicker {
                 movedFromHotPath = true;
                 successfulSlot = slot;
             }
+            if (exactExcess >= 0) {
+                SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
+                return operations;
+            }
         }
         if (movedFromHotPath && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
@@ -395,6 +416,7 @@ public final class SkyNetworkTicker {
                     successfulSlot, budget - operations);
         }
         if (!foundCandidate) {
+            if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
         }
         return operations;
@@ -811,47 +833,58 @@ public final class SkyNetworkTicker {
         return firstTriedSlot == slot || secondTriedSlot == slot;
     }
 
-    private static SlotLimitCheck checkExtractionSlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
-            ItemHandler source, int checkBudget) {
-        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) return SlotLimitCheck.ALLOWED;
-        int limit = node.getItemSlotLimit(direction);
-        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
-        int matchingSlots = 0;
+    private static SlotLimitCheck checkExtractionSlotLimit(CachedEndpoint endpoint, ItemHandler source,
+            int checkBudget) {
+        NetworkEndpointBlockEntity node = endpoint.node();
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) {
+            SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
+            return SlotLimitCheck.ALLOWED;
+        }
+        int limit = node.getItemSlotLimit(endpoint.direction());
+        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) {
+            SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
+            return SlotLimitCheck.ALLOWED;
+        }
         int checks = 0;
         int slots = source.getSlots();
-        // A partial scan cannot safely be resumed because ordinary handlers expose no mutation version.
-        // Bypass the optional limit when a complete proof does not fit instead of rescanning slot zero forever.
-        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
-        for (int slot = 0; slot < slots; slot++) {
+        SlotLimitScan scan = SOURCE_SLOT_LIMIT_SCANS.get(endpoint);
+        if (scan == null || !scan.matches(slots, limit, null)) {
+            scan = new SlotLimitScan(slots, limit, null);
+            SOURCE_SLOT_LIMIT_SCANS.put(endpoint, scan);
+        }
+        while (scan.nextSlot < slots && checks < checkBudget) {
+            int slot = scan.nextSlot++;
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
-            if (!stack.isEmpty() && node.allowsItem(direction, stack) && ++matchingSlots > limit) {
+            if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack) && ++scan.matchingSlots > limit) {
+                SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
                 return new SlotLimitCheck(false, checks, true);
             }
         }
+        if (scan.nextSlot < slots) return new SlotLimitCheck(false, checks, false);
+        SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
         return new SlotLimitCheck(true, checks, true);
     }
 
-    private static int exactExtractionExcess(NetworkEndpointBlockEntity endpoint,
-            net.minecraft.core.Direction direction, ItemHandler handler) {
-        if (!(endpoint instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) return -1;
-        long total = 0L;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack stack = handler.getStackInSlot(slot);
-            if (!stack.isEmpty() && node.allowsItem(direction, stack)) total += stack.getCount();
+    private static ExactItemScanResult scanExactItems(CachedEndpoint endpoint, ItemHandler handler, int budget,
+            Map<CachedEndpoint, ExactItemScan> scans) {
+        if (!(endpoint.node() instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) {
+            scans.remove(endpoint);
+            return ExactItemScanResult.NOT_CONFIGURED;
         }
-        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, total - node.exactQuantity()));
-    }
-
-    private static int exactInsertionRemaining(NetworkEndpointBlockEntity endpoint,
-            net.minecraft.core.Direction direction, ItemHandler handler) {
-        if (!(endpoint instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) return -1;
-        long total = 0L;
-        for (int slot = 0; slot < handler.getSlots(); slot++) {
-            ItemStack stack = handler.getStackInSlot(slot);
-            if (!stack.isEmpty() && node.allowsItem(direction, stack)) total += stack.getCount();
+        int slots = handler.getSlots();
+        ExactItemScan scan = scans.computeIfAbsent(endpoint, ignored -> new ExactItemScan(slots));
+        if (scan.slots != slots) {
+            scan = new ExactItemScan(slots);
+            scans.put(endpoint, scan);
         }
-        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, (long) node.exactQuantity() - total));
+        int checks = 0;
+        while (scan.nextSlot < slots && checks < budget) {
+            ItemStack stack = handler.getStackInSlot(scan.nextSlot++);
+            checks++;
+            if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack)) scan.total += stack.getCount();
+        }
+        return new ExactItemScanResult(scan.nextSlot >= slots, scan.total, checks);
     }
 
     private static SlotLimitCheck checkInsertionSlotLimit(CachedEndpoint endpoint, ItemHandler target,
@@ -864,25 +897,34 @@ public final class SkyNetworkTicker {
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
-        int matchingSlots = 0;
         int checks = 0;
-        boolean canRefill = false;
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
         int slots = target.getSlots();
-        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
-        for (int slot = 0; slot < slots; slot++) {
+        ItemStackKey candidateKey = ItemStackKey.of(candidate);
+        SlotLimitScan scan = TARGET_SLOT_LIMIT_SCANS.get(endpoint);
+        if (scan == null || !scan.matches(slots, limit, candidateKey)) {
+            scan = new SlotLimitScan(slots, limit, candidateKey);
+            TARGET_SLOT_LIMIT_SCANS.put(endpoint, scan);
+        }
+        while (scan.nextSlot < slots && checks < checkBudget) {
+            int slot = scan.nextSlot++;
             checks++;
             ItemStack existing = target.getStackInSlot(slot);
             if (existing.isEmpty() || !node.allowsItem(direction, existing)) continue;
-            matchingSlots++;
-            if (!canRefill && !probe.isEmpty() && StackData.sameItemAndComponents(existing, candidate)
+            scan.matchingSlots++;
+            if (!scan.canRefill && !probe.isEmpty() && StackData.sameItemAndComponents(existing, candidate)
                     && target.insertItem(slot, probe, true).getCount() < probe.getCount()) {
-                canRefill = true;
+                scan.canRefill = true;
             }
-            if (matchingSlots >= limit && canRefill) return new SlotLimitCheck(false, checks, true);
+            if (scan.matchingSlots >= limit && scan.canRefill) {
+                TARGET_SLOT_LIMIT_SCANS.remove(endpoint);
+                return new SlotLimitCheck(false, checks, true);
+            }
         }
-        return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks, true);
+        if (scan.nextSlot < slots) return new SlotLimitCheck(false, checks, false);
+        TARGET_SLOT_LIMIT_SCANS.remove(endpoint);
+        return new SlotLimitCheck(scan.matchingSlots >= limit && !scan.canRefill, checks, true);
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, ItemHandler source, int slot, ItemStack simulated,
@@ -984,7 +1026,19 @@ public final class SkyNetworkTicker {
                     break targetLoop;
                 }
                 if (slotLimitCheck.blocked()) continue;
-                int exactRemaining = exactInsertionRemaining(targetEndpoint.node(), targetEndpoint.direction(), target);
+                ExactItemScanResult exactScan = scanExactItems(targetEndpoint, target,
+                        Math.max(1, budget - operations + 1), TARGET_EXACT_ITEM_SCANS);
+                operations += Math.max(0, exactScan.checks() - 1);
+                if (!exactScan.complete()) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                int exactRemaining = exactScan.total() < 0L ? -1
+                        : (int)Math.min(Integer.MAX_VALUE,
+                                Math.max(0L, (long)((SkyNodeBlockEntity)targetEndpoint.node()).exactQuantity()
+                                        - exactScan.total()));
+                TARGET_EXACT_ITEM_SCANS.remove(targetEndpoint);
                 if (exactRemaining == 0) continue;
                 ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
                         ? simulated.copyWithCount(exactRemaining) : simulated;
@@ -2904,6 +2958,39 @@ public final class SkyNetworkTicker {
     }
 
     private record MoveResult(boolean moved, int operations) {
+    }
+
+    private static final class ExactItemScan {
+        private final int slots;
+        private int nextSlot;
+        private long total;
+
+        private ExactItemScan(int slots) {
+            this.slots = slots;
+        }
+    }
+
+    private record ExactItemScanResult(boolean complete, long total, int checks) {
+        private static final ExactItemScanResult NOT_CONFIGURED = new ExactItemScanResult(true, -1L, 0);
+    }
+
+    private static final class SlotLimitScan {
+        private final int slots;
+        private final int limit;
+        private final ItemStackKey candidate;
+        private int nextSlot;
+        private int matchingSlots;
+        private boolean canRefill;
+
+        private SlotLimitScan(int slots, int limit, ItemStackKey candidate) {
+            this.slots = slots;
+            this.limit = limit;
+            this.candidate = candidate;
+        }
+
+        private boolean matches(int slots, int limit, ItemStackKey candidate) {
+            return this.slots == slots && this.limit == limit && java.util.Objects.equals(this.candidate, candidate);
+        }
     }
 
     private static FluidStack copyWithAmount(FluidStack stack, int amount) {

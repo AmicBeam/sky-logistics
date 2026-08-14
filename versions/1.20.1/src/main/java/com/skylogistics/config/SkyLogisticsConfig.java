@@ -537,7 +537,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum inventory, backpack, or network item slots one Sky Necklace may scan each work tick.")
                     .defineInRange("skyNecklaceSlotScansPerTick", 64, 1, 1_000_000);
             skyNecklaceTargetAttemptsPerWork = builder
-                    .comment("Maximum logistics output endpoints one Sky Necklace may attempt during one work interval.")
+                    .comment("Maximum logistics endpoints one Sky Necklace may visit during one work interval (outputs while extracting, inputs while inserting).")
                     .defineInRange("skyNecklaceTargetAttemptsPerWork", 1, 1, 1_000_000);
             builder.pop();
 
