@@ -25,9 +25,14 @@
       "text": "维度升级卡也装在节点升级槽里，只需要装在抽取端。装好后，它可以把资源送到其它维度里同线路的存入端。目标位置必须已经被游戏加载；太远或无人活动时，会暂时跳过。"
     },
     {
+      "type": "patchouli:text",
+      "text": "精确数量升级可装入节点或天穹项链。安装后，槽数设置会变成 1–2147483647 的物品数量。节点抽取面会保留过滤规则匹配物品的设定总数，存入面只补足到设定总数；项链的抽取、存入和维持模式也会按白名单匹配物品的总数工作。"
+    },
+    {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "text": "速度升级卡可以在工作台中合成。"
+      "recipe2": "skylogistics:exact_quantity_upgrade",
+      "text": "速度升级卡和精确数量升级都可以在工作台中合成。"
     },
     {
       "type": "patchouli:text",
