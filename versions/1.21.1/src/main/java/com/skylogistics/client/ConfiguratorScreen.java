@@ -57,9 +57,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_HEADER_HEIGHT = 12;
     private static final int DETAIL_VISIBLE_ROWS = 4;
     private static final int DETAIL_ICON_X = DETAIL_X + 6;
+    private static final int DETAIL_FOOTER_Y = DETAIL_Y + DETAIL_HEIGHT + 1;
     private static final int CONTROL_START_X = 12;
     private static final int CONTROL_STEP_X = 60;
     private static final int RESOURCE_BUTTON_WIDTH = 56;
+    private static final int RESOURCE_CONTROL_Y = 188;
     private static final int CONTROL_LEFT_WIDTH = 64;
     private static final int BOTTOM_CONTROL_Y = 223;
     private static final int BOTTOM_CONTROL_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
@@ -113,10 +115,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
 
-        addTypeButton(leftPos + CONTROL_START_X, topPos + 184, ResourceType.ITEMS);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + 184, ResourceType.FLUIDS);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + 184, ResourceType.ENERGY);
-        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + 184, ResourceType.AUTO);
+        addTypeButton(leftPos + CONTROL_START_X, topPos + RESOURCE_CONTROL_Y, ResourceType.ITEMS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + RESOURCE_CONTROL_Y, ResourceType.FLUIDS);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 2, topPos + RESOURCE_CONTROL_Y, ResourceType.ENERGY);
+        addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X * 3, topPos + RESOURCE_CONTROL_Y, ResourceType.AUTO);
         redstoneButton = addRenderableWidget(new RedstoneButton(leftPos + 15, topPos + BOTTOM_CONTROL_Y));
         addSlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
         addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
@@ -240,6 +242,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
                 214, 55, ConfigPanel.MUTED);
         renderLineDetails(graphics, config);
+        graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.offhand_applies"),
+                DETAIL_X, DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
                 47, 212, ConfigPanel.MUTED);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.slot_limit"),
@@ -373,7 +377,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             int last = Math.min(entries.size(), detailScroll + DETAIL_VISIBLE_ROWS);
             Component range = Component.literal((detailScroll + 1) + "-" + last + "/" + entries.size());
             graphics.drawString(font, range, DETAIL_X + DETAIL_WIDTH - 3 - font.width(range),
-                    DETAIL_Y + DETAIL_HEIGHT + 1, ConfigPanel.MUTED, false);
+                    DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
         }
         if (entries.isEmpty()) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.line_faces_empty"),

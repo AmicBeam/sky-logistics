@@ -143,6 +143,7 @@
   "button.skylogistics.basic": "Basic",
   "screen.skylogistics.search": "Search",
   "screen.skylogistics.configurator.unbound": "Unbound. Use New Line to create a line.",
+  "screen.skylogistics.configurator.offhand_applies": "Offhand applies:",
   "screen.skylogistics.line_name": "Line Name",
   "screen.skylogistics.line_index": "Line Index %s/%s",
   "screen.skylogistics.line_monitor": "Nodes %s / Extract %s / Insert %s",
