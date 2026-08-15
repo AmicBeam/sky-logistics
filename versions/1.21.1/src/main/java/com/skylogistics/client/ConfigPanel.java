@@ -118,8 +118,9 @@ final class ConfigPanel {
     }
 
     static void drawResourceIcon(GuiGraphics graphics, int x, int y, String name, boolean selected) {
+        boolean useColoredIcon = selected || name.equals("item") || name.equals("fluid") || name.equals("energy");
         ResourceLocation texture = ResourceLocation.fromNamespaceAndPath("skylogistics",
-                "textures/gui/configurator/resource_" + name + (selected ? "" : "_off") + "_small.png");
+                "textures/gui/configurator/resource_" + name + (useColoredIcon ? "" : "_off") + "_small.png");
         graphics.blit(texture, x, y, 0, 0, 18, 17, 18, 17);
     }
 
