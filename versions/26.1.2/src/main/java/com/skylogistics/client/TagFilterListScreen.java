@@ -487,7 +487,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             boolean selected = selectedTagSlot == slot;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected || isHoveredOrFocused());
             String prefix = (slot + 1) + ". ";
             String tag = menu.getTag(slot, editingFluid);
             String text = prefix + (tag.isBlank() ? "-" : "#" + tag);

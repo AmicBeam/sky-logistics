@@ -704,7 +704,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -731,7 +731,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfiguratorItem.ToolConfig config = config();
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             drawRedstoneIcon(graphics, getX() + 5, getY(), control);
             graphics.drawString(font, Component.translatable(control.translationKey()),
                     getX() + 23, getY() + 4, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
@@ -764,7 +764,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -796,7 +796,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -845,7 +845,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height,
-                    active, enabled, ConfigPanel.RESOURCE_ACCENT);
+                    active, isHoveredOrFocused(), enabled, ConfigPanel.RESOURCE_ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), enabled);
             graphics.drawString(font, getMessage(), getX() + 25, getY() + 6,
                     enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED, false);

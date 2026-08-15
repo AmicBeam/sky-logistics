@@ -1,12 +1,13 @@
 package com.skylogistics.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.util.AmountFormatter;
 import com.skylogistics.util.RedstoneControl;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -25,10 +26,6 @@ final class ConfigPanel {
     static final int MAINTAIN_ACCENT = 0xFF75658F;
     static final int PANEL = 0xFFB6B6B6;
     static final int PANEL_SOFT = 0x99B6B6B6;
-    static final int BUTTON = 0xFF9E9E9E;
-    static final int BUTTON_DISABLED = 0xFF858585;
-    static final int BUTTON_SELECTED = 0xFF8FB8BE;
-    static final int BUTTON_SELECTED_SOFT = 0xFFA9BFC2;
     static final int BORDER_DIM = 0xFF777777;
     static final int SLOT_SHADOW = 0xFF373737;
     static final int SLOT_FILL = 0xFF8B8B8B;
@@ -36,10 +33,10 @@ final class ConfigPanel {
     static final int STEPPER_HEIGHT = 17;
     private static final int PANEL_HIGHLIGHT = 0xFFFFFFFF;
     private static final int PANEL_SHADOW = 0xFF555555;
-    private static final int BUTTON_OUTLINE = 0xFF202020;
-    private static final int BUTTON_EDGE = 0xFFD8D8D8;
-    private static final int BUTTON_HIGHLIGHT = 0xFFF0F0F0;
-    private static final int BUTTON_SHADOW = 0xFF555555;
+    private static final WidgetSprites VANILLA_BUTTON_SPRITES = new WidgetSprites(
+            ResourceLocation.withDefaultNamespace("widget/button"),
+            ResourceLocation.withDefaultNamespace("widget/button_disabled"),
+            ResourceLocation.withDefaultNamespace("widget/button_highlighted"));
     private static final int SLOT_LOCKED_SHADOW = 0xFF555555;
     private static final int SLOT_LOCKED_FILL = 0xFF707070;
     private static final int SLOT_HIGHLIGHT = 0xFFFFFFFF;
@@ -106,9 +103,8 @@ final class ConfigPanel {
     }
 
     static void drawImageButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
-            boolean active, boolean selected, int selectedBorder) {
-        int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
-        drawBeveledButton(graphics, x, y, width, height, fill, selected);
+            boolean active, boolean highlighted, boolean selected, int selectedBorder) {
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted);
         if (selected) {
             graphics.fill(x + 1, y + 1, x + width - 1, y + 2, selectedBorder);
             graphics.fill(x + 1, y + 1, x + 2, y + height - 1, selectedBorder);
@@ -122,25 +118,17 @@ final class ConfigPanel {
     }
 
     static void drawButtonChrome(GuiGraphics graphics, int x, int y, int width, int height,
-            boolean active, boolean selected) {
-        int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
-        drawBeveledButton(graphics, x, y, width, height, fill, selected);
-        if (selected) {
-            graphics.fill(x + 2, y + height - 2, x + width - 2, y + height - 1, BORDER_ACTIVE);
-        }
+            boolean active, boolean highlighted) {
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted);
     }
 
-    private static void drawBeveledButton(GuiGraphics graphics, int x, int y, int width, int height,
-            int fill, boolean emphasized) {
-        // Vanilla-style stone button: dark outline, bright raised top/left edge,
-        // medium face, then a deep bottom/right edge. Selected buttons keep the
-        // same raised silhouette and communicate state through their face color.
-        graphics.fill(x, y, x + width, y + height, BUTTON_OUTLINE);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1,
-                emphasized ? BUTTON_HIGHLIGHT : BUTTON_EDGE);
-        graphics.fill(x + 2, y + 2, x + width - 2, y + height - 2, fill);
-        graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, BUTTON_SHADOW);
-        graphics.fill(x + width - 3, y + 2, x + width - 2, y + height - 2, BUTTON_SHADOW);
+    private static void drawVanillaButton(GuiGraphics graphics, int x, int y, int width, int height,
+            boolean active, boolean highlighted) {
+        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableBlend();
+        RenderSystem.enableDepthTest();
+        graphics.blitSprite(VANILLA_BUTTON_SPRITES.get(active, highlighted), x, y, width, height);
+        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     static void drawBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {
@@ -185,9 +173,7 @@ final class ConfigPanel {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, active ? TEXT : MUTED);
+            super.renderWidget(graphics, mouseX, mouseY, partialTick);
         }
 
         @Override
@@ -213,9 +199,7 @@ final class ConfigPanel {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + (height - 8) / 2, active ? TEXT : MUTED);
+            super.renderWidget(graphics, mouseX, mouseY, partialTick);
         }
 
         @Override

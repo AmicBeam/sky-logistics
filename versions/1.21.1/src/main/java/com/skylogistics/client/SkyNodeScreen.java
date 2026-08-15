@@ -48,8 +48,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FACE_BUTTON_WIDTH = 30;
     private static final int FACE_BUTTON_HEIGHT = 28;
     private static final int FACE_BUTTON_STEP = 29;
-    private static final int FACE_SELECTED_FILL = ConfigPanel.BUTTON_SELECTED_SOFT;
-    private static final int FACE_SELECTED_BORDER = ConfigPanel.BORDER_ACTIVE;
     private static final int FACE_SELECTED_MARK = ConfigPanel.INSERT_ACCENT;
     private static final int RESOURCE_GROUP_Y = 48;
     private static final int RESOURCE_CONTROL_Y = 55;
@@ -704,10 +702,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = direction == selectedFace;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active,
+                    selected || isHoveredOrFocused());
             if (selected) {
-                ConfigPanel.drawBox(graphics, getX(), getY(), width, height,
-                        FACE_SELECTED_FILL, FACE_SELECTED_BORDER);
                 graphics.fill(getX() + 1, getY() + 1, getX() + 3, getY() + height - 1,
                         FACE_SELECTED_MARK);
             }
@@ -756,7 +753,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -795,7 +792,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
             int accent = mode == NodeFaceMode.INPUT ? ConfigPanel.EXTRACT_ACCENT
                     : mode == NodeFaceMode.OUTPUT ? ConfigPanel.INSERT_ACCENT : ConfigPanel.BORDER_ACTIVE;
-            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, selected, accent);
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused(), selected, accent);
             int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
             if (mode == NodeFaceMode.NONE) {
                 drawDisabledModeIcon(graphics, getX() + 2, getY() + 2, iconColor);
@@ -829,7 +826,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             Component message = node == null ? getMessage() : dynamicMessage(node);
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             ConfigPanel.drawCenteredText(graphics, font, message, getX() + width / 2, getY() + (height - 8) / 2,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
@@ -861,7 +858,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
             if (node == null) {
                 return;
             }
@@ -964,8 +961,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean enabled = node != null && active && isEnabled(node);
-            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, enabled,
-                    ConfigPanel.ACCENT);
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
+                    isHoveredOrFocused(), enabled, ConfigPanel.ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, resourceName(), enabled);
             graphics.drawString(font, compactText(getMessage()), getX() + 20, getY() + 7,
                     enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
