@@ -149,7 +149,7 @@
   "screen.skylogistics.line_faces_empty": "无已加载连接面",
   "screen.skylogistics.resource_short.items": "物",
   "screen.skylogistics.resource_short.fluids": "流",
-  "screen.skylogistics.resource_short.energy": "电",
+  "screen.skylogistics.resource_short.energy": "能",
   "screen.skylogistics.mode": "模式：%s",
   "screen.skylogistics.types": "物品 %s / 流体 %s / 能量 %s",
   "screen.skylogistics.configurator_redstone": "红石：%s",
