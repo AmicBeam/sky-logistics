@@ -213,71 +213,40 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     }
 
     private void renderControlIcons(GuiGraphicsExtractor graphics) {
-        drawSegmentGroup(graphics, whitelistAllowButton);
-        drawSegmentState(graphics, whitelistAllowButton, menu.isWhitelist(), COLOR_ALLOW);
-        drawSegmentState(graphics, whitelistDenyButton, !menu.isWhitelist(), COLOR_DENY);
-        drawSegmentDivider(graphics, whitelistAllowButton);
+        drawSegmentButton(graphics, whitelistAllowButton, menu.isWhitelist(), COLOR_ALLOW);
+        drawSegmentButton(graphics, whitelistDenyButton, !menu.isWhitelist(), COLOR_DENY);
         drawWhitelistIcon(graphics, whitelistAllowButton, true, menu.isWhitelist());
         drawWhitelistIcon(graphics, whitelistDenyButton, false, !menu.isWhitelist());
 
-        drawSegmentGroup(graphics, nbtIgnoreButton);
-        drawSegmentState(graphics, nbtIgnoreButton, !menu.matchNbt(), ConfigPanel.MUTED);
-        drawSegmentState(graphics, nbtMatchButton, menu.matchNbt(), ConfigPanel.ACCENT);
-        drawSegmentDivider(graphics, nbtIgnoreButton);
+        drawSegmentButton(graphics, nbtIgnoreButton, !menu.matchNbt(), ConfigPanel.BORDER_ACTIVE);
+        drawSegmentButton(graphics, nbtMatchButton, menu.matchNbt(), ConfigPanel.INSERT_ACCENT);
         drawNbtIcon(graphics, nbtIgnoreButton, false, !menu.matchNbt());
         drawNbtIcon(graphics, nbtMatchButton, true, menu.matchNbt());
 
-        drawSegmentGroup(graphics, durabilityIgnoreButton);
-        drawSegmentState(graphics, durabilityIgnoreButton, !menu.matchDurability(), ConfigPanel.MUTED);
-        drawSegmentState(graphics, durabilityMatchButton, menu.matchDurability(), ConfigPanel.ACCENT);
-        drawSegmentDivider(graphics, durabilityIgnoreButton);
+        drawSegmentButton(graphics, durabilityIgnoreButton, !menu.matchDurability(), ConfigPanel.BORDER_ACTIVE);
+        drawSegmentButton(graphics, durabilityMatchButton, menu.matchDurability(), ConfigPanel.INSERT_ACCENT);
         drawDurabilityIcon(graphics, durabilityIgnoreButton, false, !menu.matchDurability());
         drawDurabilityIcon(graphics, durabilityMatchButton, true, menu.matchDurability());
 
         drawClearIcon(graphics, clearButton);
     }
 
-    private static void drawSegmentGroup(GuiGraphicsExtractor graphics, AbstractButton leftButton) {
-        if (leftButton == null) {
-            return;
-        }
-        int x = leftButton.getX();
-        int y = leftButton.getY();
-        graphics.fill(x, y, x + SEGMENT_GROUP_WIDTH, y + 1, ConfigPanel.BORDER_DIM);
-        graphics.fill(x, y + 19, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER_DIM);
-        graphics.fill(x, y, x + 1, y + 20, ConfigPanel.BORDER_DIM);
-        graphics.fill(x + SEGMENT_GROUP_WIDTH - 1, y, x + SEGMENT_GROUP_WIDTH, y + 20, ConfigPanel.BORDER_DIM);
-    }
-
-    private static void drawSegmentState(GuiGraphicsExtractor graphics, AbstractButton button, boolean selected, int color) {
+    private static void drawSegmentButton(GuiGraphicsExtractor graphics, AbstractButton button, boolean selected, int color) {
         if (button == null) {
             return;
         }
-        if (selected) {
-            int fill = 0x33000000 | (color & 0x00FFFFFF);
-            graphics.fill(button.getX() + 2, button.getY() + 2, button.getX() + SEGMENT_WIDTH - 2,
-                    button.getY() + 18, fill);
-            graphics.fill(button.getX() + 3, button.getY() + 17, button.getX() + SEGMENT_WIDTH - 3,
-                    button.getY() + 18, color);
-        }
-    }
-
-    private static void drawSegmentDivider(GuiGraphicsExtractor graphics, AbstractButton leftButton) {
-        if (leftButton == null) {
-            return;
-        }
-        int x = leftButton.getX() + SEGMENT_WIDTH;
-        graphics.fill(x - 1, leftButton.getY() + 3, x, leftButton.getY() + 17, 0x80344954);
+        ConfigPanel.drawImageButtonChrome(graphics, button.getX(), button.getY(), button.getWidth(),
+                button.getHeight(), button.active, button.isHovered(), selected, color);
     }
 
     private static void drawWhitelistIcon(GuiGraphicsExtractor graphics, AbstractButton button, boolean allow, boolean selected) {
         if (button == null) {
             return;
         }
-        int color = selected ? (allow ? COLOR_ALLOW : COLOR_DENY) : ConfigPanel.MUTED;
+        int color = ConfigPanel.buttonTextColor(button.active);
         int x = button.getX();
         int y = button.getY();
-        int listColor = selected ? color : ConfigPanel.MUTED;
+        int listColor = color;
         graphics.fill(x + 5, y + 5, x + 13, y + 6, listColor);
         graphics.fill(x + 5, y + 9, x + 12, y + 10, listColor);
         graphics.fill(x + 5, y + 13, x + 11, y + 14, listColor);
@@ -292,7 +261,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         if (button == null) {
             return;
         }
-        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : ConfigPanel.MUTED;
+        int color = ConfigPanel.buttonTextColor(button.active);
         int x = button.getX();
         int y = button.getY();
         graphics.fill(x + 6, y + 4, x + 14, y + 5, color);
@@ -302,7 +271,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         graphics.fill(x + 8, y + 8, x + 12, y + 9, color);
         graphics.fill(x + 8, y + 11, x + 12, y + 12, color);
         if (!enabled) {
-            drawSlash(graphics, x, y, COLOR_DENY);
+            drawSlash(graphics, x, y, color);
         }
     }
 
@@ -310,7 +279,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         if (button == null) {
             return;
         }
-        int color = selected ? (enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED) : ConfigPanel.MUTED;
+        int color = ConfigPanel.buttonTextColor(button.active);
         int x = button.getX();
         int y = button.getY();
         graphics.fill(x + 7, y + 4, x + 13, y + 5, color);
@@ -319,7 +288,7 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         graphics.fill(x + 6, y + 15, x + 14, y + 16, color);
         graphics.fill(x + 8, y + 10, x + 12, y + 14, color);
         if (!enabled) {
-            drawSlash(graphics, x, y, COLOR_DENY);
+            drawSlash(graphics, x, y, color);
         }
     }
 
@@ -329,9 +298,10 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
         }
         int x = button.getX();
         int y = button.getY();
-        drawSlash(graphics, x, y, COLOR_DENY);
+        int color = ConfigPanel.buttonTextColor(button.active);
+        drawSlash(graphics, x, y, color);
         for (int offset = 0; offset < 8; offset++) {
-            graphics.fill(x + 6 + offset, y + 5 + offset, x + 8 + offset, y + 7 + offset, COLOR_DENY);
+            graphics.fill(x + 6 + offset, y + 5 + offset, x + 8 + offset, y + 7 + offset, color);
         }
     }
 

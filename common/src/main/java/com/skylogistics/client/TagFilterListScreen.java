@@ -7,7 +7,6 @@ import com.skylogistics.network.ModNetworking;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -46,7 +45,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private AbstractButton whitelistAllowButton;
     private AbstractButton whitelistDenyButton;
     private AbstractButton clearButton;
-    private Button resourceButton;
+    private AbstractButton resourceButton;
     private EditBox tagEdit;
     private int selectedTagSlot;
     private boolean tagEditWasFocused;
@@ -83,8 +82,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
                 topPos + CONTROL_Y, SEGMENT_WIDTH, Component.empty(), MenuAction.FILTER_SET_BLACKLIST));
         clearButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH * 2 + 8,
                 topPos + CONTROL_Y, ACTION_BUTTON_SIZE, Component.empty(), MenuAction.FILTER_CLEAR));
-        resourceButton = addRenderableWidget(Button.builder(resourceButtonText(), button -> toggleResource())
-                .bounds(leftPos + RESOURCE_BUTTON_X, topPos + CONTROL_Y, 44, 20).build());
+        resourceButton = addRenderableWidget(ConfigPanel.button(leftPos + RESOURCE_BUTTON_X, topPos + CONTROL_Y,
+                44, 20, resourceButtonText(), this::toggleResource));
         refreshEdit(false);
     }
 
@@ -119,9 +118,9 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.tag_filter_list.sample"),
-                31, 17, ConfigPanel.MUTED, false);
+                31, 17, ConfigPanel.TEXT, false);
         graphics.drawString(font, Component.translatable("screen.skylogistics.tag_filter_list.tags"),
-                TAG_PANEL_X, TAG_PANEL_Y - 10, ConfigPanel.MUTED, false);
+                TAG_PANEL_X, TAG_PANEL_Y - 10, ConfigPanel.TEXT, false);
     }
 
     @Override
@@ -303,7 +302,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
                 graphics.fill(x + 1, rowY, x + EDIT_WIDTH - 1, rowY + DROPDOWN_ROW_HEIGHT, 0x553A8D99);
             }
             graphics.drawString(font, trimToWidth("#" + options.get(index), EDIT_WIDTH - 8),
-                    x + 4, rowY + 2, hovered ? ConfigPanel.ACCENT : ConfigPanel.TEXT, false);
+                    x + 4, rowY + 2, ConfigPanel.TEXT, false);
         }
     }
 
@@ -331,10 +330,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     }
 
     private void renderControlIcons(GuiGraphics graphics) {
-        drawSegmentGroup(graphics, whitelistAllowButton);
-        drawSegmentState(graphics, whitelistAllowButton, menu.isWhitelist(), COLOR_ALLOW);
-        drawSegmentState(graphics, whitelistDenyButton, !menu.isWhitelist(), COLOR_DENY);
-        drawSegmentDivider(graphics, whitelistAllowButton);
+        drawSegmentButton(graphics, whitelistAllowButton, menu.isWhitelist(), COLOR_ALLOW);
+        drawSegmentButton(graphics, whitelistDenyButton, !menu.isWhitelist(), COLOR_DENY);
         drawWhitelistIcon(graphics, whitelistAllowButton, true, menu.isWhitelist());
         drawWhitelistIcon(graphics, whitelistDenyButton, false, !menu.isWhitelist());
         drawClearIcon(graphics, clearButton);
@@ -353,42 +350,19 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         refreshEdit(true);
     }
 
-    private static void drawSegmentGroup(GuiGraphics graphics, AbstractButton leftButton) {
-        if (leftButton == null) {
+    private static void drawSegmentButton(GuiGraphics graphics, AbstractButton button, boolean selected, int color) {
+        if (button == null) {
             return;
         }
-        int x = leftButton.getX();
-        int y = leftButton.getY();
-        graphics.fill(x, y, x + SEGMENT_WIDTH * 2, y + 1, ConfigPanel.BORDER_DIM);
-        graphics.fill(x, y + 19, x + SEGMENT_WIDTH * 2, y + 20, ConfigPanel.BORDER_DIM);
-        graphics.fill(x, y, x + 1, y + 20, ConfigPanel.BORDER_DIM);
-        graphics.fill(x + SEGMENT_WIDTH * 2 - 1, y, x + SEGMENT_WIDTH * 2, y + 20, ConfigPanel.BORDER_DIM);
-    }
-
-    private static void drawSegmentState(GuiGraphics graphics, AbstractButton button, boolean selected, int color) {
-        if (button == null || !selected) {
-            return;
-        }
-        int fill = 0x33000000 | (color & 0x00FFFFFF);
-        graphics.fill(button.getX() + 2, button.getY() + 2, button.getX() + SEGMENT_WIDTH - 2,
-                button.getY() + 18, fill);
-        graphics.fill(button.getX() + 3, button.getY() + 17, button.getX() + SEGMENT_WIDTH - 3,
-                button.getY() + 18, color);
-    }
-
-    private static void drawSegmentDivider(GuiGraphics graphics, AbstractButton leftButton) {
-        if (leftButton == null) {
-            return;
-        }
-        int x = leftButton.getX() + SEGMENT_WIDTH;
-        graphics.fill(x - 1, leftButton.getY() + 3, x, leftButton.getY() + 17, 0x80344954);
+        ConfigPanel.drawImageButtonChrome(graphics, button.getX(), button.getY(), button.getWidth(),
+                button.getHeight(), button.active, button.isHovered(), selected, color);
     }
 
     private static void drawWhitelistIcon(GuiGraphics graphics, AbstractButton button, boolean allow, boolean selected) {
         if (button == null) {
             return;
         }
-        int color = selected ? (allow ? COLOR_ALLOW : COLOR_DENY) : ConfigPanel.MUTED;
+        int color = ConfigPanel.buttonTextColor(button.active);
         int x = button.getX();
         int y = button.getY();
         graphics.fill(x + 5, y + 5, x + 13, y + 6, color);
@@ -407,9 +381,10 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         int x = button.getX();
         int y = button.getY();
-        drawSlash(graphics, x, y, COLOR_DENY);
+        int color = ConfigPanel.buttonTextColor(button.active);
+        drawSlash(graphics, x, y, color);
         for (int offset = 0; offset < 8; offset++) {
-            graphics.fill(x + 6 + offset, y + 5 + offset, x + 8 + offset, y + 7 + offset, COLOR_DENY);
+            graphics.fill(x + 6 + offset, y + 5 + offset, x + 8 + offset, y + 7 + offset, color);
         }
     }
 
@@ -471,12 +446,20 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean selected = selectedTagSlot == slot;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
+            int border = selected ? ConfigPanel.BORDER_ACTIVE : isHovered() ? 0xFFFFFFFF : ConfigPanel.BORDER_DIM;
+            graphics.fill(getX(), getY(), getX() + width, getY() + 1, border);
+            graphics.fill(getX(), getY() + height - 1, getX() + width, getY() + height, border);
+            graphics.fill(getX(), getY(), getX() + 1, getY() + height, border);
+            graphics.fill(getX() + width - 1, getY(), getX() + width, getY() + height, border);
+            if (selected) {
+                graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1,
+                        ConfigPanel.INSERT_ACCENT);
+            }
             String prefix = (slot + 1) + ". ";
             String tag = menu.getTag(slot, editingFluid);
             String text = prefix + (tag.isBlank() ? "-" : "#" + tag);
             graphics.drawString(font, trimToWidth(text, width - 6), getX() + 3, getY() + 2,
-                    selected ? ConfigPanel.ACCENT : ConfigPanel.TEXT, false);
+                    selected ? 0xFFFFFFFF : ConfigPanel.TEXT, selected);
         }
 
         @Override
