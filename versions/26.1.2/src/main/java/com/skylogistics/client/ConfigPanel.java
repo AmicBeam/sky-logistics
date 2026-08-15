@@ -20,8 +20,8 @@ final class ConfigPanel {
     static final int TEXT = 0xFF000000;
     static final int FIELD_TEXT = 0xFFFFFFFF;
     static final int MUTED = 0xFF707070;
-    static final int ACCENT = 0xFF9C711C;
-    static final int RESOURCE_ACCENT = 0xFFB58A2E;
+    static final int ACCENT = BORDER_ACTIVE;
+    static final int RESOURCE_ACCENT = BORDER_ACTIVE;
     static final int EXTRACT_ACCENT = 0xFFB87524;
     static final int INSERT_ACCENT = 0xFF2F7F8C;
     static final int MAINTAIN_ACCENT = 0xFF75658F;
