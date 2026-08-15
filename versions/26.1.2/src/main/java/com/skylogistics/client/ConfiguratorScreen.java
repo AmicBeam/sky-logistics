@@ -788,7 +788,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private enum ResourceType {
         ITEMS("button.skylogistics.items"),
         FLUIDS("button.skylogistics.fluids"),
-        ENERGY("button.skylogistics.energy"),
+        ENERGY("button.skylogistics.energy_short"),
         AUTO("screen.skylogistics.configurator.auto");
 
         private final String translationKey;

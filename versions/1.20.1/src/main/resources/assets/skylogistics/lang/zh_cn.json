@@ -129,6 +129,7 @@
   "button.skylogistics.items": "物品",
   "button.skylogistics.fluids": "流体",
   "button.skylogistics.energy": "能量",
+  "button.skylogistics.energy_short": "能量",
   "button.skylogistics.auto_detect": "自动检测",
   "button.skylogistics.none": "无",
   "button.skylogistics.insert": "存入",
