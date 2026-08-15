@@ -452,7 +452,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            graphics.centeredText(font, getMessage(), getX() + width / 2, getY() + 6,
+            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 6,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 

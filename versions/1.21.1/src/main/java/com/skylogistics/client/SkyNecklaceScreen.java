@@ -213,27 +213,27 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             graphics.drawString(font, lineNameLabel,
                     LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
                     LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
-            graphics.drawCenteredString(font, Component.literal(lineIndex + "/" + lineCount),
+            ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount),
                     LINE_COUNT_CENTER_X, 28, ConfigPanel.TEXT);
         }
         int slotLegendY = UPGRADE_FILTER_GROUP_Y - 4;
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.upgrade_slots"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.upgrade_slots"),
                 UPGRADE_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.filter_slot"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.filter_slot"),
                 FILTER_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.mode_label"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.mode_label"),
                 MODE_GROUP_X + MODE_GROUP_WIDTH / 2, MODE_GROUP_Y - 4, ConfigPanel.MUTED);
         Component slotLegend = Component.translatable(SkyNecklaceItem.hasExactQuantityUpgrade(stack)
                 ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit");
-        graphics.drawCenteredString(font, slotLegend,
+        ConfigPanel.drawCenteredText(graphics, font, slotLegend,
                 SLOT_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
         if (!SkyNecklaceItem.hasExactQuantityUpgrade(stack)) {
-            graphics.drawCenteredString(font, SkyNecklaceItem.insertSlotsDisplay(stack),
+            ConfigPanel.drawCenteredText(graphics, font, SkyNecklaceItem.insertSlotsDisplay(stack),
                     SLOT_VALUE_X + SLOT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         }
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.priority"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.priority"),
                 PRIORITY_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
+        ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         if (!SkyNecklaceItem.hasValidItemWhitelist(stack)) {
             Component warning = Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist");
@@ -419,7 +419,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
                     getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -519,7 +519,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
                     getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -559,7 +559,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
                     getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 

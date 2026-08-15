@@ -229,7 +229,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         graphics.drawString(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
                 LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
-        graphics.drawCenteredString(font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.nodes", menu.getLineNodes()),
                 46, 55, ConfigPanel.MUTED);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.extract", menu.getLineInputs()),
@@ -237,15 +237,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
                 214, 55, ConfigPanel.MUTED);
         renderLineDetails(graphics, config);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.redstone"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
                 47, 212, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.slot_limit"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.slot_limit"),
                 127, 212, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, slotLimitDisplay(config.slotLimit()),
+        ConfigPanel.drawCenteredText(graphics, font, slotLimitDisplay(config.slotLimit()),
                 SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.priority"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.priority"),
                 210, 212, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.literal(String.valueOf(config.placement().priority())),
+        ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(config.placement().priority())),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
     }
 
@@ -267,7 +267,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void drawCenteredLabel(GuiGraphics graphics, Component label, int centerX, int y, int color) {
-        graphics.drawCenteredString(font, label, centerX, y, color);
+        ConfigPanel.drawCenteredText(graphics, font, label, centerX, y, color);
     }
 
     @Override
@@ -404,7 +404,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             int locationX = DETAIL_X + 151;
             graphics.drawString(font, detailMode(entry), modeX, y + 4, modeColor(entry), false);
             graphics.drawString(font, resourceFlags(entry), resourceX, y + 4, ConfigPanel.TEXT, false);
-            graphics.drawCenteredString(font, Component.literal(String.valueOf(entry.priority())),
+            ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(entry.priority())),
                     priorityX + 14, y + 4, ConfigPanel.TEXT);
             drawRedstoneIcon(graphics, redstoneX + 6, y + 2, entry.redstoneControl());
             graphics.drawString(font, trimToWidth(pos(entry.targetPos()), DETAIL_WIDTH - 155),
@@ -416,17 +416,17 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void renderDetailHeader(GuiGraphics graphics) {
         int y = DETAIL_Y + 2;
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.device"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.device"),
                 DETAIL_X + 14, y, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.mode"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.mode"),
                 DETAIL_X + 38, y, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.resources"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.resources"),
                 DETAIL_X + 72, y, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.priority"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.priority"),
                 DETAIL_X + 108, y, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.redstone"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.redstone"),
                 DETAIL_X + 137, y, ConfigPanel.MUTED);
-        graphics.drawCenteredString(font, Component.translatable("screen.skylogistics.detail.location"),
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.location"),
                 DETAIL_X + 197, y, ConfigPanel.MUTED);
         graphics.fill(DETAIL_X + 1, DETAIL_Y + DETAIL_HEADER_HEIGHT - 1,
                 DETAIL_X + DETAIL_WIDTH - 1, DETAIL_Y + DETAIL_HEADER_HEIGHT, ConfigPanel.BORDER_DIM);
@@ -705,7 +705,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 5,
+            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -765,7 +765,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 4,
+            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
@@ -797,7 +797,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(font, getMessage(), getX() + width / 2, getY() + 4,
+            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
                     active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
         }
 
