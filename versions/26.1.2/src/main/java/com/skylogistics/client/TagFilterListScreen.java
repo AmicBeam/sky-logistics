@@ -451,9 +451,9 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 6,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 6,
+                    active);
         }
 
         @Override
@@ -487,12 +487,13 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             boolean selected = selectedTagSlot == slot;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected || isHoveredOrFocused());
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
+                    isHovered(), selected, ConfigPanel.ACCENT);
             String prefix = (slot + 1) + ". ";
             String tag = menu.getTag(slot, editingFluid);
             String text = prefix + (tag.isBlank() ? "-" : "#" + tag);
             graphics.text(font, trimToWidth(text, width - 6), getX() + 3, getY() + 2,
-                    selected ? ConfigPanel.ACCENT : ConfigPanel.TEXT, false);
+                    ConfigPanel.buttonTextColor(active), true);
         }
 
         @Override

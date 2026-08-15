@@ -686,9 +686,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
+                    active);
         }
 
         @Override
@@ -713,10 +713,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             ConfiguratorItem.ToolConfig config = config();
             RedstoneControl control = config == null ? RedstoneControl.IGNORE : config.placement().redstoneControl();
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
             drawRedstoneIcon(graphics, getX() + 5, getY(), control);
             graphics.drawString(font, Component.translatable(control.translationKey()),
-                    getX() + 23, getY() + 4, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    getX() + 23, getY() + 4, ConfigPanel.buttonTextColor(active), true);
         }
 
         @Override
@@ -746,9 +746,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
+                    active);
         }
 
         @Override
@@ -778,9 +778,9 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 4,
+                    active);
         }
 
         @Override
@@ -827,10 +827,10 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             boolean enabled = isEnabled();
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height,
-                    active, isHoveredOrFocused(), enabled, ConfigPanel.RESOURCE_ACCENT);
+                    active, isHovered(), enabled, ConfigPanel.RESOURCE_ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), enabled);
             graphics.drawString(font, getMessage(), getX() + 25, getY() + 6,
-                    enabled ? ConfigPanel.ACCENT : ConfigPanel.MUTED, false);
+                    ConfigPanel.buttonTextColor(active), true);
         }
 
         private String resourceName(ResourceType resource) {

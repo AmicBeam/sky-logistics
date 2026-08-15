@@ -3,6 +3,7 @@ package com.skylogistics.client;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.util.AmountFormatter;
 import com.skylogistics.util.RedstoneControl;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -11,13 +12,12 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
 
 final class ConfigPanel {
     static final int BG = 0xFFC6C6C6;
     static final int BORDER = 0xFF373737;
     static final int BORDER_ACTIVE = 0xFF3A8D99;
-    static final int TEXT = 0xFF404040;
+    static final int TEXT = 0xFF000000;
     static final int FIELD_TEXT = 0xFFFFFFFF;
     static final int MUTED = 0xFF707070;
     static final int ACCENT = 0xFF9C711C;
@@ -64,6 +64,15 @@ final class ConfigPanel {
         graphics.text(font, text, centerX - font.width(text) / 2, y, color, false);
     }
 
+    static int buttonTextColor(boolean active) {
+        return active ? 0xFFFFFFFF : 0xFFA0A0A0;
+    }
+
+    static void drawCenteredButtonText(GuiGraphicsExtractor graphics, Font font, Component text,
+            int centerX, int y, boolean active) {
+        graphics.text(font, text, centerX - font.width(text) / 2, y, buttonTextColor(active), true);
+    }
+
     static void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, BG);
         graphics.fill(x, y, x + width, y + 1, PANEL_HIGHLIGHT);
@@ -85,7 +94,6 @@ final class ConfigPanel {
     static void drawFieldset(GuiGraphicsExtractor graphics, int x, int y, int width, int legendWidth, int height) {
         int gapLeft = x + (width - legendWidth) / 2 - 3;
         int gapRight = gapLeft + legendWidth + 6;
-        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, PANEL);
         graphics.fill(x, y, gapLeft, y + 1, PANEL_SHADOW);
         graphics.fill(gapRight, y, x + width, y + 1, PANEL_SHADOW);
         graphics.fill(x, y, x + 1, y + height, PANEL_SHADOW);
@@ -107,11 +115,8 @@ final class ConfigPanel {
 
     static void drawImageButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
             boolean active, boolean highlighted, boolean selected, int selectedBorder) {
-        drawVanillaButton(graphics, x, y, width, height, active, highlighted);
-        if (selected) {
-            graphics.fill(x + 1, y + 1, x + width - 1, y + 2, selectedBorder);
-            graphics.fill(x + 1, y + 1, x + 2, y + height - 1, selectedBorder);
-        }
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted,
+                selected ? selectedBorder : 0xFFFFFFFF);
     }
 
     static void drawResourceIcon(GuiGraphicsExtractor graphics, int x, int y, String name, boolean selected) {
@@ -122,13 +127,13 @@ final class ConfigPanel {
 
     static void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
             boolean active, boolean highlighted) {
-        drawVanillaButton(graphics, x, y, width, height, active, highlighted);
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted, 0xFFFFFFFF);
     }
 
     private static void drawVanillaButton(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
-            boolean active, boolean highlighted) {
+            boolean active, boolean highlighted, int tint) {
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, VANILLA_BUTTON_SPRITES.get(active, highlighted),
-                x, y, width, height, ARGB.white(1.0F));
+                x, y, width, height, tint);
     }
 
     static void drawBox(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int fill, int border) {
@@ -173,8 +178,10 @@ final class ConfigPanel {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            extractDefaultSprite(graphics);
-            extractDefaultLabel(graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE));
+            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            Font font = Minecraft.getInstance().font;
+            graphics.text(font, getMessage(), getX() + (width - font.width(getMessage())) / 2,
+                    getY() + 6, buttonTextColor(active), true);
         }
 
         @Override
@@ -200,8 +207,10 @@ final class ConfigPanel {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            extractDefaultSprite(graphics);
-            extractDefaultLabel(graphics.textRendererForWidget(this, GuiGraphicsExtractor.HoveredTextEffects.NONE));
+            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            Font font = Minecraft.getInstance().font;
+            graphics.text(font, getMessage(), getX() + (width - font.width(getMessage())) / 2,
+                    getY() + (height - 8) / 2, buttonTextColor(active), true);
         }
 
         @Override

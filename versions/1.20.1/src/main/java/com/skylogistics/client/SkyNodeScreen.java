@@ -703,19 +703,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             boolean selected = direction == selectedFace;
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active,
-                    selected || isHoveredOrFocused());
-            if (selected) {
-                graphics.fill(getX() + 1, getY() + 1, getX() + 3, getY() + height - 1,
-                        FACE_SELECTED_MARK);
-            }
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
+                    isHovered(), selected, FACE_SELECTED_MARK);
             if (node != null) {
                 ItemStack icon = iconFor(node, direction);
                 if (!icon.isEmpty()) {
                     graphics.renderItem(icon, getX() + 9, getY() + 5);
                 }
                 graphics.drawString(font, faceShortName(direction), getX() + 4, getY() + 2,
-                        active ? (selected ? FACE_SELECTED_MARK : ConfigPanel.TEXT) : ConfigPanel.MUTED, false);
+                        ConfigPanel.buttonTextColor(active), true);
                 int modeColor = colorFor(modeFor(node, direction));
                 graphics.fill(getX() + 5, getY() + height - 5, getX() + width - 5, getY() + height - 3, modeColor);
             }
@@ -754,9 +750,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 5,
+                    active);
         }
 
         @Override
@@ -793,15 +789,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
             int accent = mode == NodeFaceMode.INPUT ? ConfigPanel.EXTRACT_ACCENT
                     : mode == NodeFaceMode.OUTPUT ? ConfigPanel.INSERT_ACCENT : ConfigPanel.BORDER_ACTIVE;
-            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused(), selected, accent);
-            int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHovered(), selected, accent);
+            int iconColor = ConfigPanel.buttonTextColor(active);
             if (mode == NodeFaceMode.NONE) {
                 drawDisabledModeIcon(graphics, getX() + 2, getY() + 2, iconColor);
             } else {
                 drawModeArrow(graphics, getX() + 2, getY() + 2, mode == NodeFaceMode.INPUT, iconColor);
             }
             graphics.drawString(font, compactText(getMessage()), getX() + 20, getY() + 7,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    ConfigPanel.buttonTextColor(active), true);
         }
 
         @Override
@@ -827,9 +823,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
             Component message = node == null ? getMessage() : dynamicMessage(node);
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, font, message, getX() + width / 2, getY() + (height - 8) / 2,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, message, getX() + width / 2, getY() + (height - 8) / 2,
+                    active);
         }
 
         @Override
@@ -859,13 +855,13 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             SkyNodeBlockEntity node = node();
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
             if (node == null) {
                 return;
             }
             ConfigPanel.drawRedstoneIcon(graphics, getX() + 5, getY(), node.getRedstoneControl(selectedFace));
             graphics.drawString(font, dynamicMessage(node), getX() + 23, getY() + 4,
-                    active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    ConfigPanel.buttonTextColor(active), true);
         }
     }
 
@@ -963,10 +959,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             SkyNodeBlockEntity node = node();
             boolean enabled = node != null && active && isEnabled(node);
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
-                    isHoveredOrFocused(), enabled, ConfigPanel.ACCENT);
+                    isHovered(), enabled, ConfigPanel.ACCENT);
             ConfigPanel.drawResourceIcon(graphics, getX() + 2, getY() + 2, resourceName(), enabled);
             graphics.drawString(font, compactText(getMessage()), getX() + 20, getY() + 7,
-                    enabled ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    ConfigPanel.buttonTextColor(active), true);
         }
 
         private String resourceName() {

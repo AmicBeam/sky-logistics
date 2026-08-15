@@ -411,9 +411,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override
@@ -446,10 +446,10 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             int accent = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? ConfigPanel.EXTRACT_ACCENT
                     : mode == SkyNecklaceItem.NecklaceMode.INSERT ? ConfigPanel.INSERT_ACCENT : MAINTAIN_ACCENT;
-            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused(), selected, accent);
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHovered(), selected, accent);
             net.minecraft.client.gui.Font buttonFont = Minecraft.getInstance().font;
             int contentX = getX() + (width - 20 - buttonFont.width(getMessage())) / 2;
-            int iconColor = active ? (selected ? accent : ConfigPanel.TEXT) : ConfigPanel.MUTED;
+            int iconColor = ConfigPanel.buttonTextColor(active);
             if (mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
                 ConfigPanel.drawResourceIcon(graphics, contentX, getY() + 2,
                         selected ? "auto_purple" : "auto", selected);
@@ -458,7 +458,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
                         mode == SkyNecklaceItem.NecklaceMode.EXTRACT, iconColor);
             }
             graphics.text(buttonFont, getMessage(), contentX + 20,
-                    getY() + 7, active ? ConfigPanel.TEXT : ConfigPanel.MUTED, false);
+                    getY() + 7, ConfigPanel.buttonTextColor(active), true);
         }
 
         @Override
@@ -511,9 +511,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override
@@ -551,9 +551,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            ConfigPanel.drawCenteredText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override
