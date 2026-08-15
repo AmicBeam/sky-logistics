@@ -29,6 +29,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int VISIBLE_CELLS = GRID_COLUMNS * GRID_ROWS;
     private static final int GRID_BOTTOM = GRID_Y + GRID_ROWS * CELL_SIZE;
     private static final int STATS_Y = GRID_BOTTOM + 10;
+    private static final int SLOT_HOVER = 0x80FFFFFF;
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.itemVault();
 
     private EditBox searchBox;
@@ -112,6 +113,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         List<ItemVaultBlockEntity.StoredItem> entries = filtered(vault);
         scrollRow = Math.min(scrollRow, maxScrollRow(entries.size()));
         int start = scrollRow * GRID_COLUMNS;
+        ItemVaultBlockEntity.StoredItem hovered = hoveredEntry(mouseX, mouseY);
         for (int visible = 0; visible < VISIBLE_CELLS && start + visible < entries.size(); visible++) {
             ItemVaultBlockEntity.StoredItem item = entries.get(start + visible);
             int column = visible % GRID_COLUMNS;
@@ -120,6 +122,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             int y = GRID_Y + row * CELL_SIZE;
             graphics.renderItem(item.stack(), x, y);
             renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x, y);
+            if (item == hovered) {
+                graphics.fill(x, y, x + 16, y + 16, SLOT_HOVER);
+            }
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
                 vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);
