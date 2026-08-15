@@ -147,6 +147,10 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (searchBox != null && searchBox.isFocused() && !searchBox.isMouseOver(mouseX, mouseY)) {
+            searchBox.setFocused(false);
+            setFocused(null);
+        }
         if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
             ItemVaultBlockEntity.StoredItem hovered = hoveredEntry(mouseX, mouseY);
             if (hovered != null || !menu.getCarried().isEmpty()) {

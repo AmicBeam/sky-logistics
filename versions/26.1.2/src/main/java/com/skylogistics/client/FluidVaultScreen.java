@@ -143,6 +143,10 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
+        if (searchBox != null && searchBox.isFocused() && !searchBox.isMouseOver(mouseX, mouseY)) {
+            searchBox.setFocused(false);
+            setFocused(null);
+        }
         if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
             FluidVaultBlockEntity.StoredFluid hovered = hoveredEntry(mouseX, mouseY);
             if (!menu.getCarried().isEmpty()) {

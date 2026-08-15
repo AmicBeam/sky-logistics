@@ -226,14 +226,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
         graphics.text(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
-                LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
+                LINE_NAME_LABEL_Y, ConfigPanel.TEXT, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.nodes", menu.getLineNodes()),
-                46, 55, ConfigPanel.MUTED);
+                46, 55, ConfigPanel.TEXT);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.extract", menu.getLineInputs()),
-                130, 55, ConfigPanel.MUTED);
+                130, 55, ConfigPanel.TEXT);
         drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
-                214, 55, ConfigPanel.MUTED);
+                214, 55, ConfigPanel.TEXT);
         renderLineDetails(graphics, config);
         graphics.text(font, Component.translatable("screen.skylogistics.configurator.offhand_applies"),
                 DETAIL_X, DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
@@ -418,12 +418,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     private void renderDetailHeader(GuiGraphicsExtractor graphics) {
         int y = DETAIL_Y + 2;
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.device"), DETAIL_X + 14, y, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.mode"), DETAIL_X + 38, y, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.resources"), DETAIL_X + 72, y, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.priority"), DETAIL_X + 108, y, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.redstone"), DETAIL_X + 137, y, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.location"), DETAIL_X + 197, y, ConfigPanel.MUTED);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.device"), DETAIL_X + 14, y, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.mode"), DETAIL_X + 38, y, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.resources"), DETAIL_X + 72, y, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.priority"), DETAIL_X + 108, y, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.redstone"), DETAIL_X + 137, y, ConfigPanel.TEXT);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.detail.location"), DETAIL_X + 197, y, ConfigPanel.TEXT);
         graphics.fill(DETAIL_X + 1, DETAIL_Y + DETAIL_HEADER_HEIGHT - 1,
                 DETAIL_X + DETAIL_WIDTH - 1, DETAIL_Y + DETAIL_HEADER_HEIGHT, ConfigPanel.BORDER_DIM);
     }
@@ -828,7 +828,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             boolean enabled = isEnabled();
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height,
                     active, isHovered(), enabled, ConfigPanel.RESOURCE_ACCENT);
-            ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), enabled);
+            ConfigPanel.drawResourceIcon(graphics, getX() + 5, getY() + 2, resourceName(type), true);
             graphics.text(font, getMessage(), getX() + 25, getY() + 6,
                     ConfigPanel.buttonTextColor(active), true);
         }
