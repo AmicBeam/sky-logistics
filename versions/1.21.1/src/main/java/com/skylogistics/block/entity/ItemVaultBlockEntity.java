@@ -282,6 +282,10 @@ public class ItemVaultBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        saveVaultData(tag, registries);
+    }
+
+    private void saveVaultData(CompoundTag tag, HolderLookup.Provider registries) {
         saveMetadata(tag);
         ListTag itemTags = new ListTag();
         int slots = Math.min(items.size(), getConfiguredMaxTypes());
@@ -347,7 +351,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
     protected void collectImplicitComponents(DataComponentMap.Builder components) {
         super.collectImplicitComponents(components);
         CompoundTag tag = new CompoundTag();
-        tag.putInt("TypeLimit", typeLimit);
+        saveVaultData(tag, level == null ? StackData.builtinRegistries() : level.registryAccess());
         BlockEntity.addEntityType(tag, getType());
         components.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(tag));
     }

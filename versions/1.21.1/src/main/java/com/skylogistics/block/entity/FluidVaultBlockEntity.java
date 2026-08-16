@@ -259,6 +259,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        saveVaultData(tag);
+    }
+
+    private void saveVaultData(CompoundTag tag) {
         saveMetadata(tag);
         ListTag fluidTags = new ListTag();
         for (Map.Entry<FluidStackKey, Long> fluid : stored.entrySet()) {
@@ -320,8 +324,7 @@ public class FluidVaultBlockEntity extends BlockEntity {
     protected void collectImplicitComponents(DataComponentMap.Builder components) {
         super.collectImplicitComponents(components);
         CompoundTag tag = new CompoundTag();
-        tag.putInt("TypeLimit", typeLimit);
-        tag.putLong("CapacityPerType", capacityPerType);
+        saveVaultData(tag);
         BlockEntity.addEntityType(tag, getType());
         components.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(tag));
     }

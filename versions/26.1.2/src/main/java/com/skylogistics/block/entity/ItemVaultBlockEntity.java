@@ -363,8 +363,10 @@ public class ItemVaultBlockEntity extends BlockEntity {
     @Override
     protected void collectImplicitComponents(DataComponentMap.Builder components) {
         super.collectImplicitComponents(components);
+        CompoundTag data = new CompoundTag();
+        saveVaultData(data, level == null ? StackData.builtinRegistries() : level.registryAccess());
         CompoundTag tag = new CompoundTag();
-        tag.putInt("TypeLimit", typeLimit);
+        tag.put(DATA_TAG, data);
         components.set(DataComponents.BLOCK_ENTITY_DATA, TypedEntityData.of(getType(), tag));
     }
 
