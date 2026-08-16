@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.menu.TagFilterListMenu;
 import com.skylogistics.network.ModNetworking;
@@ -62,8 +63,10 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     protected void init() {
         super.init();
         tagEdit = new EditBox(font, leftPos + EDIT_X, topPos + EDIT_Y, EDIT_WIDTH, EDIT_HEIGHT,
-                Component.translatable("screen.skylogistics.tag_filter_list.tag"));
-        tagEdit.setMaxLength(TagFilterListItem.MAX_TAG_LENGTH);
+                Component.translatable(menu.isModFilter() ? "screen.skylogistics.mod_filter_list.mod_id"
+                        : "screen.skylogistics.tag_filter_list.tag"));
+        tagEdit.setMaxLength(menu.isModFilter() ? ModFilterListItem.MAX_MOD_ID_LENGTH
+                : TagFilterListItem.MAX_TAG_LENGTH);
         tagEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         tagEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(tagEdit);
@@ -81,7 +84,9 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         clearButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH * 2 + 8,
                 topPos + CONTROL_Y, ACTION_BUTTON_SIZE, Component.empty(), MenuAction.FILTER_CLEAR));
         resourceButton = addRenderableWidget(new ResourceButton(leftPos + RESOURCE_BUTTON_X, topPos + CONTROL_Y));
+        resourceButton.visible = !menu.isModFilter();
         refreshEdit(false);
+        if (menu.isModFilter() && tagEdit.isFocused()) dropdownOpen = true;
     }
 
     @Override
@@ -105,7 +110,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + TAG_PANEL_X, topPos + TAG_PANEL_Y,
                 TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT);
-        ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
+        if (!menu.isModFilter()) ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
                 topPos + TagFilterListMenu.SAMPLE_SLOT_Y);
         renderMenuSlotBackgrounds(graphics);
     }
@@ -113,9 +118,11 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         graphics.text(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
-        graphics.text(font, Component.translatable("screen.skylogistics.tag_filter_list.sample"),
+        graphics.text(font, Component.translatable(menu.isModFilter()
+                        ? "screen.skylogistics.mod_filter_list.search" : "screen.skylogistics.tag_filter_list.sample"),
                 31, 17, ConfigPanel.TEXT, false);
-        graphics.text(font, Component.translatable("screen.skylogistics.tag_filter_list.tags"),
+        graphics.text(font, Component.translatable(menu.isModFilter()
+                        ? "screen.skylogistics.mod_filter_list.mods" : "screen.skylogistics.tag_filter_list.tags"),
                 TAG_PANEL_X, TAG_PANEL_Y - 10, ConfigPanel.TEXT, false);
     }
 
@@ -144,7 +151,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         if (clickedEdit && !sampleTags().isEmpty()) {
             dropdownOpen = true;
-            return true;
+            if (!menu.isModFilter()) return true;
         }
         if (!isOverDropdown(mouseX, mouseY)) {
             dropdownOpen = false;
@@ -213,18 +220,19 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         tagEditWasFocused = focused;
         boolean hasOptions = !sampleTags().isEmpty();
-        tagEdit.setEditable(!hasOptions);
+        tagEdit.setEditable(menu.isModFilter() || !hasOptions);
         String tag = menu.getTag(selectedTagSlot, editingFluid);
-        if (force || hasOptions || !focused) {
+        if (force || !menu.isModFilter() && hasOptions || !focused) {
             tagEdit.setValue(tag);
         }
     }
 
     private void commitEdit() {
-        if (tagEdit == null || !sampleTags().isEmpty()) {
+        if (tagEdit == null || !menu.isModFilter() && !sampleTags().isEmpty()) {
             return;
         }
-        String normalized = TagFilterListItem.normalizeTag(tagEdit.getValue());
+        String normalized = menu.isModFilter() ? ModFilterListItem.normalizeModId(tagEdit.getValue())
+                : TagFilterListItem.normalizeTag(tagEdit.getValue());
         if (!normalized.equals(menu.getTag(selectedTagSlot, editingFluid))) {
             menu.setTag(selectedTagSlot, normalized, editingFluid);
             ModNetworking.sendTagFilterTag(selectedTagSlot, normalized, editingFluid);
@@ -233,6 +241,10 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     }
 
     private List<String> sampleTags() {
+        if (menu.isModFilter()) {
+            String query = tagEdit == null ? "" : tagEdit.getValue().trim().toLowerCase(java.util.Locale.ROOT);
+            return menu.availableMods().stream().filter(id -> query.isEmpty() || id.contains(query)).toList();
+        }
         return editingFluid ? List.of() : menu.sampleTags();
     }
 
@@ -299,7 +311,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             if (hovered) {
                 graphics.fill(x + 1, rowY, x + EDIT_WIDTH - 1, rowY + DROPDOWN_ROW_HEIGHT, 0x553A8D99);
             }
-            graphics.text(font, trimToWidth("#" + options.get(index), EDIT_WIDTH - 8),
+            graphics.text(font, trimToWidth((menu.isModFilter() ? "" : "#") + options.get(index), EDIT_WIDTH - 8),
                     x + 4, rowY + 2, ConfigPanel.TEXT, false);
         }
     }
@@ -320,7 +332,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             return true;
         }
         if (tagEdit != null && tagEdit.isMouseOver(x, y) && !sampleTags().isEmpty()) {
-            graphics.setTooltipForNextFrame(font, Component.translatable("tooltip.skylogistics.tag_filter_list.dropdown"),
+            graphics.setTooltipForNextFrame(font, Component.translatable(menu.isModFilter()
+                            ? "tooltip.skylogistics.mod_filter_list.search" : "tooltip.skylogistics.tag_filter_list.dropdown"),
                     x, y);
             return true;
         }
@@ -475,7 +488,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             }
             String prefix = (slot + 1) + ". ";
             String tag = menu.getTag(slot, editingFluid);
-            String text = prefix + (tag.isBlank() ? "-" : "#" + tag);
+            String text = prefix + (tag.isBlank() ? "-" : (menu.isModFilter() ? "" : "#") + tag);
             graphics.text(font, trimToWidth(text, width - 6), getX() + 3, getY() + 2,
                     selected ? 0xFFFFFFFF : ConfigPanel.TEXT, selected);
         }

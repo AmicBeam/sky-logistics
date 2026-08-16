@@ -19,7 +19,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The Sky Filter List limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, NBT matching, durability matching, and other rules. Placing a configured filter list into a node face filter slot does not consume the item; the node copies that list state. Copying and pasting node settings also copies these filter states."
+      "text": "Sky Filter Lists limit node transfers. Regular lists match exact resources, tag lists match tags, and mod lists match the namespace of the transferred resource ID; use forge for FE. Placing a configured list into a node face filter slot does not consume it; the node copies its rules."
     },
     {
       "type": "patchouli:crafting",

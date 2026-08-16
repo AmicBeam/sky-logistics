@@ -3,6 +3,7 @@ package com.skylogistics.client;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.network.ModNetworking;
@@ -524,7 +525,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private void refreshTagFilterWarning(SkyNodeBlockEntity node, Direction face, int slot, ItemStack attempted) {
-        if (TagFilterListItem.isTagFilterList(attempted)) {
+        if (TagFilterListItem.isTagFilterList(attempted) || ModFilterListItem.isModFilterList(attempted)) {
             tagFilterRejectedFace = face;
             tagFilterRejectedSlot = slot;
             tagFilterRejectedPrevious = node.getFaceFilter(face, slot).copy();

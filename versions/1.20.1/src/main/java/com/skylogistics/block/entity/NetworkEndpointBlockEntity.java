@@ -152,6 +152,8 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return true;
     }
 
+    public boolean allowsEnergy(Direction direction) { return true; }
+
     public ItemStack getFaceFilter(Direction direction, int slot) {
         return ItemStack.EMPTY;
     }

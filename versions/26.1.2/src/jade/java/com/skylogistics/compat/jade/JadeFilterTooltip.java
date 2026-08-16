@@ -3,6 +3,7 @@ package com.skylogistics.compat.jade;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.util.StackData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
@@ -36,7 +37,8 @@ final class JadeFilterTooltip {
             tooltip.add(Component.translatable("jade.skylogistics.filter_hold_shift").withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
-        if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, tooltip::add, true);
+        if (ModFilterListItem.isModFilterList(filter)) ModFilterListItem.appendFilterContents(filter, tooltip::add, true);
+        else if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, tooltip::add, true);
         else FilterListItem.appendFilterContents(filter, tooltip::add, true);
     }
 }

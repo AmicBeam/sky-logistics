@@ -101,6 +101,7 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) { return null; }
     public boolean allowsItem(Direction direction, ItemStack stack) { return true; }
     public boolean allowsFluid(Direction direction, FluidStack stack) { return true; }
+    public boolean allowsEnergy(Direction direction) { return true; }
     public ItemStack getFaceFilter(Direction direction, int slot) { return ItemStack.EMPTY; }
     public boolean isFaceRedstoneAllowed(Direction direction) { return true; }
     public RedstoneControl getRedstoneControl(Direction direction) { return RedstoneControl.IGNORE; }

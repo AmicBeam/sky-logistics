@@ -2297,6 +2297,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return 0;
         }
+        if (!sourceEndpoint.node().allowsEnergy(sourceEndpoint.direction())) return 0;
         LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
         IEnergyStorage source = sourceLongEndpoint == null ? sourceEndpoint.energyHandler(gameTime) : null;
         if (sourceLongEndpoint == null && source == null) return 0;
@@ -2346,7 +2347,8 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (!targetEndpoint.canTryEnergy(gameTime)
-                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())
+                        || !targetEndpoint.node().allowsEnergy(targetEndpoint.direction())) {
                     targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targetIndex,
                             targetCount);
                     continue;

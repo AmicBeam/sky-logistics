@@ -1,6 +1,7 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import java.util.List;
@@ -94,12 +95,18 @@ public class TagFilterListMenu extends AbstractContainerMenu {
     }
 
     public String getTag(int slot, boolean fluid) {
+        if (isModFilter()) return ModFilterListItem.getMod(filterStack(), slot);
         return fluid ? TagFilterListItem.getFluidTag(filterStack(), slot) : getTag(slot);
     }
 
     public boolean isWhitelist() {
+        if (isModFilter()) return ModFilterListItem.isWhitelist(filterStack());
         return TagFilterListItem.isWhitelist(filterStack());
     }
+
+    public boolean isModFilter() { return ModFilterListItem.isModFilterList(filterStack()); }
+
+    public List<String> availableMods() { return ModFilterListItem.availableMods(); }
 
     public void setTag(int slot, String tag) {
         setTag(slot, tag, false);
@@ -107,6 +114,12 @@ public class TagFilterListMenu extends AbstractContainerMenu {
 
     public void setTag(int slot, String tag, boolean fluid) {
         ItemStack stack = filterStack();
+        if (stack.is(ModItems.MOD_FILTER_LIST.get())) {
+            ModFilterListItem.setMod(stack, slot, tag);
+            syncHeldStack(stack);
+            broadcastChanges();
+            return;
+        }
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }
@@ -128,7 +141,8 @@ public class TagFilterListMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return player.getItemInHand(hand).is(ModItems.TAG_FILTER_LIST.get());
+        ItemStack stack = player.getItemInHand(hand);
+        return stack.is(ModItems.TAG_FILTER_LIST.get()) || stack.is(ModItems.MOD_FILTER_LIST.get());
     }
 
     @Override
@@ -154,6 +168,17 @@ public class TagFilterListMenu extends AbstractContainerMenu {
 
     public void applyAction(Player player, int action) {
         ItemStack stack = filterStack();
+        if (stack.is(ModItems.MOD_FILTER_LIST.get())) {
+            switch (action) {
+                case MenuAction.FILTER_SET_WHITELIST -> ModFilterListItem.setWhitelist(stack, true);
+                case MenuAction.FILTER_SET_BLACKLIST -> ModFilterListItem.setWhitelist(stack, false);
+                case MenuAction.FILTER_CLEAR -> ModFilterListItem.clearMods(stack);
+                default -> { return; }
+            }
+            syncHeldStack(stack);
+            broadcastChanges();
+            return;
+        }
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }

@@ -70,7 +70,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 5. For short local routes, place Simple Item, Fluid, or Energy Pipes. They inherit the node placement controls, automatically connect to compatible adjacent containers, and join neighboring pipes of the same type.
 6. Right-click a machine-facing endpoint with the Sky Wrench to switch between insert and extract; sneak-right-click a pipe connection to disconnect or reconnect that side. Extract sections use the wider connector model.
 7. Use the Sky Configurator to create/select lines, rename them, copy node settings, paste settings, and preset newly placed nodes from the offhand
-8. Add Sky Filter Lists, Speed Upgrades, and Dimension Upgrades to nodes when needed
+8. Add Sky Filter Lists, Tag Filter Lists, or Mod Filter Lists plus Speed and Dimension Upgrades when needed. Mod filters match transferred resource namespaces; use `forge` for FE
 9. Use a Sky Necklace with a whitelist filter list for portable extraction/insertion between player inventory and a logistics line
 
 ## Notes

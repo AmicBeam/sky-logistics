@@ -10,7 +10,7 @@ import net.minecraftforge.network.NetworkEvent;
 public record TagFilterEditPacket(int slot, String tag, boolean fluid) {
     public static void encode(TagFilterEditPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.slot);
-        buffer.writeUtf(TagFilterListItem.normalizeTag(packet.tag), TagFilterListItem.MAX_TAG_LENGTH);
+        buffer.writeUtf(packet.tag, TagFilterListItem.MAX_TAG_LENGTH);
         buffer.writeBoolean(packet.fluid);
     }
 

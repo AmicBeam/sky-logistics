@@ -14,6 +14,7 @@ import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
@@ -298,6 +299,20 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return !hasWhitelist || whitelistMatched;
     }
 
+    @Override
+    public boolean allowsEnergy(Direction direction) {
+        boolean hasWhitelist = false;
+        boolean whitelistMatched = false;
+        String modId = ModFilterListItem.FORGE_ENERGY_MOD_ID;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (!compiled.hasEnergyRules()) continue;
+            if (compiled.whitelist()) { hasWhitelist = true; whitelistMatched |= compiled.matchesEnergy(modId); }
+            else if (!compiled.matchesEnergy(modId)) return false;
+        }
+        return !hasWhitelist || whitelistMatched;
+    }
+
     public ItemStack getUpgrade(int slot) {
         if (slot < 0 || slot >= upgrades.size()) {
             return ItemStack.EMPTY;
@@ -380,7 +395,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean rejectsTagFaceFilter(Direction direction, ItemStack stack) {
         return !stack.isEmpty() && hasTagFaceFilterRestriction(direction)
-                && TagFilterListItem.isTagFilterList(stack);
+                && (TagFilterListItem.isTagFilterList(stack) || ModFilterListItem.isModFilterList(stack));
     }
 
     public boolean hasTagFaceFilterRestriction(Direction direction) {
@@ -395,6 +410,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (ItemStack filter : filters) {
             if (!filter.isEmpty()
                     && !TagFilterListItem.isTagFilterList(filter)
+                    && !ModFilterListItem.isModFilterList(filter)
                     && FilterListItem.isWhitelist(filter)
                     && FilterListItem.countItemRules(filter) > 0) {
                 return true;

@@ -27,6 +27,7 @@ public final class ModCreativeTabs {
                         ModItems.SKY_WRENCH.ifPresent(wrench -> output.accept(wrench.get()));
                         output.accept(ModItems.FILTER_LIST.get());
                         output.accept(ModItems.TAG_FILTER_LIST.get());
+                        output.accept(ModItems.MOD_FILTER_LIST.get());
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
