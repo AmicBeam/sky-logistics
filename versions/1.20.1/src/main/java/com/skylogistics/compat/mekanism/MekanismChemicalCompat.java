@@ -29,6 +29,16 @@ final class MekanismChemicalCompat {
             return null;
         }
         List<Delegate> delegates = new ArrayList<>(4);
+        collectDelegates(target, side, delegates);
+        // Some 1.20.1 machines and compatibility proxies expose their chemical
+        // handlers only as an unsided capability even though pipes query a face.
+        if (delegates.isEmpty() && side != null) {
+            collectDelegates(target, null, delegates);
+        }
+        return delegates.isEmpty() ? null : new Handler(delegates);
+    }
+
+    private static void collectDelegates(BlockEntity target, Direction side, List<Delegate> delegates) {
         target.getCapability(Capabilities.GAS_HANDLER, side)
                 .ifPresent(handler -> delegates.add(new Delegate(Kind.GAS, handler)));
         target.getCapability(Capabilities.INFUSION_HANDLER, side)
@@ -37,7 +47,6 @@ final class MekanismChemicalCompat {
                 .ifPresent(handler -> delegates.add(new Delegate(Kind.PIGMENT, handler)));
         target.getCapability(Capabilities.SLURRY_HANDLER, side)
                 .ifPresent(handler -> delegates.add(new Delegate(Kind.SLURRY, handler)));
-        return delegates.isEmpty() ? null : new Handler(delegates);
     }
 
     static ChemicalHandlerBridge wrapChemicalHandlers(Object... handlers) {
