@@ -1473,8 +1473,8 @@ public final class SkyNetworkRegistry {
             if (node.isFluidsEnabled(direction)) {
                 fluidEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_FLUIDS;
-                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
-                        && endpoint.detectChemicalSupport(node, direction)) {
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
+                    endpoint.enableChemicalSupport();
                     chemicalEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_CHEMICALS;
                 }
@@ -1482,13 +1482,13 @@ public final class SkyNetworkRegistry {
             if (node.isEnergyEnabled(direction)) {
                 energyEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_ENERGY;
-                if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()
-                        && endpoint.detectManaSupport(node, direction)) {
+                if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()) {
+                    endpoint.enableManaSupport();
                     manaEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_MANA;
                 }
-                if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()
-                        && endpoint.detectSourceSupport(node, direction)) {
+                if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()) {
+                    endpoint.enableSourceSupport();
                     sourceEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_SOURCE;
                 }
@@ -1593,9 +1593,6 @@ public final class SkyNetworkRegistry {
         private boolean chemicalSupported;
         private boolean manaSupported;
         private boolean sourceSupported;
-        private boolean chemicalSupportKnown;
-        private boolean manaSupportKnown;
-        private boolean sourceSupportKnown;
         private int absentCapabilityMask;
         private BlockEntity capabilityTarget;
         private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
@@ -1665,37 +1662,22 @@ public final class SkyNetworkRegistry {
             rejectedChemicalAcceptFailures = new int[rejectedAcceptCacheSize];
         }
 
-        private boolean detectChemicalSupport(NetworkEndpointBlockEntity node, Direction direction) {
-            if (!chemicalSupportKnown) {
-                chemicalSupported = node.supportsChemicalEndpoint(direction);
-                chemicalSupportKnown = true;
-            }
-            return chemicalSupported;
+        private void enableChemicalSupport() {
+            chemicalSupported = true;
         }
 
-        private boolean detectManaSupport(NetworkEndpointBlockEntity node, Direction direction) {
-            if (!manaSupportKnown) {
-                manaSupported = node.supportsManaEndpoint(direction);
-                manaSupportKnown = true;
-            }
-            return manaSupported;
+        private void enableManaSupport() {
+            manaSupported = true;
         }
 
-        private boolean detectSourceSupport(NetworkEndpointBlockEntity node, Direction direction) {
-            if (!sourceSupportKnown) {
-                sourceSupported = node.supportsSourceEndpoint(direction);
-                sourceSupportKnown = true;
-            }
-            return sourceSupported;
+        private void enableSourceSupport() {
+            sourceSupported = true;
         }
 
         private void resetResourceSupportKnowledge() {
             chemicalSupported = false;
             manaSupported = false;
             sourceSupported = false;
-            chemicalSupportKnown = false;
-            manaSupportKnown = false;
-            sourceSupportKnown = false;
         }
 
         public boolean supportsChemical() {
@@ -1798,7 +1780,10 @@ public final class SkyNetworkRegistry {
             if (level == null || !level.isLoaded(targetPos)) return false;
             BlockEntity currentTarget = level.getBlockEntity(targetPos);
             net.minecraft.world.level.block.state.BlockState currentState = level.getBlockState(targetPos);
-            if (currentTarget == capabilityTarget && currentState == capabilityTargetState) return false;
+            if (currentTarget == capabilityTarget && currentState == capabilityTargetState) {
+                absentCapabilityMask &= ~capability;
+                return true;
+            }
             invalidateCapabilityKnowledge();
             return true;
         }
