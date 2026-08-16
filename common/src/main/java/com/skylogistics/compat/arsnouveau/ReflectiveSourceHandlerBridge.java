@@ -138,7 +138,8 @@ final class ReflectiveSourceHandlerBridge implements SourceHandlerBridge {
             return extracted;
         }
         int before = getCurrentSource();
-        int after = invokeInt(handler, removeSource, before, extracted);
+        invokeInt(handler, removeSource, before, extracted);
+        int after = getCurrentSource();
         return Math.min(extracted, Math.max(0, before - after));
     }
 
@@ -161,7 +162,8 @@ final class ReflectiveSourceHandlerBridge implements SourceHandlerBridge {
             return accepted;
         }
         int before = getCurrentSource();
-        int after = invokeInt(handler, addSource, before, accepted);
+        invokeInt(handler, addSource, before, accepted);
+        int after = getCurrentSource();
         return Math.min(accepted, Math.max(0, after - before));
     }
 
