@@ -262,11 +262,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (!node.canConfigureFace(face)) {
                 return;
             }
-            boolean wasDisconnected = node.getFaceMode(face) == NodeFaceMode.NONE;
             node.setFaceMode(face, NodeFaceMode.INPUT);
-            if (wasDisconnected) {
-                node.configureTargetResourcesFromCapabilities(face);
-            }
             broadcastChanges();
             return;
         }
@@ -275,11 +271,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (!node.canConfigureFace(face)) {
                 return;
             }
-            boolean wasDisconnected = node.getFaceMode(face) == NodeFaceMode.NONE;
             node.setFaceMode(face, NodeFaceMode.OUTPUT);
-            if (wasDisconnected) {
-                node.configureTargetResourcesFromCapabilities(face);
-            }
             broadcastChanges();
             return;
         }
