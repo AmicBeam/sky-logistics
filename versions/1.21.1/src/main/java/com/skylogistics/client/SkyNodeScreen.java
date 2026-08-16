@@ -49,6 +49,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int FACE_BUTTON_HEIGHT = 28;
     private static final int FACE_BUTTON_STEP = 29;
     private static final int FACE_SELECTED_MARK = ConfigPanel.INSERT_ACCENT;
+    private static final int IDLE_FACE_ACCENT = 0xFF555555;
     private static final int RESOURCE_GROUP_Y = 48;
     private static final int RESOURCE_CONTROL_Y = 55;
     private static final int RESOURCE_GROUP_X = 5;
@@ -713,7 +714,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                         ConfigPanel.buttonTextColor(active), true);
                 NodeFaceMode mode = modeFor(node, direction);
                 int modeColor = mode == NodeFaceMode.NONE && hasTargetBlock(node, direction)
-                        ? ConfigPanel.FIELD_TEXT : colorFor(mode);
+                        ? IDLE_FACE_ACCENT : colorFor(mode);
                 graphics.fill(getX() + 5, getY() + height - 5, getX() + width - 5, getY() + height - 3, modeColor);
             }
         }
