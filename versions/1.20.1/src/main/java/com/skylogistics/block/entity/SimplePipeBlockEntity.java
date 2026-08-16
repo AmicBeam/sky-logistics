@@ -253,6 +253,18 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     @Override
+    public boolean allowsMana(Direction direction) {
+        FilterListItem.CompiledFilter filter = endpointFilter(direction);
+        return !filter.hasEnergyRules() || filter.matchesEnergy(TagFilterListItem.BOTANIA_MANA_MOD_ID);
+    }
+
+    @Override
+    public boolean allowsSource(Direction direction) {
+        FilterListItem.CompiledFilter filter = endpointFilter(direction);
+        return !filter.hasEnergyRules() || filter.matchesEnergy(TagFilterListItem.ARS_NOUVEAU_SOURCE_MOD_ID);
+    }
+
+    @Override
     public ItemStack getFaceFilter(Direction direction, int slot) {
         return slot == 0 ? endpointFilters.getOrDefault(direction, ItemStack.EMPTY) : ItemStack.EMPTY;
     }

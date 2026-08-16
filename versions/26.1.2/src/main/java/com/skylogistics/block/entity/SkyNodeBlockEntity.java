@@ -299,9 +299,22 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     @Override
     public boolean allowsEnergy(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.FORGE_ENERGY_MOD_ID);
+    }
+
+    @Override
+    public boolean allowsMana(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.BOTANIA_MANA_MOD_ID);
+    }
+
+    @Override
+    public boolean allowsSource(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.ARS_NOUVEAU_SOURCE_MOD_ID);
+    }
+
+    private boolean allowsEnergyType(Direction direction, String modId) {
         boolean hasWhitelist = false;
         boolean whitelistMatched = false;
-        String modId = TagFilterListItem.FORGE_ENERGY_MOD_ID;
         for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
             FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
             if (!compiled.hasEnergyRules()) continue;

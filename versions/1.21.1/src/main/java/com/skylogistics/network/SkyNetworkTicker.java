@@ -2560,7 +2560,8 @@ public final class SkyNetworkTicker {
 
     private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
-        if (!canTransferMana() || budget <= 0) {
+        if (!canTransferMana() || budget <= 0
+                || !sourceEndpoint.node().allowsMana(sourceEndpoint.direction())) {
             return 0;
         }
         ManaHandlerBridge source = sourceEndpoint.manaHandler(gameTime);
@@ -2607,6 +2608,7 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (!targetEndpoint.canTryMana(gameTime)
+                        || !targetEndpoint.node().allowsMana(targetEndpoint.direction())
                         || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
                     targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.MANA, targetIndex,
                             targetCount);
@@ -2660,7 +2662,8 @@ public final class SkyNetworkTicker {
 
     private static int transferSource(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
-        if (!canTransferSource() || budget <= 0) {
+        if (!canTransferSource() || budget <= 0
+                || !sourceEndpoint.node().allowsSource(sourceEndpoint.direction())) {
             return 0;
         }
         SourceHandlerBridge source = sourceEndpoint.sourceHandler(gameTime);
@@ -2709,6 +2712,7 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (!targetEndpoint.canTrySource(gameTime)
+                        || !targetEndpoint.node().allowsSource(targetEndpoint.direction())
                         || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
                     targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targetIndex,
                             targetCount);

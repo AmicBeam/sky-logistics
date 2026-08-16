@@ -50,6 +50,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private int selectedTagSlot;
     private boolean tagEditWasFocused;
     private boolean dropdownOpen;
+    private boolean inputAutocomplete;
+    private ItemStack observedSample = ItemStack.EMPTY;
     private int dropdownScroll;
     private int editingResource;
 
@@ -68,6 +70,13 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         tagEdit.setMaxLength(TagFilterListItem.MAX_TAG_LENGTH);
         tagEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         tagEdit.setTextColorUneditable(ConfigPanel.MUTED);
+        tagEdit.setResponder(value -> {
+            if (tagEdit.isFocused()) {
+                inputAutocomplete = true;
+                dropdownOpen = true;
+                dropdownScroll = 0;
+            }
+        });
         addRenderableWidget(tagEdit);
         for (int slot = 0; slot < TagFilterListItem.TAG_SLOTS; slot++) {
             int y = topPos + TAG_ROW_Y + slot * TAG_ROW_HEIGHT;
@@ -91,6 +100,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     protected void containerTick() {
         super.containerTick();
         refreshButtons();
+        detectSampleChange();
         refreshEdit(false);
         dropdownScroll = Mth.clamp(dropdownScroll, 0, maxDropdownScroll());
     }
@@ -109,7 +119,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + TAG_PANEL_X, topPos + TAG_PANEL_Y,
                 TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT);
-        if (!editingMods()) ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
+        ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
                 topPos + TagFilterListMenu.SAMPLE_SLOT_Y);
         renderMenuSlotBackgrounds(graphics);
     }
@@ -117,12 +127,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
-        graphics.drawString(font, Component.translatable(editingMods()
-                        ? "screen.skylogistics.tag_filter_list.search" : "screen.skylogistics.tag_filter_list.sample"),
+        graphics.drawString(font, Component.translatable("screen.skylogistics.tag_filter_list.sample"),
                 31, 17, ConfigPanel.TEXT, false);
-        graphics.drawString(font, Component.translatable(editingMods()
-                        ? "screen.skylogistics.tag_filter_list.mods" : "screen.skylogistics.tag_filter_list.tags"),
-                TAG_PANEL_X, TAG_PANEL_Y - 10, ConfigPanel.TEXT, false);
     }
 
     @Override
@@ -146,11 +152,11 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             tagEdit.setFocused(false);
             setFocused(null);
         }
-        if (clickedEdit && !sampleTags().isEmpty()) {
-            dropdownOpen = true;
-            if (!editingMods()) return true;
+        if (clickedEdit) {
+            inputAutocomplete = true;
+            if (!sampleTags().isEmpty()) dropdownOpen = true;
         }
-        if (!isOverDropdown(mouseX, mouseY)) {
+        if (!clickedEdit && !isOverDropdown(mouseX, mouseY)) {
             dropdownOpen = false;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -191,15 +197,25 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     public void setGhostSamplePreview(ItemStack stack) {
         menu.setGhostSample(stack);
-        dropdownOpen = !sampleTags().isEmpty();
         dropdownScroll = 0;
         refreshEdit(true);
+        inputAutocomplete = false;
+        dropdownOpen = !sampleTags().isEmpty();
     }
 
     private void refreshButtons() {
         setEmptyMessage(whitelistAllowButton);
         setEmptyMessage(whitelistDenyButton);
         setEmptyMessage(clearButton);
+    }
+
+    private void detectSampleChange() {
+        ItemStack sample = menu.getSample();
+        if (sample == observedSample) return;
+        observedSample = sample;
+        inputAutocomplete = false;
+        dropdownScroll = 0;
+        dropdownOpen = !sampleTags().isEmpty();
     }
 
     private static void setEmptyMessage(AbstractButton button) {
@@ -218,16 +234,15 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             focused = tagEdit.isFocused();
         }
         tagEditWasFocused = focused;
-        boolean hasOptions = !sampleTags().isEmpty();
-        tagEdit.setEditable(editingMods() || !hasOptions);
+        tagEdit.setEditable(true);
         String tag = menu.getTag(selectedTagSlot, editingResource);
-        if (force || !editingMods() && hasOptions || !focused) {
+        if (force || !focused) {
             tagEdit.setValue(tag);
         }
     }
 
     private void commitEdit() {
-        if (tagEdit == null || !editingMods() && !sampleTags().isEmpty()) {
+        if (tagEdit == null) {
             return;
         }
         String normalized = editingMods() ? TagFilterListItem.normalizeModId(tagEdit.getValue())
@@ -242,11 +257,20 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     private List<String> sampleTags() {
         if (editingMods()) {
+            if (!inputAutocomplete) {
+                String sampleMod = menu.sampleModId();
+                return sampleMod.isBlank() ? List.of() : List.of("@" + sampleMod);
+            }
             String query = tagEdit == null ? "" : TagFilterListItem.normalizeModId(tagEdit.getValue());
             return menu.availableMods().stream().filter(id -> query.isEmpty() || id.contains(query))
                     .map(id -> "@" + id).toList();
         }
-        return editingResource == 1 ? List.of() : menu.sampleTags();
+        if (!inputAutocomplete) return editingResource == 1 ? List.of() : menu.sampleTags();
+        String query = tagEdit == null ? "" : tagEdit.getValue().trim().toLowerCase(java.util.Locale.ROOT);
+        if (query.startsWith("#")) query = query.substring(1);
+        String filter = query;
+        return menu.availableTags(editingResource == 1).stream()
+                .filter(id -> filter.isEmpty() || id.contains(filter)).toList();
     }
 
     private void drawScreenBackground(GuiGraphics graphics) {
@@ -359,6 +383,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         commitEdit();
         editingResource = (editingResource + 1) % 3;
         dropdownOpen = false;
+        inputAutocomplete = false;
         tagEdit.setMaxLength(editingMods() ? TagFilterListItem.MAX_MOD_ID_LENGTH + 1
                 : TagFilterListItem.MAX_TAG_LENGTH);
         if (resourceButton != null) resourceButton.setMessage(resourceButtonText());
@@ -453,6 +478,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         public void onPress() {
             commitEdit();
             selectedTagSlot = slot;
+            inputAutocomplete = true;
             dropdownOpen = !sampleTags().isEmpty();
             dropdownScroll = 0;
             refreshEdit(true);

@@ -113,6 +113,8 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean allowsFluid(Direction direction, FluidStack stack) { return true; }
     public boolean allowsChemical(Direction direction, ChemicalStackView stack) { return true; }
     public boolean allowsEnergy(Direction direction) { return true; }
+    public boolean allowsMana(Direction direction) { return true; }
+    public boolean allowsSource(Direction direction) { return true; }
     public ItemStack getFaceFilter(Direction direction, int slot) { return ItemStack.EMPTY; }
     public boolean isFaceRedstoneAllowed(Direction direction) { return true; }
     public RedstoneControl getRedstoneControl(Direction direction) { return RedstoneControl.IGNORE; }

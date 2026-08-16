@@ -75,7 +75,7 @@
   "tooltip.skylogistics.tag_filter_list.entry_indented": "  %s. %s",
   "tooltip.skylogistics.tag_filter_list.fluid_entry": "%s. %s（流体）",
   "tooltip.skylogistics.tag_filter_list.fluid_entry_indented": "  %s. %s（流体）",
-  "tooltip.skylogistics.tag_filter_list.dropdown": "从样本物品已有标签中选择。",
+  "tooltip.skylogistics.tag_filter_list.dropdown": "搜索可用标签 ID，或选择样本已有标签。",
   "tooltip.skylogistics.tag_filter_list.mod_entries": "模组 ID：%s/%s",
   "tooltip.skylogistics.tag_filter_list.mod_entry": "%s. %s",
   "tooltip.skylogistics.tag_filter_list.mod_entry_indented": "  %s. %s",

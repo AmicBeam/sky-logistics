@@ -75,7 +75,7 @@
   "tooltip.skylogistics.tag_filter_list.entry_indented": "  %s. %s",
   "tooltip.skylogistics.tag_filter_list.fluid_entry": "%s. %s (Fluid)",
   "tooltip.skylogistics.tag_filter_list.fluid_entry_indented": "  %s. %s (Fluid)",
-  "tooltip.skylogistics.tag_filter_list.dropdown": "Choose one of the sample item's tags.",
+  "tooltip.skylogistics.tag_filter_list.dropdown": "Search available tag IDs or choose a sample tag.",
   "tooltip.skylogistics.tag_filter_list.mod_entries": "Mod IDs: %s/%s",
   "tooltip.skylogistics.tag_filter_list.mod_entry": "%s. %s",
   "tooltip.skylogistics.tag_filter_list.mod_entry_indented": "  %s. %s",

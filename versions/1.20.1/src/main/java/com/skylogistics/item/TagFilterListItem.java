@@ -29,6 +29,8 @@ public class TagFilterListItem extends Item {
     public static final int MAX_TAG_LENGTH = 96;
     public static final int MAX_MOD_ID_LENGTH = 64;
     public static final String FORGE_ENERGY_MOD_ID = "forge";
+    public static final String BOTANIA_MANA_MOD_ID = "botania";
+    public static final String ARS_NOUVEAU_SOURCE_MOD_ID = "ars_nouveau";
     private static final String SAMPLE = "Sample";
     private static final String TAGS = "ItemTags";
     private static final String FLUID_TAGS = "FluidTags";
@@ -46,6 +48,7 @@ public class TagFilterListItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            clearLegacySample(stack);
             NetworkHooks.openScreen(serverPlayer,
                     new SimpleMenuProvider((id, inventory, ignored) -> new TagFilterListMenu(id, inventory, hand),
                             Component.translatable("menu.skylogistics.tag_filter_list")),
@@ -65,11 +68,6 @@ public class TagFilterListItem extends Item {
                 countFluidTags(stack), TAG_SLOTS).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.skylogistics.tag_filter_list.mod_entries",
                 countMods(stack), TAG_SLOTS).withStyle(ChatFormatting.GRAY));
-        ItemStack sample = getSample(stack);
-        if (!sample.isEmpty()) {
-            tooltip.add(Component.translatable("tooltip.skylogistics.tag_filter_list.sample", sample.getHoverName())
-                    .withStyle(ChatFormatting.DARK_AQUA));
-        }
         if (Screen.hasShiftDown()) {
             appendFilterContents(stack, tooltip, false);
         } else {
@@ -91,21 +89,8 @@ public class TagFilterListItem extends Item {
         stack.getOrCreateTag().putBoolean(WHITELIST, whitelist);
     }
 
-    public static ItemStack getSample(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        return tag != null && tag.contains(SAMPLE, Tag.TAG_COMPOUND) ? ItemStack.of(tag.getCompound(SAMPLE))
-                : ItemStack.EMPTY;
-    }
-
-    public static void setSample(ItemStack stack, ItemStack sample) {
-        CompoundTag tag = stack.getOrCreateTag();
-        ItemStack copy = sample.copy();
-        if (copy.isEmpty()) {
-            tag.remove(SAMPLE);
-            return;
-        }
-        copy.setCount(1);
-        tag.put(SAMPLE, copy.save(new CompoundTag()));
+    public static void clearLegacySample(ItemStack stack) {
+        if (stack.hasTag()) stack.getTag().remove(SAMPLE);
     }
 
     public static String getTag(ItemStack stack, int slot) {
@@ -299,6 +284,16 @@ public class TagFilterListItem extends Item {
                 .map(ResourceLocation::toString)
                 .sorted()
                 .toList();
+    }
+
+    public static List<String> availableTags(boolean fluid) {
+        return (fluid ? net.minecraft.core.registries.BuiltInRegistries.FLUID
+                        : net.minecraft.core.registries.BuiltInRegistries.ITEM)
+                .getTagNames().map(TagKey::location).map(ResourceLocation::toString).sorted().toList();
+    }
+
+    public static String sampleModId(ItemStack sample) {
+        return sample.isEmpty() ? "" : sample.getItem().builtInRegistryHolder().key().location().getNamespace();
     }
 
     public static String normalizeTag(String raw) {
