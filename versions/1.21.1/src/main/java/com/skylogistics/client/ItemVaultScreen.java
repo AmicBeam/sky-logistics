@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -167,9 +168,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         if (hovered == null) {
             return;
         }
-        graphics.renderComponentTooltip(font, List.of(hovered.stack().getHoverName(),
-                Component.translatable("screen.skylogistics.total_items", fullAmount(hovered.amount()))),
-                mouseX, mouseY);
+        List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), hovered.stack()));
+        tooltip.add(Component.translatable("screen.skylogistics.total_items", fullAmount(hovered.amount())));
+        graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
     }
 
     private ItemVaultBlockEntity.StoredItem hoveredEntry(double mouseX, double mouseY) {
