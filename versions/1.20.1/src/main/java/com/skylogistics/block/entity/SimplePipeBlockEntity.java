@@ -67,8 +67,9 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         if (target instanceof SkyDistributorBlockEntity distributor) {
             return switch (type) {
                 case ITEM -> distributor.hasItemTargets(side);
-                case FLUID -> distributor.hasFluidTargets(side);
-                case ENERGY -> distributor.hasEnergyTargets(side);
+                case FLUID -> distributor.hasFluidTargets(side) || distributor.hasChemicalTargets(side);
+                case ENERGY -> distributor.hasEnergyTargets(side) || distributor.hasManaTargets(side)
+                        || distributor.hasSourceTargets(side);
             };
         }
         return switch (type) {
@@ -324,18 +325,30 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
 
     @Override
     public boolean supportsChemicalEndpoint(Direction direction) {
+        if (level != null && level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor) {
+            return enabled() && pipeType() == SimplePipeType.FLUID
+                    && distributor.hasChemicalTargets(getAccessSide(direction));
+        }
         return enabled() && pipeType() == SimplePipeType.FLUID && level != null
                 && MekanismCompat.chemicalHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
     public boolean supportsManaEndpoint(Direction direction) {
+        if (level != null && level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor) {
+            return enabled() && pipeType() == SimplePipeType.ENERGY
+                    && distributor.hasManaTargets(getAccessSide(direction));
+        }
         return enabled() && pipeType() == SimplePipeType.ENERGY && level != null
                 && BotaniaCompat.manaHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
     public boolean supportsSourceEndpoint(Direction direction) {
+        if (level != null && level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor) {
+            return enabled() && pipeType() == SimplePipeType.ENERGY
+                    && distributor.hasSourceTargets(getAccessSide(direction));
+        }
         return enabled() && pipeType() == SimplePipeType.ENERGY && level != null
                 && ArsNouveauCompat.sourceHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
     }

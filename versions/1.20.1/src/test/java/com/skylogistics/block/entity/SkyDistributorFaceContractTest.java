@@ -14,6 +14,12 @@ class SkyDistributorFaceContractTest {
                 SkyDistributorBlockEntity.class.getMethod("fluidHandler", Direction.class).getParameterTypes());
         assertArrayEquals(new Class<?>[] {Direction.class},
                 SkyDistributorBlockEntity.class.getMethod("energyHandler", Direction.class).getParameterTypes());
+        assertArrayEquals(new Class<?>[] {Direction.class},
+                SkyDistributorBlockEntity.class.getMethod("chemicalHandler", Direction.class).getParameterTypes());
+        assertArrayEquals(new Class<?>[] {Direction.class},
+                SkyDistributorBlockEntity.class.getMethod("manaHandler", Direction.class).getParameterTypes());
+        assertArrayEquals(new Class<?>[] {Direction.class},
+                SkyDistributorBlockEntity.class.getMethod("sourceHandler", Direction.class).getParameterTypes());
         assertThrows(NoSuchMethodException.class,
                 () -> SkyDistributorBlockEntity.class.getMethod("energyHandler"));
     }

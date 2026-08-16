@@ -1,5 +1,15 @@
 package com.skylogistics.block.entity;
 
+import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
+import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.distributor.DistributedChemicalHandler;
+import com.skylogistics.compat.distributor.DistributedHandlerLookup;
+import com.skylogistics.compat.distributor.DistributedManaHandler;
+import com.skylogistics.compat.distributor.DistributedSourceHandler;
+import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import java.util.ArrayDeque;
@@ -27,6 +37,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedItems[] items = new DistributedItems[DIRECTIONS.length];
     private final DistributedFluids[] fluids = new DistributedFluids[DIRECTIONS.length];
     private final DistributedEnergy[] energy = new DistributedEnergy[DIRECTIONS.length];
+    private final DistributedChemicalHandler[] chemicals = new DistributedChemicalHandler[DIRECTIONS.length];
+    private final DistributedManaHandler[] mana = new DistributedManaHandler[DIRECTIONS.length];
+    private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
     private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
@@ -80,6 +93,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             items[index] = new DistributedItems(direction);
             fluids[index] = new DistributedFluids(direction);
             energy[index] = new DistributedEnergy(direction);
+            chemicals[index] = new DistributedChemicalHandler(new ChemicalLookup(direction));
+            mana[index] = new DistributedManaHandler(new ManaLookup(direction));
+            source[index] = new DistributedSourceHandler(new SourceLookup(direction));
         }
     }
 
@@ -147,13 +163,17 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             scan.found++;
             if (target.items) scan.itemTargets.add(target);
             if (target.fluids) scan.fluidTargets.add(target);
+            if (target.chemical) scan.chemicalTargets.add(target);
             if (target.energy) scan.energyTargets.add(target);
+            if (target.mana) scan.manaTargets.add(target);
+            if (target.source) scan.sourceTargets.add(target);
             for (Direction direction : Direction.values())
                 scan.queue.addLast(pos.relative(direction));
         }
         targetDiscoveries[index] = null;
         return new TargetCache(List.copyOf(scan.itemTargets), List.copyOf(scan.fluidTargets),
-                List.copyOf(scan.energyTargets));
+                List.copyOf(scan.chemicalTargets), List.copyOf(scan.energyTargets),
+                List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets));
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
@@ -163,14 +183,32 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 ? usableFluids(level.getCapability(Capabilities.FluidHandler.BLOCK, pos, accessSide)) ? accessSide : null : null;
         Direction energySide = SkyLogisticsConfig.enableDistributorEnergy()
                 ? usableEnergy(level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, accessSide)) ? accessSide : null : null;
+        boolean chemical = SkyLogisticsConfig.enableDistributorFluids()
+                && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                && usableChemical(MekanismCompat.chemicalHandler(level, pos, accessSide));
+        boolean mana = SkyLogisticsConfig.enableDistributorEnergy()
+                && SkyLogisticsConfig.allowEnergyManaTransfer()
+                && usableMana(BotaniaCompat.manaHandler(level, pos, accessSide));
+        boolean source = SkyLogisticsConfig.enableDistributorEnergy()
+                && SkyLogisticsConfig.allowEnergySourceTransfer()
+                && usableSource(ArsNouveauCompat.sourceHandler(level, pos, accessSide));
         return new Target(pos.immutable(), accessSide,
-                itemSide != null, fluidSide != null, energySide != null);
+                itemSide != null, fluidSide != null, chemical, energySide != null, mana, source);
     }
 
     private static boolean usableItems(IItemHandler handler) { return handler != null && handler.getSlots() > 0; }
     private static boolean usableFluids(IFluidHandler handler) { return handler != null && handler.getTanks() > 0; }
     private static boolean usableEnergy(IEnergyStorage storage) {
         return storage != null && (storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive());
+    }
+    private static boolean usableChemical(ChemicalHandlerBridge handler) {
+        return handler != null && handler.getTanks() > 0;
+    }
+    private static boolean usableMana(ManaHandlerBridge handler) {
+        return handler != null && (handler.getMaxMana() > 0 || handler.canExtract() || handler.canReceive());
+    }
+    private static boolean usableSource(SourceHandlerBridge handler) {
+        return handler != null && (handler.getMaxSource() > 0 || handler.canExtract() || handler.canReceive());
     }
 
     private IItemHandler item(Target target) {
@@ -188,9 +226,33 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return level.getCapability(Capabilities.EnergyStorage.BLOCK, target.pos, target.accessSide);
     }
 
+    private ChemicalHandlerBridge chemical(Target target) {
+        return target.chemical ? MekanismCompat.chemicalHandler(level, target.pos, target.accessSide) : null;
+    }
+
+    private ManaHandlerBridge mana(Target target) {
+        return target.mana ? BotaniaCompat.manaHandler(level, target.pos, target.accessSide) : null;
+    }
+
+    private SourceHandlerBridge source(Target target) {
+        return target.source ? ArsNouveauCompat.sourceHandler(level, target.pos, target.accessSide) : null;
+    }
+
     public IItemHandler itemHandler(Direction side) { return SkyLogisticsConfig.enableDistributorItems() ? items[side.ordinal()] : null; }
     public IFluidHandler fluidHandler(Direction side) { return SkyLogisticsConfig.enableDistributorFluids() ? fluids[side.ordinal()] : null; }
     public IEnergyStorage energyHandler(Direction side) { return SkyLogisticsConfig.enableDistributorEnergy() ? energy[side.ordinal()] : null; }
+    public ChemicalHandlerBridge chemicalHandler(Direction side) {
+        return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                ? chemicals[side.ordinal()] : null;
+    }
+    public ManaHandlerBridge manaHandler(Direction side) {
+        return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergyManaTransfer()
+                ? mana[side.ordinal()] : null;
+    }
+    public SourceHandlerBridge sourceHandler(Direction side) {
+        return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergySourceTransfer()
+                ? source[side.ordinal()] : null;
+    }
     public boolean hasItemTargets(Direction side) {
         return SkyLogisticsConfig.enableDistributorItems()
                 && (!targets(side).items.isEmpty() || targetDiscoveries[side.ordinal()] != null);
@@ -203,6 +265,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return SkyLogisticsConfig.enableDistributorEnergy()
                 && (!targets(side).energy.isEmpty() || targetDiscoveries[side.ordinal()] != null);
     }
+    public boolean hasChemicalTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                && (!targets(side).chemicals.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
+    public boolean hasManaTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergyManaTransfer()
+                && (!targets(side).mana.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
+    public boolean hasSourceTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergySourceTransfer()
+                && (!targets(side).source.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
     public List<TargetSnapshot> targetSnapshot() {
         TargetCache cache = targets(selectedSide);
         highlightSnapshot = createTargetSnapshot(cache);
@@ -213,7 +287,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         java.util.LinkedHashMap<BlockPos, Integer> masks = new java.util.LinkedHashMap<>();
         cache.items.forEach(target -> masks.merge(target.pos, 1, (left, right) -> left | right));
         cache.fluids.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
+        cache.chemicals.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
         cache.energy.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
+        cache.mana.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
+        cache.source.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
         return masks.entrySet().stream().map(entry -> new TargetSnapshot(entry.getKey(), entry.getValue())).toList();
     }
 
@@ -330,19 +407,24 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private static boolean sameFluidType(FluidStack first, FluidStack second) { return FluidStack.isSameFluidSameComponents(first, second); }
 
     private record Target(BlockPos pos, Direction accessSide,
-            boolean items, boolean fluids, boolean energy) {
-        boolean usable() { return items || fluids || energy; }
+            boolean items, boolean fluids, boolean chemical, boolean energy, boolean mana, boolean source) {
+        boolean usable() { return items || fluids || chemical || energy || mana || source; }
     }
 
-    private record TargetCache(List<Target> items, List<Target> fluids, List<Target> energy) {
-        private static final TargetCache EMPTY = new TargetCache(List.of(), List.of(), List.of());
+    private record TargetCache(List<Target> items, List<Target> fluids, List<Target> chemicals,
+            List<Target> energy, List<Target> mana, List<Target> source) {
+        private static final TargetCache EMPTY = new TargetCache(
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     private static final class DiscoveryState {
         private final int maxTargets;
         private final List<Target> itemTargets;
         private final List<Target> fluidTargets;
+        private final List<Target> chemicalTargets;
         private final List<Target> energyTargets;
+        private final List<Target> manaTargets;
+        private final List<Target> sourceTargets;
         private final ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         private final Set<BlockPos> visited = new HashSet<>();
         private final Set<BlockPos> discovered = new HashSet<>();
@@ -352,7 +434,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             this.maxTargets = maxTargets;
             itemTargets = new ArrayList<>(maxTargets);
             fluidTargets = new ArrayList<>(maxTargets);
+            chemicalTargets = new ArrayList<>(maxTargets);
             energyTargets = new ArrayList<>(maxTargets);
+            manaTargets = new ArrayList<>(maxTargets);
+            sourceTargets = new ArrayList<>(maxTargets);
         }
     }
 
@@ -363,6 +448,39 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private record FluidInsertPlan(long tick, FluidStack request, List<FluidMove> moves, int accepted) {}
     private record FluidDrainPlan(long tick, FluidStack request, List<FluidMove> moves, int extracted) {}
     private record EnergyPlan(long tick, int request, List<FluidMove> moves, int accepted) {}
+
+    private final class ChemicalLookup implements DistributedHandlerLookup<ChemicalHandlerBridge> {
+        private final Direction side;
+        private ChemicalLookup(Direction side) { this.side = side; }
+        @Override public int size() { return targets(side).chemicals.size(); }
+        @Override public ChemicalHandlerBridge handler(int index) {
+            List<Target> all = targets(side).chemicals;
+            return index < 0 || index >= all.size() ? null : chemical(all.get(index));
+        }
+        @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+    }
+
+    private final class ManaLookup implements DistributedHandlerLookup<ManaHandlerBridge> {
+        private final Direction side;
+        private ManaLookup(Direction side) { this.side = side; }
+        @Override public int size() { return targets(side).mana.size(); }
+        @Override public ManaHandlerBridge handler(int index) {
+            List<Target> all = targets(side).mana;
+            return index < 0 || index >= all.size() ? null : mana(all.get(index));
+        }
+        @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+    }
+
+    private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
+        private final Direction side;
+        private SourceLookup(Direction side) { this.side = side; }
+        @Override public int size() { return targets(side).source.size(); }
+        @Override public SourceHandlerBridge handler(int index) {
+            List<Target> all = targets(side).source;
+            return index < 0 || index >= all.size() ? null : source(all.get(index));
+        }
+        @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+    }
 
     private final class DistributedItems implements IItemHandler {
         private final Direction side;

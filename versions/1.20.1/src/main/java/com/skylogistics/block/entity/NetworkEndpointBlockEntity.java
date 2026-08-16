@@ -118,7 +118,8 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.chemicalHandler(getAccessSide(direction));
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
@@ -127,11 +128,13 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.manaHandler(getAccessSide(direction));
     }
 
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.sourceHandler(getAccessSide(direction));
     }
 
     protected SkyDistributorBlockEntity distributor(Direction direction) {

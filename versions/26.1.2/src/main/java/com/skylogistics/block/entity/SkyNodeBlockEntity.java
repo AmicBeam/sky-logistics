@@ -824,6 +824,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasChemicalTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowFluidChemicalTransfer() || !MekanismCompat.isLoaded()) {
             return false;
         }
@@ -840,6 +843,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasManaTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowEnergyManaTransfer() || !BotaniaCompat.isLoaded()) {
             return false;
         }
@@ -849,6 +855,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasSourceHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasSourceTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowEnergySourceTransfer() || !ArsNouveauCompat.isLoaded()) {
             return false;
         }
