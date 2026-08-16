@@ -212,11 +212,6 @@ def baselineBeyondDimensionsCompatJar = cachedBeyondDimensionsCompatJars.find {
 def beyondDimensionsCompatJar = beyondDimensionsCompatPath ? file(beyondDimensionsCompatPath)
         : (baselineBeyondDimensionsCompatJar != null ? baselineBeyondDimensionsCompatJar
         : (!cachedBeyondDimensionsCompatJars.isEmpty() ? cachedBeyondDimensionsCompatJars.last() : null))
-def cachedArsNouveauCompatJars = fileTree(
-        dir: "${System.getProperty('user.home')}/.gradle/caches/forge_gradle/deobf_dependencies/curse/maven/ars-nouveau-401955",
-        include: '**/ars-nouveau-401955-5600384_mapped_official_1.20.1.jar'
-).files.toList().sort { it.absolutePath }
-def arsNouveauCompatJar = cachedArsNouveauCompatJars.isEmpty() ? null : cachedArsNouveauCompatJars.last()
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -224,11 +219,6 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "mekanism:Mekanism:${mekanism_version}"
-    if (arsNouveauCompatJar != null && arsNouveauCompatJar.exists()) {
-        compileOnly files(arsNouveauCompatJar)
-    } else {
-        compileOnly "curse.maven:ars-nouveau-401955:5600384"
-    }
     if (ae2CompatJar != null && ae2CompatJar.exists()) {
         compileOnly files(ae2CompatJar)
     } else {

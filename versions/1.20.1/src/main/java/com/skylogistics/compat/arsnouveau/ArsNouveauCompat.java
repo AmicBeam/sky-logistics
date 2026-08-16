@@ -24,12 +24,9 @@ public final class ArsNouveauCompat {
         if (target == null) {
             return null;
         }
-        SourceHandlerBridge direct = ArsNouveauApiBridge.create(target);
-        if (direct != null) {
-            return direct;
-        }
-        // Addons may expose Source-compatible proxies without implementing the
-        // Ars Nouveau interface, so retain reflection as a fallback.
+        // 1.20.1 addons frequently expose Source-compatible proxies without
+        // implementing Ars Nouveau's concrete ISourceTile marker interface.
+        // The bridge validates the complete read/write method contract itself.
         return ReflectiveSourceHandlerBridge.create(target);
     }
 
