@@ -622,20 +622,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return super.getEndpointFluidHandler(direction, gameTime);
     }
 
-    public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
         return super.getEndpointEnergyHandler(direction, gameTime);
-    }
-
-    public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
-    public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
-        return null;
     }
 
     protected boolean forceSingleEndpointState(Direction endpoint, NodeFaceMode fallbackMode, boolean energyAllowed) {
