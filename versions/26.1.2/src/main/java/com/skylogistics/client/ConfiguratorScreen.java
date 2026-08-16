@@ -59,7 +59,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int DETAIL_ROW_HEIGHT = 22;
     private static final int DETAIL_VISIBLE_ROWS = 4;
     private static final int DETAIL_ICON_X = DETAIL_X + 6;
-    private static final int DETAIL_FOOTER_Y = DETAIL_Y + DETAIL_HEIGHT + 1;
+    private static final int DETAIL_FOOTER_Y = DETAIL_Y + DETAIL_HEIGHT + 3;
     private static final int CONTROL_START_X = 12;
     private static final int CONTROL_STEP_X = 60;
     private static final int RESOURCE_BUTTON_WIDTH = 56;
@@ -236,7 +236,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 214, 55, ConfigPanel.TEXT);
         renderLineDetails(graphics, config);
         graphics.text(font, Component.translatable("screen.skylogistics.configurator.offhand_applies"),
-                DETAIL_X, DETAIL_FOOTER_Y + 2, ConfigPanel.MUTED, false);
+                DETAIL_X, DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
                 47, 212, ConfigPanel.MUTED);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.slot_limit"),
