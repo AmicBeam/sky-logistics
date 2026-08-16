@@ -451,8 +451,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             int contentX = getX() + (width - 20 - buttonFont.width(getMessage())) / 2;
             int iconColor = ConfigPanel.buttonTextColor(active);
             if (mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
-                ConfigPanel.drawResourceIcon(graphics, contentX, getY() + 2,
-                        selected ? "auto_purple" : "auto", selected);
+                ConfigPanel.drawResourceIcon(graphics, contentX, getY() + 2, "auto_white", true);
             } else {
                 drawModeArrow(graphics, contentX, getY() + 2,
                         mode == SkyNecklaceItem.NecklaceMode.EXTRACT, iconColor);
