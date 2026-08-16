@@ -23,7 +23,6 @@ item_ids:
 - [容器与过滤](logistics_vaults_filters.md)
 - [外部网络接口](external_network_interfaces.md)
 - [配置器与升级](logistics_configurator_upgrades.md)
-- [AStages 速率联动](astages_integration.md)
 
 
 ## 外部网络

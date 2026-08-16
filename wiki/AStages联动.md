@@ -1,6 +1,6 @@
 # AStages 联动
 
-Sky Logistics 可以按线路持有者拥有的 AStages stage，限制并逐步解锁物流系统的**单次搬运量**。该功能是可选联动，默认关闭。
+Sky Logistics 的 **1.20.1 Forge 与 1.21.1 NeoForge** 版本可以按线路持有者拥有的 AStages stage，限制并逐步解锁物流系统的**单次搬运量**。该功能是可选联动，默认关闭。26.1.2 不支持 AStages，本页配置不适用于该版本。
 
 ## 作用范围
 

@@ -23,7 +23,6 @@ Read more:
 - [Vaults and Filters](logistics_vaults_filters.md)
 - [External Network Interfaces](external_network_interfaces.md)
 - [Configurator and Upgrades](logistics_configurator_upgrades.md)
-- [AStages Rate Integration](astages_integration.md)
 
 
 ## External Networks
