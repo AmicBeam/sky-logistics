@@ -29,13 +29,14 @@ final class MekanismChemicalCompat {
             return null;
         }
         List<Delegate> delegates = new ArrayList<>(4);
-        collectDelegates(target, side, delegates);
-        // Mekanism 1.20.1 tanks may expose a present but side-restricted proxy.
-        // Also collect the unsided handler so transfer can fall through when the
-        // selected face reports no tanks or rejects extraction/insertion.
+        // Prefer the internal handler. Mekanism chemical tanks can expose a
+        // sided proxy which shows the stored chemical while rejecting transfer;
+        // putting that proxy first makes the pipe's preferred-tank cache keep
+        // retrying an unusable tank and starve the internal handler.
         if (side != null) {
             collectDelegates(target, null, delegates);
         }
+        collectDelegates(target, side, delegates);
         return delegates.isEmpty() ? null : new Handler(delegates);
     }
 
