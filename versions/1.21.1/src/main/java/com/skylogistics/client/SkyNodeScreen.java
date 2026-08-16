@@ -711,7 +711,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 }
                 graphics.drawString(font, faceShortName(direction), getX() + 4, getY() + 2,
                         ConfigPanel.buttonTextColor(active), true);
-                int modeColor = colorFor(modeFor(node, direction));
+                NodeFaceMode mode = modeFor(node, direction);
+                int modeColor = mode == NodeFaceMode.NONE && hasTargetBlock(node, direction)
+                        ? ConfigPanel.FIELD_TEXT : colorFor(mode);
                 graphics.fill(getX() + 5, getY() + height - 5, getX() + width - 5, getY() + height - 3, modeColor);
             }
         }
