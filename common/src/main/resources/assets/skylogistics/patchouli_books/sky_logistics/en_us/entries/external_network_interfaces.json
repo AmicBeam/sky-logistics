@@ -1,0 +1,52 @@
+{
+  "name": "External Network Interfaces",
+  "icon": "skylogistics:sky_me_interface",
+  "category": "skylogistics:logistics",
+  "flag": "|mod:ae2,mod:refinedstorage,mod:beyonddimensions",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "External network interfaces connect large storage networks from other mods to a Sky Logistics line. This entry only appears when AE2, Refined Storage, or Beyond Dimensions is installed, and only pages for installed integrations are shown. All three use the node-style screen for line, mode, resources, upgrades, redstone, priority, and filters."
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:ae2",
+      "title": "Sky ME Interface",
+      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. With AppFlux, Applied Mekanistics, Applied Botanics, or Ars Énergistique installed, it can also move FE, chemicals, mana, or Source. Every path has its own server switch."
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:ae2",
+      "recipe": "skylogistics:sky_me_interface",
+      "text": "Attach the interface to a valid side of the ME network, then select its Sky line and operating mode."
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:refinedstorage",
+      "title": "Sky RS Interface",
+      "text": "The $(item)Sky RS Interface$() exposes items and fluids in a Refined Storage network. Item and fluid paths can be disabled independently. Connect it to the RS network, then configure it as an extract or insert endpoint on a Sky line."
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:refinedstorage",
+      "recipe": "skylogistics:sky_rs_interface",
+      "text": "The interface has no intermediate buffer. If a target refuses a transfer, the resource remains in its original network."
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:beyonddimensions",
+      "title": "Sky Dimension Interface",
+      "text": "The $(item)Sky Dimension Interface$() accesses items, fluids, and FE in a Beyond Dimensions network. With Mekanism or Ars Nouveau installed, it can also access chemicals or Source. It connects third-party storage and is not the same as a Dimension Upgrade for ordinary nodes."
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:beyonddimensions",
+      "recipe": "skylogistics:sky_dimension_interface",
+      "text": "Each resource path has an independent server switch. Disabling an integration does not remove the block or damage saved Sky lines."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Extracting items from an external network requires a whitelist containing at least one concrete item, preventing unbounded scans of the entire network. Tag and mod filters cannot replace that enumerable whitelist. Dimension Upgrades do not load chunks; unloaded dimensions and chunks are still skipped."
+    }
+  ]
+}

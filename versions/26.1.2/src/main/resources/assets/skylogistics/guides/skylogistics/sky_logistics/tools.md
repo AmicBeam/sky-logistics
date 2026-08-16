@@ -10,6 +10,7 @@ item_ids:
   - skylogistics:tag_filter_list
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:exact_quantity_upgrade
   - skylogistics:sky_necklace
 ---
 
@@ -23,6 +24,7 @@ The configurator is the main tool for copying, pasting, and editing line setting
   <ItemIcon id="tag_filter_list" />
   <ItemIcon id="speed_upgrade" />
   <ItemIcon id="dimension_upgrade" />
+  <ItemIcon id="exact_quantity_upgrade" />
   <ItemIcon id="sky_necklace" />
 </ItemGrid>
 
@@ -31,6 +33,7 @@ Read the detailed pages:
 - [Sky Configurator](configurator.md)
 - [Configurator and Upgrades](logistics_configurator_upgrades.md)
 - [Vaults and Filters](logistics_vaults_filters.md)
+- [Sky Necklace](sky_necklace.md)
 
 ## Filters
 
@@ -38,11 +41,11 @@ Use <ItemLink id="filter_list" /> for explicit item or fluid filters, and <ItemL
 
 ## Upgrades
 
-<ItemLink id="speed_upgrade" /> helps nodes process resources more quickly. When cross-dimensional transport is allowed, <ItemLink id="dimension_upgrade" /> can reach same-line endpoints in other loaded dimensions.
+<ItemLink id="speed_upgrade" /> helps nodes process resources more quickly. <ItemLink id="dimension_upgrade" /> can reach same-line endpoints in other loaded dimensions. <ItemLink id="exact_quantity_upgrade" /> makes a node or necklace keep or fill toward the total number of items matching its filter.
 
 ## Sky Necklace
 
-With Curios installed, the <ItemLink id="sky_necklace" /> works from a Curios slot. Without Curios, it can still use the player's main inventory.
+The <ItemLink id="sky_necklace" /> supports extract, insert, and maintain modes. See [Sky Necklace](sky_necklace.md) for whitelist requirements, upgrades, and quantity behavior.
 
 <RecipeFor id="configurator" fallbackText="The configurator recipe is unavailable." />
 <RecipeFor id="sky_necklace" fallbackText="The sky necklace recipe is unavailable." />

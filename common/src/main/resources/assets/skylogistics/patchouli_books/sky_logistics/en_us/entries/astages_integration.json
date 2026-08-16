@@ -1,0 +1,24 @@
+{
+  "name": "AStages Rate Integration",
+  "icon": "skylogistics:speed_upgrade",
+  "category": "skylogistics:logistics",
+  "flag": "mod:astages",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "With AStages installed, a server can limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration is disabled by default and must be enabled at $(thing)transfers.astages.enabled$(). It covers wireless nodes, external interfaces, and simple pipes."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Items, fluids, Mekanism chemicals, FE, Botania mana, and Ars Nouveau Source each have their own limit. The system starts with initialRates, takes the highest configured value for each resource across every owned stage, then applies the lowest of that value, the device limit, and target acceptance."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Rates only limit how much one successful operation may commit. They do not change node operations per tick, Speed Upgrades, server or line operation budgets, or necklace intervals. A simple pipe's own configured limit still caps the result."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Wireless lines use the player who created or claimed the line as owner. Simple pipe networks use their placer or inherited network owner. If no owner can be found, a query fails, or AStages is unavailable, only initialRates apply; nearby online players never lend their stages."
+    }
+  ]
+}

@@ -18,4 +18,6 @@ One craft gives 2 nodes. Nodes have no internal buffer; they only pair same-line
 
 In the node screen, each face can be disconnected, extract, or insert. Only connected faces participate in a line, and the block appearance changes with its connections and extract faces.
 
-Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint.
+Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. Redstone cycles between ignore signals, work with a signal, and work without a signal. A blocked face is paused and is not treated as a failing endpoint.
+
+The More page configures redstone, priority, item slots, and filters. A slot value of 0 means unlimited; an Exact Quantity Upgrade replaces it with a count field. Red text at the bottom explains invalid combinations, such as external item extraction without a concrete item whitelist.

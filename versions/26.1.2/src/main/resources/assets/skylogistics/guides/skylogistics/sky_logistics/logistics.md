@@ -21,12 +21,14 @@ Read more:
 
 - [Nodes and Pipe Endpoints](logistics_nodes.md)
 - [Vaults and Filters](logistics_vaults_filters.md)
+- [External Network Interfaces](external_network_interfaces.md)
 - [Configurator and Upgrades](logistics_configurator_upgrades.md)
+- [AStages Rate Integration](astages_integration.md)
 
 
 ## External Networks
 
-When the matching mod is installed, dedicated interfaces can connect Sky Logistics to AE2, Refined Storage, and Beyond Dimensions:
+When the matching mod is installed, dedicated interfaces can connect Sky Logistics to AE2, Refined Storage, and Beyond Dimensions. See [External Network Interfaces](external_network_interfaces.md) for resource paths, filter requirements, and server switches:
 
 <ItemGrid>
   <ItemIcon id="sky_me_interface" />

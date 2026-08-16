@@ -21,12 +21,14 @@ item_ids:
 
 - [节点与管道端点](logistics_nodes.md)
 - [容器与过滤](logistics_vaults_filters.md)
+- [外部网络接口](external_network_interfaces.md)
 - [配置器与升级](logistics_configurator_upgrades.md)
+- [AStages 速率联动](astages_integration.md)
 
 
 ## 外部网络
 
-安装对应模组时，天穹物流可以对接 AE2、精致存储和 Beyond Dimensions：
+安装对应模组时，天穹物流可以对接 AE2、精致存储和 Beyond Dimensions。详细资源路径、过滤要求与服务端开关参见[外部网络接口](external_network_interfaces.md)：
 
 <ItemGrid>
   <ItemIcon id="sky_me_interface" />

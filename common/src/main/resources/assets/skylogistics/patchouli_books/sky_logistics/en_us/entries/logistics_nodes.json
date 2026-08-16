@@ -18,7 +18,11 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint."
+      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint. Redstone has three states: ignore signals, work with a signal, or work without a signal."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The More page configures redstone, priority, item slots, and filters. A slot value of 0 means unlimited; an Exact Quantity Upgrade replaces it with a count field. Red text at the bottom explains invalid combinations, such as external item extraction without a concrete item whitelist."
     }
   ]
 }

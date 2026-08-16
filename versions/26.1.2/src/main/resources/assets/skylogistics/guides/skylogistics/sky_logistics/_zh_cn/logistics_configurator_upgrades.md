@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:exact_quantity_upgrade
 ---
 
 # 配置器与升级
@@ -23,3 +24,7 @@ item_ids:
 维度升级卡也装在节点升级槽里，但只影响抽取面。带有维度升级的抽取面可以把资源送到其它已加载维度里同线路的存入面；存入面不需要维度升级。它不是区块加载器，未加载的维度或区块会被跳过。
 
 维度升级卡通过二阶天穹供奉获得：祭坛放下界之星，供桌放 4 个末影之眼和 1 个柯拉甘露。仪式约 12 秒完成，升级卡只需要装在抽取端节点上。
+
+精确数量升级可装入节点或天穹项链，把槽数控件替换为 1 到 2147483647 的物品数量。节点抽取面会保留过滤规则匹配物品的设定总数，存入面只补足到设定总数；项链的抽取、存入和维持模式也会统计白名单匹配到的全部物品。
+
+<RecipeFor id="exact_quantity_upgrade" fallbackText="未找到精确数量升级配方。" />
