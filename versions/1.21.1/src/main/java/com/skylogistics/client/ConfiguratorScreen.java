@@ -243,7 +243,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                 214, 55, ConfigPanel.TEXT);
         renderLineDetails(graphics, config);
         graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.offhand_applies"),
-                DETAIL_X, DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
+                DETAIL_X, DETAIL_FOOTER_Y + 2, ConfigPanel.MUTED, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
                 47, 212, ConfigPanel.MUTED);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.slot_limit"),
