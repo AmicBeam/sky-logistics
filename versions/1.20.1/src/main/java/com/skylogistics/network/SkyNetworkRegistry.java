@@ -595,7 +595,6 @@ public final class SkyNetworkRegistry {
             NetworkEndpointBlockEntity node, Direction direction) {
         CachedEndpoint endpoint = reusableEndpoints.remove(new EndpointKey(node.getBlockPos(), direction));
         if (endpoint != null && endpoint.node() == node) {
-            endpoint.resetResourceSupportKnowledge();
             return endpoint;
         }
         return new CachedEndpoint(node, direction);
@@ -1395,14 +1394,13 @@ public final class SkyNetworkRegistry {
             endpoint.clearTargetScans();
             inputs.add(endpoint);
             inputResourceMask |= addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs,
-                    energyInputs, manaInputs, sourceInputs, true);
+                    energyInputs, manaInputs, sourceInputs);
         }
 
         private void addOutput(CachedEndpoint endpoint) {
             outputs.add(endpoint);
             outputResourceMask |= addResourceEndpoint(endpoint, priorityItemOutputs, priorityFluidOutputs,
-                    priorityChemicalOutputs, priorityEnergyOutputs, priorityManaOutputs, prioritySourceOutputs,
-                    false);
+                    priorityChemicalOutputs, priorityEnergyOutputs, priorityManaOutputs, prioritySourceOutputs);
         }
 
         private void rebuildPriorityOutputs() {
@@ -1507,7 +1505,7 @@ public final class SkyNetworkRegistry {
         private static int addResourceEndpoint(CachedEndpoint endpoint, List<CachedEndpoint> itemEndpoints,
                 List<CachedEndpoint> fluidEndpoints, List<CachedEndpoint> chemicalEndpoints,
                 List<CachedEndpoint> energyEndpoints, List<CachedEndpoint> manaEndpoints,
-                List<CachedEndpoint> sourceEndpoints, boolean sourceEndpoint) {
+                List<CachedEndpoint> sourceEndpoints) {
             NetworkEndpointBlockEntity node = endpoint.node();
             Direction direction = endpoint.direction();
             int resourceMask = 0;
@@ -1519,7 +1517,6 @@ public final class SkyNetworkRegistry {
                 fluidEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_FLUIDS;
                 if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
-                    endpoint.enableChemicalSupport();
                     chemicalEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_CHEMICALS;
                 }
@@ -1528,12 +1525,10 @@ public final class SkyNetworkRegistry {
                 energyEndpoints.add(endpoint);
                 resourceMask |= RESOURCE_ENERGY;
                 if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()) {
-                    endpoint.enableManaSupport();
                     manaEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_MANA;
                 }
                 if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()) {
-                    endpoint.enableSourceSupport();
                     sourceEndpoints.add(endpoint);
                     resourceMask |= RESOURCE_SOURCE;
                 }
@@ -1635,9 +1630,6 @@ public final class SkyNetworkRegistry {
         private BudgetedScanCursors<String> chemicalTargetScanCursors;
         private final int[] resourceTargetScanCursors =
                 new int[NetworkEndpointBlockEntity.TargetResource.values().length];
-        private boolean chemicalSupported;
-        private boolean manaSupported;
-        private boolean sourceSupported;
         private int absentCapabilityMask;
         private BlockEntity capabilityTarget;
         private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
@@ -1705,36 +1697,6 @@ public final class SkyNetworkRegistry {
             rejectedChemicalAccepts = new ChemicalStackView[rejectedAcceptCacheSize];
             rejectedChemicalAcceptUntil = new long[rejectedAcceptCacheSize];
             rejectedChemicalAcceptFailures = new int[rejectedAcceptCacheSize];
-        }
-
-        private void enableChemicalSupport() {
-            chemicalSupported = true;
-        }
-
-        private void enableManaSupport() {
-            manaSupported = true;
-        }
-
-        private void enableSourceSupport() {
-            sourceSupported = true;
-        }
-
-        private void resetResourceSupportKnowledge() {
-            chemicalSupported = false;
-            manaSupported = false;
-            sourceSupported = false;
-        }
-
-        public boolean supportsChemical() {
-            return chemicalSupported;
-        }
-
-        public boolean supportsMana() {
-            return manaSupported;
-        }
-
-        public boolean supportsSource() {
-            return sourceSupported;
         }
 
         public NetworkEndpointBlockEntity node() {
