@@ -1617,7 +1617,7 @@ public final class SkyNetworkRegistry {
         private int absentCapabilityMask;
         private BlockEntity capabilityTarget;
         private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
-        private long capabilityLifecycleCheckAt;
+        private final long[] capabilityLifecycleCheckAt = new long[6];
         private long chemicalHandlerValidateAt;
         private long manaHandlerValidateAt;
         private long sourceHandlerValidateAt;
@@ -1771,14 +1771,16 @@ public final class SkyNetworkRegistry {
             if (capability == CAPABILITY_ITEMS || capability == CAPABILITY_FLUIDS
                     || capability == CAPABILITY_ENERGY) return true;
             if ((absentCapabilityMask & capability) == 0) return true;
-            if (gameTime < capabilityLifecycleCheckAt) return false;
+            int capabilityIndex = Integer.numberOfTrailingZeros(capability);
+            if (gameTime < capabilityLifecycleCheckAt[capabilityIndex]) return false;
             Level level = node.getLevel();
-            capabilityLifecycleCheckAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
+            capabilityLifecycleCheckAt[capabilityIndex] = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
             if (level == null || !level.isLoaded(targetPos)) return false;
             BlockEntity currentTarget = level.getBlockEntity(targetPos);
             net.minecraft.world.level.block.state.BlockState currentState = level.getBlockState(targetPos);
             if (currentTarget == capabilityTarget && currentState == capabilityTargetState) {
                 absentCapabilityMask &= ~capability;
+                capabilityLifecycleCheckAt[capabilityIndex] = 0L;
                 return true;
             }
             invalidateCapabilityKnowledge();
@@ -1789,12 +1791,14 @@ public final class SkyNetworkRegistry {
             long wake = retryAfter > gameTime ? retryAfter : gameTime;
             if (capability == CAPABILITY_ITEMS || capability == CAPABILITY_FLUIDS
                     || capability == CAPABILITY_ENERGY) return wake;
-            return (absentCapabilityMask & capability) != 0 && capabilityLifecycleCheckAt > wake
-                    ? capabilityLifecycleCheckAt : wake;
+            long lifecycleCheckAt = capabilityLifecycleCheckAt[Integer.numberOfTrailingZeros(capability)];
+            return (absentCapabilityMask & capability) != 0 && lifecycleCheckAt > wake
+                    ? lifecycleCheckAt : wake;
         }
 
         private void recordCapabilityPresent(int capability) {
             absentCapabilityMask &= ~capability;
+            capabilityLifecycleCheckAt[Integer.numberOfTrailingZeros(capability)] = 0L;
         }
 
         private void recordCapabilityAbsent(int capability, long gameTime) {
@@ -1806,14 +1810,15 @@ public final class SkyNetworkRegistry {
                 capabilityTarget = level.getBlockEntity(targetPos);
                 capabilityTargetState = level.getBlockState(targetPos);
             }
-            capabilityLifecycleCheckAt = gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
+            capabilityLifecycleCheckAt[Integer.numberOfTrailingZeros(capability)] =
+                    gameTime + CAPABILITY_LIFECYCLE_CHECK_INTERVAL;
         }
 
         private void invalidateCapabilityKnowledge() {
             absentCapabilityMask = 0;
             capabilityTarget = null;
             capabilityTargetState = null;
-            capabilityLifecycleCheckAt = 0L;
+            java.util.Arrays.fill(capabilityLifecycleCheckAt, 0L);
             clearItemCache();
             clearFluidCache();
             clearChemicalCache();
