@@ -1450,12 +1450,18 @@ public final class SkyNetworkRegistry {
             if (node.isItemsEnabled(direction)) insertByPriority(priorityItemOutputs, endpoint);
             if (node.isFluidsEnabled(direction)) {
                 insertByPriority(priorityFluidOutputs, endpoint);
-                if (endpoint.supportsChemical()) insertByPriority(priorityChemicalOutputs, endpoint);
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
+                    insertByPriority(priorityChemicalOutputs, endpoint);
+                }
             }
             if (node.isEnergyEnabled(direction)) {
                 insertByPriority(priorityEnergyOutputs, endpoint);
-                if (endpoint.supportsMana()) insertByPriority(priorityManaOutputs, endpoint);
-                if (endpoint.supportsSource()) insertByPriority(prioritySourceOutputs, endpoint);
+                if (SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()) {
+                    insertByPriority(priorityManaOutputs, endpoint);
+                }
+                if (SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()) {
+                    insertByPriority(prioritySourceOutputs, endpoint);
+                }
             }
         }
 
@@ -1937,7 +1943,7 @@ public final class SkyNetworkRegistry {
         }
 
         public ChemicalHandlerBridge chemicalHandler(long gameTime) {
-            if (!canTryChemicals(gameTime) || !chemicalSupported
+            if (!canTryChemicals(gameTime)
                     || !SkyLogisticsConfig.allowFluidChemicalTransfer()) {
                 return null;
             }
@@ -2018,7 +2024,7 @@ public final class SkyNetworkRegistry {
         }
 
         public ManaHandlerBridge manaHandler(long gameTime) {
-            if (!canTryMana(gameTime) || !manaSupported
+            if (!canTryMana(gameTime)
                     || !SkyLogisticsConfig.allowEnergyManaTransfer()
                     || !BotaniaCompat.isLoaded()) {
                 return null;
@@ -2054,7 +2060,7 @@ public final class SkyNetworkRegistry {
         }
 
         public SourceHandlerBridge sourceHandler(long gameTime) {
-            if (!canTrySource(gameTime) || !sourceSupported
+            if (!canTrySource(gameTime)
                     || !SkyLogisticsConfig.allowEnergySourceTransfer()
                     || !ArsNouveauCompat.isLoaded()) {
                 return null;

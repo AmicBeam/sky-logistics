@@ -188,7 +188,6 @@ public final class SkyNetworkTicker {
                 }
                 if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && node.isFluidsEnabled(input.direction())
-                        && input.supportsChemical()
                         && input.canTryChemicals(gameTime)) {
                     if (dimensionUpgrade && globalChemicalOutputs == null) {
                         globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
@@ -229,7 +228,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (manaRoute && node.isEnergyEnabled(input.direction()) && input.supportsMana()
+                if (manaRoute && node.isEnergyEnabled(input.direction())
                         && canTransferMana() && input.canTryMana(gameTime)) {
                     if (dimensionUpgrade && globalManaOutputs == null) {
                         globalManaOutputs = SkyNetworkRegistry.globalManaOutputs(line.lineId());
@@ -248,7 +247,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (sourceRoute && node.isEnergyEnabled(input.direction()) && input.supportsSource()
+                if (sourceRoute && node.isEnergyEnabled(input.direction())
                         && canTransferSource() && input.canTrySource(gameTime)) {
                     if (dimensionUpgrade && globalSourceOutputs == null) {
                         globalSourceOutputs = SkyNetworkRegistry.globalSourceOutputs(line.lineId());
@@ -301,17 +300,16 @@ public final class SkyNetworkTicker {
         }
         if (fluidRoute && node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
-                    && input.supportsChemical()) {
+            if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
         if (energyRoute && node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
-            if (manaRoute && canTransferMana() && input.supportsMana()) {
+            if (manaRoute && canTransferMana()) {
                 nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
             }
-            if (sourceRoute && canTransferSource() && input.supportsSource()) {
+            if (sourceRoute && canTransferSource()) {
                 nextWake = Math.min(nextWake, input.nextSourceWake(gameTime));
             }
         }
