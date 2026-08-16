@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "When placed normally, the container on the clicked side defaults to insert mode. Sneak-place to make that side extract instead. By default, each extracting item pipe moves up to 64 items per tick and uses only one source slot and one target slot per transfer; fluid pipes move 10,000 mB/t and energy pipes move 100,000 FE/t."
+      "text": "When placed normally, the container on the clicked side defaults to insert mode. Sneak-place to make that side extract instead. By default, each extracting item pipe moves up to 64 items per tick and uses only one source slot and one target slot per transfer; fluid pipes move 10,000 mB/t and energy pipes move 100,000 FE/t. Optional Botania mana and Ars Nouveau Source transfers are each limited to 50/t, matching the average throughput of their basic native transport methods."
     },
     {
       "type": "patchouli:crafting",

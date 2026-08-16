@@ -411,10 +411,10 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
             simpleManaPipeTransferRate = builder
                     .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.")
-                    .defineInRange("simpleManaPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+                    .defineInRange("simpleManaPipeTransferRate", 50, 1, Integer.MAX_VALUE);
             simpleSourcePipeTransferRate = builder
                     .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.")
-                    .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+                    .defineInRange("simpleSourcePipeTransferRate", 50, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
                     .defineInRange("simplePipeMaxConnectedBlocks", 256, 16, 65_536);
