@@ -3,7 +3,7 @@ package com.skylogistics.block;
 import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.ModFilterListItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
@@ -341,7 +341,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (FilterListItem.isFilterItem(held)) {
             Direction direction = targetedContainerEndpoint(state, level, pos, hit);
             if (direction == null) return InteractionResult.PASS;
-            if (pipeType == SimplePipeType.ENERGY && !ModFilterListItem.isModFilterList(held)) {
+            if (pipeType == SimplePipeType.ENERGY && !TagFilterListItem.isTagFilterList(held)) {
                 if (!level.isClientSide) player.displayClientMessage(Component.translatable(
                         "message.skylogistics.simple_pipe.filter_unsupported"), true);
                 return InteractionResult.sidedSuccess(level.isClientSide);

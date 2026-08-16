@@ -221,26 +221,19 @@ public class FilterListItem extends Item {
 
     public static boolean hasAnyFilters(ItemStack stack) {
         return countFilters(stack) + countFluidFilters(stack) + TagFilterListItem.countTags(stack)
-                + TagFilterListItem.countFluidTags(stack) + ModFilterListItem.countMods(stack) > 0;
+                + TagFilterListItem.countFluidTags(stack) + TagFilterListItem.countMods(stack) > 0;
     }
 
     public static boolean isFilterItem(ItemStack stack) {
-        return stack.is(ModItems.FILTER_LIST.get()) || stack.is(ModItems.TAG_FILTER_LIST.get())
-                || stack.is(ModItems.MOD_FILTER_LIST.get());
+        return stack.is(ModItems.FILTER_LIST.get()) || stack.is(ModItems.TAG_FILTER_LIST.get());
     }
 
     public static int countItemRules(ItemStack stack) {
-        if (ModFilterListItem.isModFilterList(stack)) return ModFilterListItem.countMods(stack);
-        return TagFilterListItem.isTagFilterList(stack) ? TagFilterListItem.countTags(stack) : countFilters(stack);
+        return TagFilterListItem.isTagFilterList(stack)
+                ? TagFilterListItem.countTags(stack) + TagFilterListItem.countMods(stack) : countFilters(stack);
     }
 
     public static void appendFilterContentsOrHint(ItemStack stack, Consumer<Component> tooltip, TooltipFlag flag) {
-        if (ModFilterListItem.isModFilterList(stack)) {
-            if (showFilterContents()) ModFilterListItem.appendFilterContents(stack, tooltip, true);
-            else tooltip.accept(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            return;
-        }
         if (TagFilterListItem.isTagFilterList(stack)) {
             if (showFilterContents()) {
                 TagFilterListItem.appendFilterContents(stack, tooltip, true);
@@ -343,19 +336,15 @@ public class FilterListItem extends Item {
         if (filterList.isEmpty()) {
             return CompiledFilter.ALLOW_ALL;
         }
-        if (ModFilterListItem.isModFilterList(filterList)) {
-            Set<String> mods = new HashSet<>(ModFilterListItem.getMods(filterList));
-            mods.remove("");
-            return mods.isEmpty() ? CompiledFilter.ALLOW_ALL
-                    : CompiledFilter.modList(ModFilterListItem.isWhitelist(filterList), mods);
-        }
         if (TagFilterListItem.isTagFilterList(filterList)) {
             List<TagKey<Item>> tagKeys = TagFilterListItem.getTagKeys(filterList);
             List<TagKey<Fluid>> fluidTagKeys = TagFilterListItem.getFluidTagKeys(filterList);
-            if (tagKeys.isEmpty() && fluidTagKeys.isEmpty()) {
+            Set<String> mods = new HashSet<>(TagFilterListItem.getMods(filterList));
+            mods.remove("");
+            if (tagKeys.isEmpty() && fluidTagKeys.isEmpty() && mods.isEmpty()) {
                 return CompiledFilter.ALLOW_ALL;
             }
-            return CompiledFilter.tagList(isWhitelist(filterList), tagKeys, fluidTagKeys);
+            return CompiledFilter.tagList(TagFilterListItem.isWhitelist(filterList), tagKeys, fluidTagKeys, mods);
         }
         boolean whitelist = isWhitelist(filterList);
         List<ItemStack> filters = getFilters(filterList);
@@ -504,9 +493,9 @@ public class FilterListItem extends Item {
         }
 
         private static CompiledFilter tagList(boolean whitelist, List<TagKey<Item>> tagEntries,
-                List<TagKey<Fluid>> fluidTagEntries) {
+                List<TagKey<Fluid>> fluidTagEntries, Set<String> modIds) {
             return new CompiledFilter(Mode.LIST, whitelist, false, false, NO_ENTRIES, NO_FLUID_ENTRIES,
-                    List.copyOf(tagEntries), List.copyOf(fluidTagEntries), null, null, Set.of());
+                    List.copyOf(tagEntries), List.copyOf(fluidTagEntries), null, null, Set.copyOf(modIds));
         }
 
         private static CompiledFilter modList(boolean whitelist, Set<String> modIds) {
@@ -529,7 +518,7 @@ public class FilterListItem extends Item {
         }
 
         private boolean matchesList(ItemStack candidate) {
-            if (entries.length == 0 && tagEntries.isEmpty()) {
+            if (entries.length == 0 && tagEntries.isEmpty() && modIds.isEmpty()) {
                 return true;
             }
             boolean matched = itemKeys == null
@@ -538,6 +527,7 @@ public class FilterListItem extends Item {
             if (!matched) {
                 matched = matchesTagEntries(candidate);
             }
+            if (!matched) matched = modIds.contains(BuiltInRegistries.ITEM.getKey(candidate.getItem()).getNamespace());
             return whitelist == matched;
         }
 
@@ -562,7 +552,7 @@ public class FilterListItem extends Item {
         public boolean matchesFluid(FluidStack candidate) {
             if (mode == Mode.MOD) return !candidate.isEmpty()
                     && matchesMod(BuiltInRegistries.FLUID.getKey(candidate.getFluid()).getNamespace());
-            if (mode != Mode.LIST || fluidEntries.length == 0 && fluidTagEntries.isEmpty()) {
+            if (mode != Mode.LIST || fluidEntries.length == 0 && fluidTagEntries.isEmpty() && modIds.isEmpty()) {
                 return true;
             }
             if (candidate.isEmpty()) {
@@ -575,6 +565,7 @@ public class FilterListItem extends Item {
                     if (candidate.getFluid().builtInRegistryHolder().is(tag)) { matched = true; break; }
                 }
             }
+            if (!matched) matched = modIds.contains(BuiltInRegistries.FLUID.getKey(candidate.getFluid()).getNamespace());
             return whitelist == matched;
         }
 
@@ -592,7 +583,7 @@ public class FilterListItem extends Item {
         }
 
         public boolean hasItemRules() {
-            return mode == Mode.MOD || entries.length > 0 || !tagEntries.isEmpty();
+            return mode == Mode.MOD || entries.length > 0 || !tagEntries.isEmpty() || !modIds.isEmpty();
         }
 
         public List<ItemStack> itemSamples() {
@@ -611,13 +602,14 @@ public class FilterListItem extends Item {
         }
 
         public boolean hasFluidRules() {
-            return mode == Mode.MOD || mode == Mode.LIST && (fluidEntries.length > 0 || !fluidTagEntries.isEmpty());
+            return mode == Mode.MOD || mode == Mode.LIST
+                    && (fluidEntries.length > 0 || !fluidTagEntries.isEmpty() || !modIds.isEmpty());
         }
 
         public List<TagKey<Fluid>> fluidTags() { return fluidTagEntries; }
 
-        public boolean hasEnergyRules() { return mode == Mode.MOD; }
-        public boolean matchesEnergy(String modId) { return mode != Mode.MOD || matchesMod(modId); }
+        public boolean hasEnergyRules() { return !modIds.isEmpty(); }
+        public boolean matchesEnergy(String modId) { return modIds.isEmpty() || matchesMod(modId); }
         private boolean matchesMod(String modId) { return whitelist == modIds.contains(modId); }
 
         public List<FluidStack> fluidSamples() {

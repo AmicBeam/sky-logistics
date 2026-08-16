@@ -7,16 +7,16 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 
-public record TagFilterEditPacket(int slot, String tag, boolean fluid) {
+public record TagFilterEditPacket(int slot, String tag, int resource) {
     public static void encode(TagFilterEditPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.slot);
         buffer.writeUtf(packet.tag, TagFilterListItem.MAX_TAG_LENGTH);
-        buffer.writeBoolean(packet.fluid);
+        buffer.writeVarInt(packet.resource);
     }
 
     public static TagFilterEditPacket decode(FriendlyByteBuf buffer) {
         return new TagFilterEditPacket(buffer.readVarInt(), buffer.readUtf(TagFilterListItem.MAX_TAG_LENGTH),
-                buffer.readBoolean());
+                buffer.readVarInt());
     }
 
     public static void handle(TagFilterEditPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -26,7 +26,7 @@ public record TagFilterEditPacket(int slot, String tag, boolean fluid) {
             if (player == null || !(player.containerMenu instanceof TagFilterListMenu menu)) {
                 return;
             }
-            menu.setTag(packet.slot, packet.tag, packet.fluid);
+            menu.setTag(packet.slot, packet.tag, packet.resource);
         });
         context.setPacketHandled(true);
     }

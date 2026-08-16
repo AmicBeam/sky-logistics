@@ -4,7 +4,6 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.item.ChoraNectarItem;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyLogisticsManualItem;
@@ -66,8 +65,6 @@ public final class ModItems {
             () -> new FilterListItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, TagFilterListItem> TAG_FILTER_LIST = ITEMS.register("tag_filter_list",
             () -> new TagFilterListItem(new Item.Properties().stacksTo(1)));
-    public static final DeferredHolder<Item, ModFilterListItem> MOD_FILTER_LIST = ITEMS.register("mod_filter_list",
-            () -> new ModFilterListItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, SkyNecklaceItem> SKY_NECKLACE = ITEMS.register("sky_necklace",
             () -> new SkyNecklaceItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, UpgradeCardItem> SPEED_UPGRADE = ITEMS.register("speed_upgrade",

@@ -3,7 +3,6 @@ package com.skylogistics.client;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.TagFilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.network.ModNetworking;
@@ -369,6 +368,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if ((lineNameEdit != null && lineNameEdit.isFocused()
+                || exactQuantityEdit != null && exactQuantityEdit.isFocused())
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
         if (lineNameEdit != null && lineNameEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             commitLineNameEdit();
@@ -526,7 +528,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private void refreshTagFilterWarning(SkyNodeBlockEntity node, Direction face, int slot, ItemStack attempted) {
-        if (TagFilterListItem.isTagFilterList(attempted) || ModFilterListItem.isModFilterList(attempted)) {
+        if (TagFilterListItem.isTagFilterList(attempted)) {
             tagFilterRejectedFace = face;
             tagFilterRejectedSlot = slot;
             tagFilterRejectedPrevious = node.getFaceFilter(face, slot).copy();

@@ -6,7 +6,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.ModFilterListItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.util.NodeFaceMode;
@@ -254,7 +254,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     public boolean allowsEnergy(Direction direction) {
         FilterListItem.CompiledFilter filter = endpointFilter(direction);
-        return !filter.hasEnergyRules() || filter.matchesEnergy(ModFilterListItem.FORGE_ENERGY_MOD_ID);
+        return !filter.hasEnergyRules() || filter.matchesEnergy(TagFilterListItem.FORGE_ENERGY_MOD_ID);
     }
 
     @Override
@@ -264,7 +264,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean setEndpointFilter(Direction direction, ItemStack stack) {
         if (direction == null || !FilterListItem.isFilterItem(stack)
-                || pipeType() == SimplePipeType.ENERGY && !ModFilterListItem.isModFilterList(stack)) return false;
+                || pipeType() == SimplePipeType.ENERGY && !TagFilterListItem.isTagFilterList(stack)) return false;
         ItemStack copy = stack.copy();
         copy.setCount(1);
         if (StackData.sameItemAndComponents(getFaceFilter(direction, 0), copy)) return true;

@@ -286,6 +286,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         if (lineNameEdit != null && lineNameEdit.isFocused()
+                && minecraft.options.keyInventory.matches(event)) return true;
+        if (lineNameEdit != null && lineNameEdit.isFocused()
                 && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);

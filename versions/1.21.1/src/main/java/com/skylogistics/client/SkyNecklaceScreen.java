@@ -254,6 +254,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if ((lineNameEdit != null && lineNameEdit.isFocused()
+                || exactQuantityEdit != null && exactQuantityEdit.isFocused())
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
         if (lineNameEdit != null && lineNameEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             commitLineNameEdit();

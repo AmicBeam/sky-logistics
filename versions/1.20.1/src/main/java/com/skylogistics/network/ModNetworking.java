@@ -80,11 +80,11 @@ public final class ModNetworking {
     }
 
     public static void sendTagFilterTag(int slot, String tag) {
-        sendTagFilterTag(slot, tag, false);
+        sendTagFilterTag(slot, tag, 0);
     }
 
-    public static void sendTagFilterTag(int slot, String tag, boolean fluid) {
-        CHANNEL.sendToServer(new TagFilterEditPacket(slot, tag, fluid));
+    public static void sendTagFilterTag(int slot, String tag, int resource) {
+        CHANNEL.sendToServer(new TagFilterEditPacket(slot, tag, resource));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

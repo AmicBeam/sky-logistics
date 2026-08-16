@@ -13,7 +13,6 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.item.TagFilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
@@ -302,7 +301,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public boolean allowsEnergy(Direction direction) {
         boolean hasWhitelist = false;
         boolean whitelistMatched = false;
-        String modId = ModFilterListItem.FORGE_ENERGY_MOD_ID;
+        String modId = TagFilterListItem.FORGE_ENERGY_MOD_ID;
         for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
             FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
             if (!compiled.hasEnergyRules()) continue;
@@ -394,7 +393,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean rejectsTagFaceFilter(Direction direction, ItemStack stack) {
         return !stack.isEmpty() && hasTagFaceFilterRestriction(direction)
-                && (TagFilterListItem.isTagFilterList(stack) || ModFilterListItem.isModFilterList(stack));
+                && TagFilterListItem.isTagFilterList(stack);
     }
 
     public boolean hasTagFaceFilterRestriction(Direction direction) {
@@ -409,7 +408,6 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (ItemStack filter : filters) {
             if (!filter.isEmpty()
                     && !TagFilterListItem.isTagFilterList(filter)
-                    && !ModFilterListItem.isModFilterList(filter)
                     && FilterListItem.isWhitelist(filter)
                     && FilterListItem.countItemRules(filter) > 0) {
                 return true;

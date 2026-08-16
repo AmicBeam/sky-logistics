@@ -1,7 +1,6 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.item.TagFilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import java.util.List;
@@ -94,36 +93,31 @@ public class TagFilterListMenu extends AbstractContainerMenu {
         return TagFilterListItem.getTag(filterStack(), slot);
     }
 
-    public String getTag(int slot, boolean fluid) {
-        if (isModFilter()) return ModFilterListItem.getMod(filterStack(), slot);
-        return fluid ? TagFilterListItem.getFluidTag(filterStack(), slot) : getTag(slot);
+    public String getTag(int slot, int resource) {
+        if (resource == 2) {
+            String mod = TagFilterListItem.getMod(filterStack(), slot);
+            return mod.isBlank() ? "" : "@" + mod;
+        }
+        return resource == 1 ? TagFilterListItem.getFluidTag(filterStack(), slot) : getTag(slot);
     }
 
     public boolean isWhitelist() {
-        if (isModFilter()) return ModFilterListItem.isWhitelist(filterStack());
         return TagFilterListItem.isWhitelist(filterStack());
     }
 
-    public boolean isModFilter() { return ModFilterListItem.isModFilterList(filterStack()); }
-
-    public List<String> availableMods() { return ModFilterListItem.availableMods(); }
+    public List<String> availableMods() { return TagFilterListItem.availableMods(); }
 
     public void setTag(int slot, String tag) {
-        setTag(slot, tag, false);
+        setTag(slot, tag, 0);
     }
 
-    public void setTag(int slot, String tag, boolean fluid) {
+    public void setTag(int slot, String tag, int resource) {
         ItemStack stack = filterStack();
-        if (stack.is(ModItems.MOD_FILTER_LIST.get())) {
-            ModFilterListItem.setMod(stack, slot, tag);
-            syncHeldStack(stack);
-            broadcastChanges();
-            return;
-        }
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }
-        if (fluid) TagFilterListItem.setFluidTag(stack, slot, tag);
+        if (resource == 2) TagFilterListItem.setMod(stack, slot, tag);
+        else if (resource == 1) TagFilterListItem.setFluidTag(stack, slot, tag);
         else TagFilterListItem.setTag(stack, slot, tag);
         syncHeldStack(stack);
         broadcastChanges();
@@ -142,7 +136,7 @@ public class TagFilterListMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         ItemStack stack = player.getItemInHand(hand);
-        return stack.is(ModItems.TAG_FILTER_LIST.get()) || stack.is(ModItems.MOD_FILTER_LIST.get());
+        return stack.is(ModItems.TAG_FILTER_LIST.get());
     }
 
     @Override
@@ -168,17 +162,6 @@ public class TagFilterListMenu extends AbstractContainerMenu {
 
     public void applyAction(Player player, int action) {
         ItemStack stack = filterStack();
-        if (stack.is(ModItems.MOD_FILTER_LIST.get())) {
-            switch (action) {
-                case MenuAction.FILTER_SET_WHITELIST -> ModFilterListItem.setWhitelist(stack, true);
-                case MenuAction.FILTER_SET_BLACKLIST -> ModFilterListItem.setWhitelist(stack, false);
-                case MenuAction.FILTER_CLEAR -> ModFilterListItem.clearMods(stack);
-                default -> { return; }
-            }
-            syncHeldStack(stack);
-            broadcastChanges();
-            return;
-        }
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }

@@ -331,6 +331,13 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         return blockEntity instanceof ItemVaultBlockEntity vault ? vault : null;
     }
 
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (searchBox != null && searchBox.isFocused()
+                && minecraft.options.keyInventory.matches(event)) return true;
+        return super.keyPressed(event);
+    }
+
     private enum SortMode {
         AMOUNT("button.skylogistics.sort_amount"),
         NAME("button.skylogistics.sort_name"),

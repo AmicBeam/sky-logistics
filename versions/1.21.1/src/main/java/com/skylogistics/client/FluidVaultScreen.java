@@ -357,6 +357,13 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         return blockEntity instanceof FluidVaultBlockEntity vault ? vault : null;
     }
 
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (searchBox != null && searchBox.isFocused()
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     private enum SortMode {
         AMOUNT("button.skylogistics.sort_amount"),
         NAME("button.skylogistics.sort_name"),

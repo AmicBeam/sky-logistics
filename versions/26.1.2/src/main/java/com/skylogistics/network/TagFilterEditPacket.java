@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record TagFilterEditPacket(int slot, String tag, boolean fluid) implements CustomPacketPayload {
+public record TagFilterEditPacket(int slot, String tag, int resource) implements CustomPacketPayload {
     public static final Type<TagFilterEditPacket> TYPE = new Type<>(SkyLogistics.id("tag_filter_edit"));
     public static final StreamCodec<RegistryFriendlyByteBuf, TagFilterEditPacket> STREAM_CODEC =
             StreamCodec.ofMember(TagFilterEditPacket::encode, TagFilterEditPacket::decode);
@@ -18,12 +18,12 @@ public record TagFilterEditPacket(int slot, String tag, boolean fluid) implement
     public static void encode(TagFilterEditPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.slot);
         buffer.writeUtf(packet.tag, TagFilterListItem.MAX_TAG_LENGTH);
-        buffer.writeBoolean(packet.fluid);
+        buffer.writeVarInt(packet.resource);
     }
 
     public static TagFilterEditPacket decode(FriendlyByteBuf buffer) {
         return new TagFilterEditPacket(buffer.readVarInt(), buffer.readUtf(TagFilterListItem.MAX_TAG_LENGTH),
-                buffer.readBoolean());
+                buffer.readVarInt());
     }
 
     public static void handle(TagFilterEditPacket packet, IPayloadContext context) {
@@ -32,7 +32,7 @@ public record TagFilterEditPacket(int slot, String tag, boolean fluid) implement
                     || !(player.containerMenu instanceof TagFilterListMenu menu)) {
                 return;
             }
-            menu.setTag(packet.slot, packet.tag, packet.fluid);
+            menu.setTag(packet.slot, packet.tag, packet.resource);
         });
     }
 

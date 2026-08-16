@@ -3,7 +3,6 @@ package com.skylogistics.compat.jade;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.TagFilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,8 +42,7 @@ final class JadeFilterTooltip {
             return;
         }
         List<Component> details = new ArrayList<>();
-        if (ModFilterListItem.isModFilterList(filter)) ModFilterListItem.appendFilterContents(filter, details, true);
-        else if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, details, true);
+        if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, details, true);
         else FilterListItem.appendFilterContents(filter, details, true);
         for (Component detail : details) tooltip.add(detail);
     }

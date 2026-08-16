@@ -1,7 +1,6 @@
 package com.skylogistics.client;
 
 import com.skylogistics.item.TagFilterListItem;
-import com.skylogistics.item.ModFilterListItem;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.menu.TagFilterListMenu;
 import com.skylogistics.network.ModNetworking;
@@ -52,7 +51,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     private boolean tagEditWasFocused;
     private boolean dropdownOpen;
     private int dropdownScroll;
-    private boolean editingFluid;
+    private int editingResource;
 
     public TagFilterListScreen(TagFilterListMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 224, 242);
@@ -63,10 +62,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     protected void init() {
         super.init();
         tagEdit = new EditBox(font, leftPos + EDIT_X, topPos + EDIT_Y, EDIT_WIDTH, EDIT_HEIGHT,
-                Component.translatable(menu.isModFilter() ? "screen.skylogistics.mod_filter_list.mod_id"
-                        : "screen.skylogistics.tag_filter_list.tag"));
-        tagEdit.setMaxLength(menu.isModFilter() ? ModFilterListItem.MAX_MOD_ID_LENGTH
-                : TagFilterListItem.MAX_TAG_LENGTH);
+                Component.translatable("screen.skylogistics.tag_filter_list.tag"));
+        tagEdit.setMaxLength(TagFilterListItem.MAX_TAG_LENGTH);
         tagEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         tagEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(tagEdit);
@@ -84,9 +81,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         clearButton = addRenderableWidget(ConfigPanel.actionButton(controlX + SEGMENT_WIDTH * 2 + 8,
                 topPos + CONTROL_Y, ACTION_BUTTON_SIZE, Component.empty(), MenuAction.FILTER_CLEAR));
         resourceButton = addRenderableWidget(new ResourceButton(leftPos + RESOURCE_BUTTON_X, topPos + CONTROL_Y));
-        resourceButton.visible = !menu.isModFilter();
         refreshEdit(false);
-        if (menu.isModFilter() && tagEdit.isFocused()) dropdownOpen = true;
     }
 
     @Override
@@ -110,7 +105,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + TAG_PANEL_X, topPos + TAG_PANEL_Y,
                 TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT);
-        if (!menu.isModFilter()) ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
+        if (!editingMods()) ConfigPanel.drawSlotBackground(graphics, leftPos + TagFilterListMenu.SAMPLE_SLOT_X,
                 topPos + TagFilterListMenu.SAMPLE_SLOT_Y);
         renderMenuSlotBackgrounds(graphics);
     }
@@ -118,11 +113,11 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         graphics.text(font, title, (imageWidth - font.width(title)) / 2, 7, ConfigPanel.TEXT, false);
-        graphics.text(font, Component.translatable(menu.isModFilter()
-                        ? "screen.skylogistics.mod_filter_list.search" : "screen.skylogistics.tag_filter_list.sample"),
+        graphics.text(font, Component.translatable(editingMods()
+                        ? "screen.skylogistics.tag_filter_list.search" : "screen.skylogistics.tag_filter_list.sample"),
                 31, 17, ConfigPanel.TEXT, false);
-        graphics.text(font, Component.translatable(menu.isModFilter()
-                        ? "screen.skylogistics.mod_filter_list.mods" : "screen.skylogistics.tag_filter_list.tags"),
+        graphics.text(font, Component.translatable(editingMods()
+                        ? "screen.skylogistics.tag_filter_list.mods" : "screen.skylogistics.tag_filter_list.tags"),
                 TAG_PANEL_X, TAG_PANEL_Y - 10, ConfigPanel.TEXT, false);
     }
 
@@ -151,7 +146,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         if (clickedEdit && !sampleTags().isEmpty()) {
             dropdownOpen = true;
-            if (!menu.isModFilter()) return true;
+            if (!editingMods()) return true;
         }
         if (!isOverDropdown(mouseX, mouseY)) {
             dropdownOpen = false;
@@ -169,6 +164,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (tagEdit != null && tagEdit.isFocused()
+                && minecraft.options.keyInventory.matches(event)) return true;
         if (tagEdit != null && tagEdit.isFocused()
                 && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
             commitEdit();
@@ -220,32 +217,34 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         }
         tagEditWasFocused = focused;
         boolean hasOptions = !sampleTags().isEmpty();
-        tagEdit.setEditable(menu.isModFilter() || !hasOptions);
-        String tag = menu.getTag(selectedTagSlot, editingFluid);
-        if (force || !menu.isModFilter() && hasOptions || !focused) {
+        tagEdit.setEditable(editingMods() || !hasOptions);
+        String tag = menu.getTag(selectedTagSlot, editingResource);
+        if (force || !editingMods() && hasOptions || !focused) {
             tagEdit.setValue(tag);
         }
     }
 
     private void commitEdit() {
-        if (tagEdit == null || !menu.isModFilter() && !sampleTags().isEmpty()) {
+        if (tagEdit == null || !editingMods() && !sampleTags().isEmpty()) {
             return;
         }
-        String normalized = menu.isModFilter() ? ModFilterListItem.normalizeModId(tagEdit.getValue())
+        String normalized = editingMods() ? TagFilterListItem.normalizeModId(tagEdit.getValue())
                 : TagFilterListItem.normalizeTag(tagEdit.getValue());
-        if (!normalized.equals(menu.getTag(selectedTagSlot, editingFluid))) {
-            menu.setTag(selectedTagSlot, normalized, editingFluid);
-            ModNetworking.sendTagFilterTag(selectedTagSlot, normalized, editingFluid);
+        String displayed = editingMods() && !normalized.isBlank() ? "@" + normalized : normalized;
+        if (!displayed.equals(menu.getTag(selectedTagSlot, editingResource))) {
+            menu.setTag(selectedTagSlot, normalized, editingResource);
+            ModNetworking.sendTagFilterTag(selectedTagSlot, normalized, editingResource);
         }
-        tagEdit.setValue(normalized);
+        tagEdit.setValue(displayed);
     }
 
     private List<String> sampleTags() {
-        if (menu.isModFilter()) {
-            String query = tagEdit == null ? "" : tagEdit.getValue().trim().toLowerCase(java.util.Locale.ROOT);
-            return menu.availableMods().stream().filter(id -> query.isEmpty() || id.contains(query)).toList();
+        if (editingMods()) {
+            String query = tagEdit == null ? "" : TagFilterListItem.normalizeModId(tagEdit.getValue());
+            return menu.availableMods().stream().filter(id -> query.isEmpty() || id.contains(query))
+                    .map(id -> "@" + id).toList();
         }
-        return editingFluid ? List.of() : menu.sampleTags();
+        return editingResource == 1 ? List.of() : menu.sampleTags();
     }
 
     private void drawScreenBackground(GuiGraphicsExtractor graphics) {
@@ -286,8 +285,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
 
     private void selectDropdownOption(int option) {
         String tag = sampleTags().get(option);
-        menu.setTag(selectedTagSlot, tag, editingFluid);
-        ModNetworking.sendTagFilterTag(selectedTagSlot, tag, editingFluid);
+        menu.setTag(selectedTagSlot, tag, editingResource);
+        ModNetworking.sendTagFilterTag(selectedTagSlot, tag, editingResource);
         tagEdit.setValue(tag);
         dropdownOpen = false;
     }
@@ -311,7 +310,7 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             if (hovered) {
                 graphics.fill(x + 1, rowY, x + EDIT_WIDTH - 1, rowY + DROPDOWN_ROW_HEIGHT, 0x553A8D99);
             }
-            graphics.text(font, trimToWidth((menu.isModFilter() ? "" : "#") + options.get(index), EDIT_WIDTH - 8),
+            graphics.text(font, trimToWidth((editingMods() ? "" : "#") + options.get(index), EDIT_WIDTH - 8),
                     x + 4, rowY + 2, ConfigPanel.TEXT, false);
         }
     }
@@ -332,8 +331,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
             return true;
         }
         if (tagEdit != null && tagEdit.isMouseOver(x, y) && !sampleTags().isEmpty()) {
-            graphics.setTooltipForNextFrame(font, Component.translatable(menu.isModFilter()
-                            ? "tooltip.skylogistics.mod_filter_list.search" : "tooltip.skylogistics.tag_filter_list.dropdown"),
+            graphics.setTooltipForNextFrame(font, Component.translatable(editingMods()
+                            ? "tooltip.skylogistics.tag_filter_list.mod_search" : "tooltip.skylogistics.tag_filter_list.dropdown"),
                     x, y);
             return true;
         }
@@ -433,8 +432,10 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         @Override
         public void onPress(net.minecraft.client.input.InputWithModifiers input) {
             commitEdit();
-            editingFluid = !editingFluid;
+            editingResource = (editingResource + 1) % 3;
             dropdownOpen = false;
+            tagEdit.setMaxLength(editingMods() ? TagFilterListItem.MAX_MOD_ID_LENGTH + 1
+                    : TagFilterListItem.MAX_TAG_LENGTH);
             setMessage(resourceButtonText());
             refreshEdit(true);
         }
@@ -453,8 +454,9 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
     }
 
     private Component resourceButtonText() {
-        return Component.translatable(editingFluid
-                ? "screen.skylogistics.tag_filter_list.fluid" : "screen.skylogistics.tag_filter_list.item");
+        return Component.translatable(editingResource == 2 ? "screen.skylogistics.tag_filter_list.mod"
+                : editingResource == 1 ? "screen.skylogistics.tag_filter_list.fluid"
+                        : "screen.skylogistics.tag_filter_list.item");
     }
 
     private final class TagSlotButton extends AbstractButton {
@@ -487,8 +489,8 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
                         ConfigPanel.INSERT_ACCENT);
             }
             String prefix = (slot + 1) + ". ";
-            String tag = menu.getTag(slot, editingFluid);
-            String text = prefix + (tag.isBlank() ? "-" : (menu.isModFilter() ? "" : "#") + tag);
+            String tag = menu.getTag(slot, editingResource);
+            String text = prefix + (tag.isBlank() ? "-" : (editingMods() ? "" : "#") + tag);
             graphics.text(font, trimToWidth(text, width - 6), getX() + 3, getY() + 2,
                     selected ? 0xFFFFFFFF : ConfigPanel.TEXT, selected);
         }
@@ -497,5 +499,9 @@ public class TagFilterListScreen extends AbstractContainerScreen<TagFilterListMe
         protected void updateWidgetNarration(NarrationElementOutput output) {
             defaultButtonNarrationText(output);
         }
+    }
+
+    private boolean editingMods() {
+        return editingResource == 2;
     }
 }

@@ -19,7 +19,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Sky Filter Lists limit node transfers. Regular lists match exact resources, tag lists match tags, and mod lists match the namespace of the transferred resource ID; use forge for FE. Placing a configured list into a node face filter slot does not consume it; the node copies its rules."
+      "text": "Sky Filter Lists limit node transfers. Regular lists match exact resources. Tag Filter Lists switch between item, fluid, and mod modes; mod rules match the namespace of the transferred resource ID, begin with @, and use @forge for FE. Placing a configured list into a node face filter slot does not consume it; the node copies its rules."
     },
     {
       "type": "patchouli:crafting",

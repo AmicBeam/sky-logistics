@@ -28,11 +28,15 @@ import net.minecraft.world.level.material.Fluid;
 public class TagFilterListItem extends Item {
     public static final int TAG_SLOTS = 6;
     public static final int MAX_TAG_LENGTH = 96;
+    public static final int MAX_MOD_ID_LENGTH = 64;
+    public static final String FORGE_ENERGY_MOD_ID = "forge";
     private static final String SAMPLE = "Sample";
     private static final String TAGS = "ItemTags";
     private static final String FLUID_TAGS = "FluidTags";
+    private static final String MODS = "Mods";
     private static final String SLOT = "Slot";
     private static final String TAG_ID = "Tag";
+    private static final String MOD_ID = "ModId";
     private static final String WHITELIST = "Whitelist";
 
     public TagFilterListItem(Properties properties) {
@@ -62,6 +66,8 @@ public class TagFilterListItem extends Item {
                 .withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.fluid_entries",
                 countFluidTags(stack), TAG_SLOTS).withStyle(ChatFormatting.GRAY));
+        tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.mod_entries",
+                countMods(stack), TAG_SLOTS).withStyle(ChatFormatting.GRAY));
         ItemStack sample = getSample(stack);
         if (!sample.isEmpty()) {
             tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.sample", sample.getHoverName())
@@ -179,10 +185,58 @@ public class TagFilterListItem extends Item {
         return count;
     }
 
+    public static String getMod(ItemStack stack, int slot) {
+        if (slot < 0 || slot >= TAG_SLOTS) return "";
+        return getMods(stack).get(slot);
+    }
+
+    public static void setMod(ItemStack stack, int slot, String modId) {
+        if (slot < 0 || slot >= TAG_SLOTS) return;
+        List<String> mods = getMods(stack);
+        mods.set(slot, normalizeModId(modId));
+        saveMods(stack, mods);
+    }
+
+    public static List<String> getMods(ItemStack stack) {
+        ArrayList<String> mods = new ArrayList<>(TAG_SLOTS);
+        for (int i = 0; i < TAG_SLOTS; i++) mods.add("");
+        CompoundTag data = StackData.get(stack);
+        if (data == null || !data.contains(MODS)) return mods;
+        ListTag entries = data.getListOrEmpty(MODS);
+        for (int i = 0; i < entries.size(); i++) {
+            CompoundTag entry = entries.getCompoundOrEmpty(i);
+            int slot = entry.getIntOr(SLOT, 0);
+            if (slot >= 0 && slot < TAG_SLOTS) mods.set(slot, normalizeModId(entry.getStringOr(MOD_ID, "")));
+        }
+        return mods;
+    }
+
+    public static int countMods(ItemStack stack) {
+        int count = 0;
+        for (String mod : getMods(stack)) if (!mod.isBlank()) count++;
+        return count;
+    }
+
+    public static List<String> availableMods() {
+        ArrayList<String> mods = new ArrayList<>();
+        mods.add(FORGE_ENERGY_MOD_ID);
+        net.neoforged.fml.ModList.get().getMods().stream().map(info -> info.getModId())
+                .filter(id -> !FORGE_ENERGY_MOD_ID.equals(id)).sorted().forEach(mods::add);
+        return mods;
+    }
+
+    public static String normalizeModId(String raw) {
+        String value = raw == null ? "" : raw.trim().toLowerCase(java.util.Locale.ROOT);
+        if (value.startsWith("@")) value = value.substring(1).trim();
+        if (value.length() > MAX_MOD_ID_LENGTH) value = value.substring(0, MAX_MOD_ID_LENGTH);
+        return value.matches("[a-z][a-z0-9_]*") ? value : "";
+    }
+
     public static void clearTags(ItemStack stack) {
         StackData.update(stack, tag -> {
             tag.remove(TAGS);
             tag.remove(FLUID_TAGS);
+            tag.remove(MODS);
         });
     }
 
@@ -206,6 +260,15 @@ public class TagFilterListItem extends Item {
             if (!tag.isBlank()) {
                 tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.fluid_entry" + suffix,
                         slot + 1, "#" + tag).withStyle(ChatFormatting.AQUA));
+                added = true;
+            }
+        }
+        List<String> mods = getMods(stack);
+        for (int slot = 0; slot < TAG_SLOTS; slot++) {
+            String mod = mods.get(slot);
+            if (!mod.isBlank()) {
+                tooltip.accept(Component.translatable("tooltip.skylogistics.tag_filter_list.mod_entry" + suffix,
+                        slot + 1, "@" + mod).withStyle(ChatFormatting.LIGHT_PURPLE));
                 added = true;
             }
         }
@@ -303,5 +366,18 @@ public class TagFilterListItem extends Item {
             entries.add(entry);
         }
         StackData.update(stack, data -> data.put(key, entries));
+    }
+
+    private static void saveMods(ItemStack stack, List<String> mods) {
+        ListTag entries = new ListTag();
+        for (int slot = 0; slot < Math.min(TAG_SLOTS, mods.size()); slot++) {
+            String mod = normalizeModId(mods.get(slot));
+            if (mod.isBlank()) continue;
+            CompoundTag entry = new CompoundTag();
+            entry.putInt(SLOT, slot);
+            entry.putString(MOD_ID, mod);
+            entries.add(entry);
+        }
+        StackData.update(stack, data -> data.put(MODS, entries));
     }
 }
