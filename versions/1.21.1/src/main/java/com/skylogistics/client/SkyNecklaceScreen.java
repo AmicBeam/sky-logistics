@@ -20,40 +20,59 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<SkyNecklaceMenu> {
-    private static final int LINE_NAME_LABEL_Y = 12;
+    private static final int LINE_PANEL_X = 5;
+    private static final int LINE_PANEL_Y = 20;
+    private static final int LINE_PANEL_WIDTH = 244;
+    private static final int LINE_NAME_LABEL_Y = 28;
     private static final int LINE_NAME_LABEL_GAP = 4;
-    private static final int LINE_NAME_EDIT_X = 146;
-    private static final int LINE_NAME_EDIT_Y = 7;
-    private static final int LINE_NAME_EDIT_WIDTH = 92;
-    private static final int LINE_NAME_EDIT_HEIGHT = 16;
-    private static final int TITLE_ROW_Y = 12;
-    private static final int LINE_ROW_Y = 36;
-    private static final int LINE_BUTTON_ROW_Y = 31;
-    private static final int FILTER_ROW_Y = 60;
-    private static final int MODE_ROW_Y = 84;
-    private static final int MODE_BUTTON_ROW_Y = 78;
-    private static final int INSERT_SLOTS_LABEL_X = 14;
-    private static final int INSERT_SLOTS_ROW_Y = 102;
-    private static final int PRIORITY_ROW_Y = 126;
-    private static final int WARNING_Y = 146;
-    private static final int ADJUST_DOWN_X = 54;
-    private static final int ADJUST_VALUE_X = 76;
-    private static final int ADJUST_VALUE_WIDTH = 54;
-    private static final int ADJUST_UP_X = 130;
-    private static final int ADJUST_BUTTON_WIDTH = 22;
-    private static final int ADJUST_BUTTON_HEIGHT = 18;
+    private static final int LINE_NAME_EDIT_X = 37;
+    private static final int LINE_NAME_EDIT_Y = 24;
+    private static final int LINE_NAME_EDIT_WIDTH = 90;
+    private static final int LINE_NAME_EDIT_HEIGHT = 15;
+    private static final int LINE_COUNT_CENTER_X = 144;
+    private static final int TITLE_ROW_Y = 7;
+    private static final int UPGRADE_FILTER_GROUP_Y = 83;
+    private static final int UPGRADE_GROUP_X = 5;
+    private static final int FILTER_GROUP_X = 129;
+    private static final int UPGRADE_FILTER_GROUP_WIDTH = 120;
+    private static final int UPGRADE_FILTER_GROUP_HEIGHT = 27;
+    private static final int MODE_GROUP_X = 5;
+    private static final int MODE_GROUP_Y = 48;
+    private static final int MODE_GROUP_WIDTH = 244;
+    private static final int MODE_BUTTON_ROW_Y = 55;
+    private static final int MODE_BUTTON_X = 12;
+    private static final int MODE_BUTTON_WIDTH = 74;
+    private static final int MODE_BUTTON_STEP = 78;
+    private static final int BOTTOM_GROUP_Y = 118;
+    private static final int BOTTOM_CONTROL_Y = 125;
+    private static final int SLOT_GROUP_X = 5;
+    private static final int PRIORITY_GROUP_X = 129;
+    private static final int BOTTOM_GROUP_WIDTH = 120;
+    private static final int SLOT_DOWN_X = 14;
+    private static final int SLOT_VALUE_X = 34;
+    private static final int SLOT_VALUE_WIDTH = 62;
+    private static final int SLOT_UP_X = 99;
+    private static final int PRIORITY_DOWN_X = 138;
+    private static final int PRIORITY_VALUE_X = 158;
+    private static final int PRIORITY_VALUE_WIDTH = 62;
+    private static final int PRIORITY_UP_X = 223;
+    private static final int ADJUST_BUTTON_WIDTH = 17;
+    private static final int ADJUST_BUTTON_HEIGHT = ConfigPanel.STEPPER_HEIGHT;
+    private static final int MAINTAIN_ACCENT = ConfigPanel.MAINTAIN_ACCENT;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final List<InsertSlotsButton> insertSlotsButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
     private EditBox lineNameEdit;
+    private EditBox exactQuantityEdit;
+    private boolean refreshingExactQuantity;
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
 
     public SkyNecklaceScreen(SkyNecklaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
-        imageHeight = 252;
+        imageHeight = 242;
         inventoryLabelY = 10_000;
     }
 
@@ -64,30 +83,38 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         modeButtons.clear();
         insertSlotsButtons.clear();
         priorityButtons.clear();
-        addLineButton(leftPos + 116, topPos + LINE_BUTTON_ROW_Y, 22, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 141, topPos + LINE_BUTTON_ROW_Y, 20, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 164, topPos + LINE_BUTTON_ROW_Y, 24, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 191, topPos + LINE_BUTTON_ROW_Y, 22, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 216, topPos + LINE_BUTTON_ROW_Y, 18, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+        addLineButton(leftPos + 157, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
+        addLineButton(leftPos + 174, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+        addLineButton(leftPos + 191, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+        addLineButton(leftPos + 208, topPos + 23, 15, Component.literal(">|"), MenuAction.LINE_LAST);
+        addLineButton(leftPos + 225, topPos + 23, 15, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
         lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
                 LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
                 Component.translatable("screen.skylogistics.line_name"));
         lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.TEXT);
+        lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
         lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
         addRenderableWidget(lineNameEdit);
-        addModeButton(leftPos + 54, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.EXTRACT,
+        addModeButton(leftPos + MODE_BUTTON_X, topPos + MODE_BUTTON_ROW_Y, MODE_BUTTON_WIDTH, SkyNecklaceItem.NecklaceMode.EXTRACT,
                 MenuAction.MODE_EXTRACT);
-        addModeButton(leftPos + 130, topPos + MODE_BUTTON_ROW_Y, 70, SkyNecklaceItem.NecklaceMode.INSERT,
+        addModeButton(leftPos + MODE_BUTTON_X + MODE_BUTTON_STEP, topPos + MODE_BUTTON_ROW_Y, MODE_BUTTON_WIDTH, SkyNecklaceItem.NecklaceMode.INSERT,
                 MenuAction.MODE_INSERT);
-        addInsertSlotsButton(leftPos + ADJUST_DOWN_X, topPos + INSERT_SLOTS_ROW_Y, Component.literal("-"),
+        addModeButton(leftPos + MODE_BUTTON_X + MODE_BUTTON_STEP * 2, topPos + MODE_BUTTON_ROW_Y, MODE_BUTTON_WIDTH, SkyNecklaceItem.NecklaceMode.MAINTAIN,
+                MenuAction.MODE_MAINTAIN);
+        addInsertSlotsButton(leftPos + SLOT_DOWN_X, topPos + BOTTOM_CONTROL_Y, Component.literal("-"),
                 MenuAction.NECKLACE_INSERT_SLOTS_DOWN, MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST);
-        addInsertSlotsButton(leftPos + ADJUST_UP_X, topPos + INSERT_SLOTS_ROW_Y, Component.literal("+"),
+        addInsertSlotsButton(leftPos + SLOT_UP_X, topPos + BOTTOM_CONTROL_Y, Component.literal("+"),
                 MenuAction.NECKLACE_INSERT_SLOTS_UP, MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST);
-        addPriorityButton(leftPos + ADJUST_DOWN_X, topPos + PRIORITY_ROW_Y, Component.literal("-"),
+        addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + BOTTOM_CONTROL_Y, Component.literal("-"),
                 MenuAction.NECKLACE_PRIORITY_DOWN, MenuAction.NECKLACE_PRIORITY_DOWN_FAST);
-        addPriorityButton(leftPos + ADJUST_UP_X, topPos + PRIORITY_ROW_Y, Component.literal("+"),
+        addPriorityButton(leftPos + PRIORITY_UP_X, topPos + BOTTOM_CONTROL_Y, Component.literal("+"),
                 MenuAction.NECKLACE_PRIORITY_UP, MenuAction.NECKLACE_PRIORITY_UP_FAST);
+        exactQuantityEdit = new EditBox(font, leftPos + SLOT_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                SLOT_VALUE_WIDTH, ADJUST_BUTTON_HEIGHT, Component.translatable("screen.skylogistics.exact_quantity"));
+        exactQuantityEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        exactQuantityEdit.setMaxLength(10);
+        exactQuantityEdit.setResponder(this::exactQuantityChanged);
+        addRenderableWidget(exactQuantityEdit);
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -133,6 +160,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         for (PriorityButton button : priorityButtons) {
             button.refresh(stack);
         }
+        refreshExactQuantity(stack);
     }
 
     @Override
@@ -145,6 +173,28 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        ConfigPanel.drawContentPanel(graphics, leftPos + LINE_PANEL_X, topPos + LINE_PANEL_Y,
+                LINE_PANEL_WIDTH, 24);
+        ConfigPanel.drawFieldset(graphics, leftPos + UPGRADE_GROUP_X, topPos + UPGRADE_FILTER_GROUP_Y,
+                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.upgrade_slots")),
+                UPGRADE_FILTER_GROUP_HEIGHT);
+        ConfigPanel.drawFieldset(graphics, leftPos + FILTER_GROUP_X, topPos + UPGRADE_FILTER_GROUP_Y,
+                UPGRADE_FILTER_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.filter_slot")),
+                UPGRADE_FILTER_GROUP_HEIGHT);
+        ConfigPanel.drawFieldset(graphics, leftPos + MODE_GROUP_X, topPos + MODE_GROUP_Y,
+                MODE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.mode_label")));
+        Component slotLegend = Component.translatable(SkyNecklaceItem.hasExactQuantityUpgrade(stack())
+                ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit");
+        ConfigPanel.drawFieldset(graphics, leftPos + SLOT_GROUP_X, topPos + BOTTOM_GROUP_Y,
+                BOTTOM_GROUP_WIDTH, font.width(slotLegend));
+        ConfigPanel.drawFieldset(graphics, leftPos + PRIORITY_GROUP_X, topPos + BOTTOM_GROUP_Y,
+                BOTTOM_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.priority")));
+        if (!SkyNecklaceItem.hasExactQuantityUpgrade(stack())) {
+            ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                    SLOT_VALUE_WIDTH);
+        }
+        ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X, topPos + BOTTOM_CONTROL_Y,
+                PRIORITY_VALUE_WIDTH);
         renderMenuSlotBackgrounds(graphics);
     }
 
@@ -152,37 +202,43 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemStack stack = stack();
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(stack);
-        graphics.drawString(font, title, 14, TITLE_ROW_Y, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, 10, TITLE_ROW_Y, ConfigPanel.TEXT, false);
         if (config == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.unbound"),
-                    14, LINE_ROW_Y, ConfigPanel.MUTED, false);
+                    10, 28, ConfigPanel.MUTED, false);
         } else {
             int lineIndex = menu.getLineIndex() + 1;
             int lineCount = Math.max(1, menu.getLineCount());
-            Component lineNameLabel = Component.translatable("screen.skylogistics.line_name");
+            Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
             graphics.drawString(font, lineNameLabel,
                     LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
                     LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
-            graphics.drawString(font, Component.translatable("screen.skylogistics.line_index", lineIndex, lineCount),
-                    14, LINE_ROW_Y, ConfigPanel.TEXT, false);
+            ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount),
+                    LINE_COUNT_CENTER_X, 28, ConfigPanel.TEXT);
         }
-        graphics.drawString(font, Component.translatable("screen.skylogistics.mode_label"),
-                14, MODE_ROW_Y, ConfigPanel.MUTED, false);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.insert_slots"),
-                14, INSERT_SLOTS_ROW_Y + 6, ConfigPanel.MUTED, false);
-        graphics.drawCenteredString(font, SkyNecklaceItem.insertSlotsDisplay(stack),
-                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, INSERT_SLOTS_ROW_Y + 5, ConfigPanel.TEXT);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.priority"),
-                14, PRIORITY_ROW_Y + 6, ConfigPanel.MUTED, false);
-        graphics.drawCenteredString(font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
-                ADJUST_VALUE_X + ADJUST_VALUE_WIDTH / 2, PRIORITY_ROW_Y + 5, ConfigPanel.TEXT);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.item_only"),
-                14, FILTER_ROW_Y, ConfigPanel.MUTED, false);
-        graphics.drawString(font, Component.translatable("screen.skylogistics.filter_slot"),
-                SkyNecklaceMenu.FILTER_LABEL_X, FILTER_ROW_Y, ConfigPanel.MUTED, false);
+        int slotLegendY = UPGRADE_FILTER_GROUP_Y - 4;
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.upgrade_slots"),
+                UPGRADE_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.filter_slot"),
+                FILTER_GROUP_X + UPGRADE_FILTER_GROUP_WIDTH / 2, slotLegendY, ConfigPanel.MUTED);
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.mode_label"),
+                MODE_GROUP_X + MODE_GROUP_WIDTH / 2, MODE_GROUP_Y - 4, ConfigPanel.MUTED);
+        Component slotLegend = Component.translatable(SkyNecklaceItem.hasExactQuantityUpgrade(stack)
+                ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit");
+        ConfigPanel.drawCenteredText(graphics, font, slotLegend,
+                SLOT_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
+        if (!SkyNecklaceItem.hasExactQuantityUpgrade(stack)) {
+            ConfigPanel.drawCenteredText(graphics, font, SkyNecklaceItem.insertSlotsDisplay(stack),
+                    SLOT_VALUE_X + SLOT_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
+        }
+        ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.priority"),
+                PRIORITY_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
+        ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
+                PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
         if (!SkyNecklaceItem.hasValidItemWhitelist(stack)) {
-            graphics.drawString(font, Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist"),
-                    14, WARNING_Y, 0xFFFF9A8A, false);
+            Component warning = Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist");
+            graphics.drawString(font, warning, imageWidth - 10 - font.width(warning), TITLE_ROW_Y,
+                    0xFFB84343, false);
         }
     }
 
@@ -198,10 +254,19 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if ((lineNameEdit != null && lineNameEdit.isFocused()
+                || exactQuantityEdit != null && exactQuantityEdit.isFocused())
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
         if (lineNameEdit != null && lineNameEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
+            setFocused(null);
+            return true;
+        }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            exactQuantityEdit.setFocused(false);
             setFocused(null);
             return true;
         }
@@ -213,6 +278,11 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         if (lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
+            setFocused(null);
+        }
+        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+                && !exactQuantityEdit.isMouseOver(mouseX, mouseY)) {
+            exactQuantityEdit.setFocused(false);
             setFocused(null);
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -278,11 +348,11 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     }
 
     private boolean isMouseOverInsertSlotsLabel(int x, int y) {
-        Component label = Component.translatable("screen.skylogistics.sky_necklace.insert_slots");
-        int labelY = INSERT_SLOTS_ROW_Y + 6;
-        int labelWidth = Math.min(font.width(label), ADJUST_DOWN_X - INSERT_SLOTS_LABEL_X - 2);
-        return x >= leftPos + INSERT_SLOTS_LABEL_X
-                && x < leftPos + INSERT_SLOTS_LABEL_X + labelWidth
+        Component label = Component.translatable("screen.skylogistics.slot_limit");
+        int labelY = BOTTOM_GROUP_Y - 4;
+        int labelX = SLOT_GROUP_X + (BOTTOM_GROUP_WIDTH - font.width(label)) / 2;
+        return x >= leftPos + labelX
+                && x < leftPos + labelX + font.width(label)
                 && y >= topPos + labelY
                 && y < topPos + labelY + font.lineHeight;
     }
@@ -290,6 +360,30 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
     private ItemStack stack() {
         return Minecraft.getInstance().player == null ? ItemStack.EMPTY
                 : Minecraft.getInstance().player.getItemInHand(menu.getHand());
+    }
+
+    private void refreshExactQuantity(ItemStack stack) {
+        if (exactQuantityEdit == null) return;
+        boolean exact = SkyNecklaceItem.hasExactQuantityUpgrade(stack);
+        exactQuantityEdit.visible = exact;
+        exactQuantityEdit.active = exact;
+        if (exact && !exactQuantityEdit.isFocused()) {
+            String value = String.valueOf(SkyNecklaceItem.exactQuantity(stack));
+            if (!value.equals(exactQuantityEdit.getValue())) {
+                refreshingExactQuantity = true;
+                exactQuantityEdit.setValue(value);
+                refreshingExactQuantity = false;
+            }
+        }
+    }
+
+    private void exactQuantityChanged(String value) {
+        if (refreshingExactQuantity || value.isEmpty()) return;
+        try {
+            long parsed = Long.parseLong(value);
+            ModNetworking.sendExactQuantity((int) Math.min(Integer.MAX_VALUE, Math.max(1L, parsed)));
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     private void renderMenuSlotBackgrounds(GuiGraphics graphics) {
@@ -304,7 +398,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         private final int action;
 
         private LineButton(int x, int y, int width, Component message, int action) {
-            super(x, y, width, 20, message);
+            super(x, y, width, 17, message);
             this.action = action;
         }
 
@@ -327,9 +421,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override
@@ -344,7 +438,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         private boolean selected;
 
         private ModeButton(int x, int y, int width, SkyNecklaceItem.NecklaceMode mode, int action) {
-            super(x, y, width, 20, Component.translatable(mode.translationKey()));
+            super(x, y, width, 21, Component.translatable(mode.translationKey()));
             this.mode = mode;
             this.action = action;
         }
@@ -360,14 +454,39 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, selected);
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, ConfigPanel.TEXT);
+            int accent = mode == SkyNecklaceItem.NecklaceMode.EXTRACT ? ConfigPanel.EXTRACT_ACCENT
+                    : mode == SkyNecklaceItem.NecklaceMode.INSERT ? ConfigPanel.INSERT_ACCENT : MAINTAIN_ACCENT;
+            ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active, isHovered(), selected, accent);
+            net.minecraft.client.gui.Font buttonFont = Minecraft.getInstance().font;
+            int contentX = getX() + (width - 20 - buttonFont.width(getMessage())) / 2;
+            int iconColor = ConfigPanel.buttonTextColor(active);
+            if (mode == SkyNecklaceItem.NecklaceMode.MAINTAIN) {
+                ConfigPanel.drawResourceIcon(graphics, contentX, getY() + 2, "auto_white", true);
+            } else {
+                drawModeArrow(graphics, contentX, getY() + 2,
+                        mode == SkyNecklaceItem.NecklaceMode.EXTRACT, iconColor);
+            }
+            graphics.drawString(buttonFont, getMessage(), contentX + 20,
+                    getY() + 7, ConfigPanel.buttonTextColor(active), true);
         }
 
         @Override
         protected void updateWidgetNarration(NarrationElementOutput output) {
             defaultButtonNarrationText(output);
+        }
+    }
+
+    private static void drawModeArrow(GuiGraphics graphics, int x, int y, boolean up, int color) {
+        if (up) {
+            graphics.fill(x + 8, y + 2, x + 10, y + 4, color);
+            graphics.fill(x + 6, y + 4, x + 12, y + 6, color);
+            graphics.fill(x + 4, y + 6, x + 14, y + 8, color);
+            graphics.fill(x + 8, y + 8, x + 10, y + 15, color);
+        } else {
+            graphics.fill(x + 8, y + 2, x + 10, y + 9, color);
+            graphics.fill(x + 4, y + 9, x + 14, y + 11, color);
+            graphics.fill(x + 6, y + 11, x + 12, y + 13, color);
+            graphics.fill(x + 8, y + 13, x + 10, y + 15, color);
         }
     }
 
@@ -382,8 +501,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
 
         private void refresh(ItemStack stack) {
+            visible = !SkyNecklaceItem.hasExactQuantityUpgrade(stack);
             int slots = SkyNecklaceItem.insertSlots(stack);
-            active = switch (action) {
+            active = visible && switch (action) {
                 case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> slots > SkyNecklaceItem.MIN_INSERT_SLOTS;
                 case MenuAction.NECKLACE_INSERT_SLOTS_UP -> slots < SkyNecklaceItem.MAX_INSERT_SLOTS;
                 default -> false;
@@ -400,9 +520,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override
@@ -440,9 +560,9 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, false);
-            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 5, active ? ConfigPanel.TEXT : ConfigPanel.MUTED);
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, Minecraft.getInstance().font, getMessage(), getX() + width / 2,
+                    getY() + 5, active);
         }
 
         @Override

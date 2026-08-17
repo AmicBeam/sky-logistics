@@ -3,6 +3,7 @@ package com.skylogistics.block;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.menu.SkyNodeMenu;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import java.util.Map;
@@ -219,6 +220,7 @@ public class SkyNodeBlock extends BaseEntityBlock {
             }
             node.configureTargetResourcesFromCapabilities();
         }
+        if (placer instanceof Player player) SkyPlayerLines.claimOwner(level.getServer(), node.getLineId(), player);
         node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
     }
 

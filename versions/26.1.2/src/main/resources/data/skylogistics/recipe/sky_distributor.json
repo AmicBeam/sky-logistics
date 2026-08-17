@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["PLP", "ACA", "PLP"],
+  "key": {
+    "P": "minecraft:prismarine",
+    "L": "#c:gems/lapis",
+    "A": "#c:gems/amethyst",
+    "C": "minecraft:comparator"
+  },
+  "result": {"id": "skylogistics:sky_distributor", "count": 1}
+}

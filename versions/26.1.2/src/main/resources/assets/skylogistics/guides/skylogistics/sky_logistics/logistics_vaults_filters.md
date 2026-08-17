@@ -21,8 +21,10 @@ The <ItemLink id="item_vault" /> stores items by type, and the <ItemLink id="flu
 
 Vaults can be opened by players and can also be accessed by logistics nodes, hoppers, and other automation. As line targets, they are ideal for collecting large amounts of repeated items or fluids.
 
-The <ItemLink id="filter_list" /> limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, NBT matching, durability matching, and other rules. Placing a configured filter list into a node face filter slot does not consume the item; the node copies that list state. Copying and pasting node settings also copies these filter states.
+Vault terminals support display-name search and quantity, name, or mod sorting. In an Item Vault, empty-hand left-click takes a stack, right-click takes one, and Shift sends it directly to inventory; with a carried stack, left-click inserts all and right-click inserts one. A Fluid Vault uses fluid-capable containers for filling and draining.
 
-Use <ItemLink id="tag_filter_list" /> when a whole item or fluid tag should match.
+The <ItemLink id="filter_list" /> stores exact item, fluid, and supported chemical samples in 18 ghost slots. It supports whitelist or blacklist, data/component matching, and durability matching. Placing a configured list into a node face filter slot, or right-clicking a simple-pipe endpoint with it, copies the rules without consuming the item. Later edits to the original do not update copied rules.
+
+Use <ItemLink id="tag_filter_list" /> when a whole item or fluid tag should match. It also has a mod mode that matches resource ID namespaces; FE uses the virtual mod ID `forge`. External item extraction still requires a whitelist containing concrete items, so tag or mod filters cannot replace it.
 
 <RecipeFor id="filter_list" fallbackText="The filter list recipe is unavailable." />

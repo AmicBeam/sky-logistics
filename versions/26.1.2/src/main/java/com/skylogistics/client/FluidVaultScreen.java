@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,7 +21,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final int GRID_X = 8;
-    private static final int CENTERED_GRID_X = 17;
+    private static final int CENTERED_GRID_X = 18;
     private static final int GRID_Y = 44;
     private static final int GRID_COLUMNS = 9;
     private static final int GRID_ROWS = 4;
@@ -33,7 +33,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.fluidVault();
 
     private EditBox searchBox;
-    private Button sortButton;
+    private AbstractButton sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private FluidVaultBlockEntity cachedVault;
@@ -54,14 +54,12 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
                     setSortMode(sortMode.next());
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
-                })
-                .bounds(leftPos + 128, topPos + 22, 60, 18)
-                .build());
+                }));
     }
 
     @Override
@@ -103,7 +101,7 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         FluidVaultBlockEntity vault = vault();
-        graphics.text(font, title, 8, 8, ConfigPanel.ACCENT, false);
+        graphics.text(font, title, 8, 8, ConfigPanel.TEXT, false);
         if (vault == null) {
             graphics.text(font, Component.translatable("screen.skylogistics.missing_vault"), 8, 48,
                     ConfigPanel.MUTED, false);
@@ -145,6 +143,10 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
+        if (searchBox != null && searchBox.isFocused() && !searchBox.isMouseOver(mouseX, mouseY)) {
+            searchBox.setFocused(false);
+            setFocused(null);
+        }
         if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
             FluidVaultBlockEntity.StoredFluid hovered = hoveredEntry(mouseX, mouseY);
             if (!menu.getCarried().isEmpty()) {
@@ -342,6 +344,13 @@ public class FluidVaultScreen extends AbstractContainerScreen<FluidVaultMenu> {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
         return blockEntity instanceof FluidVaultBlockEntity vault ? vault : null;
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (searchBox != null && searchBox.isFocused()
+                && minecraft.options.keyInventory.matches(event)) return true;
+        return super.keyPressed(event);
     }
 
     private enum SortMode {

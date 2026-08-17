@@ -61,7 +61,8 @@ public class SkyNodeBlockItem extends BlockItem {
                             : "screen.skylogistics.filter_blacklist"),
                     FilterListItem.countFilters(filter), FilterListItem.countFluidFilters(filter))
                     .withStyle(ChatFormatting.GRAY));
-            FilterListItem.appendFilterContents(filter, tooltip, true);
+            if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, tooltip, true);
+            else FilterListItem.appendFilterContents(filter, tooltip, true);
         }
     }
 
@@ -84,7 +85,7 @@ public class SkyNodeBlockItem extends BlockItem {
             ListTag filterTags = settings.getList("Filters", Tag.TAG_COMPOUND);
             for (int i = 0; i < filterTags.size(); i++) {
                 ItemStack filter = ItemStack.of(filterTags.getCompound(i).getCompound("Stack"));
-                if (filter.is(ModItems.FILTER_LIST.get())) {
+                if (FilterListItem.isFilterItem(filter)) {
                     filters.add(new StoredFilter(direction, filter));
                 }
             }

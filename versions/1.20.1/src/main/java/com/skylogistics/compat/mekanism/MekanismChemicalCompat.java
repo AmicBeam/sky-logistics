@@ -29,15 +29,34 @@ final class MekanismChemicalCompat {
             return null;
         }
         List<Delegate> delegates = new ArrayList<>(4);
-        target.getCapability(Capabilities.GAS_HANDLER, side)
-                .ifPresent(handler -> delegates.add(new Delegate(Kind.GAS, handler)));
-        target.getCapability(Capabilities.INFUSION_HANDLER, side)
-                .ifPresent(handler -> delegates.add(new Delegate(Kind.INFUSION, handler)));
-        target.getCapability(Capabilities.PIGMENT_HANDLER, side)
-                .ifPresent(handler -> delegates.add(new Delegate(Kind.PIGMENT, handler)));
-        target.getCapability(Capabilities.SLURRY_HANDLER, side)
-                .ifPresent(handler -> delegates.add(new Delegate(Kind.SLURRY, handler)));
+        collectDelegates(target, side, delegates);
+        // Mekanism 1.20.1 tanks may expose a present but side-restricted proxy.
+        // Also collect the unsided handler so transfer can fall through when the
+        // selected face reports no tanks or rejects extraction/insertion.
+        if (side != null) {
+            collectDelegates(target, null, delegates);
+        }
         return delegates.isEmpty() ? null : new Handler(delegates);
+    }
+
+    private static void collectDelegates(BlockEntity target, Direction side, List<Delegate> delegates) {
+        target.getCapability(Capabilities.GAS_HANDLER, side)
+                .ifPresent(handler -> addDelegate(delegates, Kind.GAS, handler));
+        target.getCapability(Capabilities.INFUSION_HANDLER, side)
+                .ifPresent(handler -> addDelegate(delegates, Kind.INFUSION, handler));
+        target.getCapability(Capabilities.PIGMENT_HANDLER, side)
+                .ifPresent(handler -> addDelegate(delegates, Kind.PIGMENT, handler));
+        target.getCapability(Capabilities.SLURRY_HANDLER, side)
+                .ifPresent(handler -> addDelegate(delegates, Kind.SLURRY, handler));
+    }
+
+    private static void addDelegate(List<Delegate> delegates, Kind kind, IChemicalHandler handler) {
+        for (Delegate delegate : delegates) {
+            if (delegate.kind == kind && delegate.handler == handler) {
+                return;
+            }
+        }
+        delegates.add(new Delegate(kind, handler));
     }
 
     static ChemicalHandlerBridge wrapChemicalHandlers(Object... handlers) {
@@ -208,6 +227,11 @@ final class MekanismChemicalCompat {
             return other instanceof StackView view
                     && kind == view.kind
                     && stack.getTypeRegistryName().equals(view.stack.getTypeRegistryName());
+        }
+
+        @Override
+        public String chemicalKey() {
+            return kind.name().toLowerCase(java.util.Locale.ROOT) + ":" + stack.getTypeRegistryName();
         }
 
         @Override

@@ -21,6 +21,11 @@
                   "source": "CapacityPerType",
                   "target": "BlockEntityTag.CapacityPerType",
                   "op": "replace"
+                },
+                {
+                  "source": "Fluids",
+                  "target": "BlockEntityTag.Fluids",
+                  "op": "replace"
                 }
               ]
             }

@@ -4,6 +4,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
+import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity.ExternalWhitelistCandidates;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
@@ -45,6 +46,10 @@ import net.minecraftforge.items.ItemHandlerHelper;
 public final class SkyNetworkTicker {
     private static final Map<CachedEndpoint, LongItemEndpointCache> LONG_ITEM_ENDPOINTS = new WeakHashMap<>();
     private static final Map<CachedEndpoint, LongFluidEndpointCache> LONG_FLUID_ENDPOINTS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, ExactItemScan> SOURCE_EXACT_ITEM_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, ExactItemScan> TARGET_EXACT_ITEM_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, SlotLimitScan> SOURCE_SLOT_LIMIT_SCANS = new WeakHashMap<>();
+    private static final Map<CachedEndpoint, SlotLimitScan> TARGET_SLOT_LIMIT_SCANS = new WeakHashMap<>();
 
     private SkyNetworkTicker() {
     }
@@ -52,6 +57,10 @@ public final class SkyNetworkTicker {
     public static void clear() {
         LONG_ITEM_ENDPOINTS.clear();
         LONG_FLUID_ENDPOINTS.clear();
+        SOURCE_EXACT_ITEM_SCANS.clear();
+        TARGET_EXACT_ITEM_SCANS.clear();
+        SOURCE_SLOT_LIMIT_SCANS.clear();
+        TARGET_SLOT_LIMIT_SCANS.clear();
     }
 
     public static void onServerTick(TickEvent.ServerTickEvent event) {
@@ -179,7 +188,6 @@ public final class SkyNetworkTicker {
                 }
                 if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
                         && node.isFluidsEnabled(input.direction())
-                        && input.supportsChemical()
                         && input.canTryChemicals(gameTime)) {
                     if (dimensionUpgrade && globalChemicalOutputs == null) {
                         globalChemicalOutputs = SkyNetworkRegistry.globalChemicalOutputs(line.lineId());
@@ -220,7 +228,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (manaRoute && node.isEnergyEnabled(input.direction()) && input.supportsMana()
+                if (manaRoute && node.isEnergyEnabled(input.direction())
                         && canTransferMana() && input.canTryMana(gameTime)) {
                     if (dimensionUpgrade && globalManaOutputs == null) {
                         globalManaOutputs = SkyNetworkRegistry.globalManaOutputs(line.lineId());
@@ -239,7 +247,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                if (sourceRoute && node.isEnergyEnabled(input.direction()) && input.supportsSource()
+                if (sourceRoute && node.isEnergyEnabled(input.direction())
                         && canTransferSource() && input.canTrySource(gameTime)) {
                     if (dimensionUpgrade && globalSourceOutputs == null) {
                         globalSourceOutputs = SkyNetworkRegistry.globalSourceOutputs(line.lineId());
@@ -292,17 +300,16 @@ public final class SkyNetworkTicker {
         }
         if (fluidRoute && node.isFluidsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
-            if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
-                    && input.supportsChemical()) {
+            if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
             }
         }
         if (energyRoute && node.isEnergyEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextEnergyWake(gameTime));
-            if (manaRoute && canTransferMana() && input.supportsMana()) {
+            if (manaRoute && canTransferMana()) {
                 nextWake = Math.min(nextWake, input.nextManaWake(gameTime));
             }
-            if (sourceRoute && canTransferSource() && input.supportsSource()) {
+            if (sourceRoute && canTransferSource()) {
                 nextWake = Math.min(nextWake, input.nextSourceWake(gameTime));
             }
         }
@@ -335,13 +342,24 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
-        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceNode, sourceEndpoint.direction(), source,
-                budget);
+        SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceEndpoint, source, budget);
         int operations = extractionSlotLimit.checks();
         if (!extractionSlotLimit.complete()) {
             return operations;
         }
         if (extractionSlotLimit.blocked()) {
+            sourceEndpoint.recordItemFailure(gameTime);
+            return operations;
+        }
+        ExactItemScanResult exactScan = scanExactItems(sourceEndpoint, source,
+                Math.max(0, budget - operations), SOURCE_EXACT_ITEM_SCANS);
+        operations += exactScan.checks();
+        if (!exactScan.complete()) return operations;
+        int exactExcess = exactScan.total() < 0L ? -1
+                : (int)Math.min(Integer.MAX_VALUE,
+                        Math.max(0L, exactScan.total() - ((SkyNodeBlockEntity)sourceNode).exactQuantity()));
+        if (exactExcess == 0) {
+            SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemFailure(gameTime);
             return operations;
         }
@@ -378,6 +396,7 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordItemSlotRejected(slot, gameTime);
                 continue;
             }
+            if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
             MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, targets,
@@ -389,6 +408,10 @@ public final class SkyNetworkTicker {
                 movedFromHotPath = true;
                 successfulSlot = slot;
             }
+            if (exactExcess >= 0) {
+                SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
+                return operations;
+            }
         }
         if (movedFromHotPath && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
@@ -396,6 +419,7 @@ public final class SkyNetworkTicker {
                     successfulSlot, budget - operations);
         }
         if (!foundCandidate) {
+            if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
         }
         return operations;
@@ -605,47 +629,52 @@ public final class SkyNetworkTicker {
         }
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ITEM);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         int targetAttempts = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        ItemStackKey simulatedKey = null;
+        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
                 if (targetVisits >= budget) {
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.ITEM);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryItems(gameTime)
                         || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
-                if (targetEndpoint.isItemFilterRejected(simulated, gameTime)) continue;
+                if (targetEndpoint.isItemFilterRejected(simulated, gameTime)) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                    continue;
+                }
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
-                    if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
-                    if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) continue;
+                    if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
+                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                        continue;
+                    }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 targetAttempts++;
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                 if (!targetEndpoint.node().allowsItem(targetEndpoint.direction(), simulated)) {
                     targetEndpoint.recordItemFilterReject(simulated, gameTime);
                     continue;
@@ -655,6 +684,7 @@ public final class SkyNetworkTicker {
                     long moved = moveLongItemStack(sourceEndpoint, sourceLongEndpoint, simulated, available,
                             targetEndpoint, targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordItemSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -671,16 +701,17 @@ public final class SkyNetworkTicker {
                         gameTime, Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += Math.max(0, handlerResult.slotChecks() - 1);
                 if (handlerResult.budgetExhausted()) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 if (handlerResult.moved()) {
+                    finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                     targetEndpoint.recordItemSuccess();
                     return targetMoveResult(true, operations, targetVisits);
                 }
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordItemFailure(gameTime);
         }
@@ -815,24 +846,58 @@ public final class SkyNetworkTicker {
         return firstTriedSlot == slot || secondTriedSlot == slot;
     }
 
-    private static SlotLimitCheck checkExtractionSlotLimit(NetworkEndpointBlockEntity node, net.minecraft.core.Direction direction,
-            IItemHandler source, int checkBudget) {
-        int limit = node.getItemSlotLimit(direction);
-        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
-        int matchingSlots = 0;
+    private static SlotLimitCheck checkExtractionSlotLimit(CachedEndpoint endpoint, IItemHandler source,
+            int checkBudget) {
+        NetworkEndpointBlockEntity node = endpoint.node();
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) {
+            SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
+            return SlotLimitCheck.ALLOWED;
+        }
+        int limit = node.getItemSlotLimit(endpoint.direction());
+        if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) {
+            SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
+            return SlotLimitCheck.ALLOWED;
+        }
         int checks = 0;
         int slots = source.getSlots();
-        // A partial scan cannot safely be resumed because ordinary handlers expose no mutation version.
-        // Bypass the optional limit when a complete proof does not fit instead of rescanning slot zero forever.
-        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
-        for (int slot = 0; slot < slots; slot++) {
+        SlotLimitScan scan = SOURCE_SLOT_LIMIT_SCANS.get(endpoint);
+        if (scan == null || !scan.matches(slots, limit, null)) {
+            scan = new SlotLimitScan(slots, limit, null);
+            SOURCE_SLOT_LIMIT_SCANS.put(endpoint, scan);
+        }
+        while (scan.nextSlot < slots && checks < checkBudget) {
+            int slot = scan.nextSlot++;
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
-            if (!stack.isEmpty() && node.allowsItem(direction, stack) && ++matchingSlots > limit) {
+            if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack) && ++scan.matchingSlots > limit) {
+                SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
                 return new SlotLimitCheck(false, checks, true);
             }
         }
+        if (scan.nextSlot < slots) return new SlotLimitCheck(false, checks, false);
+        SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
         return new SlotLimitCheck(true, checks, true);
+    }
+
+    private static ExactItemScanResult scanExactItems(CachedEndpoint endpoint, IItemHandler handler, int budget,
+            Map<CachedEndpoint, ExactItemScan> scans) {
+        if (!(endpoint.node() instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) {
+            scans.remove(endpoint);
+            return ExactItemScanResult.NOT_CONFIGURED;
+        }
+        int slots = handler.getSlots();
+        ExactItemScan scan = scans.computeIfAbsent(endpoint, ignored -> new ExactItemScan(slots));
+        if (scan.slots != slots) {
+            scan = new ExactItemScan(slots);
+            scans.put(endpoint, scan);
+        }
+        int checks = 0;
+        while (scan.nextSlot < slots && checks < budget) {
+            ItemStack stack = handler.getStackInSlot(scan.nextSlot++);
+            checks++;
+            if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack)) scan.total += stack.getCount();
+        }
+        return new ExactItemScanResult(scan.nextSlot >= slots, scan.total, checks);
     }
 
     private static SlotLimitCheck checkInsertionSlotLimit(CachedEndpoint endpoint, IItemHandler target,
@@ -841,34 +906,42 @@ public final class SkyNetworkTicker {
             return SlotLimitCheck.ALLOWED;
         }
         NetworkEndpointBlockEntity node = endpoint.node();
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) return SlotLimitCheck.ALLOWED;
         net.minecraft.core.Direction direction = endpoint.direction();
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) {
             return SlotLimitCheck.ALLOWED;
         }
-        int matchingSlots = 0;
         int checks = 0;
-        boolean canRefill = false;
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
         int slots = target.getSlots();
-        if (slots > checkBudget) return SlotLimitCheck.ALLOWED;
-        for (int slot = 0; slot < slots; slot++) {
+        ItemStackKey candidateKey = ItemStackKey.of(candidate);
+        SlotLimitScan scan = TARGET_SLOT_LIMIT_SCANS.get(endpoint);
+        if (scan == null || !scan.matches(slots, limit, candidateKey)) {
+            scan = new SlotLimitScan(slots, limit, candidateKey);
+            TARGET_SLOT_LIMIT_SCANS.put(endpoint, scan);
+        }
+        while (scan.nextSlot < slots && checks < checkBudget) {
+            int slot = scan.nextSlot++;
             checks++;
             ItemStack existing = target.getStackInSlot(slot);
             if (existing.isEmpty() || !node.allowsItem(direction, existing)) {
                 continue;
             }
-            matchingSlots++;
-            if (!canRefill && !probe.isEmpty() && ItemStack.isSameItemSameTags(existing, candidate)
+            scan.matchingSlots++;
+            if (!scan.canRefill && !probe.isEmpty() && ItemStack.isSameItemSameTags(existing, candidate)
                     && target.insertItem(slot, probe, true).getCount() < probe.getCount()) {
-                canRefill = true;
+                scan.canRefill = true;
             }
-            if (matchingSlots >= limit && canRefill) {
+            if (scan.matchingSlots >= limit && scan.canRefill) {
+                TARGET_SLOT_LIMIT_SCANS.remove(endpoint);
                 return new SlotLimitCheck(false, checks, true);
             }
         }
-        return new SlotLimitCheck(matchingSlots >= limit && !canRefill, checks, true);
+        if (scan.nextSlot < slots) return new SlotLimitCheck(false, checks, false);
+        TARGET_SLOT_LIMIT_SCANS.remove(endpoint);
+        return new SlotLimitCheck(scan.matchingSlots >= limit && !scan.canRefill, checks, true);
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
@@ -879,53 +952,52 @@ public final class SkyNetworkTicker {
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ITEM);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         int targetAttempts = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        ItemStackKey simulatedKey = null;
+        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
                 if (targetVisits >= budget) {
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.ITEM);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryItems(gameTime)
                         || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
                 if (targetEndpoint.isItemFilterRejected(simulated, gameTime)) {
+                    targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
-                    if (simulatedKey == null) {
-                        simulatedKey = ItemStackKey.of(simulated);
-                    }
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
+                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                         continue;
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 targetAttempts++;
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                 if (!targetEndpoint.node().allowsItem(targetEndpoint.direction(), simulated)) {
                     targetEndpoint.recordItemFilterReject(simulated, gameTime);
                     continue;
@@ -935,6 +1007,7 @@ public final class SkyNetworkTicker {
                     long moved = moveLongItem(sourceEndpoint, sourceLongEndpoint, slot, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordItemSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -950,6 +1023,7 @@ public final class SkyNetworkTicker {
                     long moved = moveItemToLongTarget(sourceEndpoint, source, slot, simulated, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordItemSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -969,11 +1043,28 @@ public final class SkyNetworkTicker {
                         Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += slotLimitCheck.checks();
                 if (!slotLimitCheck.complete()) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 if (slotLimitCheck.blocked()) continue;
-                TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, simulated,
+                ExactItemScanResult exactScan = scanExactItems(targetEndpoint, target,
+                        Math.max(1, budget - Math.max(operations, targetVisits) + 1), TARGET_EXACT_ITEM_SCANS);
+                targetVisits += Math.max(0, exactScan.checks() - 1);
+                if (!exactScan.complete()) {
+                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
+                int exactRemaining = exactScan.total() < 0L ? -1
+                        : (int)Math.min(Integer.MAX_VALUE,
+                                Math.max(0L, (long)((SkyNodeBlockEntity)targetEndpoint.node()).exactQuantity()
+                                        - exactScan.total()));
+                TARGET_EXACT_ITEM_SCANS.remove(targetEndpoint);
+                if (exactRemaining == 0) continue;
+                ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
+                        ? simulated.copyWithCount(exactRemaining) : simulated;
+                TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer,
                         Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += Math.max(0, selection.checks() - 1);
                 TargetItemSlot targetSlot = selection.slot();
@@ -1009,10 +1100,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordItemSuccess();
+                finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordItemFailure(gameTime);
         }
@@ -1021,6 +1112,10 @@ public final class SkyNetworkTicker {
 
     private static TargetItemSelection selectTargetItemSlot(CachedEndpoint endpoint, IItemHandler target,
             ItemStack stack, int checkBudget) {
+        if (endpoint.targetBlockEntity() instanceof SkyDistributorBlockEntity) {
+            endpoint.clearTargetItemCursor();
+            return new TargetItemSelection(simulateSingleTargetItemSlot(target, stack), 1, true);
+        }
         int slots = target.getSlots();
         if (slots == 1) {
             endpoint.clearTargetItemCursor();
@@ -1543,46 +1638,41 @@ public final class SkyNetworkTicker {
         LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.FLUID);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        FluidStackKey simulatedKey = null;
+        FluidStackKey simulatedKey = FluidStackKey.of(simulated);
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.fluidTargetScanStart(simulatedKey, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.FLUID);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryFluids(gameTime)
                         || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
-                if (simulatedKey == null) {
-                    simulatedKey = FluidStackKey.of(simulated);
-                }
                 if (targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) {
+                    targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeFluidTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                 if (!targetEndpoint.node().allowsFluid(targetEndpoint.direction(), simulated)) {
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
@@ -1595,6 +1685,7 @@ public final class SkyNetworkTicker {
                             : moveFluidToLongTarget(sourceEndpoint, source, sourceTank, simulated, targetEndpoint,
                                     targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishFluidTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordFluidSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -1632,10 +1723,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordFluidSuccess();
+                finishFluidTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetFluidTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordFluidFailure(gameTime);
         }
@@ -1649,42 +1740,43 @@ public final class SkyNetworkTicker {
         }
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitFluidTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.FLUID);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        FluidStackKey simulatedKey = null;
+        FluidStackKey simulatedKey = FluidStackKey.of(simulated);
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.fluidTargetScanStart(simulatedKey, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.FLUID);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryFluids(gameTime)
-                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())) continue;
+                        || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                    continue;
+                }
                 if (targetEndpoint.hasActiveFluidAcceptRejects(gameTime)) {
-                    if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
-                    if (targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) continue;
+                    if (targetEndpoint.isFluidAcceptRejected(simulatedKey, gameTime)) {
+                        targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                        continue;
+                    }
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeFluidTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceFluidTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                 if (!targetEndpoint.node().allowsFluid(targetEndpoint.direction(), simulated)) {
                     if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
@@ -1695,6 +1787,7 @@ public final class SkyNetworkTicker {
                     long moved = moveLongFluidStack(sourceEndpoint, sourceLongEndpoint, simulated, available,
                             targetEndpoint, targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishFluidTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordFluidSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -1707,12 +1800,12 @@ public final class SkyNetworkTicker {
                 }
                 if (tryMoveLongFluidToHandler(sourceEndpoint, sourceLongEndpoint, simulated, available,
                         targetEndpoint, targetEndpoint.fluidHandler(gameTime), simulatedKey, gameTime)) {
+                    finishFluidTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                     targetEndpoint.recordFluidSuccess();
                     return targetMoveResult(true, operations, targetVisits);
                 }
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetFluidTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordFluidFailure(gameTime);
         }
@@ -2053,6 +2146,7 @@ public final class SkyNetworkTicker {
                 sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
+            if (!sourceNode.allowsChemical(sourceEndpoint.direction(), simulated)) continue;
             foundCandidate = true;
             sourceEndpoint.recordChemicalCandidateFound();
             MoveResult result = tryMoveChemical(sourceEndpoint, source, tank, simulated, targets,
@@ -2127,40 +2221,38 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.CHEMICAL);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.chemicalTargetScanStart(simulated, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.CHEMICAL);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceChemicalTargetScan(sourceEndpoint, simulated, targetIndex, targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryChemicals(gameTime)
                         || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())
                         || targetEndpoint.isChemicalAcceptRejected(simulated, gameTime)) {
+                    targetIndex = advanceChemicalTargetScan(sourceEndpoint, simulated, targetIndex, targetCount);
                     continue;
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeChemicalTargetScan(simulated, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceChemicalTargetScan(sourceEndpoint, simulated, targetIndex, targetCount);
+                if (!targetEndpoint.node().allowsChemical(targetEndpoint.direction(), simulated)) continue;
                 ChemicalHandlerBridge target = targetEndpoint.chemicalHandler(gameTime);
                 if (target == null) {
                     continue;
@@ -2188,10 +2280,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordChemicalSuccess();
+                finishChemicalTargetScan(sourceEndpoint, simulated, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetChemicalTargetScan(simulated);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordChemicalFailure(gameTime);
         }
@@ -2203,6 +2295,7 @@ public final class SkyNetworkTicker {
         if (budget <= 0) {
             return 0;
         }
+        if (!sourceEndpoint.node().allowsEnergy(sourceEndpoint.direction())) return 0;
         LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
         IEnergyStorage source = sourceLongEndpoint == null ? sourceEndpoint.energyHandler(gameTime) : null;
         if (sourceLongEndpoint == null && source == null) return 0;
@@ -2233,44 +2326,47 @@ public final class SkyNetworkTicker {
         }
         long skyContainerTransferLimit = sourceEndpoint.node()
                 .limitEnergyTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.ENERGY);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.resourceTargetScanStart(TargetResource.ENERGY, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.ENERGY);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targetIndex,
+                            targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryEnergy(gameTime)
-                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                        || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())
+                        || !targetEndpoint.node().allowsEnergy(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targetIndex,
+                            targetCount);
                     continue;
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.ENERGY, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targetIndex,
+                        targetCount);
                 LongEnergyEndpoint targetLongEndpoint = longEnergyEndpoint(targetEndpoint);
                 if (sourceLongEndpoint != null && targetLongEndpoint != null) {
                     long moved = moveLongEnergy(sourceEndpoint, sourceLongEndpoint, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targets,
+                                visitedTargetIndex);
                         targetEndpoint.recordEnergySuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -2285,6 +2381,8 @@ public final class SkyNetworkTicker {
                     long moved = moveEnergyToLongTarget(sourceEndpoint, source, targetEndpoint, targetLongEndpoint,
                             simulated);
                     if (moved > 0L) {
+                        finishResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targets,
+                                visitedTargetIndex);
                         targetEndpoint.recordEnergySuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -2303,6 +2401,8 @@ public final class SkyNetworkTicker {
                     long moved = moveLongEnergyToHandler(sourceEndpoint, sourceLongEndpoint, targetEndpoint, target,
                             simulated);
                     if (moved > 0L) {
+                        finishResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targets,
+                                visitedTargetIndex);
                         targetEndpoint.recordEnergySuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -2336,10 +2436,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordEnergySuccess();
+                finishResourceTargetScan(sourceEndpoint, TargetResource.ENERGY, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetResourceTargetScan(TargetResource.ENERGY);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordEnergyFailure(gameTime);
         }
@@ -2491,7 +2591,8 @@ public final class SkyNetworkTicker {
 
     private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
-        if (!canTransferMana() || budget <= 0) {
+        if (!canTransferMana() || budget <= 0
+                || !sourceEndpoint.node().allowsMana(sourceEndpoint.direction())) {
             return 0;
         }
         ManaHandlerBridge source = sourceEndpoint.manaHandler(gameTime);
@@ -2521,45 +2622,48 @@ public final class SkyNetworkTicker {
         }
         LongManaEndpoint sourceLongEndpoint = longManaEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.MANA);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.resourceTargetScanStart(TargetResource.MANA, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.MANA);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.MANA, targetIndex,
+                            targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTryMana(gameTime)
+                        || !targetEndpoint.node().allowsMana(targetEndpoint.direction())
                         || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.MANA, targetIndex,
+                            targetCount);
                     continue;
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.MANA, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.MANA, targetIndex,
+                        targetCount);
                 LongManaEndpoint targetLongEndpoint = sourceLongEndpoint == null ? null
                         : longManaEndpoint(targetEndpoint);
                 if (targetLongEndpoint != null) {
                     long moved = moveLongMana(sourceEndpoint, sourceLongEndpoint, targetEndpoint, targetLongEndpoint,
                             skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishResourceTargetScan(sourceEndpoint, TargetResource.MANA, targets,
+                                visitedTargetIndex);
                         targetEndpoint.recordManaSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -2597,10 +2701,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordManaSuccess();
+                finishResourceTargetScan(sourceEndpoint, TargetResource.MANA, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetResourceTargetScan(TargetResource.MANA);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordManaFailure(gameTime);
         }
@@ -2683,7 +2787,8 @@ public final class SkyNetworkTicker {
 
     private static int transferSource(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
-        if (!canTransferSource() || budget <= 0) {
+        if (!canTransferSource() || budget <= 0
+                || !sourceEndpoint.node().allowsSource(sourceEndpoint.direction())) {
             return 0;
         }
         SourceHandlerBridge source = sourceEndpoint.sourceHandler(gameTime);
@@ -2713,45 +2818,48 @@ public final class SkyNetworkTicker {
         }
         LongSourceEndpoint sourceLongEndpoint = longSourceEndpoint(sourceEndpoint);
         long skyContainerTransferLimit = SkyLogisticsConfig.skyContainerTransferLimit();
-        int targetCursor = sourceEndpoint.node().targetCursor(TargetResource.SOURCE);
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetVisits = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.resourceTargetScanStart(TargetResource.SOURCE, targetCount);
         targetLoop:
-        for (int groupStart = 0; groupStart < targets.size();) {
-            int groupEnd = priorityGroupEnd(targets, groupStart);
-            int groupSize = groupEnd - groupStart;
-            int groupCursor = Math.floorMod(targetCursor, groupSize);
-            for (int groupOffset = 0; groupOffset < groupSize; groupOffset++) {
-                CachedEndpoint targetEndpoint = targetInGroup(targets, groupStart, groupSize, groupCursor,
-                        groupOffset);
-                if (targetVisits >= budget) {
-                    budgetExhausted = true;
-                    break targetLoop;
-                }
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+                CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                if (targetVisits >= budget) { budgetExhausted = true; break; }
                 targetVisits++;
-                sourceEndpoint.node().advanceTargetCursor(TargetResource.SOURCE);
                 if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targetIndex,
+                            targetCount);
                     redstoneBlocked = true;
                     continue;
                 }
                 if (!targetEndpoint.canTrySource(gameTime)
+                        || !targetEndpoint.node().allowsSource(targetEndpoint.direction())
                         || !targetEndpoint.node().isEnergyEnabled(targetEndpoint.direction())) {
+                    targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targetIndex,
+                            targetCount);
                     continue;
                 }
                 if (operations >= targetAttemptBudget) {
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.SOURCE, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
                 operations++;
+                int visitedTargetIndex = targetIndex;
+                targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targetIndex,
+                        targetCount);
                 LongSourceEndpoint targetLongEndpoint = sourceLongEndpoint == null ? null
                         : longSourceEndpoint(targetEndpoint);
                 if (targetLongEndpoint != null) {
                     long moved = moveLongSource(sourceEndpoint, sourceLongEndpoint, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
+                        finishResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targets,
+                                visitedTargetIndex);
                         targetEndpoint.recordSourceSuccess();
                         return targetMoveResult(true, operations, targetVisits);
                     }
@@ -2789,10 +2897,10 @@ public final class SkyNetworkTicker {
                     }
                 }
                 targetEndpoint.recordSourceSuccess();
+                finishResourceTargetScan(sourceEndpoint, TargetResource.SOURCE, targets, visitedTargetIndex);
                 return targetMoveResult(true, operations, targetVisits);
-            }
-            groupStart = groupEnd;
         }
+        if (!budgetExhausted) sourceEndpoint.resetResourceTargetScan(TargetResource.SOURCE);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordSourceFailure(gameTime);
         }
@@ -2873,25 +2981,88 @@ public final class SkyNetworkTicker {
         }
     }
 
-    private static int priorityGroupEnd(List<CachedEndpoint> targets, int groupStart) {
-        int priority = targets.get(groupStart).node().getPriority(targets.get(groupStart).direction());
-        int low = groupStart + 1;
-        int high = targets.size();
-        while (low < high) {
-            int middle = (low + high) >>> 1;
-            int middlePriority = targets.get(middle).node().getPriority(targets.get(middle).direction());
-            if (middlePriority == priority) {
-                low = middle + 1;
-            } else {
-                high = middle;
-            }
-        }
-        return low;
+    private static int advanceItemTargetScan(CachedEndpoint sourceEndpoint, ItemStackKey key, int currentIndex,
+            int targetCount) {
+        int nextIndex = (currentIndex + 1) % targetCount;
+        sourceEndpoint.resumeItemTargetScan(key, nextIndex, targetCount);
+        return nextIndex;
     }
 
-    private static CachedEndpoint targetInGroup(List<CachedEndpoint> targets, int groupStart, int groupSize,
-            int cursor, int offset) {
-        return targets.get(groupStart + (cursor + offset) % groupSize);
+    private static void finishItemTargetScan(CachedEndpoint sourceEndpoint, ItemStackKey key,
+            List<CachedEndpoint> targets, int successfulIndex) {
+        int nextIndex = successfulIndex + 1;
+        int topPriority = targets.get(0).node().getPriority(targets.get(0).direction());
+        int successfulPriority = targets.get(successfulIndex).node()
+                .getPriority(targets.get(successfulIndex).direction());
+        if (successfulPriority == topPriority && nextIndex < targets.size()
+                && targets.get(nextIndex).node().getPriority(targets.get(nextIndex).direction()) == topPriority) {
+            sourceEndpoint.resumeItemTargetScan(key, nextIndex, targets.size());
+        } else {
+            sourceEndpoint.resetItemTargetScan(key);
+        }
+    }
+
+    private static int advanceFluidTargetScan(CachedEndpoint sourceEndpoint, FluidStackKey key, int currentIndex,
+            int targetCount) {
+        int nextIndex = (currentIndex + 1) % targetCount;
+        sourceEndpoint.resumeFluidTargetScan(key, nextIndex, targetCount);
+        return nextIndex;
+    }
+
+    private static void finishFluidTargetScan(CachedEndpoint sourceEndpoint, FluidStackKey key,
+            List<CachedEndpoint> targets, int successfulIndex) {
+        int nextIndex = successfulIndex + 1;
+        int topPriority = targets.get(0).node().getPriority(targets.get(0).direction());
+        int successfulPriority = targets.get(successfulIndex).node()
+                .getPriority(targets.get(successfulIndex).direction());
+        if (successfulPriority == topPriority && nextIndex < targets.size()
+                && targets.get(nextIndex).node().getPriority(targets.get(nextIndex).direction()) == topPriority) {
+            sourceEndpoint.resumeFluidTargetScan(key, nextIndex, targets.size());
+        } else {
+            sourceEndpoint.resetFluidTargetScan(key);
+        }
+    }
+
+    private static int advanceChemicalTargetScan(CachedEndpoint sourceEndpoint, ChemicalStackView key,
+            int currentIndex, int targetCount) {
+        int nextIndex = (currentIndex + 1) % targetCount;
+        sourceEndpoint.resumeChemicalTargetScan(key, nextIndex, targetCount);
+        return nextIndex;
+    }
+
+    private static void finishChemicalTargetScan(CachedEndpoint sourceEndpoint, ChemicalStackView key,
+            List<CachedEndpoint> targets, int successfulIndex) {
+        int nextIndex = successfulIndex + 1;
+        int topPriority = targets.get(0).node().getPriority(targets.get(0).direction());
+        int successfulPriority = targets.get(successfulIndex).node()
+                .getPriority(targets.get(successfulIndex).direction());
+        if (successfulPriority == topPriority && nextIndex < targets.size()
+                && targets.get(nextIndex).node().getPriority(targets.get(nextIndex).direction()) == topPriority) {
+            sourceEndpoint.resumeChemicalTargetScan(key, nextIndex, targets.size());
+        } else {
+            sourceEndpoint.resetChemicalTargetScan(key);
+        }
+    }
+
+    private static int advanceResourceTargetScan(CachedEndpoint sourceEndpoint, TargetResource resource,
+            int currentIndex, int targetCount) {
+        int nextIndex = (currentIndex + 1) % targetCount;
+        sourceEndpoint.resumeResourceTargetScan(resource, nextIndex, targetCount);
+        return nextIndex;
+    }
+
+    private static void finishResourceTargetScan(CachedEndpoint sourceEndpoint, TargetResource resource,
+            List<CachedEndpoint> targets, int successfulIndex) {
+        int nextIndex = successfulIndex + 1;
+        int topPriority = targets.get(0).node().getPriority(targets.get(0).direction());
+        int successfulPriority = targets.get(successfulIndex).node()
+                .getPriority(targets.get(successfulIndex).direction());
+        if (successfulPriority == topPriority && nextIndex < targets.size()
+                && targets.get(nextIndex).node().getPriority(targets.get(nextIndex).direction()) == topPriority) {
+            sourceEndpoint.resumeResourceTargetScan(resource, nextIndex, targets.size());
+        } else {
+            sourceEndpoint.resetResourceTargetScan(resource);
+        }
     }
 
     private static MoveResult targetMoveResult(boolean moved, int operations, int targetVisits) {
@@ -2927,6 +3098,39 @@ public final class SkyNetworkTicker {
     }
 
     private record MoveResult(boolean moved, int operations) {
+    }
+
+    private static final class ExactItemScan {
+        private final int slots;
+        private int nextSlot;
+        private long total;
+
+        private ExactItemScan(int slots) {
+            this.slots = slots;
+        }
+    }
+
+    private record ExactItemScanResult(boolean complete, long total, int checks) {
+        private static final ExactItemScanResult NOT_CONFIGURED = new ExactItemScanResult(true, -1L, 0);
+    }
+
+    private static final class SlotLimitScan {
+        private final int slots;
+        private final int limit;
+        private final ItemStackKey candidate;
+        private int nextSlot;
+        private int matchingSlots;
+        private boolean canRefill;
+
+        private SlotLimitScan(int slots, int limit, ItemStackKey candidate) {
+            this.slots = slots;
+            this.limit = limit;
+            this.candidate = candidate;
+        }
+
+        private boolean matches(int slots, int limit, ItemStackKey candidate) {
+            return this.slots == slots && this.limit == limit && java.util.Objects.equals(this.candidate, candidate);
+        }
     }
 
     private static FluidStack copyWithAmount(FluidStack stack, int amount) {

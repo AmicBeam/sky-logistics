@@ -1,0 +1,43 @@
+{
+  "workflow": "model repair at 520x500 working resolution, then converge to 260x250 logical grid and 1040x1000 output",
+  "rounds": [
+    {
+      "name": "round-0",
+      "input": "original reference",
+      "operation": "initial coarse grid conversion"
+    },
+    {
+      "name": "round-1",
+      "operation": "model repaired broken lines, fills, icons and glyphs; bottom blank margin cropped"
+    },
+    {
+      "name": "round-2",
+      "operation": "model conservatively regularized border continuity, table cells and button bevels at 520x500 working resolution"
+    },
+    {
+      "name": "final",
+      "operation": "strict 260x250 grid convergence plus repaired glyph pixels from round 2"
+    },
+    {
+      "name": "round-3",
+      "operation": "merged the separate redstone torch and ignore dropdown controls into one continuous button, then reconverged through 520x500 working resolution"
+    },
+    {
+      "name": "round-4",
+      "operation": "removed the remaining dropdown-arrow glyph because the project implements redstone as a click-to-cycle button, exported a real 520x500 working image and extracted button components"
+    }
+  ],
+  "dimensions": {
+    "workingLogical": [520, 500],
+    "strictLogical": [260, 250],
+    "final": [1040, 1000]
+  },
+  "validation": {
+    "total4x4Blocks": 65000,
+    "uniform4x4Blocks": 62527,
+    "consistency": 0.9619538461538462,
+    "threshold": 0.9,
+    "pass": true
+  },
+  "exceptions": "Non-uniform blocks are intentionally concentrated in repaired text and numeric glyph pixels."
+}

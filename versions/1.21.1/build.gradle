@@ -19,6 +19,10 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 repositories {
     mavenCentral()
     maven {
+        name = 'TerraformersMC'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+    maven {
         name = 'ModMaven'
         url = 'https://modmaven.dev'
     }
@@ -98,13 +102,20 @@ def cachedJeiApiJars = fileTree(
 def jeiApiJar = jeiApiPath ? file(jeiApiPath)
         : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : null)
 def includeJeiCompat = false
+def cachedEmiApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/dev.emi/emi-neoforge/${emi_version}",
+        include: "**/emi-neoforge-${emi_version}.jar"
+).files.toList().sort { it.absolutePath }
+def emiApiJar = cachedEmiApiJars.isEmpty() ? null : cachedEmiApiJars.last()
 
 sourceSets {
     main {
         java.srcDir '../../common/src/main/java'
+        java.srcDir 'src/emi/java'
         resources.srcDir '../../common/src/main/resources'
     }
 }
+sourceSets.test.java.srcDir '../../common/src/test/java'
 
 def commonResourcesDir = file('../../common/src/main/resources').absolutePath
 def versionSkyMeTextures = [
@@ -142,6 +153,11 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (emiApiJar != null) {
+        compileOnly files(emiApiJar)
+    } else {
+        compileOnly "dev.emi:emi-neoforge:${emi_version}"
+    }
     compileOnly "maven.modrinth:beyonddimensions:${beyond_dimensions_version}"
     if (includeJadeCompat) {
         if (jadeApiJar != null && jadeApiJar.exists()) {

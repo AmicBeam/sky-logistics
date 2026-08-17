@@ -9,6 +9,10 @@ public interface ChemicalStackView {
 
     boolean isSameChemical(ChemicalStackView other);
 
+    default String chemicalKey() {
+        return "";
+    }
+
     default Object rawStack() {
         return null;
     }

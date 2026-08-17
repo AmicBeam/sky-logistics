@@ -33,6 +33,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
+                        output.accept(ModItems.EXACT_QUANTITY_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
@@ -45,6 +46,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.OFFERING_TABLE.get());
                         output.accept(ModItems.ITEM_VAULT.get());
                         output.accept(ModItems.FLUID_VAULT.get());
+                        output.accept(ModItems.SKY_DISTRIBUTOR.get());
                         output.accept(ModItems.SKY_NODE.get());
                         output.accept(ModItems.SIMPLE_ITEM_PIPE.get());
                         output.accept(ModItems.SIMPLE_FLUID_PIPE.get());

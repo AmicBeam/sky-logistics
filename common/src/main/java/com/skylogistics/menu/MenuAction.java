@@ -8,6 +8,7 @@ public final class MenuAction {
     public static final int RATE_UP = 4;
     public static final int MODE_INSERT = 5;
     public static final int MODE_EXTRACT = 6;
+    public static final int MODE_MAINTAIN = 7;
     public static final int TOGGLE_ENERGY = 10;
     public static final int CONFIG_REDSTONE = 11;
     public static final int CONFIG_PRIORITY_DOWN = 12;

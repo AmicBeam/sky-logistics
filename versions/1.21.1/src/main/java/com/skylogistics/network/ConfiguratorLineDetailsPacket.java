@@ -25,8 +25,9 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
 
     public record Entry(String dimension, BlockPos nodePos, Direction face, BlockPos targetPos,
                         String targetBlockId, String displayName, UUID profileId, String profileTexture,
-                        String profileTextureSignature, NodeFaceMode mode, boolean itemsEnabled, boolean fluidsEnabled,
-                        boolean energyEnabled, RedstoneControl redstoneControl, int priority) {
+                        String profileTextureSignature, NodeFaceMode mode, boolean maintainMode,
+                        boolean itemsEnabled, boolean fluidsEnabled, boolean energyEnabled,
+                        RedstoneControl redstoneControl, int priority) {
         public Entry {
             profileTexture = profileTexture == null ? "" : profileTexture;
             profileTextureSignature = profileTextureSignature == null ? "" : profileTextureSignature;
@@ -52,6 +53,7 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
             buffer.writeUtf(entry.profileTexture, MAX_TEXTURE_PROPERTY_LENGTH);
             buffer.writeUtf(entry.profileTextureSignature, MAX_TEXTURE_PROPERTY_LENGTH);
             buffer.writeEnum(entry.mode);
+            buffer.writeBoolean(entry.maintainMode);
             buffer.writeBoolean(entry.itemsEnabled);
             buffer.writeBoolean(entry.fluidsEnabled);
             buffer.writeBoolean(entry.energyEnabled);
@@ -76,6 +78,7 @@ public record ConfiguratorLineDetailsPacket(UUID lineId, List<Entry> entries) im
             String profileTextureSignature = buffer.readUtf(MAX_TEXTURE_PROPERTY_LENGTH);
             entries.add(new Entry(dimension, nodePos, face, targetPos, targetBlockId, displayName,
                     profileId, profileTexture, profileTextureSignature, buffer.readEnum(NodeFaceMode.class),
+                    buffer.readBoolean(),
                     buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(),
                     buffer.readEnum(RedstoneControl.class), buffer.readVarInt()));
         }

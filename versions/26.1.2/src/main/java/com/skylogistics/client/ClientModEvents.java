@@ -3,6 +3,7 @@ package com.skylogistics.client;
 import com.mojang.math.OctahedralGroup;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
@@ -17,9 +18,16 @@ import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.core.Direction;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -28,6 +36,8 @@ import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
 import net.neoforged.neoforge.common.NeoForge;
 
 public final class ClientModEvents {
+    private static final VoxelShape DISTRIBUTOR_TARGET_OUTLINE = Shapes.box(
+            -0.002D, -0.002D, -0.002D, 1.002D, 1.002D, 1.002D);
     private static final Map<String, Map<Direction, StandaloneModelKey<BlockStateModelPart>>> PIPE_EXTRACT_MODELS =
             createExtractModelKeys();
 
@@ -42,6 +52,7 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onRecipesReceived);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingIn);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingOut);
+        NeoForge.EVENT_BUS.addListener(ClientModEvents::onExtractBlockOutline);
     }
 
     private static void registerMenuScreens(RegisterMenuScreensEvent event) {
@@ -135,5 +146,30 @@ public final class ClientModEvents {
     private static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientOfferingRecipes.clear();
         ClientLineNames.clear();
+        ClientDistributorHighlights.clear();
+    }
+
+    private static void onExtractBlockOutline(ExtractBlockOutlineRenderStateEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null
+                || !(minecraft.player.getMainHandItem().getItem() instanceof ConfiguratorItem)
+                        && !(minecraft.player.getOffhandItem().getItem() instanceof ConfiguratorItem)
+                || !event.getBlockState().is(ModBlocks.SKY_DISTRIBUTOR.get())) {
+            return;
+        }
+        List<com.skylogistics.network.DistributorTargetsPacket.Entry> targets =
+                ClientDistributorHighlights.targets(event.getBlockPos());
+        event.addCustomRenderer((state, buffer, poseStack, translucentPass, levelRenderState) -> {
+            if (translucentPass) return false;
+            var lines = buffer.getBuffer(RenderTypes.lines());
+            var camera = levelRenderState.cameraRenderState.pos;
+            int color = ARGB.colorFromFloat(1.0F, 0.25F, 0.95F, 0.90F);
+            for (var target : targets) {
+                var pos = target.pos();
+                ShapeRenderer.renderShape(poseStack, lines, DISTRIBUTOR_TARGET_OUTLINE,
+                        pos.getX() - camera.x, pos.getY() - camera.y, pos.getZ() - camera.z, color, 2.0F);
+            }
+            return false;
+        });
     }
 }

@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FilterListMenu extends AbstractContainerMenu {
-    private static final int FILTER_GRID_X = 31;
+    private static final int FILTER_GRID_X = 32;
     private static final int FILTER_GRID_Y = 25;
     private static final int FILTER_COLUMNS = 9;
     private static final int FILTER_SLOT_STEP = 18;
@@ -41,7 +41,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, 31, 107);
+        addPlayerInventory(inventory, 32, 107);
     }
 
     public InteractionHand getHand() {
@@ -78,6 +78,13 @@ public class FilterListMenu extends AbstractContainerMenu {
     public void setGhostFluid(int slot, FluidStack stack) {
         if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
             filters.setFluidGhost(slot, stack);
+            broadcastChanges();
+        }
+    }
+
+    public void setGhostChemical(int slot, String chemical) {
+        if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
+            filters.setChemicalGhost(slot, chemical);
             broadcastChanges();
         }
     }
@@ -174,6 +181,7 @@ public class FilterListMenu extends AbstractContainerMenu {
             ItemStack current = getItem(slot);
             FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
+            FilterListItem.setChemicalFilter(stack(), slot, "");
             return current;
         }
 
@@ -188,6 +196,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setCount(1);
             }
             FilterListItem.setFilter(stack(), slot, ghost);
+            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
             }
@@ -200,9 +209,15 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setAmount(1);
             }
             FilterListItem.setFluidFilter(stack(), slot, ghost);
+            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             }
+            setChanged();
+        }
+
+        private void setChemicalGhost(int slot, String chemical) {
+            FilterListItem.setChemicalFilter(stack(), slot, chemical);
             setChanged();
         }
 

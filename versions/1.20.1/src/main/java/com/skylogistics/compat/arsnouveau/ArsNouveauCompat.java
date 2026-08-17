@@ -8,8 +8,6 @@ import net.minecraftforge.fml.ModList;
 
 public final class ArsNouveauCompat {
     private static final String ARS_NOUVEAU = "ars_nouveau";
-    private static Class<?> sourceTileType;
-    private static boolean sourceTileTypeResolved;
 
     private ArsNouveauCompat() {
     }
@@ -23,9 +21,12 @@ public final class ArsNouveauCompat {
             return null;
         }
         BlockEntity target = level.getBlockEntity(pos);
-        if (target == null || !isSourceTile(target)) {
+        if (target == null) {
             return null;
         }
+        // 1.20.1 addons frequently expose Source-compatible proxies without
+        // implementing Ars Nouveau's concrete ISourceTile marker interface.
+        // The bridge validates the complete read/write method contract itself.
         return ReflectiveSourceHandlerBridge.create(target);
     }
 
@@ -36,21 +37,4 @@ public final class ArsNouveauCompat {
         return ReflectiveSourceHandlerBridge.create(handler);
     }
 
-    private static boolean isSourceTile(Object target) {
-        Class<?> type = sourceTileType();
-        return type != null && type.isInstance(target);
-    }
-
-    private static Class<?> sourceTileType() {
-        if (sourceTileTypeResolved) {
-            return sourceTileType;
-        }
-        sourceTileTypeResolved = true;
-        try {
-            sourceTileType = Class.forName("com.hollingsworth.arsnouveau.api.source.ISourceTile");
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-            sourceTileType = null;
-        }
-        return sourceTileType;
-    }
 }

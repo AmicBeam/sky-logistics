@@ -8,7 +8,7 @@
   "key": {
     "S": "minecraft:sugar",
     "R": "#c:dusts/redstone",
-    "N": "skylogistics:chora_nectar"
+    "N": "skylogistics:celestial_stone"
   },
   "result": {
     "id": "skylogistics:speed_upgrade"

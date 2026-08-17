@@ -2,34 +2,46 @@ package com.skylogistics.client;
 
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.util.AmountFormatter;
+import com.skylogistics.util.RedstoneControl;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 final class ConfigPanel {
-    static final int BG = 0xF0101D24;
-    static final int BORDER = 0xFF3E8B99;
-    static final int BORDER_ACTIVE = 0xFF68D7E5;
-    static final int TEXT = 0xFFE8FBFF;
-    static final int MUTED = 0xFF8FB7C1;
-    static final int ACCENT = 0xFFFFE59A;
-    static final int PANEL = 0xFF0B151B;
-    static final int PANEL_SOFT = 0x99101B22;
-    static final int BUTTON = 0xFF0D1D25;
-    static final int BUTTON_DISABLED = 0xFF101820;
-    static final int BUTTON_SELECTED = 0xFF12343C;
-    static final int BUTTON_SELECTED_SOFT = 0xFF122930;
-    static final int BORDER_DIM = 0xFF24454F;
-    static final int SLOT_DIVIDER = 0xFF2B4C57;
-    static final int SLOT_SHADOW = 0xFF142A33;
-    static final int SLOT_FILL = 0xFF24424C;
-    private static final int SLOT_LOCKED_DIVIDER = 0xFF172830;
-    private static final int SLOT_LOCKED_SHADOW = 0xFF071016;
-    private static final int SLOT_LOCKED_FILL = 0xFF0A141A;
-    private static final int SLOT_HIGHLIGHT = 0x444D6D78;
-    private static final int SLOT_LOCKED_HIGHLIGHT = 0x221A3038;
+    static final int BG = 0xFFC6C6C6;
+    static final int BORDER = 0xFF373737;
+    static final int BORDER_ACTIVE = 0xFF3A8D99;
+    static final int TEXT = 0xFF000000;
+    static final int FIELD_TEXT = 0xFFFFFFFF;
+    static final int MUTED = 0xFF707070;
+    static final int ACCENT = BORDER_ACTIVE;
+    static final int RESOURCE_ACCENT = BORDER_ACTIVE;
+    static final int EXTRACT_ACCENT = 0xFFB87524;
+    static final int INSERT_ACCENT = 0xFF2F7F8C;
+    static final int MAINTAIN_ACCENT = 0xFF75658F;
+    static final int PANEL = 0xFFB6B6B6;
+    static final int PANEL_SOFT = 0x99B6B6B6;
+    static final int BORDER_DIM = 0xFF777777;
+    static final int SLOT_SHADOW = 0xFF373737;
+    static final int SLOT_FILL = 0xFF8B8B8B;
+    static final int FIELDSET_HEIGHT = 31;
+    static final int STEPPER_HEIGHT = 17;
+    private static final int PANEL_HIGHLIGHT = 0xFFFFFFFF;
+    private static final int PANEL_SHADOW = 0xFF555555;
+    private static final WidgetSprites VANILLA_BUTTON_SPRITES = new WidgetSprites(
+            Identifier.withDefaultNamespace("widget/button"),
+            Identifier.withDefaultNamespace("widget/button_disabled"),
+            Identifier.withDefaultNamespace("widget/button_highlighted"));
+    private static final int SLOT_LOCKED_SHADOW = 0xFF555555;
+    private static final int SLOT_LOCKED_FILL = 0xFF707070;
+    private static final int SLOT_HIGHLIGHT = 0xFFFFFFFF;
+    private static final int SLOT_LOCKED_HIGHLIGHT = 0xFFB0B0B0;
 
     private ConfigPanel() {
     }
@@ -38,31 +50,91 @@ final class ConfigPanel {
         return new ActionButton(x, y, width, label, action);
     }
 
+    static AbstractButton button(int x, int y, int width, int height, Component label, Runnable onPress) {
+        return new StyledButton(x, y, width, height, label, onPress);
+    }
+
+    static void drawCenteredText(GuiGraphicsExtractor graphics, Font font, Component text,
+            int centerX, int y, int color) {
+        graphics.text(font, text, centerX - font.width(text) / 2, y, color, false);
+    }
+
+    static void drawCenteredText(GuiGraphicsExtractor graphics, Font font, String text,
+            int centerX, int y, int color) {
+        graphics.text(font, text, centerX - font.width(text) / 2, y, color, false);
+    }
+
+    static int buttonTextColor(boolean active) {
+        return active ? 0xFFFFFFFF : 0xFFA0A0A0;
+    }
+
+    static void drawCenteredButtonText(GuiGraphicsExtractor graphics, Font font, Component text,
+            int centerX, int y, boolean active) {
+        graphics.text(font, text, centerX - font.width(text) / 2, y, buttonTextColor(active), true);
+    }
+
     static void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         graphics.fill(x, y, x + width, y + height, BG);
-        graphics.fill(x, y, x + width, y + 1, BORDER_ACTIVE);
-        graphics.fill(x, y + height - 1, x + width, y + height, BORDER);
-        graphics.fill(x, y, x + 1, y + height, BORDER_ACTIVE);
-        graphics.fill(x + width - 1, y, x + width, y + height, BORDER);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + 2, 0x223DE6F5);
+        graphics.fill(x, y, x + width, y + 1, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + 1, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y + height - 1, x + width, y + height, PANEL_SHADOW);
+        graphics.fill(x + width - 1, y, x + width, y + height, PANEL_SHADOW);
     }
 
     static void drawContentPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + height, PANEL);
-        graphics.fill(x, y, x + width, y + 1, BORDER_DIM);
-        graphics.fill(x, y + height - 1, x + width, y + height, 0xFF142C35);
-        graphics.fill(x, y, x + 1, y + height, BORDER_DIM);
-        graphics.fill(x + width - 1, y, x + width, y + height, 0xFF142C35);
+        graphics.fill(x, y, x + width, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + width - 1, y + height - 1, PANEL_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, PANEL);
+    }
+
+    static void drawFieldset(GuiGraphicsExtractor graphics, int x, int y, int width, int legendWidth) {
+        drawFieldset(graphics, x, y, width, legendWidth, FIELDSET_HEIGHT);
+    }
+
+    static void drawFieldset(GuiGraphicsExtractor graphics, int x, int y, int width, int legendWidth, int height) {
+        int gapLeft = x + (width - legendWidth) / 2 - 3;
+        int gapRight = gapLeft + legendWidth + 6;
+        graphics.fill(x, y, gapLeft, y + 1, PANEL_SHADOW);
+        graphics.fill(gapRight, y, x + width, y + 1, PANEL_SHADOW);
+        graphics.fill(x, y, x + 1, y + height, PANEL_SHADOW);
+        graphics.fill(x + width - 1, y, x + width, y + height, PANEL_HIGHLIGHT);
+        graphics.fill(x, y + height - 1, x + width, y + height, PANEL_HIGHLIGHT);
+    }
+
+    static void drawStepperValue(GuiGraphicsExtractor graphics, int x, int y, int width) {
+        graphics.fill(x, y, x + width, y + STEPPER_HEIGHT, PANEL_HIGHLIGHT);
+        graphics.fill(x, y, x + width - 1, y + STEPPER_HEIGHT - 1, PANEL_SHADOW);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + STEPPER_HEIGHT - 1, 0xFF101010);
+    }
+
+    static void drawRedstoneIcon(GuiGraphicsExtractor graphics, int x, int y, RedstoneControl control) {
+        Identifier texture = Identifier.fromNamespaceAndPath("skylogistics",
+                "textures/gui/configurator/redstone_" + control.getSerializedName() + ".png");
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0, 0, 16, 16, 16, 16);
+    }
+
+    static void drawImageButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
+            boolean active, boolean highlighted, boolean selected, int selectedBorder) {
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted,
+                selected ? selectedBorder : 0xFFFFFFFF);
+    }
+
+    static void drawResourceIcon(GuiGraphicsExtractor graphics, int x, int y, String name, boolean selected) {
+        boolean useColoredIcon = selected || name.equals("item") || name.equals("fluid") || name.equals("energy");
+        Identifier texture = Identifier.fromNamespaceAndPath("skylogistics", "textures/gui/configurator/resource_"
+                + name + (useColoredIcon ? "" : "_off") + "_small.png");
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0, 0, 18, 17, 18, 17);
     }
 
     static void drawButtonChrome(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
-            boolean active, boolean selected) {
-        int fill = selected ? BUTTON_SELECTED : (active ? BUTTON : BUTTON_DISABLED);
-        int border = selected ? BORDER_ACTIVE : (active ? BORDER : BORDER_DIM);
-        drawBox(graphics, x, y, width, height, fill, border);
-        if (selected) {
-            graphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, ACCENT);
-        }
+            boolean active, boolean highlighted) {
+        drawVanillaButton(graphics, x, y, width, height, active, highlighted, 0xFFFFFFFF);
+    }
+
+    private static void drawVanillaButton(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
+            boolean active, boolean highlighted, int tint) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, VANILLA_BUTTON_SPRITES.get(active, highlighted),
+                x, y, width, height, tint);
     }
 
     static void drawBox(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int fill, int border) {
@@ -71,17 +143,15 @@ final class ConfigPanel {
     }
 
     static void drawSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_DIVIDER);
-        graphics.fill(x, y, x + 17, y + 17, SLOT_SHADOW);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_HIGHLIGHT);
+        graphics.fill(x - 1, y - 1, x + 16, y + 16, SLOT_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_FILL);
-        graphics.fill(x, y, x + 16, y + 1, SLOT_HIGHLIGHT);
     }
 
     static void drawLockedSlotBackground(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 18, y + 18, SLOT_LOCKED_DIVIDER);
-        graphics.fill(x, y, x + 17, y + 17, SLOT_LOCKED_SHADOW);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_LOCKED_HIGHLIGHT);
+        graphics.fill(x - 1, y - 1, x + 16, y + 16, SLOT_LOCKED_SHADOW);
         graphics.fill(x, y, x + 16, y + 16, SLOT_LOCKED_FILL);
-        graphics.fill(x, y, x + 16, y + 1, SLOT_LOCKED_HIGHLIGHT);
     }
 
     static String yesNo(boolean value) {
@@ -109,9 +179,39 @@ final class ConfigPanel {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHoveredOrFocused());
-            graphics.centeredText(Minecraft.getInstance().font, getMessage(), getX() + width / 2,
-                    getY() + 6, active ? TEXT : MUTED);
+            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            Font font = Minecraft.getInstance().font;
+            graphics.text(font, getMessage(), getX() + (width - font.width(getMessage())) / 2,
+                    getY() + 6, buttonTextColor(active), true);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+    }
+
+    private static final class StyledButton extends AbstractButton {
+        private final Runnable onPress;
+
+        private StyledButton(int x, int y, int width, int height, Component label, Runnable onPress) {
+            super(x, y, width, height, label);
+            this.onPress = onPress;
+        }
+
+        @Override
+        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+            if (active) {
+                onPress.run();
+            }
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            Font font = Minecraft.getInstance().font;
+            graphics.text(font, getMessage(), getX() + (width - font.width(getMessage())) / 2,
+                    getY() + (height - 8) / 2, buttonTextColor(active), true);
         }
 
         @Override

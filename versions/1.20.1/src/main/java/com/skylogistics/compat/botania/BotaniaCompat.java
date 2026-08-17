@@ -1,9 +1,11 @@
 package com.skylogistics.compat.botania;
 
+import java.lang.reflect.Method;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fml.ModList;
@@ -13,6 +15,8 @@ public final class BotaniaCompat {
     private static Capability<?> manaReceiverCapability;
     private static Capability<?> sparkAttachableCapability;
     private static boolean capabilitiesResolved;
+    private static Method findCapability;
+    private static boolean findCapabilityResolved;
 
     private BotaniaCompat() {
     }
@@ -29,11 +33,12 @@ public final class BotaniaCompat {
         if (target == null) {
             return null;
         }
-        Object receiver = getCapability(target, manaReceiverCapability(), side);
+        Object receiver = findCapability(level, pos, target, manaReceiverCapability(), side);
         if (receiver == null) {
             return null;
         }
-        return ReflectiveManaHandlerBridge.create(receiver, getCapability(target, sparkAttachableCapability(), side));
+        Object sparkAttachable = findCapability(level, pos, target, sparkAttachableCapability(), side);
+        return ReflectiveManaHandlerBridge.create(receiver, sparkAttachable);
     }
 
     public static ManaHandlerBridge wrapManaHandler(Object receiver, Object sparkAttachable) {
@@ -78,5 +83,41 @@ public final class BotaniaCompat {
         }
         LazyOptional<?> optional = target.getCapability((Capability) capability, side);
         return optional.orElse(null);
+    }
+
+    private static Object findCapability(Level level, BlockPos pos, BlockEntity target,
+            Capability<?> capability, Direction side) {
+        Object value = getCapability(target, capability, side);
+        if (value == null && side != null) {
+            value = getCapability(target, capability, null);
+        }
+        if (value != null || capability == null) {
+            return value;
+        }
+        Method finder = findCapabilityMethod();
+        if (finder == null) {
+            return null;
+        }
+        try {
+            BlockState state = level.getBlockState(pos);
+            return finder.invoke(null, capability, level, pos, state, target, side);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static Method findCapabilityMethod() {
+        if (findCapabilityResolved) {
+            return findCapability;
+        }
+        findCapabilityResolved = true;
+        try {
+            findCapability = Class.forName("vazkii.botania.forge.CapabilityUtil").getMethod(
+                    "findCapability", Capability.class, Level.class, BlockPos.class, BlockState.class,
+                    BlockEntity.class, Direction.class);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            findCapability = null;
+        }
+        return findCapability;
     }
 }

@@ -35,6 +35,8 @@ Right-click a machine-facing endpoint with the Sky Configurator to switch it bet
 - Item: 64 items per extracting endpoint per tick. One transfer uses at most one source slot and one target slot.
 - Fluid: 10,000 mB per extracting endpoint per tick.
 - Energy: 100,000 FE per extracting endpoint per tick.
+- Botania mana: 50 mana per extracting endpoint per tick, matching the rounded average throughput of a nearby basic Mana Spreader.
+- Ars Nouveau Source: 50 Source per extracting endpoint per tick, matching a basic Source Relay's average of 1,000 Source every 20 ticks.
 
 One line contains at most 256 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and a message appears. Server settings may change the default transfer rates and line limit.
 

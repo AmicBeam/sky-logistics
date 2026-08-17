@@ -1,0 +1,24 @@
+{
+  "name": "Sky Necklace",
+  "icon": "skylogistics:sky_necklace",
+  "category": "skylogistics:tools",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Sky Necklace connects the player's inventory to a selected Sky line through an item whitelist. It requires a whitelist Filter List containing at least one item; it does nothing without a filter or with a blacklist. It works in a Curios slot when available, or from the player's main inventory otherwise."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Three Modes",
+      "text": "$(bold)Extract$() sends matching player-side items to the line. $(bold)Insert$() takes matching items from the line and puts them on the player side. $(bold)Maintain$() targets the player's main inventory, inserting shortages and sending away excess. Maintain needs a slot or quantity target above zero."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The necklace has two upgrade slots and accepts one Dimension Upgrade and one Exact Quantity Upgrade. Dimension allows access to same-line endpoints in other loaded dimensions. Exact Quantity replaces the slot buttons with a 1–2147483647 count and makes all three modes count every item matching the whitelist."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "By default it works every 10 ticks and tries 1 line endpoint per cycle. The server can tune the interval, scanned slots, and endpoint attempts. The necklace does not load chunks; unloaded or full targets wait for a later work cycle."
+    }
+  ]
+}

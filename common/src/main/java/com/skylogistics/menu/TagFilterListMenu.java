@@ -6,7 +6,6 @@ import com.skylogistics.registry.ModMenus;
 import java.util.List;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -18,41 +17,14 @@ import net.minecraft.world.item.ItemStack;
 
 public class TagFilterListMenu extends AbstractContainerMenu {
     private static final int SAMPLE_SLOT = 0;
-    public static final int SAMPLE_SLOT_X = 31;
+    public static final int SAMPLE_SLOT_X = 32;
     public static final int SAMPLE_SLOT_Y = 25;
-    private static final int PLAYER_INVENTORY_X = 31;
+    private static final int PLAYER_INVENTORY_X = 32;
     private static final int PLAYER_INVENTORY_Y = 158;
 
     private final InteractionHand hand;
     private final Player player;
-    private final Container sampleContainer = new SimpleContainer(1) {
-        @Override
-        public ItemStack getItem(int slot) {
-            return slot == 0 ? TagFilterListItem.getSample(filterStack()) : ItemStack.EMPTY;
-        }
-
-        @Override
-        public void setItem(int slot, ItemStack stack) {
-            setGhostSample(stack);
-        }
-
-        @Override
-        public ItemStack removeItem(int slot, int amount) {
-            ItemStack current = getItem(slot);
-            setGhostSample(ItemStack.EMPTY);
-            return current;
-        }
-
-        @Override
-        public ItemStack removeItemNoUpdate(int slot) {
-            return removeItem(slot, 1);
-        }
-
-        @Override
-        public void setChanged() {
-            player.getInventory().setChanged();
-        }
-    };
+    private final SimpleContainer sampleContainer = new SimpleContainer(1);
 
     public TagFilterListMenu(int containerId, Inventory inventory, InteractionHand hand) {
         super(ModMenus.TAG_FILTER_LIST.get(), containerId);
@@ -82,44 +54,66 @@ public class TagFilterListMenu extends AbstractContainerMenu {
     }
 
     public ItemStack getSample() {
-        return TagFilterListItem.getSample(filterStack());
+        return sampleContainer.getItem(0);
     }
 
     public List<String> sampleTags() {
         return TagFilterListItem.sampleTags(getSample());
     }
 
+    public String sampleModId() {
+        return TagFilterListItem.sampleModId(getSample());
+    }
+
+    public List<String> availableTags(boolean fluid) {
+        return TagFilterListItem.availableTags(fluid);
+    }
+
     public String getTag(int slot) {
         return TagFilterListItem.getTag(filterStack(), slot);
+    }
+
+    public String getTag(int slot, int resource) {
+        if (resource == 2) {
+            String mod = TagFilterListItem.getMod(filterStack(), slot);
+            return mod.isBlank() ? "" : "@" + mod;
+        }
+        return resource == 1 ? TagFilterListItem.getFluidTag(filterStack(), slot) : getTag(slot);
     }
 
     public boolean isWhitelist() {
         return TagFilterListItem.isWhitelist(filterStack());
     }
 
+    public List<String> availableMods() { return TagFilterListItem.availableMods(); }
+
     public void setTag(int slot, String tag) {
+        setTag(slot, tag, 0);
+    }
+
+    public void setTag(int slot, String tag, int resource) {
         ItemStack stack = filterStack();
         if (!stack.is(ModItems.TAG_FILTER_LIST.get())) {
             return;
         }
-        TagFilterListItem.setTag(stack, slot, tag);
+        if (resource == 2) TagFilterListItem.setMod(stack, slot, tag);
+        else if (resource == 1) TagFilterListItem.setFluidTag(stack, slot, tag);
+        else TagFilterListItem.setTag(stack, slot, tag);
         syncHeldStack(stack);
         broadcastChanges();
     }
 
     public void setGhostSample(ItemStack stack) {
-        ItemStack filter = filterStack();
-        if (!filter.is(ModItems.TAG_FILTER_LIST.get())) {
-            return;
-        }
-        TagFilterListItem.setSample(filter, stack);
-        syncHeldStack(filter);
+        ItemStack sample = stack.copy();
+        if (!sample.isEmpty()) sample.setCount(1);
+        sampleContainer.setItem(0, sample);
         broadcastChanges();
     }
 
     @Override
     public boolean stillValid(Player player) {
-        return player.getItemInHand(hand).is(ModItems.TAG_FILTER_LIST.get());
+        ItemStack stack = player.getItemInHand(hand);
+        return stack.is(ModItems.TAG_FILTER_LIST.get());
     }
 
     @Override

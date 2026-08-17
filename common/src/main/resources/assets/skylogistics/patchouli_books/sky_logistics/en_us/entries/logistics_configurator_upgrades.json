@@ -25,9 +25,14 @@
       "text": "Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped."
     },
     {
+      "type": "patchouli:text",
+      "text": "Exact Quantity Upgrades can be installed in nodes or Sky Necklaces. They replace the slot setting with an item count from 1–2147483647. A node extract face keeps the configured total of items matching its filter, while an insert face only fills up to that total. Necklace extract, insert, and maintain modes likewise count all items matching the whitelist."
+    },
+    {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "text": "Speed upgrades can be crafted at a crafting table."
+      "recipe2": "skylogistics:exact_quantity_upgrade",
+      "text": "Speed Upgrades and Exact Quantity Upgrades can be crafted at a crafting table."
     },
     {
       "type": "patchouli:text",

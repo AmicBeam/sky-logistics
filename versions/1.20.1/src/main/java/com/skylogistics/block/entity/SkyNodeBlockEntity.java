@@ -7,10 +7,12 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -195,15 +197,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public long limitItemTransfer(long amount) {
-        return amount;
+        return super.limitItemTransfer(amount);
     }
 
     public long limitFluidTransfer(long amount) {
-        return amount;
+        return super.limitFluidTransfer(amount);
     }
 
     public long limitEnergyTransfer(long amount) {
-        return amount;
+        return super.limitEnergyTransfer(amount);
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
@@ -275,6 +277,48 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             } else if (!compiled.matchesFluid(stack)) {
                 return false;
             }
+        }
+        return !hasWhitelist || whitelistMatched;
+    }
+
+    @Override
+    public boolean allowsChemical(Direction direction, ChemicalStackView stack) {
+        boolean hasWhitelist = false;
+        boolean whitelistMatched = false;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (!compiled.hasChemicalRules()) continue;
+            if (compiled.whitelist()) {
+                hasWhitelist = true;
+                whitelistMatched |= compiled.matchesChemical(stack);
+            } else if (!compiled.matchesChemical(stack)) return false;
+        }
+        return !hasWhitelist || whitelistMatched;
+    }
+
+    @Override
+    public boolean allowsEnergy(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.FORGE_ENERGY_MOD_ID);
+    }
+
+    @Override
+    public boolean allowsMana(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.BOTANIA_MANA_MOD_ID);
+    }
+
+    @Override
+    public boolean allowsSource(Direction direction) {
+        return allowsEnergyType(direction, TagFilterListItem.ARS_NOUVEAU_SOURCE_MOD_ID);
+    }
+
+    private boolean allowsEnergyType(Direction direction, String modId) {
+        boolean hasWhitelist = false;
+        boolean whitelistMatched = false;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (!compiled.hasEnergyRules()) continue;
+            if (compiled.whitelist()) { hasWhitelist = true; whitelistMatched |= compiled.matchesEnergy(modId); }
+            else if (!compiled.matchesEnergy(modId)) return false;
         }
         return !hasWhitelist || whitelistMatched;
     }
@@ -479,6 +523,25 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasUpgrade(ModItems.DIMENSION_UPGRADE.get());
     }
 
+    public boolean hasExactQuantityUpgrade() { return hasUpgrade(ModItems.EXACT_QUANTITY_UPGRADE.get()); }
+
+    public int exactQuantity() {
+        for (ItemStack upgrade : upgrades) if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
+        return ExactQuantityUpgrade.DEFAULT;
+    }
+
+    public void setExactQuantity(int amount) {
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            ItemStack upgrade = upgrades.get(slot);
+            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
+                ItemStack copy = upgrade.copy();
+                ExactQuantityUpgrade.setAmount(copy, amount);
+                setUpgrade(slot, copy);
+                return;
+            }
+        }
+    }
+
     public boolean hasUpgrade(Item item) {
         for (ItemStack upgrade : upgrades) {
             if (!upgrade.isEmpty() && upgrade.is(item)) {
@@ -490,7 +553,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public static boolean isUpgradeItem(ItemStack stack) {
         return stack.is(ModItems.SPEED_UPGRADE.get())
-                || stack.is(ModItems.DIMENSION_UPGRADE.get());
+                || stack.is(ModItems.DIMENSION_UPGRADE.get())
+                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get());
     }
 
     public static boolean isFaceFilterItem(ItemStack stack) {
@@ -560,27 +624,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointItemHandler(direction, gameTime);
     }
 
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
-    public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointFluidHandler(direction, gameTime);
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
-    public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
-        return null;
-    }
-
-    public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
-        return null;
+        return super.getEndpointEnergyHandler(direction, gameTime);
     }
 
     protected boolean forceSingleEndpointState(Direction endpoint, NodeFaceMode fallbackMode, boolean energyAllowed) {
@@ -647,9 +699,6 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         RedstoneControl control = getRedstoneControl(direction);
         if (control == RedstoneControl.IGNORE) {
             return true;
-        }
-        if (control == RedstoneControl.DISABLED) {
-            return false;
         }
         boolean powered = isPoweredCached();
         return control == RedstoneControl.HIGH ? powered : !powered;
@@ -758,18 +807,23 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasItemHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasItemTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide)
                 .map(handler -> handler.getSlots() > 0)
                 .orElse(false);
     }
 
     private static boolean hasFluidHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasFluidTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide)
                 .map(handler -> handler.getTanks() > 0)
                 .orElse(false);
     }
 
     private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasChemicalTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowFluidChemicalTransfer() || !MekanismCompat.isLoaded()) {
             return false;
         }
@@ -778,12 +832,16 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private static boolean hasEnergyHandler(BlockEntity target, Direction accessSide) {
+        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasEnergyTargets(accessSide);
         return target != null && target.getCapability(ForgeCapabilities.ENERGY, accessSide)
                 .map(SkyNodeBlockEntity::isUsableEnergyStorage)
                 .orElse(false);
     }
 
     private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasManaTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowEnergyManaTransfer() || !BotaniaCompat.isLoaded()) {
             return false;
         }
@@ -792,6 +850,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private boolean hasSourceHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasSourceTargets(accessSide);
+        }
         if (!SkyLogisticsConfig.allowEnergySourceTransfer() || !ArsNouveauCompat.isLoaded()) {
             return false;
         }

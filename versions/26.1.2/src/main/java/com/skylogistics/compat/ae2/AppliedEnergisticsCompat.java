@@ -1155,7 +1155,7 @@ public final class AppliedEnergisticsCompat {
             if (other instanceof AeChemicalStackView view) {
                 return key.equals(view.key);
             }
-            Object otherKey = chemicalKey(other.rawStack(), key.getClass());
+            Object otherKey = AppliedEnergisticsCompat.chemicalKey(other.rawStack(), key.getClass());
             return otherKey != null && key.equals(otherKey);
         }
 

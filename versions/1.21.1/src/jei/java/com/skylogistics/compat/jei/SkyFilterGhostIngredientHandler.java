@@ -12,6 +12,8 @@ import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.client.recipe_viewer.jei.MekanismJEI;
 
 public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<FilterListScreen> {
     @Override
@@ -27,6 +29,8 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
         if (fluid.isPresent() && !fluid.get().isEmpty()) {
             return fluidTargets(gui);
         }
+        Optional<ChemicalStack> chemical = ingredient.getIngredient(MekanismJEI.TYPE_CHEMICAL);
+        if (chemical.isPresent() && !chemical.get().isEmpty()) return chemicalTargets(gui);
         return List.of();
     }
 
@@ -55,6 +59,24 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
             targets.add((Target<I>) new FluidTarget(gui, gui.getFilterSlotArea(slot), slot));
         }
         return targets;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <I> List<Target<I>> chemicalTargets(FilterListScreen gui) {
+        List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            targets.add((Target<I>) new ChemicalTarget(gui, gui.getFilterSlotArea(slot), slot));
+        }
+        return targets;
+    }
+
+    private record ChemicalTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<ChemicalStack> {
+        @Override public Rect2i getArea() { return area; }
+        @Override public void accept(ChemicalStack ingredient) {
+            String key = String.valueOf(mekanism.api.MekanismAPI.CHEMICAL_REGISTRY.getKey(ingredient.getChemical()));
+            gui.setGhostChemicalPreview(slot, key);
+            ModNetworking.sendChemicalFilter(slot, key);
+        }
     }
 
     private record ItemTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<ItemStack> {

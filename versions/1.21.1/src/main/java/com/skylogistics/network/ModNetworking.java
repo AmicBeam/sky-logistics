@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -17,6 +18,8 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
+        registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
+        registrar.playToServer(ChemicalFilterPacket.TYPE, ChemicalFilterPacket.STREAM_CODEC, ChemicalFilterPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
                 ItemVaultSnapshotPacket::handle);
         registrar.playToClient(FluidVaultSnapshotPacket.TYPE, FluidVaultSnapshotPacket.STREAM_CODEC,
@@ -30,14 +33,30 @@ public final class ModNetworking {
         registrar.playToClient(LineNamePacket.TYPE, LineNamePacket.STREAM_CODEC, LineNamePacket::handle);
         registrar.playToServer(TagFilterEditPacket.TYPE, TagFilterEditPacket.STREAM_CODEC,
                 TagFilterEditPacket::handle);
+        registrar.playToServer(DistributorTargetsRequestPacket.TYPE, DistributorTargetsRequestPacket.STREAM_CODEC,
+                DistributorTargetsRequestPacket::handle);
+        registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
+                DistributorTargetsPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         PacketDistributor.sendToServer(new MenuActionPacket(action));
     }
 
+    public static void sendExactQuantity(int amount) {
+        PacketDistributor.sendToServer(new ExactQuantityPacket(amount));
+    }
+
+    public static void sendChemicalFilter(int slot, String chemical) {
+        PacketDistributor.sendToServer(new ChemicalFilterPacket(slot, chemical));
+    }
+
     public static void sendLineRename(String lineName) {
         PacketDistributor.sendToServer(new LineRenamePacket(lineName));
+    }
+
+    public static void requestDistributorTargets(BlockPos distributorPos) {
+        PacketDistributor.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
@@ -49,7 +68,11 @@ public final class ModNetworking {
     }
 
     public static void sendTagFilterTag(int slot, String tag) {
-        PacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag));
+        sendTagFilterTag(slot, tag, 0);
+    }
+
+    public static void sendTagFilterTag(int slot, String tag, int resource) {
+        PacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag, resource));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

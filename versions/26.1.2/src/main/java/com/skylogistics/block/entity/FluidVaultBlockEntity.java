@@ -335,9 +335,10 @@ public class FluidVaultBlockEntity extends BlockEntity {
     @Override
     protected void collectImplicitComponents(DataComponentMap.Builder components) {
         super.collectImplicitComponents(components);
+        CompoundTag data = new CompoundTag();
+        saveVaultData(data);
         CompoundTag tag = new CompoundTag();
-        tag.putInt("TypeLimit", typeLimit);
-        tag.putLong("CapacityPerType", capacityPerType);
+        tag.put(DATA_TAG, data);
         components.set(DataComponents.BLOCK_ENTITY_DATA, TypedEntityData.of(getType(), tag));
     }
 

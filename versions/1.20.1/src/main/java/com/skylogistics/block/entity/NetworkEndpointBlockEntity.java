@@ -1,11 +1,16 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.astages.AStagesTransferLimiter;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import java.util.Arrays;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,9 +43,34 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     private int itemCursor;
     private int fluidCursor;
     private final int[] targetCursors = new int[TargetResource.values().length];
+    private long lastTransferGameTime = Long.MIN_VALUE;
+    private final long[] lastTransferGameTimeByDirection = new long[Direction.values().length];
 
     protected NetworkEndpointBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+        Arrays.fill(lastTransferGameTimeByDirection, Long.MIN_VALUE);
+    }
+
+    public void recordRecentTransfer() {
+        if (level != null) lastTransferGameTime = level.getGameTime();
+    }
+
+    public boolean hasRecentTransfer() {
+        return level != null && lastTransferGameTime != Long.MIN_VALUE
+                && level.getGameTime() - lastTransferGameTime <= 40L;
+    }
+
+    public void recordRecentTransfer(Direction direction) {
+        recordRecentTransfer();
+        if (level != null && direction != null) {
+            lastTransferGameTimeByDirection[direction.ordinal()] = level.getGameTime();
+        }
+    }
+
+    public boolean hasRecentTransfer(Direction direction) {
+        if (level == null || direction == null) return false;
+        long lastTransfer = lastTransferGameTimeByDirection[direction.ordinal()];
+        return lastTransfer != Long.MIN_VALUE && level.getGameTime() - lastTransfer <= 40L;
     }
 
     @Override
@@ -78,27 +108,39 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     }
 
     public IItemHandler getEndpointItemHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.itemHandler(getAccessSide(direction));
     }
 
     public IFluidHandler getEndpointFluidHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.fluidHandler(getAccessSide(direction));
     }
 
     public ChemicalHandlerBridge getEndpointChemicalHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.chemicalHandler(getAccessSide(direction));
     }
 
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.energyHandler(getAccessSide(direction));
     }
 
     public ManaHandlerBridge getEndpointManaHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.manaHandler(getAccessSide(direction));
     }
 
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
-        return null;
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.sourceHandler(getAccessSide(direction));
+    }
+
+    protected SkyDistributorBlockEntity distributor(Direction direction) {
+        if (level == null || !level.isLoaded(getTargetPos(direction))) return null;
+        return level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor
+                ? distributor : null;
     }
 
     public boolean allowsItem(Direction direction, ItemStack stack) {
@@ -108,6 +150,14 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean allowsFluid(Direction direction, FluidStack stack) {
         return true;
     }
+
+    public boolean allowsChemical(Direction direction, ChemicalStackView stack) {
+        return true;
+    }
+
+    public boolean allowsEnergy(Direction direction) { return true; }
+    public boolean allowsMana(Direction direction) { return true; }
+    public boolean allowsSource(Direction direction) { return true; }
 
     public ItemStack getFaceFilter(Direction direction, int slot) {
         return ItemStack.EMPTY;
@@ -137,28 +187,33 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return false;
     }
 
+    public UUID getTransferOwnerId() {
+        return level instanceof ServerLevel serverLevel
+                ? SkyPlayerLines.ownerOf(serverLevel.getServer(), getLineId()) : null;
+    }
+
     public long limitItemTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.ITEMS, amount);
     }
 
     public long limitFluidTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.FLUIDS, amount);
     }
 
     public long limitEnergyTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.ENERGY, amount);
     }
 
     public long limitChemicalTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.CHEMICALS, amount);
     }
 
     public long limitManaTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.MANA, amount);
     }
 
     public long limitSourceTransfer(long amount) {
-        return amount;
+        return limitAStages(TransferResource.SOURCE, amount);
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
@@ -171,6 +226,12 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
 
     public boolean supportsSourceEndpoint(Direction direction) {
         return false;
+    }
+
+    private long limitAStages(TransferResource resource, long amount) {
+        return level instanceof ServerLevel serverLevel
+                ? AStagesTransferLimiter.limit(getTransferOwnerId(), resource, amount, serverLevel.getGameTime())
+                : amount;
     }
 
     public int nextItemStart(int slots) {

@@ -29,6 +29,8 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties()));
     public static final DeferredHolder<Item, SkyNodeBlockItem> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, BlockItem> SKY_DISTRIBUTOR = ITEMS.register("sky_distributor",
+            () -> new BlockItem(ModBlocks.SKY_DISTRIBUTOR.get(), new Item.Properties()));
     public static final DeferredHolder<Item, BlockItem> SIMPLE_ITEM_PIPE = ITEMS.register("simple_item_pipe",
             () -> new BlockItem(ModBlocks.SIMPLE_ITEM_PIPE.get(), new Item.Properties()));
     public static final DeferredHolder<Item, BlockItem> SIMPLE_FLUID_PIPE = ITEMS.register("simple_fluid_pipe",
@@ -71,6 +73,9 @@ public final class ModItems {
     public static final DeferredHolder<Item, UpgradeCardItem> DIMENSION_UPGRADE = ITEMS.register("dimension_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
                     "tooltip.skylogistics.dimension_upgrade"));
+    public static final DeferredHolder<Item, UpgradeCardItem> EXACT_QUANTITY_UPGRADE = ITEMS.register("exact_quantity_upgrade",
+            () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
+                    "tooltip.skylogistics.exact_quantity_upgrade"));
     public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",

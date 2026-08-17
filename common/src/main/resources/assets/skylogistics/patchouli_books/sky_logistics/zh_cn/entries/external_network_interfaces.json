@@ -1,0 +1,52 @@
+{
+  "name": "外部网络接口",
+  "icon": "skylogistics:sky_me_interface",
+  "category": "skylogistics:logistics",
+  "flag": "|mod:ae2,mod:refinedstorage,mod:beyonddimensions",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "外部网络接口把其它模组的大型存储网络接入天穹线路。本词条只会在 AE2、精致存储或 Beyond Dimensions 至少安装一个时出现，并且只显示当前已安装模组对应的页面。三种接口共用节点式界面：选择线路、抽取或存入模式、资源类型、升级、红石、优先级和过滤规则。"
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:ae2",
+      "title": "天穹 ME 接口",
+      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体。安装 AppFlux、Applied Mekanistics、Applied Botanics 或 Ars Énergistique 时，还可分别搬运 FE、化学品、mana 或 Source；每条路径都能在服务端配置中独立关闭。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:ae2",
+      "recipe": "skylogistics:sky_me_interface",
+      "text": "让接口从任意有效方向接入 ME 网络，再在界面中选择天穹线路与工作模式。"
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:refinedstorage",
+      "title": "天穹 RS 接口",
+      "text": "$(item)天穹 RS 接口$()把精致存储网络中的物品和流体暴露给天穹线路。物品和流体路径可分别关闭。让接口接入 RS 网络后，选择线路并把它配置成抽取或存入端。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:refinedstorage",
+      "recipe": "skylogistics:sky_rs_interface",
+      "text": "接口本身没有中间缓存；目标拒收时，资源仍留在原网络中。"
+    },
+    {
+      "type": "patchouli:text",
+      "flag": "mod:beyonddimensions",
+      "title": "天穹维度网络接口",
+      "text": "$(item)天穹维度网络接口$()访问 Beyond Dimensions 网络中的物品、流体和 FE；安装 Mekanism 或 Ars Nouveau 时还可访问化学品或 Source。它接入的是第三方存储网络，不等同于让普通节点跨维度工作的维度升级卡。"
+    },
+    {
+      "type": "patchouli:crafting",
+      "flag": "mod:beyonddimensions",
+      "recipe": "skylogistics:sky_dimension_interface",
+      "text": "每种资源路径都有独立服务端开关。关闭联动不会删除方块或破坏已保存的天穹线路。"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "从外部网络抽取物品时，必须配置至少包含一个具体物品的白名单，避免无界扫描整个网络；标签或模组过滤不能代替这份可枚举白名单。维度升级不是区块加载器，未加载的维度和区块仍会被跳过。"
+    }
+  ]
+}

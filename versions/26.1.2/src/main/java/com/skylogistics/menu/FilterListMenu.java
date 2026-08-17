@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FilterListMenu extends AbstractContainerMenu {
-    private static final int FILTER_GRID_X = 31;
+    private static final int FILTER_GRID_X = 32;
     private static final int FILTER_GRID_Y = 25;
     private static final int FILTER_COLUMNS = 9;
     private static final int FILTER_SLOT_STEP = 18;
@@ -41,7 +41,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 }
             });
         }
-        addPlayerInventory(inventory, 31, 107);
+        addPlayerInventory(inventory, 32, 107);
     }
 
     public InteractionHand getHand() {

@@ -18,9 +18,9 @@ RESOURCE_TYPES = ("item", "fluid", "chemical", "energy")
 
 @dataclass(frozen=True)
 class Budget:
-    server_ops_per_tick: int = 2048
+    server_ops_per_tick: int = 32_768
     line_ops_per_tick: int = 256
-    endpoint_target_attempts: int = 1
+    endpoint_target_attempts: int = 4
 
 
 @dataclass(frozen=True)

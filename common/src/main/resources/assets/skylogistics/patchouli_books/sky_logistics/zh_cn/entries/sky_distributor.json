@@ -1,0 +1,14 @@
+{
+  "name": "天穹分配器",
+  "icon": "skylogistics:sky_distributor",
+  "category": "skylogistics:simple_pipes",
+  "sortnum": 1,
+  "pages": [
+    {"type":"patchouli:text","text":"天穹分配器是无缓存的容器能力代理。它会从紧邻方块开始，沿接触面有效的容器寻找目标并继承该访问面，默认上限 16 个；空气、普通方块和没有物品/流体/能量能力的方块都会截断搜索，分配器之间也不会串联。"},
+    {"type":"patchouli:text","text":"物品、流体或能量进入时，会从轮转游标开始尽量均分给可接收的目标。受管道和节点的单刻预算影响，一批资源可能跨多刻完成；游标会持续轮换以保证长期公平。"},
+    {"type":"patchouli:text","text":"从分配器抽取等价于从全部目标抽取，不要求均分。它自身没有槽位、储罐或能量缓存。仅本模组的三种简易管道与物流节点能识别它；原版漏斗和第三方管道不会连接。"},
+    {"type":"patchouli:crafting","recipe":"skylogistics:sky_distributor","text":"在工作台制作：四角放海晶石，上下放青金石，左右放紫水晶碎片，中心放红石比较器。无需祭坛、尤洛伽水晶或天穹石。"},
+    {"type":"patchouli:text","text":"性能说明：放置时执行一次 BFS，并分别缓存三类目标。模拟与执行复用同一计划，槽位探测受 [distributor].opsPerTick 限制；预算耗尽后由线路下 tick 沿游标继续。"},
+    {"type":"patchouli:text","text":"手持天穹配置器并将准星对准分配器，会以青色边框高亮当前缓存中的全部目标容器。客户端仅在切换目标或持续瞄准满 1 秒时请求一次快照，不会逐帧触发 BFS。"}
+  ]
+}

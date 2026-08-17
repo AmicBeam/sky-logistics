@@ -1,7 +1,9 @@
 package com.skylogistics.compat.jade;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.IBlockComponentProvider;
@@ -28,7 +30,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 return;
             }
         }
-        appendNodeTooltip(tooltip, data);
+        appendNodeTooltip(tooltip, data, accessor.getPlayer(), accessor.getLevel().registryAccess());
     }
 
     @Override
@@ -43,17 +45,52 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putString("LineName", node.getLineName());
         data.putBoolean("SpeedUpgrade", node.hasSpeedUpgrade());
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
+        data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
+        data.putBoolean("Active", node.hasRecentTransfer());
+        boolean items = false;
+        boolean fluids = false;
+        boolean energy = false;
+        for (Direction direction : Direction.values()) {
+            if (node.getFaceMode(direction) == NodeFaceMode.NONE) continue;
+            items |= node.isItemsEnabled(direction);
+            fluids |= node.isFluidsEnabled(direction);
+            energy |= node.isEnergyEnabled(direction);
+        }
+        data.putBoolean("Items", items);
+        data.putBoolean("Fluids", fluids);
+        data.putBoolean("Energy", energy);
+        data.put("Filters", JadeFilterTooltip.write(node, node.getLevel().registryAccess()));
         return data;
     }
 
-    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data) {
+    private static void appendNodeTooltip(ITooltip tooltip, CompoundTag data,
+            net.minecraft.world.entity.player.Player player, net.minecraft.core.HolderLookup.Provider registries) {
         tooltip.add(Component.translatable("jade.skylogistics.line_name", data.getString("LineName")));
+        tooltip.add(Component.translatable("jade.skylogistics.resources",
+                resourceSummary(data.getBoolean("Items"), data.getBoolean("Fluids"), data.getBoolean("Energy"))));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
-                upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"))));
+                upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"),
+                        data.getBoolean("ExactUpgrade"))));
+        tooltip.add(Component.translatable("jade.skylogistics.status",
+                Component.translatable(data.getBoolean("Active")
+                        ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
+        CompoundTag filters = data.getCompound("Filters");
+        for (Direction direction : Direction.values()) {
+            JadeFilterTooltip.append(tooltip, filters, direction, player, registries);
+        }
     }
 
-    private static Component upgradeSummary(boolean speed, boolean dimension) {
-        if (!speed && !dimension) {
+    private static Component resourceSummary(boolean items, boolean fluids, boolean energy) {
+        return Component.empty()
+                .append(items ? Component.translatable("screen.skylogistics.resource_short.items") : Component.literal("-"))
+                .append("/")
+                .append(fluids ? Component.translatable("screen.skylogistics.resource_short.fluids") : Component.literal("-"))
+                .append("/")
+                .append(energy ? Component.translatable("screen.skylogistics.resource_short.energy") : Component.literal("-"));
+    }
+
+    private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact) {
+        if (!speed && !dimension && !exact) {
             return Component.translatable("jade.skylogistics.upgrade_none");
         }
         var summary = Component.empty();
@@ -65,6 +102,10 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 summary.append(Component.literal(", "));
             }
             summary.append(Component.translatable("jade.skylogistics.upgrade_dimension_name"));
+        }
+        if (exact) {
+            if (speed || dimension) summary.append(Component.literal(", "));
+            summary.append(Component.translatable("jade.skylogistics.upgrade_exact_name"));
         }
         return summary;
     }

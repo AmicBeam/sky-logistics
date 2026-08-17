@@ -9,8 +9,9 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -21,7 +22,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 
 public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int GRID_X = 8;
-    private static final int CENTERED_GRID_X = 17;
+    private static final int CENTERED_GRID_X = 18;
     private static final int GRID_Y = 44;
     private static final int GRID_COLUMNS = 9;
     private static final int GRID_ROWS = 4;
@@ -29,10 +30,11 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     private static final int VISIBLE_CELLS = GRID_COLUMNS * GRID_ROWS;
     private static final int GRID_BOTTOM = GRID_Y + GRID_ROWS * CELL_SIZE;
     private static final int STATS_Y = GRID_BOTTOM + 10;
+    private static final int SLOT_HOVER = 0x80FFFFFF;
     private static final VaultTerminalViewState.State VIEW_STATE = VaultTerminalViewState.itemVault();
 
     private EditBox searchBox;
-    private Button sortButton;
+    private AbstractButton sortButton;
     private int scrollRow;
     private SortMode sortMode = SortMode.fromOrdinal(VIEW_STATE.sortModeOrdinal());
     private ItemVaultBlockEntity cachedVault;
@@ -55,14 +57,12 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
                 Component.translatable("screen.skylogistics.search"));
         searchBox.setHint(Component.translatable("screen.skylogistics.search"));
         addRenderableWidget(searchBox);
-        sortButton = addRenderableWidget(Button.builder(sortLabel(), ignored -> {
+        sortButton = addRenderableWidget(ConfigPanel.button(leftPos + 128, topPos + 22, 60, 18, sortLabel(), () -> {
                     setSortMode(sortMode.next());
                     scrollRow = 0;
                     invalidateFilteredCache();
                     refreshButtons();
-                })
-                .bounds(leftPos + 128, topPos + 22, 60, 18)
-                .build());
+                }));
     }
 
     @Override
@@ -105,7 +105,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemVaultBlockEntity vault = vault();
-        graphics.drawString(font, title, 8, 8, ConfigPanel.ACCENT, false);
+        graphics.drawString(font, title, 8, 8, ConfigPanel.TEXT, false);
         if (vault == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.missing_vault"), 8, 48,
                     ConfigPanel.MUTED, false);
@@ -114,6 +114,7 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         List<ItemVaultBlockEntity.StoredItem> entries = filtered(vault);
         scrollRow = Math.min(scrollRow, maxScrollRow(entries.size()));
         int start = scrollRow * GRID_COLUMNS;
+        ItemVaultBlockEntity.StoredItem hovered = hoveredEntry(mouseX, mouseY);
         for (int visible = 0; visible < VISIBLE_CELLS && start + visible < entries.size(); visible++) {
             ItemVaultBlockEntity.StoredItem item = entries.get(start + visible);
             int column = visible % GRID_COLUMNS;
@@ -122,6 +123,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
             int y = GRID_Y + row * CELL_SIZE;
             graphics.renderItem(item.stack(), x, y);
             renderAmountLabel(graphics, ConfigPanel.amount(item.amount()), x, y);
+            if (item == hovered) {
+                graphics.fill(x, y, x + 16, y + 16, SLOT_HOVER);
+            }
         }
         graphics.drawString(font, Component.translatable("screen.skylogistics.types_used",
                 vault.getUsedTypes(), vault.getTypeLimit()), 8, STATS_Y, ConfigPanel.TEXT, false);
@@ -144,6 +148,10 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (searchBox != null && searchBox.isFocused() && !searchBox.isMouseOver(mouseX, mouseY)) {
+            searchBox.setFocused(false);
+            setFocused(null);
+        }
         if ((button == 0 || button == 1) && isOverGrid(mouseX, mouseY)) {
             ItemVaultBlockEntity.StoredItem hovered = hoveredEntry(mouseX, mouseY);
             if (hovered != null || !menu.getCarried().isEmpty()) {
@@ -160,9 +168,9 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         if (hovered == null) {
             return;
         }
-        graphics.renderComponentTooltip(font, List.of(hovered.stack().getHoverName(),
-                Component.translatable("screen.skylogistics.total_items", fullAmount(hovered.amount()))),
-                mouseX, mouseY);
+        List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), hovered.stack()));
+        tooltip.add(Component.translatable("screen.skylogistics.total_items", fullAmount(hovered.amount())));
+        graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
     }
 
     private ItemVaultBlockEntity.StoredItem hoveredEntry(double mouseX, double mouseY) {
@@ -321,6 +329,13 @@ public class ItemVaultScreen extends AbstractContainerScreen<ItemVaultMenu> {
         }
         BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
         return blockEntity instanceof ItemVaultBlockEntity vault ? vault : null;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (searchBox != null && searchBox.isFocused()
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private enum SortMode {

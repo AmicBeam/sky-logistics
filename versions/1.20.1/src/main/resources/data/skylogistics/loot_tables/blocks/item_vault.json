@@ -13,8 +13,8 @@
               "source": "block_entity",
               "ops": [
                 {
-                  "source": "VaultId",
-                  "target": "BlockEntityTag.VaultId",
+                  "source": "Items",
+                  "target": "BlockEntityTag.Items",
                   "op": "replace"
                 },
                 {

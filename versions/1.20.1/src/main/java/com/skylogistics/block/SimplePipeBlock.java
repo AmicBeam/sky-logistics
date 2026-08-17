@@ -2,17 +2,21 @@ package com.skylogistics.block;
 
 import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.SimplePipeConnection;
 import com.skylogistics.util.SimplePipeGeometry;
+import com.skylogistics.util.SimplePipeEndpointTargeting;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -110,6 +114,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
+        assignPlacementOwner(level, pos, state, placer);
         PlacementExtraction placementExtraction = PLACEMENT_EXTRACTION.get();
         PLACEMENT_EXTRACTION.remove();
         if (placementExtraction != null && placementExtraction.pos().equals(pos)
@@ -149,6 +154,22 @@ public class SimplePipeBlock extends BaseEntityBlock {
                     "message.skylogistics.simple_pipe.connection_limit",
                     SkyLogisticsConfig.simplePipeMaxConnectedBlocks()), true);
         }
+    }
+
+    private void assignPlacementOwner(Level level, BlockPos pos, BlockState state, LivingEntity placer) {
+        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof SimplePipeBlockEntity placedPipe)) return;
+        UUID ownerId = null;
+        for (Direction direction : Direction.values()) {
+            if (!state.getValue(connectionProperty(direction))) continue;
+            BlockPos neighborPos = pos.relative(direction);
+            if (level.getBlockEntity(neighborPos) instanceof SimplePipeBlockEntity neighbor
+                    && neighbor.pipeType() == pipeType && neighbor.ownerId() != null) {
+                ownerId = neighbor.ownerId();
+                break;
+            }
+        }
+        if (ownerId == null && placer instanceof Player player) ownerId = player.getUUID();
+        placedPipe.assignOwnerId(ownerId);
     }
 
     @SuppressWarnings("deprecation")
@@ -317,6 +338,33 @@ public class SimplePipeBlock extends BaseEntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
         ItemStack held = player.getItemInHand(hand);
+        if (FilterListItem.isFilterItem(held)) {
+            Direction direction = targetedContainerEndpoint(state, level, pos, hit);
+            if (direction == null) return InteractionResult.PASS;
+            if (pipeType == SimplePipeType.ENERGY && !TagFilterListItem.isTagFilterList(held)) {
+                if (!level.isClientSide) player.displayClientMessage(Component.translatable(
+                        "message.skylogistics.simple_pipe.filter_unsupported"), true);
+                return InteractionResult.sidedSuccess(level.isClientSide);
+            }
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity) {
+                pipeEntity.setEndpointFilter(direction, held);
+                player.displayClientMessage(Component.translatable(
+                        "message.skylogistics.simple_pipe.filter_applied"), true);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        if (held.isEmpty() && player.isShiftKeyDown()) {
+            Direction direction = targetedContainerEndpoint(state, level, pos, hit);
+            if (direction != null && level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity
+                    && !pipeEntity.getFaceFilter(direction, 0).isEmpty()) {
+                if (!level.isClientSide) {
+                    pipeEntity.clearEndpointFilter(direction);
+                    player.displayClientMessage(Component.translatable(
+                            "message.skylogistics.simple_pipe.filter_cleared"), true);
+                }
+                return InteractionResult.sidedSuccess(level.isClientSide);
+            }
+        }
         boolean wrench = held.is(FORGE_WRENCHES) || held.is(COMMON_WRENCHES);
         if (wrench && player.isShiftKeyDown()) {
             return InteractionResult.PASS;
@@ -357,6 +405,14 @@ public class SimplePipeBlock extends BaseEntityBlock {
                     Component.translatable("message.skylogistics.simple_pipe." + next.getSerializedName())), true);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    public static Direction targetedContainerEndpoint(BlockState state, Level level, BlockPos pos,
+            BlockHitResult hit) {
+        Vec3 local = hit.getLocation().subtract(pos.getX(), pos.getY(), pos.getZ());
+        Direction direction = SimplePipeEndpointTargeting.endpointDirection(local.x, local.y, local.z);
+        return direction != null && connectionFromState(level, pos, state, direction).isContainer()
+                ? direction : null;
     }
 
     private boolean toggleDisconnected(Level level, BlockPos pos, BlockState state, Direction direction,

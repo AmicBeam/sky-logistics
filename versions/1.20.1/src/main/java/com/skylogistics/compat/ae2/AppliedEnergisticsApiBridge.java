@@ -792,7 +792,7 @@ final class AppliedEnergisticsApiBridge {
             if (other instanceof AeChemicalStackView view) {
                 return key.equals(view.key);
             }
-            AEKey otherKey = chemicalKey(other.rawStack(), key.getClass());
+            AEKey otherKey = AppliedEnergisticsApiBridge.chemicalKey(other.rawStack(), key.getClass());
             return otherKey != null && key.equals(otherKey);
         }
 

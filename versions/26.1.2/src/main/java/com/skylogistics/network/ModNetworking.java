@@ -1,6 +1,7 @@
 package com.skylogistics.network;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -18,6 +19,7 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
+        registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
         registrar.playToServer(RequestSkyOfferingRecipesPacket.TYPE, RequestSkyOfferingRecipesPacket.STREAM_CODEC,
                 RequestSkyOfferingRecipesPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
@@ -37,10 +39,18 @@ public final class ModNetworking {
         registrar.playToClient(LineNamePacket.TYPE, LineNamePacket.STREAM_CODEC, LineNamePacket::handle);
         registrar.playToServer(TagFilterEditPacket.TYPE, TagFilterEditPacket.STREAM_CODEC,
                 TagFilterEditPacket::handle);
+        registrar.playToServer(DistributorTargetsRequestPacket.TYPE, DistributorTargetsRequestPacket.STREAM_CODEC,
+                DistributorTargetsRequestPacket::handle);
+        registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
+                DistributorTargetsPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         ClientPacketDistributor.sendToServer(new MenuActionPacket(action));
+    }
+
+    public static void sendExactQuantity(int amount) {
+        ClientPacketDistributor.sendToServer(new ExactQuantityPacket(amount));
     }
 
     public static void requestSkyOfferingRecipes() {
@@ -55,6 +65,10 @@ public final class ModNetworking {
         ClientPacketDistributor.sendToServer(new LineRenamePacket(lineName));
     }
 
+    public static void requestDistributorTargets(BlockPos distributorPos) {
+        ClientPacketDistributor.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
+    }
+
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
         ClientPacketDistributor.sendToServer(FilterGhostPacket.item(slot, stack));
     }
@@ -64,7 +78,11 @@ public final class ModNetworking {
     }
 
     public static void sendTagFilterTag(int slot, String tag) {
-        ClientPacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag));
+        sendTagFilterTag(slot, tag, 0);
+    }
+
+    public static void sendTagFilterTag(int slot, String tag, int resource) {
+        ClientPacketDistributor.sendToServer(new TagFilterEditPacket(slot, tag, resource));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

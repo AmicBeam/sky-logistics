@@ -23,15 +23,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class SkyNodeMenu extends AbstractContainerMenu {
-    public static final int PANEL_HEIGHT = 271;
-    public static final int UPGRADE_ROW_Y = 153;
-    public static final int FACE_FILTER_SLOT_X = 172;
-    public static final int FACE_FILTER_ROW_Y = 126;
+    public static final int PANEL_HEIGHT = 233;
+    public static final int UPGRADE_ROW_Y = 125;
+    public static final int FACE_FILTER_SLOT_X = 181;
+    public static final int FACE_FILTER_ROW_Y = 125;
     public static final int PLAYER_INVENTORY_LABEL_Y = 10_000;
-    public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 44;
-    private static final int UPGRADE_SLOT_X = 78;
-    private static final int PLAYER_INVENTORY_X = 46;
-    private static final int PLAYER_INVENTORY_Y = 185;
+    public static final int SINGLE_ENDPOINT_VERTICAL_SHIFT = 0;
+    private static final int UPGRADE_SLOT_X = 47;
+    private static final int PLAYER_INVENTORY_X = 47;
+    private static final int PLAYER_INVENTORY_Y = 151;
     private static final Direction[] FACE_ORDER = {
             Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
@@ -159,6 +159,14 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         return selectedFace;
     }
 
+    public void setExactQuantity(Player player, int amount) {
+        if (player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity node
+                && node.hasExactQuantityUpgrade()) {
+            node.setExactQuantity(amount);
+            broadcastChanges();
+        }
+    }
+
     public void selectFace(Direction face) {
         selectedFace = face;
     }
@@ -255,7 +263,6 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return;
             }
             node.setFaceMode(face, NodeFaceMode.INPUT);
-            node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
             return;
         }
@@ -265,7 +272,6 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return;
             }
             node.setFaceMode(face, NodeFaceMode.OUTPUT);
-            node.configureTargetResourcesFromCapabilities(face);
             broadcastChanges();
             return;
         }

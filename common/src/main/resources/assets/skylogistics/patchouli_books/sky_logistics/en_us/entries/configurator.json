@@ -9,6 +9,11 @@
     },
     {
       "type": "patchouli:text",
+      "title": "Line Bar",
+      "text": "The |<, <, >+, and >| buttons go to the first, previous, next-or-new, and last line. Edit the name field and press Enter or unfocus it to rename the current line. × only removes this tool's reference; it does not delete other devices. Display names can change while internal line IDs remain stable."
+    },
+    {
+      "type": "patchouli:text",
       "text": "Sneak-right-click a Sky Logistics Node while holding the configurator to copy that node's line and resource toggles, then enter paste mode without opening the node screen. A hotbar message shows the copied line name."
     },
     {
@@ -18,6 +23,10 @@
     {
       "type": "patchouli:text",
       "text": "Right-clicking a machine-facing simple-pipe endpoint with the configurator does not open its screen. Instead, it switches that endpoint directly between extract and insert."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The lower panel lists loaded faces on the current line, including device, mode, resources, priority, redstone, coordinates, and dimension. Item, fluid, energy, auto-detect, redstone, priority, and slot controls form the preset used when placing a node with the configurator in the offhand."
     }
   ]
 }

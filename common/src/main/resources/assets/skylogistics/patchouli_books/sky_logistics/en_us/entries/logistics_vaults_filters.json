@@ -19,7 +19,15 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The Sky Filter List limits node transfers. Right-click it to edit ghost items, whitelist or blacklist mode, NBT matching, durability matching, and other rules. Placing a configured filter list into a node face filter slot does not consume the item; the node copies that list state. Copying and pasting node settings also copies these filter states."
+      "text": "Vault terminals support display-name search and quantity, name, or mod sorting. In an Item Vault, empty-hand left-click takes a stack, right-click takes one, and Shift sends it directly to inventory; with a carried stack, left-click inserts all and right-click inserts one. A Fluid Vault uses fluid-capable containers for filling and draining."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Sky Filter Lists store exact item, fluid, and supported chemical samples in 18 ghost slots, with whitelist or blacklist, data/component, and durability toggles. Tag Filter Lists switch between item tags, fluid tags, and mod rules; mod rules match the resource ID namespace. FE uses the virtual mod ID forge."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Placing a list in a node face filter slot, or right-clicking a simple-pipe endpoint with it, copies rules without consuming the item. Later edits to the original do not update copied rules. External item extraction requires a whitelist containing concrete item entries; tag or mod filters cannot replace it."
     },
     {
       "type": "patchouli:crafting",

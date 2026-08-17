@@ -2,6 +2,7 @@ package com.skylogistics.network;
 
 import com.skylogistics.SkyLogistics;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -40,14 +41,34 @@ public final class ModNetworking {
                 LineNamePacket::handle);
         CHANNEL.registerMessage(8, TagFilterEditPacket.class, TagFilterEditPacket::encode,
                 TagFilterEditPacket::decode, TagFilterEditPacket::handle);
+        CHANNEL.registerMessage(9, DistributorTargetsRequestPacket.class, DistributorTargetsRequestPacket::encode,
+                DistributorTargetsRequestPacket::decode, DistributorTargetsRequestPacket::handle);
+        CHANNEL.registerMessage(10, DistributorTargetsPacket.class, DistributorTargetsPacket::encode,
+                DistributorTargetsPacket::decode, DistributorTargetsPacket::handle);
+        CHANNEL.registerMessage(11, ExactQuantityPacket.class, ExactQuantityPacket::encode,
+                ExactQuantityPacket::decode, ExactQuantityPacket::handle);
+        CHANNEL.registerMessage(12, ChemicalFilterPacket.class, ChemicalFilterPacket::encode,
+                ChemicalFilterPacket::decode, ChemicalFilterPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
         CHANNEL.sendToServer(new MenuActionPacket(action));
     }
 
+    public static void sendExactQuantity(int amount) {
+        CHANNEL.sendToServer(new ExactQuantityPacket(amount));
+    }
+
+    public static void sendChemicalFilter(int slot, String chemical) {
+        CHANNEL.sendToServer(new ChemicalFilterPacket(slot, chemical));
+    }
+
     public static void sendLineRename(String lineName) {
         CHANNEL.sendToServer(new LineRenamePacket(lineName));
+    }
+
+    public static void requestDistributorTargets(BlockPos distributorPos) {
+        CHANNEL.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
@@ -59,7 +80,11 @@ public final class ModNetworking {
     }
 
     public static void sendTagFilterTag(int slot, String tag) {
-        CHANNEL.sendToServer(new TagFilterEditPacket(slot, tag));
+        sendTagFilterTag(slot, tag, 0);
+    }
+
+    public static void sendTagFilterTag(int slot, String tag, int resource) {
+        CHANNEL.sendToServer(new TagFilterEditPacket(slot, tag, resource));
     }
 
     public static void sendItemVaultTerminalClick(ItemStack stack, int button, boolean shiftDown) {

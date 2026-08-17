@@ -1,5 +1,14 @@
 package com.skylogistics.config;
 
+import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.skylogistics.compat.astages.StageRateRules;
+import com.skylogistics.compat.astages.StageTransferRates;
+import com.skylogistics.compat.astages.TransferRates;
+import com.skylogistics.compat.astages.TransferResource;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
@@ -7,6 +16,9 @@ public final class SkyLogisticsConfig {
     public static final Server SERVER;
     public static final ModConfigSpec CLIENT_SPEC;
     public static final Client CLIENT;
+    private static List<? extends Object> cachedAStagesEntries;
+    private static TransferRates cachedAStagesInitial;
+    private static StageRateRules cachedAStagesRules;
 
     static {
         ModConfigSpec.Builder serverBuilder = new ModConfigSpec.Builder();
@@ -42,6 +54,57 @@ public final class SkyLogisticsConfig {
         return SERVER.nodeEnergyTransferLimit.get();
     }
 
+    public static boolean enableAStagesTransferRates() {
+        return SERVER.enableAStagesTransferRates.get();
+    }
+
+    public static synchronized StageRateRules aStagesTransferRateRules() {
+        TransferRates initial = new TransferRates(SERVER.aStagesInitialItems.get(),
+                SERVER.aStagesInitialFluids.get(), SERVER.aStagesInitialChemicals.get(),
+                SERVER.aStagesInitialEnergy.get(), SERVER.aStagesInitialMana.get(),
+                SERVER.aStagesInitialSource.get());
+        List<? extends Object> entries = SERVER.aStagesStageRates.get();
+        if (cachedAStagesRules == null || cachedAStagesEntries != entries
+                || !initial.equals(cachedAStagesInitial)) {
+            Map<String, StageTransferRates> stages = new HashMap<>();
+            for (Object value : entries) {
+                UnmodifiableConfig entry = (UnmodifiableConfig) value;
+                String stage = entry.get("stage");
+                EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+                for (TransferResource resource : TransferResource.values()) {
+                    Number rate = entry.get(resource.configKey());
+                    if (rate != null) rates.put(resource, rate.longValue());
+                }
+                StageTransferRates parsed = new StageTransferRates(rates);
+                stages.merge(stage, parsed, StageTransferRates::mergeMax);
+            }
+            cachedAStagesEntries = entries;
+            cachedAStagesInitial = initial;
+            cachedAStagesRules = new StageRateRules(initial, stages);
+        }
+        return cachedAStagesRules;
+    }
+
+    private static boolean validAStagesStageRateEntry(Object value) {
+        if (!(value instanceof UnmodifiableConfig entry)) return false;
+        Object stage = entry.get("stage");
+        if (!(stage instanceof String text) || text.isBlank()) return false;
+        for (String key : entry.valueMap().keySet()) {
+            if ("stage".equals(key)) continue;
+            TransferResource resource = null;
+            for (TransferResource candidate : TransferResource.values()) {
+                if (candidate.configKey().equals(key)) {
+                    resource = candidate;
+                    break;
+                }
+            }
+            if (resource == null) return false;
+            Object rate = entry.get(key);
+            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
+        }
+        return true;
+    }
+
     public static boolean enableSimpleItemPipe() {
         return SERVER.enableSimpleItemPipe.get();
     }
@@ -53,6 +116,12 @@ public final class SkyLogisticsConfig {
     public static boolean enableSimpleEnergyPipe() {
         return SERVER.enableSimpleEnergyPipe.get();
     }
+    public static boolean enableDistributorItems() { return SERVER.enableDistributorItems.get(); }
+    public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
+    public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
+    public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
+    public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
+    public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
 
     public static int simpleItemPipeTransferRate() {
         return SERVER.simpleItemPipeTransferRate.get();
@@ -216,6 +285,14 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue maxVaultFluidEntryNbtBytes;
         public final ModConfigSpec.IntValue nodeItemTransferLimit;
         public final ModConfigSpec.IntValue nodeEnergyTransferLimit;
+        public final ModConfigSpec.BooleanValue enableAStagesTransferRates;
+        public final ModConfigSpec.LongValue aStagesInitialItems;
+        public final ModConfigSpec.LongValue aStagesInitialFluids;
+        public final ModConfigSpec.LongValue aStagesInitialChemicals;
+        public final ModConfigSpec.LongValue aStagesInitialEnergy;
+        public final ModConfigSpec.LongValue aStagesInitialMana;
+        public final ModConfigSpec.LongValue aStagesInitialSource;
+        public final ModConfigSpec.ConfigValue<List<? extends Object>> aStagesStageRates;
         public final ModConfigSpec.IntValue serverOpsPerTick;
         public final ModConfigSpec.IntValue lineOpsPerTick;
         public final ModConfigSpec.IntValue endpointTargetAttempts;
@@ -254,6 +331,12 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue enableSimpleItemPipe;
         public final ModConfigSpec.BooleanValue enableSimpleFluidPipe;
         public final ModConfigSpec.BooleanValue enableSimpleEnergyPipe;
+        public final ModConfigSpec.BooleanValue enableDistributorItems;
+        public final ModConfigSpec.BooleanValue enableDistributorFluids;
+        public final ModConfigSpec.BooleanValue enableDistributorEnergy;
+        public final ModConfigSpec.IntValue distributorMaxTargets;
+        public final ModConfigSpec.IntValue distributorScanOpsPerTick;
+        public final ModConfigSpec.IntValue distributorOpsPerTick;
         public final ModConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ModConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ModConfigSpec.IntValue simpleEnergyPipeTransferRate;
@@ -282,6 +365,23 @@ public final class SkyLogisticsConfig {
             nodeEnergyTransferLimit = builder
                     .comment("Maximum energy moved by a logistics node per energy transfer operation.")
                     .defineInRange("nodeEnergyTransferLimit", Integer.MAX_VALUE, 1, Integer.MAX_VALUE);
+            builder.push("astages");
+            enableAStagesTransferRates = builder
+                    .comment("Whether AStages player stages limit and unlock per-operation transfer amounts. Requires AStages 2.x.")
+                    .define("enabled", false);
+            builder.push("initialRates");
+            aStagesInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
+            aStagesInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
+            builder.pop();
+            aStagesStageRates = builder
+                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, energy, mana, source.",
+                            "Example: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
+                    .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
+            builder.pop();
             enableSimpleItemPipe = builder
                     .comment("Whether simple item pipes connect to inventories and transfer items.")
                     .define("enableSimpleItemPipe", true);
@@ -305,10 +405,10 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
             simpleManaPipeTransferRate = builder
                     .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.")
-                    .defineInRange("simpleManaPipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+                    .defineInRange("simpleManaPipeTransferRate", 50, 1, Integer.MAX_VALUE);
             simpleSourcePipeTransferRate = builder
                     .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.")
-                    .defineInRange("simpleSourcePipeTransferRate", 100_000, 1, Integer.MAX_VALUE);
+                    .defineInRange("simpleSourcePipeTransferRate", 50, 1, Integer.MAX_VALUE);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
                     .defineInRange("simplePipeMaxConnectedBlocks", 256, 16, 65_536);
@@ -317,13 +417,13 @@ public final class SkyLogisticsConfig {
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
             serverOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations Sky Logistics may process per server tick.")
-                    .defineInRange("serverOpsPerTick", 2048, 1, 1_000_000);
+                    .defineInRange("serverOpsPerTick", 32_768, 1, 1_000_000);
             lineOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations one logistics line may consume per server tick.")
                     .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
             endpointTargetAttempts = builder
-                    .comment("Maximum receiving endpoints one source endpoint may try for one transfer candidate.")
-                    .defineInRange("endpointTargetAttempts", 1, 1, 1_000_000);
+                    .comment("Maximum receiving endpoints one source endpoint may try after failures for one transfer candidate. A successful transfer still stops immediately.")
+                    .defineInRange("endpointTargetAttempts", 4, 1, 1_000_000);
             externalTankScansPerEndpoint = builder
                     .comment("Maximum external fluid tanks one source endpoint may scan per tick. Node operation rate still applies.")
                     .defineInRange("externalTankScansPerEndpoint", 8, 1, 1_000_000);
@@ -404,6 +504,24 @@ public final class SkyLogisticsConfig {
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
             builder.pop();
 
+            builder.push("distributor");
+            enableDistributorItems = builder.comment("Whether Celestial Distributors proxy item storage.")
+                    .define("enableItems", true);
+            enableDistributorFluids = builder.comment("Whether Celestial Distributors proxy fluid storage.")
+                    .define("enableFluids", true);
+            enableDistributorEnergy = builder.comment("Whether Celestial Distributors proxy energy storage.")
+                    .define("enableEnergy", true);
+            distributorMaxTargets = builder
+                    .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.")
+                    .defineInRange("maxTargets", 16, 1, 64);
+            distributorScanOpsPerTick = builder
+                    .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.")
+                    .defineInRange("scanOpsPerTick", 16, 1, 4096);
+            distributorOpsPerTick = builder
+                    .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. A target and its first slot count as one probe; each additional slot counts separately. BFS discovery uses scanOpsPerTick instead.")
+                    .defineInRange("opsPerTick", 64, 1, 4096);
+            builder.pop();
+
             builder.push("necklaces");
             skyNecklaceTickInterval = builder
                     .comment("Server ticks between Sky Necklace work scans. Higher values reduce player inventory and backpack scanning frequency.")
@@ -412,7 +530,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum inventory, backpack, or network item slots one Sky Necklace may scan each work tick.")
                     .defineInRange("skyNecklaceSlotScansPerTick", 64, 1, 1_000_000);
             skyNecklaceTargetAttemptsPerWork = builder
-                    .comment("Maximum logistics output endpoints one Sky Necklace may attempt during one work interval.")
+                    .comment("Maximum logistics endpoints one Sky Necklace may visit during one work interval (outputs while extracting, inputs while inserting).")
                     .defineInRange("skyNecklaceTargetAttemptsPerWork", 1, 1, 1_000_000);
             builder.pop();
 

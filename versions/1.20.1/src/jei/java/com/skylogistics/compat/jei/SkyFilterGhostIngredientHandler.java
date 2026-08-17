@@ -12,6 +12,8 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.client.jei.MekanismJEI;
 
 public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<FilterListScreen> {
     @Override
@@ -26,6 +28,14 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
         Optional<FluidStack> fluid = ingredient.getIngredient(ForgeTypes.FLUID_STACK);
         if (fluid.isPresent() && !fluid.get().isEmpty()) {
             return fluidTargets(gui);
+        }
+        Optional<?> chemical = ingredient.getIngredient(MekanismJEI.TYPE_GAS);
+        String kind = "gas";
+        if (chemical.isEmpty()) { chemical = ingredient.getIngredient(MekanismJEI.TYPE_INFUSION); kind = "infusion"; }
+        if (chemical.isEmpty()) { chemical = ingredient.getIngredient(MekanismJEI.TYPE_PIGMENT); kind = "pigment"; }
+        if (chemical.isEmpty()) { chemical = ingredient.getIngredient(MekanismJEI.TYPE_SLURRY); kind = "slurry"; }
+        if (chemical.isPresent() && chemical.get() instanceof ChemicalStack<?> stack && !stack.isEmpty()) {
+            return chemicalTargets(gui, kind);
         }
         return List.of();
     }
@@ -55,6 +65,25 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
             targets.add((Target<I>) new FluidTarget(gui, gui.getFilterSlotArea(slot), slot));
         }
         return targets;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <I> List<Target<I>> chemicalTargets(FilterListScreen gui, String kind) {
+        List<Target<I>> targets = new ArrayList<>(FilterListItem.FILTER_SLOTS);
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            targets.add((Target<I>) new ChemicalTarget(gui, gui.getFilterSlotArea(slot), slot, kind));
+        }
+        return targets;
+    }
+
+    private record ChemicalTarget(FilterListScreen gui, Rect2i area, int slot, String kind)
+            implements Target<ChemicalStack<?>> {
+        @Override public Rect2i getArea() { return area; }
+        @Override public void accept(ChemicalStack<?> ingredient) {
+            String chemical = kind + ":" + ingredient.getTypeRegistryName();
+            gui.setGhostChemicalPreview(slot, chemical);
+            ModNetworking.sendChemicalFilter(slot, chemical);
+        }
     }
 
     private record ItemTarget(FilterListScreen gui, Rect2i area, int slot) implements Target<ItemStack> {
