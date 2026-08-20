@@ -104,6 +104,27 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     @Override
+    protected boolean canStoreDisplayedItem(ItemStack stack) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return true;
+        }
+        return serverLevel.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
+                .anyMatch(recipe -> recipe.main().ingredient().test(stack));
+    }
+
+    @Override
+    protected ItemStack insertRejectedDisplayedItem(ItemStack stack, boolean simulate) {
+        ItemStack remainder = stack;
+        for (OfferingTableBlockEntity table : getOfferingTables()) {
+            remainder = table.insertDisplayedItem(remainder, simulate);
+            if (remainder.isEmpty()) {
+                break;
+            }
+        }
+        return remainder;
+    }
+
+    @Override
     protected boolean canPlayerExtractDisplayWhileLocked(Player player) {
         return true;
     }
