@@ -27,6 +27,10 @@ repositories {
         url = 'https://modmaven.dev'
     }
     maven {
+        name = 'JaredsMaven'
+        url = 'https://maven.blamejared.com'
+    }
+    maven {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
     }
@@ -101,7 +105,7 @@ def cachedJeiApiJars = fileTree(
 ).files.toList().sort { it.absolutePath }
 def jeiApiJar = jeiApiPath ? file(jeiApiPath)
         : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : null)
-def includeJeiCompat = false
+def includeJeiCompat = true
 def cachedEmiApiJars = fileTree(
         dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/dev.emi/emi-neoforge/${emi_version}",
         include: "**/emi-neoforge-${emi_version}.jar"
@@ -143,10 +147,7 @@ if (jeiApiPath && !jeiApiJar.exists()) {
     throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
 }
 
-if (jeiApiJar != null && jeiApiJar.exists()) {
-    sourceSets.main.java.srcDir 'src/jei/java'
-    includeJeiCompat = true
-}
+sourceSets.main.java.srcDir 'src/jei/java'
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
@@ -167,7 +168,12 @@ dependencies {
         }
     }
     if (includeJeiCompat) {
-        compileOnly files(jeiApiJar)
+        if (jeiApiJar != null && jeiApiJar.exists()) {
+            compileOnly files(jeiApiJar)
+        } else {
+            compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+            compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+        }
     }
 }
 

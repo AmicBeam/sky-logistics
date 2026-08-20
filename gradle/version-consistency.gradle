@@ -183,6 +183,26 @@ tasks.register('checkVersionConsistency') {
     }
 }
 
+tasks.register('checkJeiCompatPackaging') {
+    group = 'verification'
+    description = 'Checks that the release jar contains the JEI plugin entrypoint.'
+    dependsOn tasks.named('jar')
+
+    doLast {
+        def archive = tasks.named('jar').get().archiveFile.get().asFile
+        def zip = new java.util.zip.ZipFile(archive)
+        try {
+            def pluginClass = 'com/skylogistics/compat/jei/SkyLogisticsJeiPlugin.class'
+            if (zip.getEntry(pluginClass) == null) {
+                throw new GradleException("Release jar is missing JEI plugin class: ${pluginClass}")
+            }
+        } finally {
+            zip.close()
+        }
+    }
+}
+
 tasks.named('check').configure {
     dependsOn tasks.named('checkVersionConsistency')
+    dependsOn tasks.named('checkJeiCompatPackaging')
 }
