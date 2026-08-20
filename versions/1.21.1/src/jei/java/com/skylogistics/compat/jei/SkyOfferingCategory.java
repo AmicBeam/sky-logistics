@@ -18,8 +18,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
-public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
+public class SkyOfferingCategory implements IRecipeCategory<RecipeHolder<OfferingRecipe>> {
     private static final int WIDTH = 136;
     private static final int HEIGHT = 64;
     private static final int MAIN_X = 58;
@@ -50,7 +51,7 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public RecipeType<OfferingRecipe> getRecipeType() {
+    public RecipeType<RecipeHolder<OfferingRecipe>> getRecipeType() {
         return SkyLogisticsJeiPlugin.SKY_OFFERING;
     }
 
@@ -75,7 +76,9 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, OfferingRecipe recipe, IFocusGroup focuses) {
+    public void setRecipe(IRecipeLayoutBuilder builder, RecipeHolder<OfferingRecipe> recipeHolder,
+            IFocusGroup focuses) {
+        OfferingRecipe recipe = recipeHolder.value();
         addInputSlot(builder, MAIN_X, MAIN_Y, recipe.main());
 
         int offeringCount = recipe.offerings().size();
@@ -89,8 +92,9 @@ public class SkyOfferingCategory implements IRecipeCategory<OfferingRecipe> {
     }
 
     @Override
-    public void draw(OfferingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX,
-            double mouseY) {
+    public void draw(RecipeHolder<OfferingRecipe> recipeHolder, IRecipeSlotsView recipeSlotsView,
+            GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        OfferingRecipe recipe = recipeHolder.value();
         drawPanel(guiGraphics);
         drawRitual(guiGraphics, recipe.offerings().size());
         drawInputSlot(guiGraphics, MAIN_X, MAIN_Y);

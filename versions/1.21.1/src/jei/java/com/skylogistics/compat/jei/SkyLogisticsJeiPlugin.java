@@ -26,8 +26,9 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 
 @JeiPlugin
 public class SkyLogisticsJeiPlugin implements IModPlugin {
-    static final RecipeType<OfferingRecipe> SKY_OFFERING =
-            RecipeType.create(SkyLogistics.MOD_ID, "sky_offering", OfferingRecipe.class);
+    static final RecipeType<RecipeHolder<OfferingRecipe>> SKY_OFFERING =
+            RecipeType.createRecipeHolderType(
+                    ResourceLocation.fromNamespaceAndPath(SkyLogistics.MOD_ID, "sky_offering"));
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -45,10 +46,8 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
         if (minecraft.level == null) {
             return;
         }
-        List<OfferingRecipe> recipes = minecraft.level.getRecipeManager()
-                .getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
-                .map(RecipeHolder::value)
-                .toList();
+        List<RecipeHolder<OfferingRecipe>> recipes = minecraft.level.getRecipeManager()
+                .getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get());
         registration.addRecipes(SKY_OFFERING, recipes);
     }
 
