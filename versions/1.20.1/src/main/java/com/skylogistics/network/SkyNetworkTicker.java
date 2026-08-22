@@ -400,6 +400,7 @@ public final class SkyNetworkTicker {
                     usedEmptyPreferredSlotFallback = true;
                     forceSequentialItemFallback = true;
                     slotChecks++;
+                    sourceEndpoint.resetItemSlotDiscoveryDeferral();
                 }
                 continue;
             }
@@ -424,7 +425,7 @@ public final class SkyNetworkTicker {
                 return operations;
             }
         }
-        if (movedFromHotPath && operations < budget
+        if (movedFromHotPath && !usedEmptyPreferredSlotFallback && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
             operations += discoverAdditionalItemSlot(sourceEndpoint, sourceNode, source, slots, gameTime,
                     successfulSlot, budget - operations);
@@ -555,6 +556,7 @@ public final class SkyNetworkTicker {
                     usedEmptyPreferredSlotFallback = true;
                     forceSequentialItemFallback = true;
                     slotChecks++;
+                    sourceEndpoint.resetItemSlotDiscoveryDeferral();
                 }
                 continue;
             }
