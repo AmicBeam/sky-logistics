@@ -367,14 +367,20 @@ public final class SkyNetworkTicker {
         boolean movedFromHotPath = false;
         int successfulSlot = -1;
         int slotChecks = Math.min(slots, sourceNode.getOperationRate());
+        boolean usedEmptyPreferredSlotFallback = false;
+        boolean forceSequentialItemFallback = false;
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
         for (int i = 0; i < slotChecks && (operations < budget || i == 0); i++) {
-            SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, Math.max(1, budget - operations));
+            ItemSourceSearchResult search = forceSequentialItemFallback
+                    ? nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                            firstTriedSlot, secondTriedSlot, false, Math.max(1, budget - operations))
+                    : nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                            firstTriedSlot, secondTriedSlot, Math.max(1, budget - operations));
+            forceSequentialItemFallback = false;
             operations += search.skippedChecks();
             int slot = search.index();
             if (slot < 0) {
@@ -390,6 +396,11 @@ public final class SkyNetworkTicker {
             operations++;
             if (simulated.isEmpty()) {
                 sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
+                    usedEmptyPreferredSlotFallback = true;
+                    forceSequentialItemFallback = true;
+                    slotChecks++;
+                }
                 continue;
             }
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
@@ -512,12 +523,18 @@ public final class SkyNetworkTicker {
         }
         boolean foundCandidate = false;
         int slotChecks = Math.min(slots, sourceNode.getOperationRate());
+        boolean usedEmptyPreferredSlotFallback = false;
+        boolean forceSequentialItemFallback = false;
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
         for (int i = 0; i < slotChecks && operations < budget; i++) {
-            SourceSearchResult search = nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
-                    firstTriedSlot, secondTriedSlot, budget - operations);
+            ItemSourceSearchResult search = forceSequentialItemFallback
+                    ? nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                            firstTriedSlot, secondTriedSlot, false, budget - operations)
+                    : nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                            firstTriedSlot, secondTriedSlot, budget - operations);
+            forceSequentialItemFallback = false;
             operations += search.skippedChecks();
             int slot = search.index();
             if (slot < 0) {
@@ -534,6 +551,11 @@ public final class SkyNetworkTicker {
             operations++;
             if (resource.isEmpty()) {
                 sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
+                    usedEmptyPreferredSlotFallback = true;
+                    forceSequentialItemFallback = true;
+                    slotChecks++;
+                }
                 continue;
             }
             ItemStack simulated = resource.stack();
@@ -776,14 +798,15 @@ public final class SkyNetworkTicker {
         return new HandlerMoveResult(true, slotLimitCheck.checks() + selection.checks(), false);
     }
 
-    private static SourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
+    private static ItemSourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint,
+            NetworkEndpointBlockEntity sourceNode,
             int slots, long gameTime, int firstTriedSlot, int secondTriedSlot, int skipBudget) {
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
-            return new SourceSearchResult(preferredSlot, 0, false);
+            return new ItemSourceSearchResult(preferredSlot, 0, false, true);
         }
         if (sourceEndpoint.isItemSlotDiscoveryActive()) {
-            SourceSearchResult discovery = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+            ItemSourceSearchResult discovery = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                     firstTriedSlot, secondTriedSlot, true, skipBudget);
             if (discovery.index() >= 0) {
                 sourceEndpoint.recordItemSlotDiscoveryCheck();
@@ -800,7 +823,7 @@ public final class SkyNetworkTicker {
             NetworkEndpointBlockEntity sourceNode, IItemHandler source, int slots, long gameTime,
             int successfulSlot, int budget) {
         if (budget <= 0 || !sourceEndpoint.isItemSlotDiscoveryActive()) return 0;
-        SourceSearchResult search = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+        ItemSourceSearchResult search = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                 successfulSlot, -1, true, budget);
         int operations = search.skippedChecks();
         int slot = search.index();
@@ -822,7 +845,7 @@ public final class SkyNetworkTicker {
         return operations;
     }
 
-    private static SourceSearchResult nextSequentialItemSlot(CachedEndpoint sourceEndpoint,
+    private static ItemSourceSearchResult nextSequentialItemSlot(CachedEndpoint sourceEndpoint,
             NetworkEndpointBlockEntity sourceNode, int slots, long gameTime, int firstTriedSlot, int secondTriedSlot,
             boolean ignoreEmptyCooldown, int skipBudget) {
         int skippedChecks = 0;
@@ -833,13 +856,13 @@ public final class SkyNetworkTicker {
                     || (!ignoreEmptyCooldown && !sourceEndpoint.canTryItemSlot(slot, gameTime))) {
                 skippedChecks++;
                 if (skippedChecks >= skipBudget) {
-                    return new SourceSearchResult(-1, skippedChecks, false);
+                    return new ItemSourceSearchResult(-1, skippedChecks, false, false);
                 }
                 continue;
             }
-            return new SourceSearchResult(slot, skippedChecks, false);
+            return new ItemSourceSearchResult(slot, skippedChecks, false, false);
         }
-        return new SourceSearchResult(-1, skippedChecks, attemptLimit >= slots);
+        return new ItemSourceSearchResult(-1, skippedChecks, attemptLimit >= slots, false);
     }
 
     private static boolean wasSlotTried(int firstTriedSlot, int secondTriedSlot, int slot) {
@@ -3074,6 +3097,9 @@ public final class SkyNetworkTicker {
     }
 
     private record SourceSearchResult(int index, int skippedChecks, boolean exhausted) {
+    }
+
+    private record ItemSourceSearchResult(int index, int skippedChecks, boolean exhausted, boolean preferred) {
     }
 
     private record TargetItemSlot(int lane, int slot, int movable, int existingCount, int effectiveLimit,
