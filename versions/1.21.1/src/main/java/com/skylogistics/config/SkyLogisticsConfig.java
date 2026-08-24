@@ -153,6 +153,10 @@ public final class SkyLogisticsConfig {
                 : Integer.MAX_VALUE;
     }
 
+    public static int maxSpeedUpgradesPerNode() {
+        return SERVER.maxSpeedUpgradesPerNode.get();
+    }
+
     public static boolean enforceSimplePipeConnectionLimit() {
         return SERVER.enforceSimplePipeConnectionLimit.get();
     }
@@ -351,6 +355,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ModConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ModConfigSpec.IntValue simplePipeMaxConnectedBlocks;
+        public final ModConfigSpec.IntValue maxSpeedUpgradesPerNode;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -422,6 +427,9 @@ public final class SkyLogisticsConfig {
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
+            maxSpeedUpgradesPerNode = builder
+                    .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one.")
+                    .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);

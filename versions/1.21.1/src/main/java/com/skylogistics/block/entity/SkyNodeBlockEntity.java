@@ -195,7 +195,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public int getOperationRate() {
-        return hasSpeedUpgrade() ? 2 : 1;
+        return 1 + speedUpgradeCount();
     }
 
     public long limitItemTransfer(long amount) {
@@ -394,6 +394,41 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return true;
     }
 
+    public static int maxUpgradeStackSize(ItemStack stack) {
+        return stack.is(ModItems.SPEED_UPGRADE.get())
+                ? SkyLogisticsConfig.maxSpeedUpgradesPerNode()
+                : 1;
+    }
+
+    public boolean addSingleUpgrade(ItemStack stack) {
+        if (!isUpgradeItem(stack)) {
+            return false;
+        }
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            ItemStack installed = upgrades.get(slot);
+            if (!ItemStack.isSameItem(installed, stack)) {
+                continue;
+            }
+            if (!stack.is(ModItems.SPEED_UPGRADE.get())
+                    || installed.getCount() >= maxUpgradeStackSize(stack)) {
+                return false;
+            }
+            ItemStack grown = installed.copy();
+            grown.grow(1);
+            setUpgrade(slot, grown);
+            return true;
+        }
+        for (int slot = 0; slot < upgrades.size(); slot++) {
+            if (upgrades.get(slot).isEmpty() && canAcceptUpgrade(slot, stack)) {
+                ItemStack single = stack.copy();
+                single.setCount(1);
+                setUpgrade(slot, single);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean canAcceptFaceFilter(int slot, ItemStack stack) {
         return stack.isEmpty() || (slot >= 0 && slot < FACE_FILTER_SLOTS && isFaceFilterItem(stack));
     }
@@ -463,10 +498,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         }
         ItemStack copy = stack.copy();
         if (!copy.isEmpty()) {
-            copy.setCount(1);
+            copy.setCount(Math.min(copy.getCount(), maxUpgradeStackSize(copy)));
         }
         ItemStack previous = upgrades.get(slot);
-        if (StackData.sameItemAndComponents(previous, copy)) {
+        if (previous.getCount() == copy.getCount() && StackData.sameItemAndComponents(previous, copy)) {
             return;
         }
         upgrades.set(slot, copy);
@@ -519,6 +554,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean hasSpeedUpgrade() {
         return hasUpgrade(ModItems.SPEED_UPGRADE.get());
+    }
+
+    public int speedUpgradeCount() {
+        for (ItemStack upgrade : upgrades) {
+            if (upgrade.is(ModItems.SPEED_UPGRADE.get())) {
+                return Math.min(upgrade.getCount(), SkyLogisticsConfig.maxSpeedUpgradesPerNode());
+            }
+        }
+        return 0;
     }
 
     public boolean hasDimensionUpgrade() {
@@ -924,8 +968,23 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
-        installCopiedUpgrade(config.speedUpgrade(), ModItems.SPEED_UPGRADE.get(), player);
+        installCopiedSpeedUpgrades(config.speedUpgradeCount(), player);
         installCopiedUpgrade(config.dimensionUpgrade(), ModItems.DIMENSION_UPGRADE.get(), player);
+    }
+
+    private void installCopiedSpeedUpgrades(int requestedCount, Player player) {
+        int targetCount = Math.min(Math.max(0, requestedCount), SkyLogisticsConfig.maxSpeedUpgradesPerNode());
+        while (speedUpgradeCount() < targetCount) {
+            if (speedUpgradeCount() == 0 && upgrades.stream().noneMatch(ItemStack::isEmpty)) {
+                break;
+            }
+            if (!consumeUpgradeFromPlayer(player, ModItems.SPEED_UPGRADE.get())) {
+                break;
+            }
+            if (!addSingleUpgrade(new ItemStack(ModItems.SPEED_UPGRADE.get()))) {
+                break;
+            }
+        }
     }
 
     private void installCopiedUpgrade(boolean shouldInstall, Item item, Player player) {
@@ -1517,7 +1576,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 ItemStack stack = StackData.loadItem(entry.getCompound("Stack"), registries);
                 if (canAcceptUpgrade(slot, stack)) {
                     ItemStack copy = stack.copy();
-                    copy.setCount(1);
+                    copy.setCount(Math.min(copy.getCount(), maxUpgradeStackSize(copy)));
                     upgrades.set(slot, copy);
                 }
             }

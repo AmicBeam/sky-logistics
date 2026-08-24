@@ -50,6 +50,7 @@ public class ConfiguratorItem extends Item {
     private static final String SLOT = "Slot";
     private static final String STACK = "Stack";
     private static final String SPEED_UPGRADE = "SpeedUpgrade";
+    private static final String SPEED_UPGRADE_COUNT = "SpeedUpgradeCount";
     private static final String DIMENSION_UPGRADE = "DimensionUpgrade";
     private static final String LINES = "Lines";
     private static final String LINE_BINDINGS = "LineBindings";
@@ -229,8 +230,11 @@ public class ConfiguratorItem extends Item {
         String activeLineName = tag.contains(LINE_NAME, Tag.TAG_STRING)
                 ? tag.getString(LINE_NAME)
                 : lineName(lines, activeLineId);
+        int speedUpgradeCount = tag.contains(SPEED_UPGRADE_COUNT, Tag.TAG_INT)
+                ? tag.getInt(SPEED_UPGRADE_COUNT)
+                : tag.getBoolean(SPEED_UPGRADE) ? 1 : 0;
         return new ToolConfig(activeLineId, validLineName(activeLineName, lineName(lines, activeLineId)),
-                placement, faces, copiedFaces, tag.getBoolean(SPEED_UPGRADE), tag.getBoolean(DIMENSION_UPGRADE));
+                placement, faces, copiedFaces, speedUpgradeCount, tag.getBoolean(DIMENSION_UPGRADE));
     }
 
     public static UUID readLineId(ItemStack stack) {
@@ -256,7 +260,8 @@ public class ConfiguratorItem extends Item {
         } else {
             tag.remove(FACES);
         }
-        tag.putBoolean(SPEED_UPGRADE, config.speedUpgrade());
+        tag.putInt(SPEED_UPGRADE_COUNT, config.speedUpgradeCount());
+        tag.remove(SPEED_UPGRADE);
         tag.putBoolean(DIMENSION_UPGRADE, config.dimensionUpgrade());
         ensureLineList(tag, config.lineId(), config.lineName(), assignedLineName);
     }
@@ -806,10 +811,10 @@ public class ConfiguratorItem extends Item {
     }
 
     public record ToolConfig(UUID lineId, String lineName, FaceConfig placement, Map<Direction, FaceConfig> faces,
-                             boolean hasCopiedFaces, boolean speedUpgrade, boolean dimensionUpgrade) {
+                             boolean hasCopiedFaces, int speedUpgradeCount, boolean dimensionUpgrade) {
         private static ToolConfig createDefault(LineEntry line) {
             return new ToolConfig(line.id(), line.name(), FaceConfig.PLACEMENT_DEFAULT, defaultFaces(), false,
-                    false, false);
+                    0, false);
         }
 
         public static ToolConfig fromNode(SkyNodeBlockEntity node) {
@@ -826,7 +831,7 @@ public class ConfiguratorItem extends Item {
             }
             return new ToolConfig(node.getLineId(), node.getLineName(),
                     faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT), faces, true,
-                    node.hasSpeedUpgrade(), node.hasDimensionUpgrade());
+                    node.speedUpgradeCount(), node.hasDimensionUpgrade());
         }
 
         public ToolConfig {
@@ -863,11 +868,11 @@ public class ConfiguratorItem extends Item {
 
         public ToolConfig withLine(UUID newLineId, String newLineName) {
             return new ToolConfig(newLineId, validLineName(newLineName, fallbackLineName(0)),
-                    placement, faces, hasCopiedFaces, speedUpgrade, dimensionUpgrade);
+                    placement, faces, hasCopiedFaces, speedUpgradeCount, dimensionUpgrade);
         }
 
         public ToolConfig withPlacement(FaceConfig placement) {
-            return new ToolConfig(lineId, lineName, placement, faces, hasCopiedFaces, speedUpgrade, dimensionUpgrade);
+            return new ToolConfig(lineId, lineName, placement, faces, hasCopiedFaces, speedUpgradeCount, dimensionUpgrade);
         }
 
         public ToolConfig withItemsEnabled(boolean enabled) {
