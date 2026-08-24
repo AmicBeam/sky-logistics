@@ -149,7 +149,13 @@ public final class SkyLogisticsConfig {
     }
 
     public static int simplePipeMaxConnectedBlocks() {
-        return SERVER.simplePipeMaxConnectedBlocks.get();
+        return enforceSimplePipeConnectionLimit()
+                ? SERVER.simplePipeMaxConnectedBlocks.get()
+                : Integer.MAX_VALUE;
+    }
+
+    public static boolean enforceSimplePipeConnectionLimit() {
+        return SERVER.enforceSimplePipeConnectionLimit.get();
     }
 
     public static int serverOpsPerTick() {
@@ -349,6 +355,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue simpleChemicalPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleManaPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleSourcePipeTransferRate;
+        public final ForgeConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ForgeConfigSpec.IntValue simplePipeMaxConnectedBlocks;
 
         private Server(ForgeConfigSpec.Builder builder) {
@@ -415,9 +422,12 @@ public final class SkyLogisticsConfig {
             simpleSourcePipeTransferRate = builder
                     .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.")
                     .defineInRange("simpleSourcePipeTransferRate", 50, 1, Integer.MAX_VALUE);
+            enforceSimplePipeConnectionLimit = builder
+                    .comment("Whether new simple pipe connections are rejected when they would exceed simplePipeMaxConnectedBlocks.")
+                    .define("enforceSimplePipeConnectionLimit", true);
             simplePipeMaxConnectedBlocks = builder
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.")
-                    .defineInRange("simplePipeMaxConnectedBlocks", 256, 16, 65_536);
+                    .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
@@ -549,10 +559,10 @@ public final class SkyLogisticsConfig {
             builder.push("rituals");
             skyRitualMinY = builder
                     .comment("Minimum block Y for Eulogia Crystals to charge and sky offering altars to work.")
-                    .defineInRange("skyRitualMinY", 200, -64, 320);
+                    .defineInRange("skyRitualMinY", 128, -64, 320);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.")
-                    .defineInRange("eulogiaCrystalChargeSeconds", 60, 1, 3600);
+                    .defineInRange("eulogiaCrystalChargeSeconds", 20, 1, 3600);
             builder.pop();
         }
 

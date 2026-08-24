@@ -6,7 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "A crafted Eulogia Crystal starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=200 by default."
+      "text": "A crafted Eulogia Crystal starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=128 by default."
     },
     {
       "type": "patchouli:crafting",
@@ -15,7 +15,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Uncharged crystals charge in your inventory or on a Sky Offering Table. Ordinary containers do not charge them. Charging takes about 60 seconds by default."
+      "text": "Uncharged crystals charge in your inventory or on a Sky Offering Table. Ordinary containers do not charge them. Charging takes about 20 seconds by default."
     },
     {
       "type": "patchouli:text",

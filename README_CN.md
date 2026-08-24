@@ -86,7 +86,7 @@
 
 - 无线物流节点会直接配对同一命名线路中已加载的抽取面和存入面；简易管道则提供独立的逐格本地运输方式，只与相邻同类管道组成有上限的线路。
 - 线路没有隐藏的物品/流体/能量缓存。目标无法接收时，源端不会先被抽空。
-- 简易管道没有 GUI，启用后始终工作；其线路复用物流节点传输引擎，并有独立的各资源限速。单条线路默认最多包含 256 个管道方块。
+- 简易管道没有 GUI，启用后始终工作；其线路复用物流节点传输引擎，并有独立的各资源限速。单条线路默认最多包含 1024 个管道方块。
 - 天穹分配器是只供本模组物流节点和简易管道使用的无缓存路由代理；原版漏斗和第三方管道不能把它当作普通物品栏或储罐连接。
 - Mekanism 化学品走流体开关；植物魔法 mana 和新生魔艺 Source 魔源走能量开关，但只会搬到同类资源处理器，不会转换为 FE。
 - 9.22e18 级直连要求两端都支持 long 数量；这是单次操作上限，不是保证达到的每 tick 吞吐率。
@@ -94,7 +94,7 @@
 - 节点传输使用预算、缓存、就绪线路队列、热槽追踪、能力缓存和端点退避来控制性能开销。
 - 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick；`skyNecklaceTargetAttemptsPerWork` 限制每次工作访问的输出端点数，默认 1。
 - 仓库类型上限、节点物品/能量单次传输量、天穹容器间直连传输量、分配器目标数与操作预算、热槽缓存大小、供奉高度和水晶充能时间均可配置。
-- 简易管道可分别通过 `simpleItemPipeTransferRate`、`simpleFluidPipeTransferRate`、`simpleEnergyPipeTransferRate`、`simpleChemicalPipeTransferRate`、`simpleManaPipeTransferRate` 和 `simpleSourcePipeTransferRate` 配置限速；`simplePipeMaxConnectedBlocks` 控制单条相连管道线路的最大规模。
+- 简易管道可分别通过 `simpleItemPipeTransferRate`、`simpleFluidPipeTransferRate`、`simpleEnergyPipeTransferRate`、`simpleChemicalPipeTransferRate`、`simpleManaPipeTransferRate` 和 `simpleSourcePipeTransferRate` 配置限速；`simplePipeMaxConnectedBlocks` 控制单条相连管道线路的最大规模，`enforceSimplePipeConnectionLimit` 可关闭该上限检查。
 - AStages 控制单次操作上限，而不是操作频率；它不会提高速度升级速率或服务器、线路的每 tick 操作预算。
 - Patchouli 支持为纯数据内容，安装 Patchouli 后会显示指南书内容。
 - 可选联动仅在检测到对应 Mod 且版本/API 兼容时启用。

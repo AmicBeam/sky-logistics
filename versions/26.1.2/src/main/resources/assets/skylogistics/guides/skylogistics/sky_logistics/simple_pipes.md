@@ -38,7 +38,7 @@ Right-click a machine-facing endpoint with the Sky Configurator to switch it bet
 - Botania mana: 50 mana per extracting endpoint per tick, matching the rounded average throughput of a nearby basic Mana Spreader.
 - Ars Nouveau Source: 50 Source per extracting endpoint per tick, matching a basic Source Relay's average of 1,000 Source every 20 ticks.
 
-One line contains at most 256 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and a message appears. Server settings may change the default transfer rates and line limit.
+One line contains at most 1024 pipe blocks by default. If a placement or reconnection would exceed the limit, the new edge stays disconnected and a message appears. Server settings may change the default transfer rates and line limit, or disable the connection-count check.
 
 ## Recipes
 

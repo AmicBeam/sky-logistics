@@ -86,7 +86,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 
 - Wireless logistics nodes directly pair loaded extract faces with loaded insert faces on the same named line. Simple pipes provide a separate block-by-block local option and form bounded lines only with adjacent pipes of the same type.
 - Lines have no hidden item/fluid/energy buffer. If a target cannot accept a resource, the source is not extracted first.
-- Simple pipes have no GUI and are always active when enabled. Their local lines reuse the logistics-node transfer engine with independent per-resource rate limits. One line contains at most 256 pipe blocks by default.
+- Simple pipes have no GUI and are always active when enabled. Their local lines reuse the logistics-node transfer engine with independent per-resource rate limits. One line contains at most 1024 pipe blocks by default; the connection-count check can be disabled in the server config.
 - The Celestial Distributor is a zero-buffer routing proxy used only by Sky Logistics nodes and simple pipes. Vanilla hoppers and third-party pipes cannot connect to it as a general-purpose inventory or tank.
 - Mekanism chemicals use fluid-enabled faces. Botania mana and Ars Nouveau Source use energy-enabled faces, but they are moved only to matching resource handlers and are not converted to FE.
 - Direct 9.22e18-class transfers require both endpoints to support long amounts. This is a per-operation limit, not a guaranteed per-tick throughput rate.
@@ -94,7 +94,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
 - Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
-- Simple pipe limits are configurable independently through `simpleItemPipeTransferRate`, `simpleFluidPipeTransferRate`, `simpleEnergyPipeTransferRate`, `simpleChemicalPipeTransferRate`, `simpleManaPipeTransferRate`, and `simpleSourcePipeTransferRate`. `simplePipeMaxConnectedBlocks` controls the maximum size of one connected pipe line.
+- Simple pipe limits are configurable independently through `simpleItemPipeTransferRate`, `simpleFluidPipeTransferRate`, `simpleEnergyPipeTransferRate`, `simpleChemicalPipeTransferRate`, `simpleManaPipeTransferRate`, and `simpleSourcePipeTransferRate`. `simplePipeMaxConnectedBlocks` controls the maximum size of one connected pipe line, and `enforceSimplePipeConnectionLimit` can disable that limit check.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Speed Upgrade rates or server and line operation budgets.
 - Patchouli support is data-only and appears when Patchouli is installed.
 - Optional mod integrations are enabled only when the matching mod and compatible version/API are present.
