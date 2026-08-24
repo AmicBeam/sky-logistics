@@ -75,6 +75,12 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="sophisticatedstorage"
+type="optional"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="ae2"
 type="optional"
 versionRange="[19,)"

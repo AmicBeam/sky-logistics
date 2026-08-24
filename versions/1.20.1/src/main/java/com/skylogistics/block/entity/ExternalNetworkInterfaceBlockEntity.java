@@ -26,6 +26,9 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
 
     protected ExternalNetworkInterfaceBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
+        super.setItemsEnabled(false);
+        super.setFluidsEnabled(false);
+        super.setEnergyEnabled(false);
         normalizeEndpoint(NodeFaceMode.NONE, false);
     }
 

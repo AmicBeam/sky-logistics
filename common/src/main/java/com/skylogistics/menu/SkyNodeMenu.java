@@ -96,7 +96,12 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
                 @Override
                 public int getMaxStackSize() {
-                    return 1;
+                    return SkyNodeBlockEntity.maxUpgradeStackSize(getItem());
+                }
+
+                @Override
+                public int getMaxStackSize(ItemStack stack) {
+                    return SkyNodeBlockEntity.maxUpgradeStackSize(stack);
                 }
             });
         }
@@ -543,14 +548,21 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (node == null || node.getUpgrade(slot).isEmpty()) {
                 return ItemStack.EMPTY;
             }
-            ItemStack current = node.getUpgrade(slot).copy();
-            node.setUpgrade(slot, ItemStack.EMPTY);
-            return current;
+            ItemStack remaining = node.getUpgrade(slot).copy();
+            ItemStack removed = remaining.split(Math.min(amount, remaining.getCount()));
+            node.setUpgrade(slot, remaining);
+            return removed;
         }
 
         @Override
         public ItemStack removeItemNoUpdate(int slot) {
-            return removeItem(slot, 1);
+            SkyNodeBlockEntity node = node();
+            if (node == null || node.getUpgrade(slot).isEmpty()) {
+                return ItemStack.EMPTY;
+            }
+            ItemStack current = node.getUpgrade(slot).copy();
+            node.setUpgrade(slot, ItemStack.EMPTY);
+            return current;
         }
 
         @Override

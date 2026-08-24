@@ -2300,6 +2300,10 @@ public final class SkyNetworkRegistry {
             return false;
         }
 
+        public void resetItemSlotDiscoveryDeferral() {
+            itemSlotDiscoveryDeferrals = 0;
+        }
+
         public void recordItemSlotDiscoveryCheck() {
             if (itemSlotDiscoveryRemaining > 0) {
                 itemSlotDiscoveryRemaining--;

@@ -38,6 +38,9 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
             if (slot != 0 || stack.isEmpty() || isDisplaySlotLocked()) {
                 return stack;
             }
+            if (!canStoreDisplayedItem(stack)) {
+                return insertRejectedDisplayedItem(stack, simulate);
+            }
             if (!displayedItem.isEmpty() && !ItemStack.isSameItemSameComponents(displayedItem, stack)) {
                 return stack;
             }
@@ -95,6 +98,10 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
 
     public ItemStack getDisplayedItem() {
         return items.getStackInSlot(0);
+    }
+
+    public ItemStack insertDisplayedItem(ItemStack stack, boolean simulate) {
+        return items.insertItem(0, stack, simulate);
     }
 
     public void setDisplayedItem(ItemStack stack) {
@@ -232,6 +239,14 @@ public abstract class SingleSlotDisplayBlockEntity extends BlockEntity {
 
     protected boolean isDisplaySlotLocked() {
         return false;
+    }
+
+    protected boolean canStoreDisplayedItem(ItemStack stack) {
+        return true;
+    }
+
+    protected ItemStack insertRejectedDisplayedItem(ItemStack stack, boolean simulate) {
+        return stack;
     }
 
     protected boolean canPlayerExtractDisplayWhileLocked(Player player) {

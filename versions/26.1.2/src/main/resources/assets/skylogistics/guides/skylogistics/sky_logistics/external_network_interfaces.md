@@ -12,7 +12,7 @@ item_ids:
 
 # External Network Interfaces
 
-External network interfaces connect large storage networks from other mods to a Sky Logistics line. All three use the node-style screen for line, extract or insert mode, resource types, two upgrade slots, redstone, priority, and filters. They have no intermediate buffer; rejected resources remain in the original network.
+External network interfaces connect large storage networks from other mods to a Sky Logistics line. All three use the node-style screen for line, extract or insert mode, resource types, two upgrade slots, redstone, priority, and filters. Newly placed interfaces start with item, fluid, and energy resources disabled; enable the required resources in the screen. Placement with a configurator applies its saved resource toggles instead. They have no intermediate buffer; rejected resources remain in the original network.
 
 ## Sky ME Interface
 

@@ -43,7 +43,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
   - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
   - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
-  - Chemical, mana and Source limits have independent server settings. `simplePipeMaxConnectedBlocks` defaults to 256; a connection that would exceed it stays disconnected.
+  - Simple pipe settings are grouped under `transfers.simplePipes`. Chemical, mana and Source limits are independent; `simplePipeMaxConnectedBlocks` defaults to 1024, and `enforceSimplePipeConnectionLimit` can disable the connection check.
   - Their recipes do not require Sky Crystals.
 
 - `Starlit Nectar` / `星辉甘露`
@@ -55,7 +55,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
 - `Sky Crystal` / `天穹水晶`
   - Crafted in a vanilla crafting table.
   - Starts uncharged.
-  - Charges at or above the configured sky ritual height while in a player inventory or in a Sky Offering Table. The default is `Y >= 200`.
+  - Charges at or above the configured sky ritual height while in a player inventory or in a Sky Offering Table. The default is `Y >= 128`.
   - Uses item damage state to switch to a charged model.
   - A charged crystal plus eight `#forge:stone` items crafts Celestial Stone.
 
@@ -72,14 +72,14 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Single-slot block entity with no GUI.
   - Players insert/extract items directly by right-clicking; item handlers allow pipe transport.
   - Displays the stored item on top.
-  - Requires the configured sky ritual height and a valid multiblock to work. The default is `Y >= 200`.
+  - Requires the configured sky ritual height and a valid multiblock to work. The default is `Y >= 128`.
   - Runs data-driven `skylogistics:sky_offering` recipes.
   - Starlit Nectar requires a tier 2 altar.
 
 - `Sky Offering Table` / `天穹供桌`
   - Single-slot block entity with no GUI.
   - Displays the stored item on top.
-  - Can charge Sky Crystals at or above the configured sky ritual height. The default is `Y >= 200`.
+  - Can charge Sky Crystals at or above the configured sky ritual height. The default is `Y >= 128`.
   - Four tables around an altar provide offering inputs.
 
 - `Sky Configurator` / `天穹配置器`

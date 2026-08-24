@@ -18,7 +18,7 @@ The <ItemLink id="offering_altar" /> and <ItemLink id="offering_table" /> each h
 
 The altar consumes a charged Eulogia Crystal, while the offering table only requires Celestial Stone.
 
-The altar must be high enough in the sky and inside a valid offering circle. The required height is Y=200 by default, though server settings may differ. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter.
+The altar must be high enough in the sky and inside a valid offering circle. The required height is Y=128 by default, though server settings may differ. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter.
 
 Once the ingredients match, the altar starts its particles and counts the recipe duration. When the duration completes, inputs vanish at once and the result appears in the altar slot. If it cannot fit, the remainder is dropped above the altar.
 

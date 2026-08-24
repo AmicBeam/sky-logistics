@@ -1,0 +1,29 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 240,
+  "altar_tier": 2,
+  "main": {
+    "ingredient": "skylogistics:speed_upgrade"
+  },
+  "offerings": [
+    {
+      "ingredient": "minecraft:blaze_rod",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:magma_cream",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:crying_obsidian",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:netherite_scrap",
+      "count": 1
+    }
+  ],
+  "result": {
+    "id": "skylogistics:force_extraction_upgrade"
+  }
+}

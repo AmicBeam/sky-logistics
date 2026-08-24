@@ -39,6 +39,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
     private ResourceLocation activeRecipeId;
     private OfferingRecipe activeRecipe;
+    private int activeBatchSize = 1;
     private int progress;
     private boolean needsRecipeCheck = true;
     private boolean suppressRecipeRefresh;
@@ -71,6 +72,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (activeRecipeId != null) {
             activeRecipeId = null;
             activeRecipe = null;
+            activeBatchSize = 1;
             progress = 0;
         }
         if (level instanceof ServerLevel serverLevel) {
@@ -104,6 +106,27 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     @Override
+    protected boolean canStoreDisplayedItem(ItemStack stack) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return true;
+        }
+        return serverLevel.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
+                .anyMatch(recipe -> recipe.main().ingredient().test(stack));
+    }
+
+    @Override
+    protected ItemStack insertRejectedDisplayedItem(ItemStack stack, boolean simulate) {
+        ItemStack remainder = stack;
+        for (OfferingTableBlockEntity table : getOfferingTables()) {
+            remainder = table.insertDisplayedItem(remainder, simulate);
+            if (remainder.isEmpty()) {
+                break;
+            }
+        }
+        return remainder;
+    }
+
+    @Override
     protected boolean canPlayerExtractDisplayWhileLocked(Player player) {
         return true;
     }
@@ -113,6 +136,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         super.saveAdditional(tag);
         if (activeRecipeId != null) {
             tag.putString("ActiveRecipe", activeRecipeId.toString());
+            tag.putInt("BatchSize", activeBatchSize);
             tag.putInt("Progress", progress);
         }
         tag.putBoolean("NeedsRecipeCheck", needsRecipeCheck);
@@ -122,6 +146,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     public void load(CompoundTag tag) {
         super.load(tag);
         activeRecipeId = tag.contains("ActiveRecipe") ? new ResourceLocation(tag.getString("ActiveRecipe")) : null;
+        activeBatchSize = activeRecipeId == null ? 1 : Math.max(1, tag.getInt("BatchSize"));
         progress = tag.getInt("Progress");
         needsRecipeCheck = tag.getBoolean("NeedsRecipeCheck") || activeRecipeId == null;
     }
@@ -129,6 +154,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     private void startRecipe(OfferingRecipe recipe) {
         activeRecipeId = recipe.getId();
         activeRecipe = recipe;
+        activeBatchSize = getBatchSize(recipe);
         progress = 0;
         needsRecipeCheck = false;
         setChanged();
@@ -262,7 +288,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (progress < recipe.duration()) {
             return;
         }
-        if (recipe.matches(getDisplayedItem(), getOfferingStacks())) {
+        if (hasInputsForBatch(recipe, activeBatchSize)) {
             finishRecipe(level, recipe);
         } else {
             wakeForRecipeCheck();
@@ -270,14 +296,18 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     private void finishRecipe(ServerLevel level, OfferingRecipe recipe) {
+        int batchSize = activeBatchSize;
         activeRecipeId = null;
         activeRecipe = null;
+        activeBatchSize = 1;
         progress = 0;
         needsRecipeCheck = false;
         suppressRecipeRefresh = true;
         try {
-            consumeInputs(recipe);
-            insertOrDropResult(level, recipe.result());
+            consumeInputs(recipe, batchSize);
+            ItemStack result = recipe.result();
+            result.setCount(result.getCount() * batchSize);
+            insertOrDropResult(level, result);
         } finally {
             suppressRecipeRefresh = false;
         }
@@ -286,17 +316,38 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         tryStartRecipe(level);
     }
 
-    private void consumeInputs(OfferingRecipe recipe) {
-        shrinkDisplayedItem(recipe.main().count());
+    private void consumeInputs(OfferingRecipe recipe, int batchSize) {
+        shrinkDisplayedItem(recipe.main().count() * batchSize);
         List<OfferingTableBlockEntity> tables = getOfferingTables();
         boolean[] used = new boolean[tables.size()];
         for (OfferingRecipe.CountedIngredient ingredient : recipe.offerings()) {
             int tableIndex = findMatchingTable(ingredient, tables, used);
             if (tableIndex >= 0) {
                 used[tableIndex] = true;
-                tables.get(tableIndex).shrinkDisplayedItem(ingredient.count());
+                tables.get(tableIndex).shrinkDisplayedItem(ingredient.count() * batchSize);
             }
         }
+    }
+
+    private int getBatchSize(OfferingRecipe recipe) {
+        int batchSize = getDisplayedItem().getCount() / recipe.main().count();
+        List<OfferingTableBlockEntity> tables = getOfferingTables();
+        boolean[] used = new boolean[tables.size()];
+        for (OfferingRecipe.CountedIngredient ingredient : recipe.offerings()) {
+            int tableIndex = findMatchingTable(ingredient, tables, used);
+            if (tableIndex < 0) {
+                return 0;
+            }
+            used[tableIndex] = true;
+            batchSize = Math.min(batchSize,
+                    tables.get(tableIndex).getDisplayedItem().getCount() / ingredient.count());
+        }
+        return batchSize;
+    }
+
+    private boolean hasInputsForBatch(OfferingRecipe recipe, int batchSize) {
+        return batchSize > 0 && recipe.matches(getDisplayedItem(), getOfferingStacks())
+                && getBatchSize(recipe) >= batchSize;
     }
 
     private void insertOrDropResult(ServerLevel level, ItemStack result) {

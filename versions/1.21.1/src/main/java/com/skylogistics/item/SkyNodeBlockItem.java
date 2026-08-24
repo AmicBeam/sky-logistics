@@ -59,15 +59,18 @@ public class SkyNodeBlockItem extends BlockItem {
         }
         for (StoredFilter stored : filters) {
             ItemStack filter = stored.filter();
+            HolderLookup.Provider registries = context.registries() == null
+                    ? StackData.builtinRegistries() : context.registries();
             tooltip.add(Component.translatable("tooltip.skylogistics.sky_node.filter_face",
                     Component.translatable("screen.skylogistics.face." + stored.direction().getSerializedName()),
                     Component.translatable(FilterListItem.isWhitelist(filter)
                             ? "screen.skylogistics.filter_whitelist"
                             : "screen.skylogistics.filter_blacklist"),
-                    FilterListItem.countFilters(filter), FilterListItem.countFluidFilters(filter))
+                    FilterListItem.countFilters(filter, registries),
+                    FilterListItem.countFluidFilters(filter, registries))
                     .withStyle(ChatFormatting.GRAY));
             if (TagFilterListItem.isTagFilterList(filter)) TagFilterListItem.appendFilterContents(filter, tooltip, true);
-            else FilterListItem.appendFilterContents(filter, tooltip, true);
+            else FilterListItem.appendFilterContents(filter, registries, tooltip, true);
         }
     }
 

@@ -126,7 +126,7 @@ public final class SkyNecklaceTicker {
             EQUIPPED_PLAYER_IDS.add(playerId);
             ACTIVE_DETAILS.computeIfAbsent(lineId, ignored -> new ArrayList<>())
                     .add(activeDetail(player, mode, priority));
-            FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(playerId, necklace);
+            FilterListItem.CompiledFilter itemWhitelist = itemWhitelist(playerId, necklace, player.registryAccess());
             if (itemWhitelist != null) {
                 ActiveNecklace active = PLAYER_NECKLACES.computeIfAbsent(playerId, ignored -> new ActiveNecklace());
                 active.update(player, necklace, lineId, mode, priority, itemWhitelist);
@@ -207,7 +207,8 @@ public final class SkyNecklaceTicker {
         return null;
     }
 
-    private static FilterListItem.CompiledFilter itemWhitelist(UUID playerId, ItemStack necklace) {
+    private static FilterListItem.CompiledFilter itemWhitelist(UUID playerId, ItemStack necklace,
+            net.minecraft.core.HolderLookup.Provider registries) {
         ItemStack filter = SkyNecklaceItem.filterList(necklace);
         if (filter.isEmpty() || !FilterListItem.isWhitelist(filter)) {
             ITEM_WHITELISTS.remove(playerId);
@@ -217,7 +218,7 @@ public final class SkyNecklaceTicker {
         if (cached != null && ItemStack.isSameItemSameComponents(cached.filter(), filter)) {
             return cached.compiled();
         }
-        FilterListItem.CompiledFilter compiled = FilterListItem.compile(filter);
+        FilterListItem.CompiledFilter compiled = FilterListItem.compile(filter, registries);
         if (!compiled.hasItemRules()) {
             ITEM_WHITELISTS.remove(playerId);
             return null;

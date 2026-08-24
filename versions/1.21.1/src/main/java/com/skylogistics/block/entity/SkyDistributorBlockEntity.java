@@ -8,6 +8,8 @@ import com.skylogistics.compat.distributor.DistributedChemicalHandler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
+import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -42,6 +44,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
     private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
+    private final boolean[] activeTargetSides = new boolean[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
     private final boolean[] targetsDirty = new boolean[DIRECTIONS.length];
     private final long[] nextRescan = new long[DIRECTIONS.length];
@@ -56,10 +59,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private long energyCapacityAccumulator;
     private boolean energyCanExtractAccumulator;
     private boolean energyCanReceiveAccumulator;
-    private final int[] itemExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
     private final int[] fluidExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
     private final int[] itemInsertSlotCursors = new int[MAX_CONFIGURABLE_TARGETS];
-    private final int[] visibleItemSlots = new int[MAX_CONFIGURABLE_TARGETS];
     private final int[] visibleFluidTanks = new int[MAX_CONFIGURABLE_TARGETS];
     private final FluidStack[] visibleFluids = new FluidStack[MAX_CONFIGURABLE_TARGETS];
     private final ItemStack[] rejectedItems = new ItemStack[MAX_CONFIGURABLE_TARGETS];
@@ -68,6 +69,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final long[] rejectedFluidUntil = new long[MAX_CONFIGURABLE_TARGETS];
     private long operationBudgetTick = Long.MIN_VALUE;
     private int remainingOperations;
+    private boolean operationBudgetBlocked;
     private long scanBudgetTick = Long.MIN_VALUE;
     private int remainingScanOperations;
     private int discoveryCursor;
@@ -117,6 +119,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private void refreshTargets(Direction side) {
         int index = side.ordinal();
+        activeTargetSides[index] = true;
         TargetCache cache = discoverTargets(side);
         if (cache == null) {
             nextRescan[index] = level.getGameTime() + 1L;
@@ -171,14 +174,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 scan.queue.addLast(pos.relative(direction));
         }
         targetDiscoveries[index] = null;
-        return new TargetCache(List.copyOf(scan.itemTargets), List.copyOf(scan.fluidTargets),
+        List<Target> itemTargets = List.copyOf(scan.itemTargets);
+        return new TargetCache(itemTargets, DistributedSlotMap.create(itemTargets, Target::itemSlots),
+                List.copyOf(scan.fluidTargets),
                 List.copyOf(scan.chemicalTargets), List.copyOf(scan.energyTargets),
-                List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets));
+                List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets), scan.found);
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
-        Direction itemSide = SkyLogisticsConfig.enableDistributorItems()
-                ? usableItems(level.getCapability(Capabilities.ItemHandler.BLOCK, pos, accessSide)) ? accessSide : null : null;
+        IItemHandler itemHandler = SkyLogisticsConfig.enableDistributorItems()
+                ? level.getCapability(Capabilities.ItemHandler.BLOCK, pos, accessSide) : null;
+        int itemSlots = itemHandler == null ? 0 : Math.max(0, itemHandler.getSlots());
+        Direction itemSide = itemSlots > 0 ? accessSide : null;
         Direction fluidSide = SkyLogisticsConfig.enableDistributorFluids()
                 ? usableFluids(level.getCapability(Capabilities.FluidHandler.BLOCK, pos, accessSide)) ? accessSide : null : null;
         Direction energySide = SkyLogisticsConfig.enableDistributorEnergy()
@@ -193,10 +200,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 && SkyLogisticsConfig.allowEnergySourceTransfer()
                 && usableSource(ArsNouveauCompat.sourceHandler(level, pos, accessSide));
         return new Target(pos.immutable(), accessSide,
-                itemSide != null, fluidSide != null, chemical, energySide != null, mana, source);
+                itemSide != null, itemSlots, fluidSide != null, chemical, energySide != null, mana, source);
     }
 
-    private static boolean usableItems(IItemHandler handler) { return handler != null && handler.getSlots() > 0; }
     private static boolean usableFluids(IFluidHandler handler) { return handler != null && handler.getTanks() > 0; }
     private static boolean usableEnergy(IEnergyStorage storage) {
         return storage != null && (storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive());
@@ -296,6 +302,21 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     public record TargetSnapshot(BlockPos pos, int resourceMask) {}
 
+    public IndexStatus indexStatus() {
+        boolean indexing = false;
+        int boundDevices = 0;
+        for (int index = 0; index < DIRECTIONS.length; index++) {
+            if (!activeTargetSides[index]) continue;
+            DiscoveryState discovery = targetDiscoveries[index];
+            indexing |= targetsDirty[index] || discovery != null;
+            boundDevices = Math.max(boundDevices,
+                    discovery == null ? targetCaches[index].deviceCount : discovery.found);
+        }
+        return new IndexStatus(indexing, boundDevices);
+    }
+
+    public record IndexStatus(boolean indexing, int boundDevices) {}
+
     private long gameTime() { return level == null ? Long.MIN_VALUE : level.getGameTime(); }
 
     private void selectSide(Direction side) {
@@ -305,7 +326,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private void clearSelectedSideCaches() {
-        Arrays.fill(visibleItemSlots, -2);
         Arrays.fill(visibleFluidTanks, -2);
         Arrays.fill(visibleFluids, null);
         Arrays.fill(rejectedItems, null);
@@ -337,7 +357,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         if (operationBudgetTick == now) return;
         operationBudgetTick = now;
         remainingOperations = SkyLogisticsConfig.distributorOpsPerTick();
-        Arrays.fill(visibleItemSlots, -2);
+        operationBudgetBlocked = false;
         Arrays.fill(visibleFluidTanks, -2);
         Arrays.fill(visibleFluids, null);
         itemInsertPlan = null;
@@ -351,7 +371,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private boolean takeOperation() {
         prepareOperationBudget();
-        if (remainingOperations <= 0) return false;
+        if (remainingOperations <= 0) {
+            operationBudgetBlocked = true;
+            return false;
+        }
         remainingOperations--;
         return true;
     }
@@ -376,7 +399,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void continueDiscovery() {
         for (int offset = 0; offset < DIRECTIONS.length; offset++) {
             int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
-            if (targetDiscoveries[index] == null) continue;
+            if (!activeTargetSides[index]
+                    || (targetDiscoveries[index] == null && !targetsDirty[index])) continue;
             discoveryCursor = (index + 1) % DIRECTIONS.length;
             refreshTargets(DIRECTIONS[index]);
             return;
@@ -407,14 +431,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private static boolean sameFluidType(FluidStack first, FluidStack second) { return FluidStack.isSameFluidSameComponents(first, second); }
 
     private record Target(BlockPos pos, Direction accessSide,
-            boolean items, boolean fluids, boolean chemical, boolean energy, boolean mana, boolean source) {
+            boolean items, int itemSlots, boolean fluids, boolean chemical, boolean energy, boolean mana, boolean source) {
         boolean usable() { return items || fluids || chemical || energy || mana || source; }
     }
 
-    private record TargetCache(List<Target> items, List<Target> fluids, List<Target> chemicals,
-            List<Target> energy, List<Target> mana, List<Target> source) {
+    private record TargetCache(List<Target> items, DistributedSlotMap<Target> itemSlots,
+            List<Target> fluids, List<Target> chemicals,
+            List<Target> energy, List<Target> mana, List<Target> source, int deviceCount) {
         private static final TargetCache EMPTY = new TargetCache(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+                List.of(), DistributedSlotMap.create(List.of(), target -> 0),
+                List.of(), List.of(), List.of(), List.of(), List.of(), 0);
     }
 
     private static final class DiscoveryState {
@@ -443,7 +469,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private record ItemMove(int target, int slot, int amount) {}
     private record ItemInsertPlan(long tick, ItemStack request, List<ItemMove> moves, int accepted) {}
-    private record ItemExtractPlan(long tick, int target, int amount, int slot) {}
+    private record ItemExtractPlan(long tick, int virtualSlot, int amount, int physicalSlot) {}
     private record FluidMove(int target, int amount) {}
     private record FluidInsertPlan(long tick, FluidStack request, List<FluidMove> moves, int accepted) {}
     private record FluidDrainPlan(long tick, FluidStack request, List<FluidMove> moves, int extracted) {}
@@ -482,20 +508,25 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
     }
 
-    private final class DistributedItems implements IItemHandler {
+    private final class DistributedItems implements IItemHandler, BudgetedDistributorHandler {
         private final Direction side;
 
         private DistributedItems(Direction side) { this.side = side; }
 
+        @Override public boolean distributorBudgetExhausted() {
+            prepareOperationBudget();
+            return operationBudgetBlocked;
+        }
+
         @Override public int getSlots() {
             if (!SkyLogisticsConfig.enableDistributorItems()) return 0;
-            return targets(side).items.size();
+            return targets(side).itemSlots.size();
         }
         @Override public ItemStack getStackInSlot(int slot) {
-            IItemHandler handler = handler(slot);
-            if (handler == null || handler.getSlots() == 0) return ItemStack.EMPTY;
-            int sourceSlot = visibleSlot(slot, handler);
-            return sourceSlot < 0 ? ItemStack.EMPTY : handler.getStackInSlot(sourceSlot);
+            DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
+            IItemHandler handler = handler(mapped);
+            if (handler == null || !takeOperation()) return ItemStack.EMPTY;
+            return handler.getStackInSlot(mapped.localSlot());
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
             if (stack.isEmpty()) return ItemStack.EMPTY;
@@ -514,46 +545,38 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return remaining;
         }
         @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            IItemHandler handler = handler(slot);
-            if (handler == null || amount <= 0 || handler.getSlots() == 0) return ItemStack.EMPTY;
+            DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
+            IItemHandler handler = handler(mapped);
+            if (handler == null || amount <= 0) return ItemStack.EMPTY;
             ItemExtractPlan plan = itemExtractPlan;
-            if (plan == null || plan.tick != gameTime() || plan.target != slot || plan.amount != amount) {
-                int sourceSlot = visibleSlot(slot, handler);
-                if (sourceSlot < 0 || !takeOperation()) return ItemStack.EMPTY;
-                plan = new ItemExtractPlan(gameTime(), slot, amount, sourceSlot);
+            if (plan == null || plan.tick != gameTime() || plan.virtualSlot != slot || plan.amount != amount) {
+                if (!takeOperation()) return ItemStack.EMPTY;
+                plan = new ItemExtractPlan(gameTime(), slot, amount, mapped.localSlot());
                 itemExtractPlan = plan;
             }
-            ItemStack extracted = handler.extractItem(plan.slot, amount, simulate);
+            ItemStack extracted = handler.extractItem(plan.physicalSlot, amount, simulate);
             if (!simulate) {
-                if (!extracted.isEmpty()) itemExtractCursors[slot] = plan.slot + 1;
-                visibleItemSlots[slot] = -2;
                 itemExtractPlan = null;
             }
             return extracted;
         }
-        @Override public int getSlotLimit(int slot) { return 64; }
-        @Override public boolean isItemValid(int slot, ItemStack stack) { return true; }
-        private IItemHandler handler(int slot) {
-            List<Target> all = targets(side).items;
-            return slot < 0 || slot >= all.size() ? null : item(all.get(slot));
+        @Override public int getSlotLimit(int slot) {
+            DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
+            IItemHandler handler = handler(mapped);
+            return handler == null ? 0 : handler.getSlotLimit(mapped.localSlot());
         }
-        private int visibleSlot(int target, IItemHandler handler) {
-            prepareOperationBudget();
-            int cached = visibleItemSlots[target];
-            if (cached >= -1) return cached;
-            int slots = handler.getSlots();
-            int start = Math.floorMod(itemExtractCursors[target], slots);
-            for (int i = 0; i < slots; i++) {
-                if (!takeOperation()) return -1;
-                int sourceSlot = (start + i) % slots;
-                if (!handler.getStackInSlot(sourceSlot).isEmpty()) {
-                    visibleItemSlots[target] = sourceSlot;
-                    return sourceSlot;
-                }
-                itemExtractCursors[target] = sourceSlot + 1;
+        @Override public boolean isItemValid(int slot, ItemStack stack) { return true; }
+        private DistributedSlotMap.Slot<Target> mappedSlot(int slot) {
+            return targets(side).itemSlots.resolve(slot);
+        }
+        private IItemHandler handler(DistributedSlotMap.Slot<Target> mapped) {
+            if (mapped == null) return null;
+            IItemHandler handler = item(mapped.target());
+            if (handler == null || mapped.localSlot() >= handler.getSlots()) {
+                targetsDirty[side.ordinal()] = true;
+                return null;
             }
-            visibleItemSlots[target] = -1;
-            return -1;
+            return handler;
         }
 
         private ItemInsertPlan matchingItemInsertPlan(ItemStack stack, boolean simulate) {
@@ -627,7 +650,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 if (moved > 0) {
                     inserted += moved;
                     itemInsertSlotCursors[move.target] = rejected.isEmpty() ? move.slot : move.slot + 1;
-                    visibleItemSlots[move.target] = -2;
                     rejectedItems[move.target] = null;
                 } else {
                     itemInsertSlotCursors[move.target] = move.slot + 1;

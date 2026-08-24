@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -87,7 +88,9 @@ public class SkyNecklaceItem extends Item {
                 "tooltip.skylogistics.sky_necklace.exact_quantity", exactQuantity(stack))
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         if (!filter.isEmpty()) {
-            FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);
+            HolderLookup.Provider registries = context.registries() == null
+                    ? StackData.builtinRegistries() : context.registries();
+            FilterListItem.appendFilterContentsOrHint(filter, registries, tooltip, flag);
         }
     }
 
@@ -172,18 +175,26 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static boolean hasValidItemWhitelist(ItemStack necklace) {
+        return hasValidItemWhitelist(necklace, StackData.builtinRegistries());
+    }
+
+    public static boolean hasValidItemWhitelist(ItemStack necklace, HolderLookup.Provider registries) {
         ItemStack filter = filterList(necklace);
         if (filter.isEmpty() || !FilterListItem.isWhitelist(filter)) {
             return false;
         }
-        return FilterListItem.compile(filter).hasItemRules();
+        return FilterListItem.compile(filter, registries).hasItemRules();
     }
 
     public static boolean matchesWhitelist(ItemStack necklace, ItemStack candidate) {
+        return matchesWhitelist(necklace, candidate, StackData.builtinRegistries());
+    }
+
+    public static boolean matchesWhitelist(ItemStack necklace, ItemStack candidate, HolderLookup.Provider registries) {
         ItemStack filter = filterList(necklace);
         return !filter.isEmpty() && FilterListItem.isWhitelist(filter)
-                && FilterListItem.compile(filter).hasItemRules()
-                && FilterListItem.matches(filter, candidate);
+                && FilterListItem.compile(filter, registries).hasItemRules()
+                && FilterListItem.matches(filter, candidate, registries);
     }
 
     public static UUID lineId(ItemStack necklace) {

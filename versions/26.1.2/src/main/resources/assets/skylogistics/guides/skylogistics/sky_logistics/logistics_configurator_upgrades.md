@@ -17,7 +17,7 @@ The Sky Configurator stores a line name, line ID, and resource toggles. Right-cl
 
 Sneak-right-click a node with the configurator to copy that node and enter paste mode. While in paste mode, right-click another node to write the stored line and resource toggles to it. Sneak-right-click again, open the configurator screen, or stop holding the configurator to leave paste mode.
 
-Speed upgrades go into node upgrade slots. They let a node check more source slots or tanks each tick, making busy extract and insert endpoints work more quickly. They do not increase line capacity.
+Speed upgrades stack in one node upgrade slot. Each card adds one slot check per tick. By default, up to 8 cards raise the base rate from 1 to 9 slots/t; the server can configure this limit. They do not increase line capacity.
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
 

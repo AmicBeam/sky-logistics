@@ -65,7 +65,7 @@ def jeiApiJar = jeiApiPath ? file(jeiApiPath)
         : (defaultJeiApiJar.exists() ? defaultJeiApiJar
         : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : defaultJeiApiJar))
 def includeJadeCompat = true
-def includeJeiCompat = false
+def includeJeiCompat = true
 
 def jadeApiCompatibilityIssues = { File jar ->
     def requiredEntries = [
@@ -115,10 +115,7 @@ if (jeiApiPath && !jeiApiJar.exists()) {
     throw new GradleException("Configured JEI API jar does not exist: ${jeiApiJar}")
 }
 
-if (jeiApiJar.exists()) {
-    sourceSets.main.java.srcDir 'src/jei/java'
-    includeJeiCompat = true
-}
+sourceSets.main.java.srcDir 'src/jei/java'
 
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
@@ -169,6 +166,10 @@ repositories {
     maven {
         name = 'ModMaven'
         url = 'https://modmaven.dev'
+    }
+    maven {
+        name = 'JaredsMaven'
+        url = 'https://maven.blamejared.com'
     }
     maven {
         name = 'CurseMaven'
@@ -242,7 +243,12 @@ dependencies {
         }
     }
     if (includeJeiCompat) {
-        compileOnly files(jeiApiJar)
+        if (jeiApiJar.exists()) {
+            compileOnly files(jeiApiJar)
+        } else {
+            compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+            compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
+        }
     }
 }
 
