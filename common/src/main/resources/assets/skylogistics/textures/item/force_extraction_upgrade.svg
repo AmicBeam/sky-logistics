@@ -1,12 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
   <image x="0" y="0" width="16" height="16" image-rendering="pixelated"
          href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAG1BMVEVMaXEWJjAPHCRZi5l55qUdMDqOtr2w9MgyhFyShOOMAAAAAXRSTlMAQObYZgAAAAlwSFlzAAALEwAACxMBAJqcGAAAAElJREFUGJVtj1EOwCAIQ2kF9f4nXsKYAdz7fGlDEfmBh09Mc2YIcgQRIQecLBawslAnJxTQUunirmxgl0o/W4cJ3+Vm55f+XOEB5NYBrb6MdGEAAAAASUVORK5CYII="/>
-  <!-- Rounded black face over the exact-quantity matrix -->
-  <path fill="#080808" d="M6 4h4v1h1v1h1v4h-1v1h-1v1H6v-1H5v-1H4V6h1V5h1z"/>
-  <!-- Dark-red eye glow in an inverted-eight shape: \ / -->
-  <path fill="#760000" d="M5 6h2v1h1v2H7V8H6V7H5zm4 1h2v1h-1v1H8V7h1z"/>
-  <!-- Bright red inverted-eight pupils -->
-  <path fill="#ff2618" d="M5 6h1v1h1v1H6V7H5zm5 0h1v1h-1v1H9V7h1z"/>
-  <!-- Tight angry frown -->
-  <path fill="#5b0000" d="M7 9h2v1h1v1H9v-1H7v1H6v-1h1z"/>
+  <!-- Six bright-red pixels forming two separate inverted-eight eyes: \ / -->
+  <path fill="#ff2618" d="M4 5h1v1h1v1h1v1H6V7H5V6H4zm7 0h1v1h-1v1h-1v1H9V7h1V6h1z"/>
 </svg>
