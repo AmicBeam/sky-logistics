@@ -231,6 +231,8 @@
   "jade.skylogistics.status": "Status: %s",
   "jade.skylogistics.status_active": "Transferring",
   "jade.skylogistics.status_idle": "Idle",
+  "jade.skylogistics.distributor_status_indexing": "Indexing",
+  "jade.skylogistics.distributor_status_bound": "%s devices bound",
   "jade.skylogistics.upgrade_exact_name": "Exact Quantity",
   "jade.skylogistics.upgrade_none": "None",
   "jade.skylogistics.upgrade_speed_name": "Speed",

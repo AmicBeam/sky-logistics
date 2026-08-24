@@ -45,6 +45,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
     private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
+    private final boolean[] activeTargetSides = new boolean[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
     private final boolean[] targetsDirty = new boolean[DIRECTIONS.length];
     private final long[] nextRescan = new long[DIRECTIONS.length];
@@ -119,6 +120,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private void refreshTargets(Direction side) {
         int index = side.ordinal();
+        activeTargetSides[index] = true;
         TargetCache cache = discoverTargets(side);
         if (cache == null) {
             nextRescan[index] = level.getGameTime() + 1L;
@@ -177,7 +179,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return new TargetCache(itemTargets, DistributedSlotMap.create(itemTargets, Target::itemSlots),
                 List.copyOf(scan.fluidTargets),
                 List.copyOf(scan.chemicalTargets), List.copyOf(scan.energyTargets),
-                List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets));
+                List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets), scan.found);
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
@@ -306,6 +308,21 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     public record TargetSnapshot(BlockPos pos, int resourceMask) {}
 
+    public IndexStatus indexStatus() {
+        boolean indexing = false;
+        int boundDevices = 0;
+        for (int index = 0; index < DIRECTIONS.length; index++) {
+            if (!activeTargetSides[index]) continue;
+            DiscoveryState discovery = targetDiscoveries[index];
+            indexing |= targetsDirty[index] || discovery != null;
+            boundDevices = Math.max(boundDevices,
+                    discovery == null ? targetCaches[index].deviceCount : discovery.found);
+        }
+        return new IndexStatus(indexing, boundDevices);
+    }
+
+    public record IndexStatus(boolean indexing, int boundDevices) {}
+
     private long gameTime() { return level == null ? Long.MIN_VALUE : level.getGameTime(); }
 
     private void selectSide(Direction side) {
@@ -388,7 +405,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void continueDiscovery() {
         for (int offset = 0; offset < DIRECTIONS.length; offset++) {
             int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
-            if (targetDiscoveries[index] == null) continue;
+            if (!activeTargetSides[index]
+                    || (targetDiscoveries[index] == null && !targetsDirty[index])) continue;
             discoveryCursor = (index + 1) % DIRECTIONS.length;
             refreshTargets(DIRECTIONS[index]);
             return;
@@ -425,10 +443,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private record TargetCache(List<Target> items, DistributedSlotMap<Target> itemSlots,
             List<Target> fluids, List<Target> chemicals,
-            List<Target> energy, List<Target> mana, List<Target> source) {
+            List<Target> energy, List<Target> mana, List<Target> source, int deviceCount) {
         private static final TargetCache EMPTY = new TargetCache(
                 List.of(), DistributedSlotMap.create(List.of(), target -> 0),
-                List.of(), List.of(), List.of(), List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of(), List.of(), 0);
     }
 
     private static final class DiscoveryState {
