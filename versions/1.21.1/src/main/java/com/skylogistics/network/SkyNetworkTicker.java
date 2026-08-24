@@ -1199,49 +1199,51 @@ public final class SkyNetworkTicker {
     private static ItemStack simulateSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
             int transferLimit) {
         ItemStack simulated = source.extractItem(slot, transferLimit, true);
-        if (simulated.isEmpty() || !SophisticatedStorageCompat.supports(endpoint.targetBlockEntity())) {
-            return simulated;
-        }
-        ItemStack stored = source.getStackInSlot(slot);
-        if (stored.isEmpty() || !StackData.sameItemAndComponents(stored, simulated)) {
-            return simulated;
-        }
-        int count = Math.min(stored.getCount(), transferLimit);
-        return count > simulated.getCount() ? stored.copyWithCount(count) : simulated;
+        return SophisticatedStorageCompat.fullSlotCandidate(
+                endpoint.targetBlockEntity(), slot, simulated, transferLimit);
     }
 
     private static ItemSlotTransfer transferItemSlot(CachedEndpoint sourceEndpoint, IItemHandler source,
             int sourceSlot, CachedEndpoint targetEndpoint, IItemHandler target, int targetSlot, int amount) {
-        boolean batch = SophisticatedStorageCompat.supports(sourceEndpoint.targetBlockEntity())
-                && SophisticatedStorageCompat.supports(targetEndpoint.targetBlockEntity());
-        int remaining = amount;
-        int insertedTotal = 0;
-        int batches = 0;
-        boolean extractedAny = false;
-        boolean hadLeftover = false;
-        do {
-            ItemStack extracted = source.extractItem(sourceSlot, remaining, false);
-            if (extracted.isEmpty()) break;
-            extractedAny = true;
-            ItemStack leftover = target.insertItem(targetSlot, extracted, false);
-            int inserted = extracted.getCount() - leftover.getCount();
-            insertedTotal += inserted;
-            remaining -= inserted;
-            if (!leftover.isEmpty()) {
-                hadLeftover = true;
-                ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, leftover, false);
-                if (!rollbackRemainder.isEmpty()) {
-                    SkyLogistics.LOGGER.warn(
-                            "Item rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, target leftover {}, rollback remainder {}",
-                            sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                            targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
-                            leftover, rollbackRemainder);
-                }
-                break;
+        SourceExtraction extraction = extractSourceItem(sourceEndpoint, source, sourceSlot,
+                source.getStackInSlot(sourceSlot), amount);
+        ItemStack extracted = extraction.stack();
+        if (extracted.isEmpty()) return new ItemSlotTransfer(false, 0, false);
+        ItemStack leftover = target.insertItem(targetSlot, extracted, false);
+        int inserted = extracted.getCount() - leftover.getCount();
+        if (!leftover.isEmpty()) {
+            ItemStack rollbackRemainder = rollbackSourceItem(sourceEndpoint, source, sourceSlot, extraction, leftover);
+            if (!rollbackRemainder.isEmpty()) {
+                SkyLogistics.LOGGER.warn(
+                        "Item rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, target leftover {}, rollback remainder {}",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
+                        leftover, rollbackRemainder);
             }
-            if (inserted <= 0) break;
-        } while (batch && remaining > 0 && ++batches < 4096);
-        return new ItemSlotTransfer(extractedAny, insertedTotal, hadLeftover);
+        }
+        return new ItemSlotTransfer(true, inserted, !leftover.isEmpty());
+    }
+
+    private static SourceExtraction extractSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
+            ItemStack expected, int amount) {
+        ItemStack standard = source.extractItem(slot, amount, true);
+        if (!standard.isEmpty() && standard.getCount() == amount
+                && StackData.sameItemAndComponents(standard, expected)) {
+            return new SourceExtraction(source.extractItem(slot, amount, false), false);
+        }
+        SophisticatedStorageCompat.DirectExtraction direct = SophisticatedStorageCompat.extractDirect(
+                endpoint.targetBlockEntity(), slot, expected, amount);
+        if (direct.supported()) return new SourceExtraction(direct.stack(), true);
+        return new SourceExtraction(source.extractItem(slot, amount, false), false);
+    }
+
+    private static ItemStack rollbackSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
+            SourceExtraction extraction, ItemStack stack) {
+        if (extraction.direct()
+                && SophisticatedStorageCompat.restoreDirect(endpoint.targetBlockEntity(), slot, stack)) {
+            return ItemStack.EMPTY;
+        }
+        return ItemHandlerHelper.insertItemStacked(source, stack, false);
     }
 
     private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
@@ -1348,32 +1350,23 @@ public final class SkyNetworkTicker {
         if (accepted <= 0L) {
             return 0L;
         }
-        boolean batch = SophisticatedStorageCompat.supports(sourceEndpoint.targetBlockEntity());
-        long remaining = accepted;
-        long insertedTotal = 0L;
-        int batches = 0;
-        boolean extractedAny = false;
-        do {
-            ItemStack extracted = source.extractItem(sourceSlot, (int) Math.min(Integer.MAX_VALUE, remaining), false);
-            if (extracted.isEmpty()) return extractedAny ? insertedTotal : -1L;
-            extractedAny = true;
-            long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
-            insertedTotal += inserted;
-            remaining -= inserted;
-            if (inserted < extracted.getCount()) {
-                ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
-                ItemStack rollbackRemainder = ItemHandlerHelper.insertItemStacked(source, rollback, false);
-                if (!rollbackRemainder.isEmpty()) {
-                    SkyLogistics.LOGGER.warn(
-                            "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
-                            sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                            targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
-                            inserted, rollbackRemainder);
-                }
-                break;
+        int amount = (int) Math.min(Integer.MAX_VALUE, accepted);
+        SourceExtraction extraction = extractSourceItem(sourceEndpoint, source, sourceSlot, simulated, amount);
+        ItemStack extracted = extraction.stack();
+        if (extracted.isEmpty()) return -1L;
+        long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
+        if (inserted < extracted.getCount()) {
+            ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
+            ItemStack rollbackRemainder = rollbackSourceItem(sourceEndpoint, source, sourceSlot, extraction, rollback);
+            if (!rollbackRemainder.isEmpty()) {
+                SkyLogistics.LOGGER.warn(
+                        "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
+                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
+                        inserted, rollbackRemainder);
             }
-        } while (batch && remaining > 0L && ++batches < 4096);
-        return insertedTotal;
+        }
+        return inserted;
     }
 
     private interface LongItemEndpoint {
@@ -3060,6 +3053,9 @@ public final class SkyNetworkTicker {
     }
 
     private record ItemSlotTransfer(boolean extracted, int inserted, boolean hadLeftover) {
+    }
+
+    private record SourceExtraction(ItemStack stack, boolean direct) {
     }
 
     private record TargetItemSelection(TargetItemSlot slot, int checks, boolean exhaustive) {
