@@ -1762,7 +1762,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             return FilterListItem.CompiledFilter.ALLOW_ALL;
         }
         if (dirty[slot]) {
-            compiled[slot] = FilterListItem.compile(getFaceFilter(direction, slot));
+            compiled[slot] = FilterListItem.compile(getFaceFilter(direction, slot), level.registryAccess());
             dirty[slot] = false;
         }
         return compiled[slot];

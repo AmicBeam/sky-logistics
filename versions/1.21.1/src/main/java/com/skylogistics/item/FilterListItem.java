@@ -8,10 +8,11 @@ import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -61,6 +62,8 @@ public class FilterListItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        HolderLookup.Provider registries = context.registries() == null
+                ? StackData.builtinRegistries() : context.registries();
         tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.list_mode",
                 Component.translatable(isWhitelist(stack) ? "screen.skylogistics.filter_whitelist"
                         : "screen.skylogistics.filter_blacklist")).withStyle(ChatFormatting.GRAY));
@@ -68,9 +71,10 @@ public class FilterListItem extends Item {
                 .withStyle(ChatFormatting.DARK_AQUA));
         tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.durability", matchDurability(stack))
                 .withStyle(ChatFormatting.DARK_AQUA));
-        tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entries", countFilters(stack), FILTER_SLOTS)
+        tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.entries",
+                countFilters(stack, registries), FILTER_SLOTS)
                 .withStyle(ChatFormatting.GRAY));
-        int fluids = countFluidFilters(stack);
+        int fluids = countFluidFilters(stack, registries);
         if (fluids > 0) {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.fluids", fluids, FILTER_SLOTS)
                     .withStyle(ChatFormatting.AQUA));
@@ -80,7 +84,7 @@ public class FilterListItem extends Item {
                 "tooltip.skylogistics.filter_list.chemicals", chemicals, FILTER_SLOTS)
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         if (showFilterContents()) {
-            appendFilterContents(stack, tooltip, false);
+            appendFilterContents(stack, registries, tooltip, false);
         } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
                     .withStyle(ChatFormatting.DARK_GRAY));
@@ -115,6 +119,10 @@ public class FilterListItem extends Item {
     }
 
     public static ItemStack getFilter(ItemStack stack, int slot) {
+        return getFilter(stack, slot, StackData.builtinRegistries());
+    }
+
+    public static ItemStack getFilter(ItemStack stack, int slot, HolderLookup.Provider registries) {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return ItemStack.EMPTY;
         }
@@ -126,29 +134,37 @@ public class FilterListItem extends Item {
         for (int i = 0; i < filters.size(); i++) {
             CompoundTag entry = filters.getCompound(i);
             if (entry.getInt(SLOT) == slot) {
-                return StackData.loadItem(entry.getCompound(STACK));
+                return StackData.loadItem(entry.getCompound(STACK), registries);
             }
         }
         return ItemStack.EMPTY;
     }
 
     public static void setFilter(ItemStack stack, int slot, ItemStack filter) {
+        setFilter(stack, slot, filter, StackData.builtinRegistries());
+    }
+
+    public static void setFilter(ItemStack stack, int slot, ItemStack filter, HolderLookup.Provider registries) {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return;
         }
-        List<ItemStack> filters = getFilters(stack);
+        List<ItemStack> filters = getFilters(stack, registries);
         ItemStack copy = filter.copy();
         if (!copy.isEmpty()) {
             copy.setCount(1);
         }
         filters.set(slot, copy);
-        saveFilters(stack, filters);
+        saveFilters(stack, filters, registries);
         if (!copy.isEmpty()) {
-            setFluidFilter(stack, slot, FluidStack.EMPTY);
+            setFluidFilter(stack, slot, FluidStack.EMPTY, registries);
         }
     }
 
     public static FluidStack getFluidFilter(ItemStack stack, int slot) {
+        return getFluidFilter(stack, slot, StackData.builtinRegistries());
+    }
+
+    public static FluidStack getFluidFilter(ItemStack stack, int slot, HolderLookup.Provider registries) {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return FluidStack.EMPTY;
         }
@@ -160,25 +176,29 @@ public class FilterListItem extends Item {
         for (int i = 0; i < filters.size(); i++) {
             CompoundTag entry = filters.getCompound(i);
             if (entry.getInt(SLOT) == slot) {
-                return StackData.loadFluid(entry.getCompound(FLUID));
+                return StackData.loadFluid(entry.getCompound(FLUID), registries);
             }
         }
         return FluidStack.EMPTY;
     }
 
     public static void setFluidFilter(ItemStack stack, int slot, FluidStack filter) {
+        setFluidFilter(stack, slot, filter, StackData.builtinRegistries());
+    }
+
+    public static void setFluidFilter(ItemStack stack, int slot, FluidStack filter, HolderLookup.Provider registries) {
         if (slot < 0 || slot >= FILTER_SLOTS) {
             return;
         }
-        List<FluidStack> filters = getFluidFilters(stack);
+        List<FluidStack> filters = getFluidFilters(stack, registries);
         FluidStack copy = filter.copy();
         if (!copy.isEmpty()) {
             copy.setAmount(1);
         }
         filters.set(slot, copy);
-        saveFluidFilters(stack, filters);
+        saveFluidFilters(stack, filters, registries);
         if (!copy.isEmpty()) {
-            setFilter(stack, slot, ItemStack.EMPTY);
+            setFilter(stack, slot, ItemStack.EMPTY, registries);
         }
     }
 
@@ -195,6 +215,11 @@ public class FilterListItem extends Item {
     }
 
     public static void setChemicalFilter(ItemStack stack, int slot, String chemical) {
+        setChemicalFilter(stack, slot, chemical, StackData.builtinRegistries());
+    }
+
+    public static void setChemicalFilter(ItemStack stack, int slot, String chemical,
+            HolderLookup.Provider registries) {
         if (slot < 0 || slot >= FILTER_SLOTS) return;
         List<String> values = getChemicalFilters(stack);
         values.set(slot, chemical == null ? "" : chemical);
@@ -208,8 +233,8 @@ public class FilterListItem extends Item {
         }
         StackData.update(stack, tag -> tag.put(CHEMICAL_FILTERS, entries));
         if (!values.get(slot).isEmpty()) {
-            setFilter(stack, slot, ItemStack.EMPTY);
-            setFluidFilter(stack, slot, FluidStack.EMPTY);
+            setFilter(stack, slot, ItemStack.EMPTY, registries);
+            setFluidFilter(stack, slot, FluidStack.EMPTY, registries);
         }
     }
 
@@ -220,11 +245,15 @@ public class FilterListItem extends Item {
     }
 
     public static ItemStack getDisplayFilter(ItemStack stack, int slot) {
-        ItemStack item = getFilter(stack, slot);
+        return getDisplayFilter(stack, slot, StackData.builtinRegistries());
+    }
+
+    public static ItemStack getDisplayFilter(ItemStack stack, int slot, HolderLookup.Provider registries) {
+        ItemStack item = getFilter(stack, slot, registries);
         if (!item.isEmpty()) {
             return item;
         }
-        ItemStack fluid = fluidDisplayStack(getFluidFilter(stack, slot));
+        ItemStack fluid = fluidDisplayStack(getFluidFilter(stack, slot, registries));
         if (!fluid.isEmpty()) return fluid;
         return getChemicalFilter(stack, slot).isEmpty() ? ItemStack.EMPTY : Items.GLASS_BOTTLE.getDefaultInstance();
     }
@@ -241,19 +270,32 @@ public class FilterListItem extends Item {
     }
 
     public static int countFilters(ItemStack stack) {
-        int count = 0;
-        for (ItemStack filter : getFilters(stack)) {
-            if (!filter.isEmpty()) {
-                count++;
-            }
-        }
-        return count;
+        return countFilters(stack, StackData.builtinRegistries());
+    }
+
+    public static int countFilters(ItemStack stack, HolderLookup.Provider registries) {
+        return countStoredFilters(stack, FILTERS, STACK);
     }
 
     public static int countFluidFilters(ItemStack stack) {
+        return countFluidFilters(stack, StackData.builtinRegistries());
+    }
+
+    public static int countFluidFilters(ItemStack stack, HolderLookup.Provider registries) {
+        return countStoredFilters(stack, FLUID_FILTERS, FLUID);
+    }
+
+    private static int countStoredFilters(ItemStack stack, String listKey, String valueKey) {
+        CompoundTag tag = StackData.get(stack);
+        if (tag == null || !tag.contains(listKey, Tag.TAG_LIST)) {
+            return 0;
+        }
         int count = 0;
-        for (FluidStack filter : getFluidFilters(stack)) {
-            if (!filter.isEmpty()) {
+        ListTag entries = tag.getList(listKey, Tag.TAG_COMPOUND);
+        for (int i = 0; i < entries.size(); i++) {
+            CompoundTag entry = entries.getCompound(i);
+            int slot = entry.getInt(SLOT);
+            if (slot >= 0 && slot < FILTER_SLOTS && !entry.getCompound(valueKey).isEmpty()) {
                 count++;
             }
         }
@@ -282,6 +324,11 @@ public class FilterListItem extends Item {
     }
 
     public static void appendFilterContentsOrHint(ItemStack stack, List<Component> tooltip, TooltipFlag flag) {
+        appendFilterContentsOrHint(stack, StackData.builtinRegistries(), tooltip, flag);
+    }
+
+    public static void appendFilterContentsOrHint(ItemStack stack, HolderLookup.Provider registries,
+            List<Component> tooltip, TooltipFlag flag) {
         if (TagFilterListItem.isTagFilterList(stack)) {
             if (showFilterContents()) {
                 TagFilterListItem.appendFilterContents(stack, tooltip, true);
@@ -292,7 +339,7 @@ public class FilterListItem extends Item {
             return;
         }
         if (showFilterContents()) {
-            appendFilterContents(stack, tooltip, true);
+            appendFilterContents(stack, registries, tooltip, true);
         } else {
             tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.hold_shift")
                     .withStyle(ChatFormatting.DARK_GRAY));
@@ -300,12 +347,17 @@ public class FilterListItem extends Item {
     }
 
     public static void appendFilterContents(ItemStack stack, List<Component> tooltip, boolean indented) {
+        appendFilterContents(stack, StackData.builtinRegistries(), tooltip, indented);
+    }
+
+    public static void appendFilterContents(ItemStack stack, HolderLookup.Provider registries,
+            List<Component> tooltip, boolean indented) {
         String suffix = indented ? "_indented" : "";
         tooltip.add(Component.translatable("tooltip.skylogistics.filter_list.contents" + suffix)
                 .withStyle(ChatFormatting.GOLD));
         boolean added = false;
-        List<ItemStack> filters = getFilters(stack);
-        List<FluidStack> fluidFilters = getFluidFilters(stack);
+        List<ItemStack> filters = getFilters(stack, registries);
+        List<FluidStack> fluidFilters = getFluidFilters(stack, registries);
         List<String> chemicalFilters = getChemicalFilters(stack);
         for (int slot = 0; slot < FILTER_SLOTS; slot++) {
             ItemStack filter = filters.get(slot);
@@ -338,6 +390,10 @@ public class FilterListItem extends Item {
     }
 
     public static List<ItemStack> getFilters(ItemStack stack) {
+        return getFilters(stack, StackData.builtinRegistries());
+    }
+
+    public static List<ItemStack> getFilters(ItemStack stack, HolderLookup.Provider registries) {
         List<ItemStack> filters = new ArrayList<>(FILTER_SLOTS);
         for (int i = 0; i < FILTER_SLOTS; i++) {
             filters.add(ItemStack.EMPTY);
@@ -351,13 +407,17 @@ public class FilterListItem extends Item {
             CompoundTag entry = entries.getCompound(i);
             int slot = entry.getInt(SLOT);
             if (slot >= 0 && slot < FILTER_SLOTS) {
-                filters.set(slot, StackData.loadItem(entry.getCompound(STACK)));
+                filters.set(slot, StackData.loadItem(entry.getCompound(STACK), registries));
             }
         }
         return filters;
     }
 
     public static List<FluidStack> getFluidFilters(ItemStack stack) {
+        return getFluidFilters(stack, StackData.builtinRegistries());
+    }
+
+    public static List<FluidStack> getFluidFilters(ItemStack stack, HolderLookup.Provider registries) {
         List<FluidStack> filters = new ArrayList<>(FILTER_SLOTS);
         for (int i = 0; i < FILTER_SLOTS; i++) {
             filters.add(FluidStack.EMPTY);
@@ -371,21 +431,33 @@ public class FilterListItem extends Item {
             CompoundTag entry = entries.getCompound(i);
             int slot = entry.getInt(SLOT);
             if (slot >= 0 && slot < FILTER_SLOTS) {
-                filters.set(slot, StackData.loadFluid(entry.getCompound(FLUID)));
+                filters.set(slot, StackData.loadFluid(entry.getCompound(FLUID), registries));
             }
         }
         return filters;
     }
 
     public static boolean matches(ItemStack filterList, ItemStack candidate) {
-        return compile(filterList).matches(candidate);
+        return matches(filterList, candidate, StackData.builtinRegistries());
+    }
+
+    public static boolean matches(ItemStack filterList, ItemStack candidate, HolderLookup.Provider registries) {
+        return compile(filterList, registries).matches(candidate);
     }
 
     public static boolean matchesFluid(ItemStack filterList, FluidStack candidate) {
-        return compile(filterList).matchesFluid(candidate);
+        return matchesFluid(filterList, candidate, StackData.builtinRegistries());
+    }
+
+    public static boolean matchesFluid(ItemStack filterList, FluidStack candidate, HolderLookup.Provider registries) {
+        return compile(filterList, registries).matchesFluid(candidate);
     }
 
     public static CompiledFilter compile(ItemStack filterList) {
+        return compile(filterList, StackData.builtinRegistries());
+    }
+
+    public static CompiledFilter compile(ItemStack filterList, HolderLookup.Provider registries) {
         if (filterList.isEmpty()) {
             return CompiledFilter.ALLOW_ALL;
         }
@@ -400,7 +472,7 @@ public class FilterListItem extends Item {
             return CompiledFilter.tagList(TagFilterListItem.isWhitelist(filterList), tagKeys, fluidTagKeys, mods);
         }
         boolean whitelist = isWhitelist(filterList);
-        List<ItemStack> filters = getFilters(filterList);
+        List<ItemStack> filters = getFilters(filterList, registries);
         List<CompiledFilter.Entry> entries = new ArrayList<>(FILTER_SLOTS);
         boolean nbt = matchNbt(filterList);
         boolean durability = matchDurability(filterList);
@@ -413,7 +485,7 @@ public class FilterListItem extends Item {
             entries.add(new CompiledFilter.Entry(copy));
         }
         List<CompiledFilter.FluidEntry> fluidEntries = new ArrayList<>(FILTER_SLOTS);
-        for (FluidStack fluid : getFluidFilters(filterList)) {
+        for (FluidStack fluid : getFluidFilters(filterList, registries)) {
             if (fluid.isEmpty()) {
                 continue;
             }
@@ -441,22 +513,19 @@ public class FilterListItem extends Item {
         if (!matchNbt) {
             return true;
         }
-        return Objects.equals(comparableTag(sample, matchDurability), comparableTag(candidate, matchDurability));
+        return comparableComponents(sample, matchDurability).equals(comparableComponents(candidate, matchDurability));
     }
 
-    private static CompoundTag comparableTag(ItemStack stack, boolean includeDurability) {
-        CompoundTag tag = StackData.get(stack);
-        if (tag == null) {
-            return null;
+    private static DataComponentPatch comparableComponents(ItemStack stack, boolean includeDurability) {
+        ItemStack copy = stack.copy();
+        copy.setCount(1);
+        if (!includeDurability && copy.isDamageableItem()) {
+            copy.setDamageValue(0);
         }
-        CompoundTag copy = tag.copy();
-        if (!includeDurability) {
-            copy.remove("Damage");
-        }
-        return copy.getAllKeys().isEmpty() ? null : copy;
+        return copy.getComponentsPatch();
     }
 
-    private static void saveFilters(ItemStack stack, List<ItemStack> filters) {
+    private static void saveFilters(ItemStack stack, List<ItemStack> filters, HolderLookup.Provider registries) {
         ListTag entries = new ListTag();
         for (int slot = 0; slot < Math.min(FILTER_SLOTS, filters.size()); slot++) {
             ItemStack filter = filters.get(slot);
@@ -465,13 +534,14 @@ public class FilterListItem extends Item {
             }
             CompoundTag entry = new CompoundTag();
             entry.putInt(SLOT, slot);
-            entry.put(STACK, StackData.saveItem(filter));
+            entry.put(STACK, StackData.saveItem(filter, registries));
             entries.add(entry);
         }
         StackData.update(stack, tag -> tag.put(FILTERS, entries));
     }
 
-    private static void saveFluidFilters(ItemStack stack, List<FluidStack> filters) {
+    private static void saveFluidFilters(ItemStack stack, List<FluidStack> filters,
+            HolderLookup.Provider registries) {
         ListTag entries = new ListTag();
         for (int slot = 0; slot < Math.min(FILTER_SLOTS, filters.size()); slot++) {
             FluidStack filter = filters.get(slot);
@@ -482,7 +552,7 @@ public class FilterListItem extends Item {
             copy.setAmount(1);
             CompoundTag entry = new CompoundTag();
             entry.putInt(SLOT, slot);
-            entry.put(FLUID, StackData.saveFluid(copy));
+            entry.put(FLUID, StackData.saveFluid(copy, registries));
             entries.add(entry);
         }
         StackData.update(stack, tag -> tag.put(FLUID_FILTERS, entries));
@@ -714,11 +784,11 @@ public class FilterListItem extends Item {
         private record FluidEntry(FluidStack stack) {
         }
 
-        private record ItemFilterKey(Item item, int damage, CompoundTag tag) {
+        private record ItemFilterKey(Item item, int damage, DataComponentPatch components) {
             private static ItemFilterKey of(ItemStack stack, boolean matchNbt, boolean matchDurability) {
                 int damage = matchDurability && stack.isDamageableItem() ? stack.getDamageValue() : 0;
-                CompoundTag tag = matchNbt ? comparableTag(stack, matchDurability) : null;
-                return new ItemFilterKey(stack.getItem(), damage, tag);
+                DataComponentPatch components = matchNbt ? comparableComponents(stack, matchDurability) : null;
+                return new ItemFilterKey(stack.getItem(), damage, components);
             }
         }
 

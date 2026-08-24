@@ -296,7 +296,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
 
     private FilterListItem.CompiledFilter endpointFilter(Direction direction) {
         return compiledEndpointFilters.computeIfAbsent(direction,
-                key -> FilterListItem.compile(endpointFilters.getOrDefault(key, ItemStack.EMPTY)));
+                key -> FilterListItem.compile(endpointFilters.getOrDefault(key, ItemStack.EMPTY), level.registryAccess()));
     }
 
     private void syncFilterChange() {

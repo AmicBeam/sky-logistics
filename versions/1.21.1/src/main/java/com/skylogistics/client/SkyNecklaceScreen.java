@@ -235,7 +235,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
                 PRIORITY_GROUP_X + BOTTOM_GROUP_WIDTH / 2, BOTTOM_GROUP_Y - 4, ConfigPanel.MUTED);
         ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(SkyNecklaceItem.priority(stack))),
                 PRIORITY_VALUE_X + PRIORITY_VALUE_WIDTH / 2, BOTTOM_CONTROL_Y + 4, ConfigPanel.FIELD_TEXT);
-        if (!SkyNecklaceItem.hasValidItemWhitelist(stack)) {
+        if (!SkyNecklaceItem.hasValidItemWhitelist(stack, minecraft.level.registryAccess())) {
             Component warning = Component.translatable("screen.skylogistics.sky_necklace.needs_whitelist");
             graphics.drawString(font, warning, imageWidth - 10 - font.width(warning), TITLE_ROW_Y,
                     0xFFB84343, false);
