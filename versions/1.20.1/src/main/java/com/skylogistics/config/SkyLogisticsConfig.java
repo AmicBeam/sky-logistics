@@ -427,6 +427,9 @@ public final class SkyLogisticsConfig {
                             "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
                     .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
             builder.pop();
+            builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
+                            "简易管道的启用开关、传输速率与连接上限。")
+                    .push("simplePipes");
             enableSimpleItemPipe = builder
                     .comment("Whether simple item pipes connect to inventories and transfer items.",
                             "简易物品管道是否连接物品容器并传输物品。")
@@ -471,6 +474,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum connected blocks in one simple pipe line. New pipe edges that would exceed this limit stay disconnected.",
                             "单条简易管道线路允许连接的最大方块数；超过上限的新连接会保持断开。")
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
+            builder.pop();
             maxSpeedUpgradesPerNode = builder
                     .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one.",
                             "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。")
@@ -479,6 +483,9 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
                             "天穹物流仓库容器之间每次直接传输操作可搬运的最大数量。")
                     .defineInRange("skyContainerTransferLimit", Long.MAX_VALUE, 1L, Long.MAX_VALUE);
+            builder.comment("Transfer operation budgets and scan attempt limits.",
+                            "传输操作预算与扫描尝试上限。")
+                    .push("performance");
             serverOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations Sky Logistics may process per server tick.",
                             "天穹物流每个服务器 tick 可处理的端点、槽位、储罐和能量传输操作总上限。")
@@ -499,10 +506,14 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum slot/tank cursor positions one source endpoint may skip while searching for work in one transfer attempt.",
                             "一个来源端点在单次传输尝试中寻找可执行工作时最多跳过的槽位/储罐游标位置数。")
                     .defineInRange("sourceSearchAttemptsPerEndpoint", 64, 1, 1_000_000);
+            builder.pop();
             maxItemSlotLimit = builder
                     .comment("Maximum item slot keep limit configurable on a logistics face. Face value 0 still means unlimited.",
                             "物流面的物品留槽限制可配置的最大值；面配置值 0 仍表示无限制。")
                     .defineInRange("maxItemSlotLimit", 36, 1, 999);
+            builder.comment("Third-party storage and resource transfer integrations.",
+                            "第三方存储与资源传输联动。")
+                    .push("integrations");
             allowAe2ItemTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer items stored in AE2 networks.",
                             "天穹 ME 接口是否可传输 AE2 网络中存储的物品。")
@@ -585,6 +596,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky ME Interfaces may transfer Ars Energistique source stored in AE2 networks.",
                             "天穹 ME 接口是否可传输 AE2 网络中由 Ars Energistique 存储的源质。")
                     .define("allowAe2ArsEnergistiqueSourceTransfer", true);
+            builder.pop();
+            builder.comment("Transfer retry delays, cursors, and endpoint caches.",
+                            "传输重试延迟、游标与端点缓存。")
+                    .push("retryAndCaching");
             preferredItemSlotCacheSize = builder
                     .comment("Number of successful item source slots remembered as hot slots per source endpoint.",
                             "每个来源端点记忆为热槽的成功物品来源槽数量。")
@@ -613,6 +628,7 @@ public final class SkyLogisticsConfig {
                     .comment("Ticks to wait after the fourth and later consecutive failed transfer attempts.",
                             "连续第四次及后续传输尝试失败后的等待 tick 数。")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
+            builder.pop();
             builder.pop();
 
             builder.push("distributor");
