@@ -569,6 +569,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean hasExactQuantityUpgrade() { return hasUpgrade(ModItems.EXACT_QUANTITY_UPGRADE.get()); }
 
+    public boolean hasForceExtractionUpgrade() { return hasUpgrade(ModItems.FORCE_EXTRACTION_UPGRADE.get()); }
+
     public int exactQuantity() {
         for (ItemStack upgrade : upgrades) if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
         return ExactQuantityUpgrade.DEFAULT;
@@ -598,7 +600,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public static boolean isUpgradeItem(ItemStack stack) {
         return stack.is(ModItems.SPEED_UPGRADE.get())
                 || stack.is(ModItems.DIMENSION_UPGRADE.get())
-                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get());
+                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get())
+                || stack.is(ModItems.FORCE_EXTRACTION_UPGRADE.get());
     }
 
     public static boolean isFaceFilterItem(ItemStack stack) {

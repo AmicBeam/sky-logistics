@@ -194,6 +194,19 @@ public final class SkyLogisticsConfig {
         return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
     }
 
+    public static boolean enableForceExtractionUpgrade() {
+        return SERVER.enableForceExtractionUpgrade.get();
+    }
+
+    public static boolean forceExtractionDeviceModAllowed(String modId) {
+        return SERVER.forceExtractionDeviceModIdWhitelist.get().stream()
+                .anyMatch(value -> modId.equals(value));
+    }
+
+    private static boolean validModId(Object value) {
+        return value instanceof String text && text.matches("[a-z0-9_.-]+");
+    }
+
     public static boolean allowAe2FluidTransfer() {
         return SERVER.allowAe2FluidTransfer.get();
     }
@@ -333,6 +346,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
+        public final ForgeConfigSpec.BooleanValue enableForceExtractionUpgrade;
+        public final ForgeConfigSpec.ConfigValue<List<? extends Object>> forceExtractionDeviceModIdWhitelist;
         public final ForgeConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ForgeConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
@@ -496,6 +511,17 @@ public final class SkyLogisticsConfig {
                     .comment("Whether transfers treat a Sophisticated Storage stack-upgraded slot as one transportable slot.",
                             "传输时是否将 Sophisticated Storage 堆叠升级后的槽位视为一个可搬运槽位。")
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
+            builder.push("forceExtractionUpgrade");
+            enableForceExtractionUpgrade = builder
+                    .comment("Whether Force Extraction Upgrades may atomically reduce oversized modifiable item slots.",
+                            "是否允许强制抽取升级对可修改的超大物品槽执行一次性原子扣除。")
+                    .define("enabled", true);
+            forceExtractionDeviceModIdWhitelist = builder
+                    .comment("Device block mod IDs allowed for force extraction.",
+                            "允许强制抽取的设备方块 modID 白名单。")
+                    .defineListAllowEmpty("deviceModIdWhitelist", List.of("mekanism_extras"),
+                            SkyLogisticsConfig::validModId);
+            builder.pop();
             allowAe2FluidTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer fluids stored in AE2 networks.",
                             "天穹 ME 接口是否可传输 AE2 网络中存储的流体。")

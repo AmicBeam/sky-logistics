@@ -76,6 +76,9 @@ public final class ModItems {
     public static final RegistryObject<Item> EXACT_QUANTITY_UPGRADE = ITEMS.register("exact_quantity_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
                     "tooltip.skylogistics.exact_quantity_upgrade"));
+    public static final RegistryObject<Item> FORCE_EXTRACTION_UPGRADE = ITEMS.register("force_extraction_upgrade",
+            () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
+                    "tooltip.skylogistics.force_extraction_upgrade"));
     public static final RegistryObject<Item> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",

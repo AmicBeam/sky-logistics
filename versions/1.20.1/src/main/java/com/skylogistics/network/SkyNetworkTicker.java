@@ -17,6 +17,7 @@ import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.ForceExtractionCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -1222,6 +1223,10 @@ public final class SkyNetworkTicker {
     private static ItemStack simulateSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
             int transferLimit) {
         ItemStack simulated = source.extractItem(slot, transferLimit, true);
+        if (endpoint.node() instanceof SkyNodeBlockEntity node) {
+            simulated = ForceExtractionCompat.fullSlotCandidate(node, endpoint.targetBlockEntity(), source,
+                    slot, simulated, transferLimit);
+        }
         return SophisticatedStorageCompat.fullSlotCandidate(
                 endpoint.targetBlockEntity(), slot, simulated, transferLimit);
     }
@@ -1252,17 +1257,27 @@ public final class SkyNetworkTicker {
         ItemStack standard = source.extractItem(slot, amount, true);
         if (!standard.isEmpty() && standard.getCount() == amount
                 && ItemStack.isSameItemSameTags(standard, expected)) {
-            return new SourceExtraction(source.extractItem(slot, amount, false), false);
+            return new SourceExtraction(source.extractItem(slot, amount, false), DirectSource.NONE);
+        }
+        if (endpoint.node() instanceof SkyNodeBlockEntity node) {
+            ForceExtractionCompat.DirectExtraction forced = ForceExtractionCompat.extractDirect(node,
+                    endpoint.targetBlockEntity(), source, slot, expected, amount);
+            if (forced.supported()) return new SourceExtraction(forced.stack(), DirectSource.FORCED);
         }
         SophisticatedStorageCompat.DirectExtraction direct = SophisticatedStorageCompat.extractDirect(
                 endpoint.targetBlockEntity(), slot, expected, amount);
-        if (direct.supported()) return new SourceExtraction(direct.stack(), true);
-        return new SourceExtraction(source.extractItem(slot, amount, false), false);
+        if (direct.supported()) return new SourceExtraction(direct.stack(), DirectSource.SOPHISTICATED);
+        return new SourceExtraction(source.extractItem(slot, amount, false), DirectSource.NONE);
     }
 
     private static ItemStack rollbackSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
             SourceExtraction extraction, ItemStack stack) {
-        if (extraction.direct()
+        if (extraction.directSource() == DirectSource.FORCED
+                && endpoint.node() instanceof SkyNodeBlockEntity node
+                && ForceExtractionCompat.restoreDirect(node, endpoint.targetBlockEntity(), source, slot, stack)) {
+            return ItemStack.EMPTY;
+        }
+        if (extraction.directSource() == DirectSource.SOPHISTICATED
                 && SophisticatedStorageCompat.restoreDirect(endpoint.targetBlockEntity(), slot, stack)) {
             return ItemStack.EMPTY;
         }
@@ -3184,7 +3199,13 @@ public final class SkyNetworkTicker {
     private record ItemSlotTransfer(boolean extracted, int inserted, boolean hadLeftover) {
     }
 
-    private record SourceExtraction(ItemStack stack, boolean direct) {
+    private enum DirectSource {
+        NONE,
+        FORCED,
+        SOPHISTICATED
+    }
+
+    private record SourceExtraction(ItemStack stack, DirectSource directSource) {
     }
 
     private record TargetItemSelection(TargetItemSlot slot, int checks, boolean exhaustive) {

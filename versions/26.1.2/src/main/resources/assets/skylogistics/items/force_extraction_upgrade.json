@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "skylogistics:item/force_extraction_upgrade"
+  }
+}

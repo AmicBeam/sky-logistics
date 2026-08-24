@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <image x="0" y="0" width="16" height="16" image-rendering="pixelated"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA3ElEQVR4nGNgoBAwInP4ZVT+E6Pp45M7cH1M6JJLjx1ZyCcixoANLz12pBldPQu67UtXboy/NFsbq81ZKzfWwtTCXMGCTaFe6lU4+9EmFwY5vz1gtk20CYZaJnQBbh93Bq2SMoaf376BNYPAohRuMB8bYEEX+LplJ8P52dOxKibKAG4fdwZDSXGGHXbnwHxxl014DWDC6oKmBjh/ZZ4oeS5gYDhH0Ha8LhB32UTQdqwuAAF2Li4wHTfnK5xNkgHbmqWxKm67gSmGkRdASRYf+PTmFUpewHABSAFdAQBihkuRTBLJJgAAAABJRU5ErkJggg=="/>
+  <!-- Dark flame tips -->
+  <path fill="#260000" d="M5 3h2v1h2V3h2v2h1v6h-1v1H5v-1H4V5h1z"/>
+  <!-- Black angry face -->
+  <path fill="#090909" d="M5 4h6v1h1v6h-1v1H5v-1H4V5h1zm1 6v1h4v-1H9V9H7v1z"/>
+  <!-- Slanted red eyes -->
+  <path fill="#7a0000" d="M5 6h3v1H7v1H5zm3 1h3v1H9V7H8z"/>
+  <path fill="#ff2a1a" d="M6 7h1v1H6zm3 0h1v1H9z"/>
+</svg>

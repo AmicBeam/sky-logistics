@@ -29,6 +29,10 @@
       "text": "Exact Quantity Upgrades can be installed in nodes or Sky Necklaces. They replace the slot setting with an item count from 1–2147483647. A node extract face keeps the configured total of items matching its filter, while an insert face only fills up to that total. Necklace extract, insert, and maintain modes likewise count all items matching the whitelist."
     },
     {
+      "type": "patchouli:text",
+      "text": "Force Extraction Upgrades belong on extracting nodes. For devices on the server-configured mod ID whitelist that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default whitelist is mekanism_extras; rejected transfers restore the source slot."
+    },
+    {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
       "recipe2": "skylogistics:exact_quantity_upgrade",
@@ -37,6 +41,10 @@
     {
       "type": "patchouli:text",
       "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. The ritual takes about 12 seconds, and the upgrade only needs to be installed on the extracting node."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Force Extraction Upgrades also use a tier 2 offering: place one Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap. The ritual takes about 12 seconds."
     }
   ]
 }
