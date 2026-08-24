@@ -449,7 +449,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("serverOpsPerTick", 32_768, 1, 1_000_000);
             lineOpsPerTick = builder
                     .comment("Maximum endpoint, slot, tank, and energy transfer operations one logistics line may consume per server tick.")
-                    .defineInRange("lineOpsPerTick", 256, 1, 1_000_000);
+                    .defineInRange("lineOpsPerTick", 1_024, 1, 1_000_000);
             endpointTargetAttempts = builder
                     .comment("Maximum receiving endpoints one source endpoint may try after failures for one transfer candidate. A successful transfer still stops immediately.")
                     .defineInRange("endpointTargetAttempts", 4, 1, 1_000_000);

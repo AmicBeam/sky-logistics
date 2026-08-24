@@ -864,7 +864,7 @@ LogisticsNetworks 已经有 dirty-only 调度、网络缓存、capability 查询
 
 ```text
 serverOpsPerTick = 32768
-lineOpsPerTick = 256
+lineOpsPerTick = 1024
 endpointTargetAttempts = 4
 externalTankScansPerEndpoint = 8
 ```
