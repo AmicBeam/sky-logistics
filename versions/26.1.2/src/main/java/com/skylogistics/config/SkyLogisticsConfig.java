@@ -544,7 +544,7 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.")
                     .defineInRange("scanOpsPerTick", 16, 1, 4096);
             distributorOpsPerTick = builder
-                    .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. A target and its first slot count as one probe; each additional slot counts separately. BFS discovery uses scanOpsPerTick instead.")
+                    .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.")
                     .defineInRange("opsPerTick", 64, 1, 4096);
             builder.pop();
 
