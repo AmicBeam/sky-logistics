@@ -50,6 +50,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
     private ResourceKey<Recipe<?>> activeRecipeId;
     private OfferingRecipe activeRecipe;
+    private int activeBatchSize = 1;
     private int progress;
     private boolean needsRecipeCheck = true;
     private boolean suppressRecipeRefresh;
@@ -82,6 +83,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (activeRecipeId != null) {
             activeRecipeId = null;
             activeRecipe = null;
+            activeBatchSize = 1;
             progress = 0;
         }
         if (level instanceof ServerLevel serverLevel) {
@@ -147,6 +149,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         CompoundTag tag = new CompoundTag();
         if (activeRecipeId != null) {
             tag.putString("ActiveRecipe", activeRecipeId.identifier().toString());
+            tag.putInt("BatchSize", activeBatchSize);
             tag.putInt("Progress", progress);
         }
         tag.putBoolean("NeedsRecipeCheck", needsRecipeCheck);
@@ -161,6 +164,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         activeRecipeId = savedRecipeId.isEmpty()
                 ? null
                 : ResourceKey.create(Registries.RECIPE, Identifier.parse(savedRecipeId));
+        activeBatchSize = activeRecipeId == null ? 1 : Math.max(1, tag.getIntOr("BatchSize", 1));
         progress = tag.getIntOr("Progress", 0);
         needsRecipeCheck = tag.getBooleanOr("NeedsRecipeCheck", false) || activeRecipeId == null;
     }
@@ -168,6 +172,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     private void startRecipe(RecipeHolder<OfferingRecipe> recipe) {
         activeRecipeId = recipe.id();
         activeRecipe = recipe.value();
+        activeBatchSize = getBatchSize(activeRecipe);
         progress = 0;
         needsRecipeCheck = false;
         setChanged();
@@ -303,7 +308,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (progress < recipe.duration()) {
             return;
         }
-        if (recipe.matches(getDisplayedItem(), getOfferingStacks())) {
+        if (hasInputsForBatch(recipe, activeBatchSize)) {
             finishRecipe(level, recipe);
         } else {
             wakeForRecipeCheck();
@@ -311,14 +316,18 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     private void finishRecipe(ServerLevel level, OfferingRecipe recipe) {
+        int batchSize = activeBatchSize;
         activeRecipeId = null;
         activeRecipe = null;
+        activeBatchSize = 1;
         progress = 0;
         needsRecipeCheck = false;
         suppressRecipeRefresh = true;
         try {
-            consumeInputs(recipe);
-            insertOrDropResult(level, recipe.result());
+            consumeInputs(recipe, batchSize);
+            ItemStack result = recipe.result();
+            result.setCount(result.getCount() * batchSize);
+            insertOrDropResult(level, result);
         } finally {
             suppressRecipeRefresh = false;
         }
@@ -327,17 +336,38 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         tryStartRecipe(level);
     }
 
-    private void consumeInputs(OfferingRecipe recipe) {
-        shrinkDisplayedItem(recipe.main().count());
+    private void consumeInputs(OfferingRecipe recipe, int batchSize) {
+        shrinkDisplayedItem(recipe.main().count() * batchSize);
         List<OfferingTableBlockEntity> tables = getOfferingTables();
         boolean[] used = new boolean[tables.size()];
         for (OfferingRecipe.CountedIngredient ingredient : recipe.offerings()) {
             int tableIndex = findMatchingTable(ingredient, tables, used);
             if (tableIndex >= 0) {
                 used[tableIndex] = true;
-                tables.get(tableIndex).shrinkDisplayedItem(ingredient.count());
+                tables.get(tableIndex).shrinkDisplayedItem(ingredient.count() * batchSize);
             }
         }
+    }
+
+    private int getBatchSize(OfferingRecipe recipe) {
+        int batchSize = getDisplayedItem().getCount() / recipe.main().count();
+        List<OfferingTableBlockEntity> tables = getOfferingTables();
+        boolean[] used = new boolean[tables.size()];
+        for (OfferingRecipe.CountedIngredient ingredient : recipe.offerings()) {
+            int tableIndex = findMatchingTable(ingredient, tables, used);
+            if (tableIndex < 0) {
+                return 0;
+            }
+            used[tableIndex] = true;
+            batchSize = Math.min(batchSize,
+                    tables.get(tableIndex).getDisplayedItem().getCount() / ingredient.count());
+        }
+        return batchSize;
+    }
+
+    private boolean hasInputsForBatch(OfferingRecipe recipe, int batchSize) {
+        return batchSize > 0 && recipe.matches(getDisplayedItem(), getOfferingStacks())
+                && getBatchSize(recipe) >= batchSize;
     }
 
     private void insertOrDropResult(ServerLevel level, ItemStack result) {
