@@ -8,6 +8,7 @@ import com.skylogistics.compat.distributor.DistributedChemicalHandler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
+import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -69,6 +70,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final long[] rejectedFluidUntil = new long[MAX_CONFIGURABLE_TARGETS];
     private long operationBudgetTick = Long.MIN_VALUE;
     private int remainingOperations;
+    private boolean operationBudgetBlocked;
     private long scanBudgetTick = Long.MIN_VALUE;
     private int remainingScanOperations;
     private int discoveryCursor;
@@ -343,6 +345,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         if (operationBudgetTick == now) return;
         operationBudgetTick = now;
         remainingOperations = SkyLogisticsConfig.distributorOpsPerTick();
+        operationBudgetBlocked = false;
         Arrays.fill(visibleItemSlots, -2);
         Arrays.fill(visibleFluidTanks, -2);
         Arrays.fill(visibleFluids, null);
@@ -357,7 +360,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private boolean takeOperation() {
         prepareOperationBudget();
-        if (remainingOperations <= 0) return false;
+        if (remainingOperations <= 0) {
+            operationBudgetBlocked = true;
+            return false;
+        }
         remainingOperations--;
         return true;
     }
@@ -488,10 +494,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
     }
 
-    private final class DistributedItems implements IItemHandler {
+    private final class DistributedItems implements IItemHandler, BudgetedDistributorHandler {
         private final Direction side;
 
         private DistributedItems(Direction side) { this.side = side; }
+
+        @Override public boolean distributorBudgetExhausted() {
+            prepareOperationBudget();
+            return operationBudgetBlocked;
+        }
 
         @Override public int getSlots() {
             if (!SkyLogisticsConfig.enableDistributorItems()) return 0;
