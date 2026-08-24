@@ -16,10 +16,12 @@ import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.compat.sophisticated.SophisticatedStorageCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
@@ -342,6 +344,7 @@ public final class SkyNetworkTicker {
         }
         SlotLimitCheck extractionSlotLimit = checkExtractionSlotLimit(sourceEndpoint, source, budget);
         int operations = extractionSlotLimit.checks();
+        if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
         if (!extractionSlotLimit.complete()) return operations;
         if (extractionSlotLimit.blocked()) {
             sourceEndpoint.recordItemFailure(gameTime);
@@ -350,6 +353,7 @@ public final class SkyNetworkTicker {
         ExactItemScanResult exactScan = scanExactItems(sourceEndpoint, source,
                 Math.max(0, budget - operations), SOURCE_EXACT_ITEM_SCANS);
         operations += exactScan.checks();
+        if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
         if (!exactScan.complete()) return operations;
         int exactExcess = exactScan.total() < 0L ? -1
                 : (int)Math.min(Integer.MAX_VALUE,
@@ -388,9 +392,10 @@ public final class SkyNetworkTicker {
             } else {
                 secondTriedSlot = slot;
             }
-            ItemStack simulated = source.extractItem(slot, transferLimit, true);
+            ItemStack simulated = simulateSourceItem(sourceEndpoint, source, slot, transferLimit);
             operations++;
             if (simulated.isEmpty()) {
+                if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
                 sourceEndpoint.recordItemSlotMiss(slot, gameTime);
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
@@ -427,6 +432,7 @@ public final class SkyNetworkTicker {
                     successfulSlot, budget - operations);
         }
         if (!foundCandidate) {
+            if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
             if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
         }
@@ -441,6 +447,16 @@ public final class SkyNetworkTicker {
                 || (blockEntity instanceof SkyRSInterfaceBlockEntity
                 && RefinedStorageCompat.isLoaded()
                 && SkyLogisticsConfig.allowRefinedStorageItemTransfer());
+    }
+
+    private static boolean deferExhaustedDistributor(CachedEndpoint endpoint, Object handler, long gameTime) {
+        if (!distributorBudgetExhausted(handler)) return false;
+        endpoint.deferItemsUntil(gameTime + 1L);
+        return true;
+    }
+
+    private static boolean distributorBudgetExhausted(Object handler) {
+        return handler instanceof BudgetedDistributorHandler budgeted && budgeted.distributorBudgetExhausted();
     }
 
     private static int transferExternalNetworkItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
@@ -772,7 +788,7 @@ public final class SkyNetworkTicker {
         int inserted = extracted.getCount() - leftover.getCount();
         if (inserted > 0) {
             targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
-                    targetSlot.filledAfter(inserted, leftover), targetSlot.usedHot(), target.getSlots());
+                    targetSlot.filledAfter(inserted, !leftover.isEmpty()), targetSlot.usedHot(), target.getSlots());
         } else {
             targetEndpoint.recordTargetItemSlotMiss(targetSlot.lane(), targetSlot.slot(), target.getSlots());
         }
@@ -824,6 +840,7 @@ public final class SkyNetworkTicker {
         ItemStack simulated = source.extractItem(slot, 1, true);
         operations++;
         if (simulated.isEmpty()) {
+            if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
             sourceEndpoint.recordItemSlotMiss(slot, gameTime);
         } else if (sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
             sourceEndpoint.recordItemSlotSuccess(slot, slots);
@@ -880,6 +897,10 @@ public final class SkyNetworkTicker {
             int slot = scan.nextSlot++;
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
+            if (distributorBudgetExhausted(source)) {
+                scan.nextSlot--;
+                return new SlotLimitCheck(false, checks, false);
+            }
             if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack) && ++scan.matchingSlots > limit) {
                 SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
                 return new SlotLimitCheck(false, checks, true);
@@ -906,6 +927,10 @@ public final class SkyNetworkTicker {
         while (scan.nextSlot < slots && checks < budget) {
             ItemStack stack = handler.getStackInSlot(scan.nextSlot++);
             checks++;
+            if (distributorBudgetExhausted(handler)) {
+                scan.nextSlot--;
+                return new ExactItemScanResult(false, scan.total, checks);
+            }
             if (!stack.isEmpty() && node.allowsItem(endpoint.direction(), stack)) scan.total += stack.getCount();
         }
         return new ExactItemScanResult(scan.nextSlot >= slots, scan.total, checks);
@@ -1078,28 +1103,18 @@ public final class SkyNetworkTicker {
                     }
                     continue;
                 }
-                ItemStack extracted = source.extractItem(slot, movable, false);
-                if (extracted.isEmpty()) {
+                ItemSlotTransfer transfer = transferItemSlot(sourceEndpoint, source, slot, targetEndpoint, target,
+                        targetSlot.slot(), movable);
+                if (!transfer.extracted()) {
                     sourceEndpoint.recordItemFailure(gameTime);
                     return new MoveResult(false, operations);
                 }
-                ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
-                int inserted = extracted.getCount() - leftover.getCount();
+                int inserted = transfer.inserted();
                 if (inserted > 0) {
                     targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
-                            targetSlot.filledAfter(inserted, leftover), targetSlot.usedHot(), target.getSlots());
+                            targetSlot.filledAfter(inserted, transfer.hadLeftover()), targetSlot.usedHot(), target.getSlots());
                 } else {
                     targetEndpoint.recordTargetItemSlotMiss(targetSlot.lane(), targetSlot.slot(), target.getSlots());
-                }
-                if (!leftover.isEmpty()) {
-                    ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, leftover, false);
-                    if (!rollbackRemainder.isEmpty()) {
-                        SkyLogistics.LOGGER.warn(
-                                "Item rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, target leftover {}, rollback remainder {}",
-                                sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                                targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), slot, extracted,
-                                leftover, rollbackRemainder);
-                    }
                 }
                 targetEndpoint.recordItemSuccess();
                 finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
@@ -1127,7 +1142,7 @@ public final class SkyNetworkTicker {
         int hotSlot = endpoint.targetItemHotSlot(lane, slots);
         int checks = 0;
         if (hotSlot >= 0) {
-            TargetItemSlot candidate = simulateTargetItemSlot(target, stack, lane, hotSlot, true);
+            TargetItemSlot candidate = simulateTargetItemSlot(endpoint, target, stack, lane, hotSlot, true);
             checks++;
             if (candidate.movable() > 0) return new TargetItemSelection(candidate, checks, false);
             endpoint.recordTargetItemHotMiss(lane, hotSlot, slots);
@@ -1143,7 +1158,7 @@ public final class SkyNetworkTicker {
             scannedSlots++;
             lastSlot = slot;
             ItemStack existing = target.getStackInSlot(slot);
-            TargetItemSlot candidate = simulateTargetItemSlot(target, stack, lane, slot, false, existing);
+            TargetItemSlot candidate = simulateTargetItemSlot(endpoint, target, stack, lane, slot, false, existing);
             checks++;
             if (candidate.movable() <= 0) continue;
             if (!existing.isEmpty() && StackData.sameItemAndComponents(existing, stack)) {
@@ -1163,20 +1178,70 @@ public final class SkyNetworkTicker {
         return new TargetItemSlot(-1, 0, movable, 0, Integer.MAX_VALUE, false, false);
     }
 
-    private static TargetItemSlot simulateTargetItemSlot(ItemHandler target, ItemStack stack, int lane,
+    private static TargetItemSlot simulateTargetItemSlot(CachedEndpoint endpoint, ItemHandler target, ItemStack stack, int lane,
             int slot, boolean usedHot) {
-        return simulateTargetItemSlot(target, stack, lane, slot, usedHot, target.getStackInSlot(slot));
+        return simulateTargetItemSlot(endpoint, target, stack, lane, slot, usedHot, target.getStackInSlot(slot));
     }
 
-    private static TargetItemSlot simulateTargetItemSlot(ItemHandler target, ItemStack stack, int lane,
+    private static TargetItemSlot simulateTargetItemSlot(CachedEndpoint endpoint, ItemHandler target, ItemStack stack, int lane,
             int slot, boolean usedHot, ItemStack existing) {
         ItemStack remainder = target.insertItem(slot, stack.copy(), true);
         int movable = stack.getCount() - remainder.getCount();
         if (movable <= 0) return TargetItemSlot.NONE;
         int existingCount = existing.isEmpty() ? 0 : existing.getCount();
-        int effectiveLimit = Math.min(target.getSlotLimit(slot), stack.getMaxStackSize());
+        int effectiveLimit = SophisticatedStorageCompat.supports(endpoint.targetBlockEntity())
+                ? target.getSlotLimit(slot)
+                : Math.min(target.getSlotLimit(slot), stack.getMaxStackSize());
         return new TargetItemSlot(lane, slot, movable, existingCount, effectiveLimit,
                 movable < stack.getCount(), usedHot);
+    }
+
+    private static ItemStack simulateSourceItem(CachedEndpoint endpoint, ItemHandler source, int slot,
+            int transferLimit) {
+        ItemStack simulated = source.extractItem(slot, transferLimit, true);
+        if (simulated.isEmpty() || !SophisticatedStorageCompat.supports(endpoint.targetBlockEntity())) {
+            return simulated;
+        }
+        ItemStack stored = source.getStackInSlot(slot);
+        if (stored.isEmpty() || !StackData.sameItemAndComponents(stored, simulated)) {
+            return simulated;
+        }
+        int count = Math.min(stored.getCount(), transferLimit);
+        return count > simulated.getCount() ? stored.copyWithCount(count) : simulated;
+    }
+
+    private static ItemSlotTransfer transferItemSlot(CachedEndpoint sourceEndpoint, ItemHandler source,
+            int sourceSlot, CachedEndpoint targetEndpoint, ItemHandler target, int targetSlot, int amount) {
+        boolean batch = SophisticatedStorageCompat.supports(sourceEndpoint.targetBlockEntity())
+                && SophisticatedStorageCompat.supports(targetEndpoint.targetBlockEntity());
+        int remaining = amount;
+        int insertedTotal = 0;
+        int batches = 0;
+        boolean extractedAny = false;
+        boolean hadLeftover = false;
+        do {
+            ItemStack extracted = source.extractItem(sourceSlot, remaining, false);
+            if (extracted.isEmpty()) break;
+            extractedAny = true;
+            ItemStack leftover = target.insertItem(targetSlot, extracted, false);
+            int inserted = extracted.getCount() - leftover.getCount();
+            insertedTotal += inserted;
+            remaining -= inserted;
+            if (!leftover.isEmpty()) {
+                hadLeftover = true;
+                ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, leftover, false);
+                if (!rollbackRemainder.isEmpty()) {
+                    SkyLogistics.LOGGER.warn(
+                            "Item rollback failed after simulated target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, target leftover {}, rollback remainder {}",
+                            sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                            targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
+                            leftover, rollbackRemainder);
+                }
+                break;
+            }
+            if (inserted <= 0) break;
+        } while (batch && remaining > 0 && ++batches < 4096);
+        return new ItemSlotTransfer(extractedAny, insertedTotal, hadLeftover);
     }
 
     private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
@@ -1283,23 +1348,32 @@ public final class SkyNetworkTicker {
         if (accepted <= 0L) {
             return 0L;
         }
-        ItemStack extracted = source.extractItem(sourceSlot, (int) Math.min(Integer.MAX_VALUE, accepted), false);
-        if (extracted.isEmpty()) {
-            return -1L;
-        }
-        long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
-        if (inserted < extracted.getCount()) {
-            ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
-            ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, rollback, false);
-            if (!rollbackRemainder.isEmpty()) {
-                SkyLogistics.LOGGER.warn(
-                        "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
-                        sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
-                        targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
-                        inserted, rollbackRemainder);
+        boolean batch = SophisticatedStorageCompat.supports(sourceEndpoint.targetBlockEntity());
+        long remaining = accepted;
+        long insertedTotal = 0L;
+        int batches = 0;
+        boolean extractedAny = false;
+        do {
+            ItemStack extracted = source.extractItem(sourceSlot, (int) Math.min(Integer.MAX_VALUE, remaining), false);
+            if (extracted.isEmpty()) return extractedAny ? insertedTotal : -1L;
+            extractedAny = true;
+            long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
+            insertedTotal += inserted;
+            remaining -= inserted;
+            if (inserted < extracted.getCount()) {
+                ItemStack rollback = extracted.copyWithCount((int) (extracted.getCount() - inserted));
+                ItemStack rollbackRemainder = TransferCompat.insertItemStacked(source, rollback, false);
+                if (!rollbackRemainder.isEmpty()) {
+                    SkyLogistics.LOGGER.warn(
+                            "Item rollback failed after simulated long target insertion changed during transfer. Source node {} face {}, target node {} face {}, source slot {}, extracted {}, inserted {}, rollback remainder {}",
+                            sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                            targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), sourceSlot, extracted,
+                            inserted, rollbackRemainder);
+                }
+                break;
             }
-        }
-        return inserted;
+        } while (batch && remaining > 0L && ++batches < 4096);
+        return insertedTotal;
     }
 
     private interface LongItemEndpoint {
@@ -2977,10 +3051,13 @@ public final class SkyNetworkTicker {
             boolean simulationLimited, boolean usedHot) {
         private static final TargetItemSlot NONE = new TargetItemSlot(-1, -1, 0, 0, 0, false, false);
 
-        private boolean filledAfter(int inserted, ItemStack leftover) {
-            return !leftover.isEmpty() || existingCount + inserted >= effectiveLimit
+        private boolean filledAfter(int inserted, boolean hadLeftover) {
+            return hadLeftover || existingCount + inserted >= effectiveLimit
                     || (simulationLimited && inserted >= movable);
         }
+    }
+
+    private record ItemSlotTransfer(boolean extracted, int inserted, boolean hadLeftover) {
     }
 
     private record TargetItemSelection(TargetItemSlot slot, int checks, boolean exhaustive) {

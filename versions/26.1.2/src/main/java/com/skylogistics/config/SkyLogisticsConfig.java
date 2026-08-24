@@ -189,6 +189,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowAe2ItemTransfer.get();
     }
 
+    public static boolean allowSophisticatedStorageStackUpgradeTransfer() {
+        return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
+    }
+
     public static boolean allowAe2FluidTransfer() {
         return SERVER.allowAe2FluidTransfer.get();
     }
@@ -323,6 +327,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowAe2ItemTransfer;
+        public final ModConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
         public final ModConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
@@ -454,6 +459,9 @@ public final class SkyLogisticsConfig {
             allowAe2ItemTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer items stored in AE2 networks.")
                     .define("allowAe2ItemTransfer", true);
+            allowSophisticatedStorageStackUpgradeTransfer = builder
+                    .comment("Whether transfers treat a Sophisticated Storage stack-upgraded slot as one transportable slot.")
+                    .define("allowSophisticatedStorageStackUpgradeTransfer", true);
             allowAe2FluidTransfer = builder
                     .comment("Whether Sky ME Interfaces may transfer fluids stored in AE2 networks.")
                     .define("allowAe2FluidTransfer", true);
