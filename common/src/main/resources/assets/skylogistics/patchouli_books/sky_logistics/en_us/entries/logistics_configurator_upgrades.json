@@ -30,7 +30,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Force Extraction Upgrades belong on extracting nodes. For devices on the server-configured mod ID whitelist that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default whitelist is mekanism_extras; rejected transfers restore the source slot."
+      "text": "Force Extraction Upgrades belong on extracting nodes. For devices whose mod ID appears in the server-configured list and that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default list is mekanism_extras; an empty list disables the behavior, and rejected transfers restore the source slot."
     },
     {
       "type": "patchouli:crafting",

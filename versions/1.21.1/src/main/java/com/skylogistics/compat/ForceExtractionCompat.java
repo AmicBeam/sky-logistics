@@ -65,8 +65,8 @@ public final class ForceExtractionCompat {
     }
 
     private static boolean supports(SkyNodeBlockEntity node, BlockEntity blockEntity, IItemHandler handler) {
-        if (!SkyLogisticsConfig.enableForceExtractionUpgrade() || !node.hasForceExtractionUpgrade()
-                || blockEntity == null || !(handler instanceof IItemHandlerModifiable)) {
+        if (!node.hasForceExtractionUpgrade() || blockEntity == null
+                || !(handler instanceof IItemHandlerModifiable)) {
             return false;
         }
         String modId = BuiltInRegistries.BLOCK.getKey(blockEntity.getBlockState().getBlock()).getNamespace();

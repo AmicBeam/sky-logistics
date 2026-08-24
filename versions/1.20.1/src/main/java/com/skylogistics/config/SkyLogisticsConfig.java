@@ -194,10 +194,6 @@ public final class SkyLogisticsConfig {
         return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
     }
 
-    public static boolean enableForceExtractionUpgrade() {
-        return SERVER.enableForceExtractionUpgrade.get();
-    }
-
     public static boolean forceExtractionDeviceModAllowed(String modId) {
         return SERVER.forceExtractionDeviceModIdWhitelist.get().stream()
                 .anyMatch(value -> modId.equals(value));
@@ -346,7 +342,6 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
-        public final ForgeConfigSpec.BooleanValue enableForceExtractionUpgrade;
         public final ForgeConfigSpec.ConfigValue<List<? extends Object>> forceExtractionDeviceModIdWhitelist;
         public final ForgeConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ForgeConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
@@ -523,13 +518,9 @@ public final class SkyLogisticsConfig {
                             "传输时是否将 Sophisticated Storage 堆叠升级后的槽位视为一个可搬运槽位。")
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
             builder.push("forceExtractionUpgrade");
-            enableForceExtractionUpgrade = builder
-                    .comment("Whether Force Extraction Upgrades may atomically reduce oversized modifiable item slots.",
-                            "是否允许强制抽取升级对可修改的超大物品槽执行一次性原子扣除。")
-                    .define("enabled", true);
             forceExtractionDeviceModIdWhitelist = builder
-                    .comment("Device block mod IDs allowed for force extraction.",
-                            "允许强制抽取的设备方块 modID 白名单。")
+                    .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
+                            "允许强制抽取的设备方块 modID 列表。列表为空时禁用该升级；仅匹配列表中模组的设备会启用其功能。")
                     .defineListAllowEmpty("deviceModIdWhitelist", List.of("mekanism_extras"),
                             SkyLogisticsConfig::validModId);
             builder.pop();
