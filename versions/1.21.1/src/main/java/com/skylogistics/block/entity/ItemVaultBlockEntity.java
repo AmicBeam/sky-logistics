@@ -446,11 +446,7 @@ public class ItemVaultBlockEntity extends BlockEntity {
                 remaining -= insertAmountIntoSlot(slot, normalized, remaining, simulate);
             }
         }
-        long inserted = amount - remaining;
-        if (inserted > 0 && !simulate) {
-            markContentsChanged();
-        }
-        return inserted;
+        return amount - remaining;
     }
 
     private ItemStack insertIntoSlot(int slot, ItemStack stack, boolean simulate) {
@@ -461,9 +457,6 @@ public class ItemVaultBlockEntity extends BlockEntity {
         long accepted = insertAmountIntoSlot(slot, stack, stack.getCount(), simulate);
         if (accepted <= 0) {
             return stack;
-        }
-        if (!simulate) {
-            markContentsChanged();
         }
         remainder.shrink((int) accepted);
         return remainder;
@@ -481,25 +474,25 @@ public class ItemVaultBlockEntity extends BlockEntity {
         if ((existing.isEmpty() || current <= 0L) && !isItemStackWithinNbtLimit(template)) {
             return 0L;
         }
-        long inserted = amount;
-        if (!existing.isEmpty() && current > 0L && Long.MAX_VALUE - current < amount) {
-            inserted = Long.MAX_VALUE - current;
-        }
-        if (inserted <= 0L) {
-            return 0L;
-        }
+        // Existing types remain terminal sinks at the long limit; overflow is intentionally discarded.
         if (!simulate) {
             if (existing.isEmpty() || current <= 0) {
                 ItemStack stored = template.copy();
                 stored.setCount(1);
                 items.set(slot, stored);
-                amounts.set(slot, inserted);
+                amounts.set(slot, amount);
+                markSlotDirty(slot);
+                markContentsChanged();
             } else {
-                amounts.set(slot, current + inserted);
+                long updated = saturatingAdd(current, amount);
+                if (updated != current) {
+                    amounts.set(slot, updated);
+                    markSlotDirty(slot);
+                    markContentsChanged();
+                }
             }
-            markSlotDirty(slot);
         }
-        return inserted;
+        return amount;
     }
 
     private ItemStack stackInSlot(int slot) {
