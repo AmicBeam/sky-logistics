@@ -19,7 +19,11 @@ public record ExactQuantityPacket(int amount) implements CustomPacketPayload {
     public static void handle(ExactQuantityPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
-            if (player.containerMenu instanceof SkyNecklaceMenu menu) menu.setExactQuantity(player, packet.amount);
+            if (player.containerMenu instanceof SkyNecklaceMenu menu) {
+                menu.setExactQuantity(player, packet.amount);
+            } else if (player.containerMenu instanceof SkyNodeMenu menu) {
+                menu.setExactQuantity(player, packet.amount);
+            }
         });
     }
     @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
