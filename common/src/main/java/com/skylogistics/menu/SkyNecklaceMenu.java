@@ -230,10 +230,8 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             case MenuAction.MODE_EXTRACT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.EXTRACT);
             case MenuAction.MODE_INSERT -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.INSERT);
             case MenuAction.MODE_MAINTAIN -> SkyNecklaceItem.setMode(stack, SkyNecklaceItem.NecklaceMode.MAINTAIN);
-            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN -> SkyNecklaceItem.adjustInsertSlots(stack, -1);
-            case MenuAction.NECKLACE_INSERT_SLOTS_UP -> SkyNecklaceItem.adjustInsertSlots(stack, 1);
-            case MenuAction.NECKLACE_INSERT_SLOTS_DOWN_FAST -> SkyNecklaceItem.adjustInsertSlots(stack, -10);
-            case MenuAction.NECKLACE_INSERT_SLOTS_UP_FAST -> SkyNecklaceItem.adjustInsertSlots(stack, 10);
+            case MenuAction.NECKLACE_TOGGLE_MAINTAIN_UNIT ->
+                    SkyNecklaceItem.setMaintainByItems(stack, !SkyNecklaceItem.maintainByItems(stack));
             case MenuAction.NECKLACE_PRIORITY_DOWN -> SkyNecklaceItem.adjustPriority(stack, -1);
             case MenuAction.NECKLACE_PRIORITY_UP -> SkyNecklaceItem.adjustPriority(stack, 1);
             case MenuAction.NECKLACE_PRIORITY_DOWN_FAST -> SkyNecklaceItem.adjustPriority(stack, -10);
@@ -262,11 +260,9 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     public void setExactQuantity(Player player, int amount) {
         ItemStack stack = necklace();
-        if (SkyNecklaceItem.hasExactQuantityUpgrade(stack)) {
-            SkyNecklaceItem.setExactQuantity(stack, amount);
-            player.getInventory().setChanged();
-            broadcastChanges();
-        }
+        SkyNecklaceItem.setMaintainAmount(stack, amount);
+        syncHeldStack(stack);
+        broadcastChanges();
     }
 
     @Override

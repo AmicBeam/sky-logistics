@@ -40,6 +40,7 @@ public final class MenuAction {
     public static final int CONFIG_SLOT_LIMIT_UP = 42;
     public static final int CONFIG_SLOT_LIMIT_DOWN_FAST = 43;
     public static final int CONFIG_SLOT_LIMIT_UP_FAST = 44;
+    public static final int NECKLACE_TOGGLE_MAINTAIN_UNIT = 45;
     public static final int FACE_NONE_BASE = 100;
     public static final int FACE_EXTRACT_BASE = 110;
     public static final int FACE_INSERT_BASE = 120;

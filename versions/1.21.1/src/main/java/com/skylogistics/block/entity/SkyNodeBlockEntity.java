@@ -11,7 +11,6 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineNames;
@@ -569,25 +568,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasUpgrade(ModItems.DIMENSION_UPGRADE.get());
     }
 
-    public boolean hasExactQuantityUpgrade() { return hasUpgrade(ModItems.EXACT_QUANTITY_UPGRADE.get()); }
+    public boolean hasExactQuantityUpgrade() { return false; }
 
     public boolean hasForceExtractionUpgrade() { return hasUpgrade(ModItems.FORCE_EXTRACTION_UPGRADE.get()); }
 
     public int exactQuantity() {
-        for (ItemStack upgrade : upgrades) if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
-        return ExactQuantityUpgrade.DEFAULT;
+        return 1;
     }
 
     public void setExactQuantity(int amount) {
-        for (int slot = 0; slot < upgrades.size(); slot++) {
-            ItemStack upgrade = upgrades.get(slot);
-            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
-                ItemStack copy = upgrade.copy();
-                ExactQuantityUpgrade.setAmount(copy, amount);
-                setUpgrade(slot, copy);
-                return;
-            }
-        }
     }
 
     public boolean hasUpgrade(Item item) {
@@ -602,7 +591,6 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public static boolean isUpgradeItem(ItemStack stack) {
         return stack.is(ModItems.SPEED_UPGRADE.get())
                 || stack.is(ModItems.DIMENSION_UPGRADE.get())
-                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get())
                 || stack.is(ModItems.FORCE_EXTRACTION_UPGRADE.get());
     }
 

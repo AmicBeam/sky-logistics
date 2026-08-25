@@ -26,17 +26,12 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Exact Quantity Upgrades can be installed in nodes or Sky Necklaces. They replace the slot setting with an item count from 1–2147483647. A node extract face keeps the configured total of items matching its filter, while an insert face only fills up to that total. Necklace extract, insert, and maintain modes likewise count all items matching the whitelist."
-    },
-    {
-      "type": "patchouli:text",
       "text": "Force Extraction Upgrades belong on extracting nodes. For devices whose mod ID appears in the server-configured list and that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default list is mekanism_extras; an empty list disables the behavior, and rejected transfers restore the source slot."
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "recipe2": "skylogistics:exact_quantity_upgrade",
-      "text": "Speed Upgrades and Exact Quantity Upgrades can be crafted at a crafting table."
+      "text": "Speed Upgrades can be crafted at a crafting table."
     },
     {
       "type": "patchouli:text",

@@ -150,8 +150,8 @@ public final class SkyNecklaceTicker {
                 case EXTRACT -> tryExtract(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(),
                         gameTime, false, Integer.MAX_VALUE, SkyLogisticsConfig.skyNecklaceSlotScansPerTick(), false);
                 case INSERT -> tryInsert(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime,
-                        SkyNecklaceItem.hasExactQuantityUpgrade(active.necklace())
-                                ? SkyNecklaceItem.exactQuantity(active.necklace()) : 0,
+                        SkyNecklaceItem.maintainByItems(active.necklace())
+                                ? SkyNecklaceItem.maintainAmount(active.necklace()) : 0,
                         SkyLogisticsConfig.skyNecklaceSlotScansPerTick());
                 case MAINTAIN -> tryMaintain(active.player(), active.necklace(), active.lineId(), active.itemWhitelist(), gameTime);
             }
@@ -248,14 +248,14 @@ public final class SkyNecklaceTicker {
         int scanBudget = Math.min(totalSlots, Math.max(0, requestedScanBudget));
         if (scanBudget <= 0) return;
         int slotLimit = SkyNecklaceItem.insertSlots(necklace);
-        boolean exact = SkyNecklaceItem.hasExactQuantityUpgrade(necklace);
+        boolean exact = SkyNecklaceItem.maintainByItems(necklace);
         if (!quantityAlreadyChecked && (exact || slotLimit > SkyNecklaceItem.MIN_INSERT_SLOTS)) {
             ExtractCountResult count = scanExtractSources(playerId, sources, itemWhitelist, exact, scanBudget);
             if (!count.complete()) return;
             scanBudget -= count.checks();
             if (scanBudget <= 0) return;
             if (exact) {
-                int exactLimit = SkyNecklaceItem.exactQuantity(necklace);
+                int exactLimit = SkyNecklaceItem.maintainAmount(necklace);
                 if (count.items() <= exactLimit) {
                     EXTRACT_COUNT_SCANS.remove(playerId);
                     return;
@@ -333,10 +333,9 @@ public final class SkyNecklaceTicker {
 
     private static void tryMaintain(ServerPlayer player, ItemStack necklace, UUID lineId,
             FilterListItem.CompiledFilter itemWhitelist, long gameTime) {
-        int configured = SkyNecklaceItem.hasExactQuantityUpgrade(necklace)
-                ? SkyNecklaceItem.exactQuantity(necklace) : SkyNecklaceItem.insertSlots(necklace);
+        int configured = SkyNecklaceItem.maintainAmount(necklace);
         if (configured <= 0) return;
-        boolean exact = SkyNecklaceItem.hasExactQuantityUpgrade(necklace);
+        boolean exact = SkyNecklaceItem.maintainByItems(necklace);
         int budget = SkyLogisticsConfig.skyNecklaceSlotScansPerTick();
         InventoryCountResult count = scanMainInventory(player.getUUID(), player.getInventory(), itemWhitelist, budget);
         if (!count.complete()) return;

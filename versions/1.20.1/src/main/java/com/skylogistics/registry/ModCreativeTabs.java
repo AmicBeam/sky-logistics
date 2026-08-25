@@ -33,7 +33,6 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
-                        output.accept(ModItems.EXACT_QUANTITY_UPGRADE.get());
                         output.accept(ModItems.FORCE_EXTRACTION_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));

@@ -10,7 +10,6 @@ item_ids:
   - skylogistics:tag_filter_list
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
-  - skylogistics:exact_quantity_upgrade
   - skylogistics:sky_necklace
 ---
 
@@ -24,7 +23,6 @@ item_ids:
   <ItemIcon id="tag_filter_list" />
   <ItemIcon id="speed_upgrade" />
   <ItemIcon id="dimension_upgrade" />
-  <ItemIcon id="exact_quantity_upgrade" />
   <ItemIcon id="sky_necklace" />
 </ItemGrid>
 
@@ -41,11 +39,11 @@ item_ids:
 
 ## 升级
 
-<ItemLink id="speed_upgrade" /> 可以让节点更快地处理资源。<ItemLink id="dimension_upgrade" /> 可以连接其它已加载维度中的同线路端点。<ItemLink id="exact_quantity_upgrade" /> 则让节点或项链按过滤器匹配到的物品总数保留或补足库存。
+<ItemLink id="speed_upgrade" /> 可以让节点更快地处理资源。<ItemLink id="dimension_upgrade" /> 可以连接其它已加载维度中的同线路端点。
 
 ## 天穹项链
 
-<ItemLink id="sky_necklace" /> 支持抽取、存入和维持三种模式；完整的白名单要求、升级和数量行为参见[天穹项链](sky_necklace.md)。
+<ItemLink id="sky_necklace" /> 支持抽取、存入和维持三种模式；完整的白名单要求、升级和维持数行为参见[天穹项链](sky_necklace.md)。
 
 <RecipeFor id="configurator" fallbackText="未找到配置器配方。" />
 <RecipeFor id="sky_necklace" fallbackText="未找到天穹项链配方。" />
