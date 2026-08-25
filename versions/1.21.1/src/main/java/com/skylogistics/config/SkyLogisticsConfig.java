@@ -513,8 +513,8 @@ public final class SkyLogisticsConfig {
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
             builder.push("forceExtractionUpgrade");
             forceExtractionDeviceModIdWhitelist = builder
-                    .comment("Device block mod IDs allowed for forced extraction or insertion. An empty list disables the upgrade; only matching mod devices enable its behavior.",
-                            "允许强制抽取或存入的设备方块 modID 列表。列表为空时禁用该升级；仅匹配列表中模组的设备会启用其功能。")
+                    .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
+                            "允许强制抽取的设备方块 modID 列表。列表为空时禁用该升级；仅匹配列表中模组的设备会启用其功能。")
                     .defineListAllowEmpty("deviceModIdWhitelist", List.of("mekanism_extras"),
                             SkyLogisticsConfig::validModId);
             builder.pop();

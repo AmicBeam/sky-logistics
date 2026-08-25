@@ -55,19 +55,6 @@ class TransferCompatItemFluidTest {
     }
 
     @Test
-    void transactionalItemHandlerCommitsOversizedAmountOnce(MinecraftServer server) {
-        MutableItemHandler inventory = new MutableItemHandler(4_096);
-        ItemHandler schedulerView =
-                TransferCompat.itemHandler(TransferCompat.itemResourceHandler(inventory));
-        ItemStack stone = new ItemStack(Items.STONE).copyWithCount(4_096);
-
-        assertTrue(schedulerView.insertItem(0, stone, true).isEmpty());
-        assertTrue(inventory.stack.isEmpty());
-        assertTrue(schedulerView.insertItem(0, stone, false).isEmpty());
-        assertEquals(4_096, inventory.stack.getCount());
-    }
-
-    @Test
     void fluidResourceAdapterRollsBackAndCommits(MinecraftServer server) {
         MutableFluidHandler tank = new MutableFluidHandler(4_000);
         ResourceHandler<FluidResource> handler = TransferCompat.fluidResourceHandler(tank);

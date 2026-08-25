@@ -10,7 +10,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 /**
- * Opt-in atomic transfer for oversized slots exposed through a modifiable item capability.
+ * Opt-in atomic extraction for oversized slots exposed through a modifiable item capability.
  */
 public final class ForceExtractionCompat {
     private ForceExtractionCompat() {
@@ -64,64 +64,6 @@ public final class ForceExtractionCompat {
         return sameStack(handler.getStackInSlot(slot), restored);
     }
 
-    public static InsertionCandidate insertionCandidate(SkyNodeBlockEntity node, BlockEntity blockEntity,
-            IItemHandler handler, int slot, ItemStack stack, int standardMovable) {
-        if (!supports(node, blockEntity, handler)) {
-            return new InsertionCandidate(standardMovable, false);
-        }
-        return insertionCandidate(handler, slot, stack, standardMovable);
-    }
-
-    static InsertionCandidate insertionCandidate(IItemHandler handler, int slot, ItemStack stack,
-            int standardMovable) {
-        if (stack.isEmpty() || !handler.isItemValid(slot, stack)) {
-            return new InsertionCandidate(standardMovable, false);
-        }
-        ItemStack current = handler.getStackInSlot(slot);
-        if (!current.isEmpty() && !StackData.sameItemAndComponents(current, stack)) {
-            return new InsertionCandidate(standardMovable, false);
-        }
-        ItemStack probe = stack.copyWithCount(1);
-        if (handler.insertItem(slot, probe, true).getCount() == probe.getCount()) {
-            return new InsertionCandidate(standardMovable, false);
-        }
-        int capacity = Math.max(0, handler.getSlotLimit(slot) - current.getCount());
-        int movable = Math.min(stack.getCount(), capacity);
-        return movable > standardMovable
-                ? new InsertionCandidate(movable, true)
-                : new InsertionCandidate(standardMovable, false);
-    }
-
-    public static DirectInsertion insertDirect(SkyNodeBlockEntity node, BlockEntity blockEntity,
-            IItemHandler handler, int slot, ItemStack stack) {
-        if (!supports(node, blockEntity, handler)) return DirectInsertion.UNSUPPORTED;
-        return insertDirect(handler, slot, stack);
-    }
-
-    static DirectInsertion insertDirect(IItemHandler handler, int slot, ItemStack stack) {
-        if (stack.isEmpty() || !handler.isItemValid(slot, stack)) return DirectInsertion.FAILED.apply(stack);
-        ItemStack normalRemainder = handler.insertItem(slot, stack, true);
-        if (normalRemainder.isEmpty()) return DirectInsertion.UNSUPPORTED;
-        ItemStack current = handler.getStackInSlot(slot);
-        if (!current.isEmpty() && !StackData.sameItemAndComponents(current, stack)) {
-            return DirectInsertion.FAILED.apply(stack);
-        }
-        ItemStack probe = stack.copyWithCount(1);
-        if (handler.insertItem(slot, probe, true).getCount() == probe.getCount()) {
-            return DirectInsertion.FAILED.apply(stack);
-        }
-        long total = (long) current.getCount() + stack.getCount();
-        if (total > handler.getSlotLimit(slot)) return DirectInsertion.FAILED.apply(stack);
-        ItemStack updated = stack.copyWithCount((int) total);
-        IItemHandlerModifiable modifiable = (IItemHandlerModifiable) handler;
-        modifiable.setStackInSlot(slot, updated);
-        if (!sameStack(handler.getStackInSlot(slot), updated)) {
-            modifiable.setStackInSlot(slot, current);
-            return DirectInsertion.FAILED.apply(stack);
-        }
-        return DirectInsertion.SUCCESS;
-    }
-
     private static boolean supports(SkyNodeBlockEntity node, BlockEntity blockEntity, IItemHandler handler) {
         if (!node.hasForceExtractionUpgrade() || blockEntity == null
                 || !(handler instanceof IItemHandlerModifiable)) {
@@ -139,18 +81,5 @@ public final class ForceExtractionCompat {
     public record DirectExtraction(ItemStack stack, boolean supported) {
         private static final DirectExtraction UNSUPPORTED = new DirectExtraction(ItemStack.EMPTY, false);
         private static final DirectExtraction FAILED = new DirectExtraction(ItemStack.EMPTY, true);
-    }
-
-    public record InsertionCandidate(int movable, boolean forced) {
-    }
-
-    public record DirectInsertion(ItemStack remainder, boolean supported) {
-        private static final DirectInsertion UNSUPPORTED = new DirectInsertion(ItemStack.EMPTY, false);
-        private static final DirectInsertion SUCCESS = new DirectInsertion(ItemStack.EMPTY, true);
-        private static final DirectInsertion FAILED = new DirectInsertion(ItemStack.EMPTY, true);
-
-        private DirectInsertion apply(ItemStack stack) {
-            return new DirectInsertion(stack.copy(), supported);
-        }
     }
 }
