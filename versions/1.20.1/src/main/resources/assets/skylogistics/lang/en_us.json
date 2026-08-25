@@ -95,7 +95,7 @@
   "tooltip.skylogistics.speed_upgrade": "Checks one additional slot when extracting.",
   "tooltip.skylogistics.dimension_upgrade": "Allows extraction to same-line targets in other dimensions.",
   "tooltip.skylogistics.exact_quantity_upgrade": "Replaces slot retention with an exact total count of whitelisted items.",
-  "tooltip.skylogistics.force_extraction_upgrade": "Forces an allowed oversized modifiable slot to commit its transfer in one extraction.",
+  "tooltip.skylogistics.force_extraction_upgrade": "Forces an allowed oversized modifiable slot to commit its transfer in one extraction. Celestial Distributors are not supported.",
   "tooltip.skylogistics.offering_altar": "Works only at sky height %s or higher with a valid offering circle.",
   "tooltip.skylogistics.eulogia_crystal.uncharged": "Uncharged. Keep it at sky height %s or higher in your inventory or on a Sky Offering Table.",
   "tooltip.skylogistics.eulogia_crystal.charged": "Charged with high-sky light.",
