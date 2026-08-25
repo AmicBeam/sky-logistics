@@ -84,6 +84,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private final EnumMap<Direction, RedstoneControl> redstoneControls = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> priorities = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> itemSlotLimits = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, Boolean> itemLimitByItems = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceItemsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceFluidsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceEnergyEnabled = new EnumMap<>(Direction.class);
@@ -113,6 +114,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
+            itemLimitByItems.put(direction, false);
             faceItemsEnabled.put(direction, true);
             faceFluidsEnabled.put(direction, true);
             faceEnergyEnabled.put(direction, true);
@@ -566,16 +568,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasUpgrade(ModItems.DIMENSION_UPGRADE.get());
     }
 
-    public boolean hasExactQuantityUpgrade() { return false; }
-
     public boolean hasForceExtractionUpgrade() { return hasUpgrade(ModItems.FORCE_EXTRACTION_UPGRADE.get()); }
-
-    public int exactQuantity() {
-        return 1;
-    }
-
-    public void setExactQuantity(int amount) {
-    }
 
     public boolean hasUpgrade(Item item) {
         for (ItemStack upgrade : upgrades) {
@@ -680,22 +673,26 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         boolean endpointFluids = isFluidsEnabled(endpoint);
         boolean endpointEnergy = energyAllowed && isEnergyEnabled(endpoint);
         int endpointSlotLimit = getItemSlotLimit(endpoint);
+        boolean endpointLimitByItems = isItemLimitByItems(endpoint);
         for (Direction direction : Direction.values()) {
             NodeFaceMode newMode = direction == endpoint ? endpointMode : NodeFaceMode.NONE;
             boolean newItems = direction == endpoint && endpointItems;
             boolean newFluids = direction == endpoint && endpointFluids;
             boolean newEnergy = direction == endpoint && endpointEnergy;
             int newSlotLimit = direction == endpoint ? endpointSlotLimit : ITEM_SLOT_LIMIT_UNLIMITED;
+            boolean newLimitByItems = direction == endpoint && endpointLimitByItems;
             changed |= getFaceMode(direction) != newMode;
             changed |= isItemsEnabled(direction) != newItems;
             changed |= isFluidsEnabled(direction) != newFluids;
             changed |= isEnergyEnabled(direction) != newEnergy;
             changed |= getItemSlotLimit(direction) != newSlotLimit;
+            changed |= isItemLimitByItems(direction) != newLimitByItems;
             faceModes.put(direction, newMode);
             faceItemsEnabled.put(direction, newItems);
             faceFluidsEnabled.put(direction, newFluids);
             faceEnergyEnabled.put(direction, newEnergy);
             itemSlotLimits.put(direction, newSlotLimit);
+            itemLimitByItems.put(direction, newLimitByItems);
         }
         itemsEnabled = endpointItems;
         fluidsEnabled = endpointFluids;
@@ -728,6 +725,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public int getItemSlotLimit(Direction direction) {
         return itemSlotLimits.getOrDefault(direction, ITEM_SLOT_LIMIT_UNLIMITED);
+    }
+
+    public boolean isItemLimitByItems(Direction direction) {
+        return itemLimitByItems.getOrDefault(direction, false);
     }
 
     public boolean isFaceRedstoneAllowed(Direction direction) {
@@ -788,8 +789,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             priorities.put(direction, face.priority());
             priorityChanged = true;
         }
-        if (getItemSlotLimit(direction) != face.slotLimit()) {
+        if (getItemSlotLimit(direction) != face.slotLimit() || isItemLimitByItems(direction)) {
             itemSlotLimits.put(direction, face.slotLimit());
+            itemLimitByItems.put(direction, false);
             runtimeChanged = true;
         }
         if (config.hasCopiedFaces() && applyFaceFilters(direction, face)) {
@@ -942,8 +944,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 priorities.put(direction, face.priority());
                 priorityChanged = true;
             }
-            if (getItemSlotLimit(direction) != face.slotLimit()) {
+            if (getItemSlotLimit(direction) != face.slotLimit() || isItemLimitByItems(direction)) {
                 itemSlotLimits.put(direction, face.slotLimit());
+                itemLimitByItems.put(direction, false);
                 runtimeChanged = true;
             }
             if (applyFaceFilters(direction, face)) {
@@ -1410,11 +1413,20 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public void setItemSlotLimit(Direction direction, int limit) {
-        int clamped = clampItemSlotLimit(limit);
+        int clamped = isItemLimitByItems(direction) ? Math.max(0, limit) : clampItemSlotLimit(limit);
         if (getItemSlotLimit(direction) == clamped) {
             return;
         }
         itemSlotLimits.put(direction, clamped);
+        markRuntimeChanged();
+    }
+
+    public void toggleItemLimitUnit(Direction direction) {
+        boolean byItems = !isItemLimitByItems(direction);
+        itemLimitByItems.put(direction, byItems);
+        if (!byItems) {
+            itemSlotLimits.put(direction, clampItemSlotLimit(getItemSlotLimit(direction)));
+        }
         markRuntimeChanged();
     }
 
@@ -1467,6 +1479,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             settings.putString("Redstone", getRedstoneControl(direction).name());
             settings.putInt("Priority", getPriority(direction));
             settings.putInt("SlotLimit", getItemSlotLimit(direction));
+            settings.putBoolean("LimitByItems", isItemLimitByItems(direction));
             settings.putBoolean("ItemsEnabled", isItemsEnabled(direction));
             settings.putBoolean("FluidsEnabled", isFluidsEnabled(direction));
             settings.putBoolean("EnergyEnabled", isEnergyEnabled(direction));
@@ -1582,6 +1595,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             redstoneControls.put(direction, RedstoneControl.IGNORE);
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
+            itemLimitByItems.put(direction, false);
             faceItemsEnabled.put(direction, itemsEnabled);
             faceFluidsEnabled.put(direction, fluidsEnabled);
             faceEnergyEnabled.put(direction, energyEnabled);
@@ -1605,7 +1619,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 redstoneControls.put(direction, RedstoneControl.byName(settings.getStringOr("Redstone", "")));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getIntOr("Priority", 0))));
                 if (settings.contains("SlotLimit")) {
-                    itemSlotLimits.put(direction, clampItemSlotLimit(settings.getIntOr("SlotLimit", 0)));
+                    boolean byItems = settings.getBooleanOr("LimitByItems", false);
+                    itemLimitByItems.put(direction, byItems);
+                    int limit = settings.getIntOr("SlotLimit", 0);
+                    itemSlotLimits.put(direction, byItems ? Math.max(0, limit) : clampItemSlotLimit(limit));
                 }
                 if (settings.contains("ItemsEnabled")) {
                     faceItemsEnabled.put(direction, settings.getBooleanOr("ItemsEnabled", false));

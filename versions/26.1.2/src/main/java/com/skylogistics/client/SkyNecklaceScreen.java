@@ -107,6 +107,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         maintainAmountEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
         maintainAmountEdit.setMaxLength(10);
         maintainAmountEdit.setResponder(this::maintainAmountChanged);
+        centerEditText(maintainAmountEdit);
         addRenderableWidget(maintainAmountEdit);
     }
 
@@ -340,6 +341,10 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             maintainAmountEdit.setValue(value);
             refreshingMaintainAmount = false;
         }
+    }
+
+    private void centerEditText(EditBox editBox) {
+        editBox.setCentered(true);
     }
 
     private void maintainAmountChanged(String value) {

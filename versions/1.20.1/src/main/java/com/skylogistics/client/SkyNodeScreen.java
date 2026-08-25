@@ -69,10 +69,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private static final int REDSTONE_CONTROL_X = 10;
     private static final int ADVANCED_CONTROL_WIDTH = 64;
     private static final int PRIORITY_BUTTON_WIDTH = 17;
-    private static final int SLOT_LIMIT_DOWN_X = 87;
-    private static final int SLOT_LIMIT_VALUE_X = 107;
-    private static final int SLOT_LIMIT_VALUE_WIDTH = 31;
-    private static final int SLOT_LIMIT_UP_X = 141;
+    private static final int SLOT_LIMIT_VALUE_X = 87;
+    private static final int SLOT_LIMIT_VALUE_WIDTH = 48;
+    private static final int SLOT_LIMIT_UNIT_X = 138;
+    private static final int SLOT_LIMIT_UNIT_WIDTH = 20;
     private static final int PRIORITY_DOWN_X = 172;
     private static final int PRIORITY_VALUE_X = 192;
     private static final int PRIORITY_VALUE_WIDTH = 31;
@@ -93,8 +93,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private Boolean localEnergyEnabled;
     private Direction selectedFace = Direction.NORTH;
     private EditBox lineNameEdit;
-    private EditBox exactQuantityEdit;
-    private boolean refreshingExactQuantity;
+    private EditBox maintainAmountEdit;
+    private boolean refreshingMaintainAmount;
     private boolean lineNameEditWasFocused;
     private UUID lineNameEditLine;
     private Direction tagFilterRejectedFace;
@@ -157,21 +157,20 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         addModeButton(leftPos + 134 + RESOURCE_BUTTON_STEP * 2, topPos + menu.screenY(RESOURCE_CONTROL_Y), RESOURCE_BUTTON_WIDTH, NodeFaceMode.OUTPUT,
                 Component.translatable("button.skylogistics.insert"));
         addAdvancedButton(new RedstoneButton(leftPos + REDSTONE_CONTROL_X, topPos + menu.screenY(ADVANCED_CONTROL_Y)));
-        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
-                -1, Component.literal("-")));
-        addAdvancedButton(new SlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
-                1, Component.literal("+")));
+        addAdvancedButton(new LimitUnitButton(leftPos + SLOT_LIMIT_UNIT_X,
+                topPos + menu.screenY(ADVANCED_CONTROL_Y)));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_DOWN_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 -1, Component.literal("-")));
         addAdvancedButton(new PriorityButton(leftPos + PRIORITY_UP_X, topPos + menu.screenY(ADVANCED_CONTROL_Y),
                 1, Component.literal("+")));
-        exactQuantityEdit = new EditBox(font, leftPos + SLOT_LIMIT_VALUE_X,
+        maintainAmountEdit = new EditBox(font, leftPos + SLOT_LIMIT_VALUE_X,
                 topPos + menu.screenY(ADVANCED_CONTROL_Y), SLOT_LIMIT_VALUE_WIDTH, ConfigPanel.STEPPER_HEIGHT,
-                Component.translatable("screen.skylogistics.exact_quantity"));
-        exactQuantityEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
-        exactQuantityEdit.setMaxLength(10);
-        exactQuantityEdit.setResponder(this::exactQuantityChanged);
-        addRenderableWidget(exactQuantityEdit);
+                Component.translatable("screen.skylogistics.sky_necklace.maintain_amount"));
+        maintainAmountEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        maintainAmountEdit.setMaxLength(10);
+        maintainAmountEdit.setResponder(this::maintainAmountChanged);
+        centerEditText(maintainAmountEdit);
+        addRenderableWidget(maintainAmountEdit);
 
     }
 
@@ -237,10 +236,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             button.active = selectedFaceActive;
         }
         for (AdvancedButton button : advancedButtons) {
-            button.visible = !(button instanceof SlotLimitButton && node.hasExactQuantityUpgrade());
+            button.visible = true;
             button.active = selectedFaceActive && button.canUse(node);
         }
-        refreshExactQuantity(node);
+        refreshMaintainAmount(node);
         if (localItemsEnabled != null && node.isItemsEnabled(selectedFace) == localItemsEnabled) {
             localItemsEnabled = null;
         }
@@ -276,8 +275,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         ConfigPanel.drawFieldset(graphics, leftPos + MODE_GROUP_X, topPos + menu.screenY(RESOURCE_GROUP_Y),
                 RESOURCE_MODE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.mode_label")));
         if (node != null) {
-            Component slotLegend = Component.translatable(node.hasExactQuantityUpgrade()
-                    ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit");
+            Component slotLegend = Component.translatable("screen.skylogistics.sky_necklace.maintain_amount");
             int groupY = topPos + menu.screenY(ADVANCED_GROUP_Y);
             ConfigPanel.drawFieldset(graphics, leftPos + REDSTONE_GROUP_X, groupY,
                     REDSTONE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.redstone")));
@@ -285,10 +283,6 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                     SLOT_LIMIT_GROUP_WIDTH, font.width(slotLegend));
             ConfigPanel.drawFieldset(graphics, leftPos + PRIORITY_GROUP_X, groupY,
                     PRIORITY_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.priority")));
-            if (!node.hasExactQuantityUpgrade()) {
-                ConfigPanel.drawStepperValue(graphics, leftPos + SLOT_LIMIT_VALUE_X,
-                        topPos + menu.screenY(ADVANCED_CONTROL_Y), SLOT_LIMIT_VALUE_WIDTH);
-            }
             ConfigPanel.drawStepperValue(graphics, leftPos + PRIORITY_VALUE_X,
                     topPos + menu.screenY(ADVANCED_CONTROL_Y), PRIORITY_VALUE_WIDTH);
         }
@@ -336,12 +330,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         int legendY = menu.screenY(ADVANCED_GROUP_Y) - 4;
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
                 REDSTONE_GROUP_X + REDSTONE_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
-        ConfigPanel.drawCenteredText(graphics, font, Component.translatable(node.hasExactQuantityUpgrade()
-                        ? "screen.skylogistics.exact_quantity" : "screen.skylogistics.slot_limit"),
+        ConfigPanel.drawCenteredText(graphics, font,
+                Component.translatable("screen.skylogistics.sky_necklace.maintain_amount"),
                 SLOT_LIMIT_GROUP_X + SLOT_LIMIT_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
-        if (!node.hasExactQuantityUpgrade()) ConfigPanel.drawCenteredText(graphics, font,
-                slotLimitDisplay(node.getItemSlotLimit(face)), SLOT_LIMIT_VALUE_X + SLOT_LIMIT_VALUE_WIDTH / 2,
-                menu.screenY(ADVANCED_CONTROL_Y) + 4, ConfigPanel.FIELD_TEXT);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.priority"),
                 PRIORITY_GROUP_X + PRIORITY_GROUP_WIDTH / 2, legendY, ConfigPanel.MUTED);
         ConfigPanel.drawCenteredText(graphics, font, Component.literal(String.valueOf(node.getPriority(face))),
@@ -369,7 +360,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if ((lineNameEdit != null && lineNameEdit.isFocused()
-                || exactQuantityEdit != null && exactQuantityEdit.isFocused())
+                || maintainAmountEdit != null && maintainAmountEdit.isFocused())
                 && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
         if (lineNameEdit != null && lineNameEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
@@ -378,9 +369,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             setFocused(null);
             return true;
         }
-        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
+        if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
-            exactQuantityEdit.setFocused(false);
+            maintainAmountEdit.setFocused(false);
             setFocused(null);
             return true;
         }
@@ -394,9 +385,9 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             lineNameEdit.setFocused(false);
             setFocused(null);
         }
-        if (exactQuantityEdit != null && exactQuantityEdit.isFocused()
-                && !exactQuantityEdit.isMouseOver(mouseX, mouseY)) {
-            exactQuantityEdit.setFocused(false);
+        if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
+                && !maintainAmountEdit.isMouseOver(mouseX, mouseY)) {
+            maintainAmountEdit.setFocused(false);
             setFocused(null);
         }
         updateTagFilterWarningFromClick(mouseX, mouseY, hasShiftDown());
@@ -435,26 +426,25 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private void refreshExactQuantity(SkyNodeBlockEntity node) {
-        if (exactQuantityEdit == null) return;
-        boolean visible = node.hasExactQuantityUpgrade();
-        exactQuantityEdit.visible = visible;
-        exactQuantityEdit.active = visible;
-        if (visible && !exactQuantityEdit.isFocused()) {
-            String value = String.valueOf(node.exactQuantity());
-            if (!value.equals(exactQuantityEdit.getValue())) {
-                refreshingExactQuantity = true;
-                exactQuantityEdit.setValue(value);
-                refreshingExactQuantity = false;
+    private void refreshMaintainAmount(SkyNodeBlockEntity node) {
+        if (maintainAmountEdit == null) return;
+        maintainAmountEdit.visible = node != null;
+        maintainAmountEdit.active = node != null && node.canConfigureFace(selectedFace);
+        if (node != null && !maintainAmountEdit.isFocused()) {
+            String value = String.valueOf(node.getItemSlotLimit(selectedFace));
+            if (!value.equals(maintainAmountEdit.getValue())) {
+                refreshingMaintainAmount = true;
+                maintainAmountEdit.setValue(value);
+                refreshingMaintainAmount = false;
             }
         }
     }
 
-    private void exactQuantityChanged(String value) {
-        if (refreshingExactQuantity || value.isEmpty()) return;
+    private void maintainAmountChanged(String value) {
+        if (refreshingMaintainAmount || value.isEmpty()) return;
         try {
             long parsed = Long.parseLong(value);
-            ModNetworking.sendExactQuantity((int) Math.min(Integer.MAX_VALUE, Math.max(1L, parsed)));
+            ModNetworking.sendExactQuantity((int) Math.min(Integer.MAX_VALUE, Math.max(0L, parsed)));
         } catch (NumberFormatException ignored) { }
     }
 
@@ -665,10 +655,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return localEnergyEnabled == null ? node.isEnergyEnabled(selectedFace) : localEnergyEnabled;
     }
 
-    private Component slotLimitDisplay(int slotLimit) {
-        return slotLimit == SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
-                ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
-                : Component.literal(String.valueOf(slotLimit));
+    private void centerEditText(EditBox editBox) {
+        editBox.setFormatter((text, start) -> {
+            int spaceWidth = Math.max(1, font.width(" "));
+            int padding = start == 0
+                    ? Math.max(0, (editBox.getWidth() - 8 - font.width(editBox.getValue())) / 2 / spaceWidth)
+                    : 0;
+            return net.minecraft.util.FormattedCharSequence.forward(" ".repeat(padding) + text,
+                    net.minecraft.network.chat.Style.EMPTY);
+        });
     }
 
     private SkyNodeBlockEntity node() {
@@ -893,25 +888,23 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private final class SlotLimitButton extends AdvancedButton {
-        private final int delta;
-
-        private SlotLimitButton(int x, int y, int delta, Component message) {
-            super(x, y, PRIORITY_BUTTON_WIDTH, ConfigPanel.STEPPER_HEIGHT, message);
-            this.delta = delta;
+    private final class LimitUnitButton extends AdvancedButton {
+        private LimitUnitButton(int x, int y) {
+            super(x, y, SLOT_LIMIT_UNIT_WIDTH, ConfigPanel.STEPPER_HEIGHT, Component.empty());
         }
 
         @Override
         public void onPress() {
             if (active) {
-                boolean fast = net.minecraft.client.gui.screens.Screen.hasShiftDown();
-                int action = delta < 0
-                        ? (fast ? MenuAction.faceSlotLimitDownFast(selectedFace)
-                                : MenuAction.faceSlotLimitDown(selectedFace))
-                        : (fast ? MenuAction.faceSlotLimitUpFast(selectedFace)
-                                : MenuAction.faceSlotLimitUp(selectedFace));
-                ModNetworking.sendMenuAction(action);
+                ModNetworking.sendMenuAction(MenuAction.faceToggleLimitUnit(selectedFace));
             }
+        }
+
+        @Override
+        protected Component dynamicMessage(SkyNodeBlockEntity node) {
+            return Component.translatable(node.isItemLimitByItems(selectedFace)
+                    ? "screen.skylogistics.sky_necklace.unit.items"
+                    : "screen.skylogistics.sky_necklace.unit.slots");
         }
     }
 

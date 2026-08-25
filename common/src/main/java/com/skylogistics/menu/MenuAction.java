@@ -54,6 +54,7 @@ public final class MenuAction {
     public static final int FACE_SLOT_LIMIT_UP_BASE = 210;
     public static final int FACE_SLOT_LIMIT_DOWN_FAST_BASE = 220;
     public static final int FACE_SLOT_LIMIT_UP_FAST_BASE = 230;
+    public static final int FACE_TOGGLE_LIMIT_UNIT_BASE = 240;
 
     private MenuAction() {
     }
@@ -108,6 +109,10 @@ public final class MenuAction {
 
     public static int faceSlotLimitUpFast(net.minecraft.core.Direction direction) {
         return FACE_SLOT_LIMIT_UP_FAST_BASE + direction.ordinal();
+    }
+
+    public static int faceToggleLimitUnit(net.minecraft.core.Direction direction) {
+        return FACE_TOGGLE_LIMIT_UNIT_BASE + direction.ordinal();
     }
 
 }

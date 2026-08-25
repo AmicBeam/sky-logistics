@@ -109,6 +109,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         maintainAmountEdit.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
         maintainAmountEdit.setMaxLength(10);
         maintainAmountEdit.setResponder(this::maintainAmountChanged);
+        centerEditText(maintainAmountEdit);
         addRenderableWidget(maintainAmountEdit);
     }
 
@@ -346,6 +347,17 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
             maintainAmountEdit.setValue(value);
             refreshingMaintainAmount = false;
         }
+    }
+
+    private void centerEditText(EditBox editBox) {
+        editBox.setFormatter((text, start) -> {
+            int spaceWidth = Math.max(1, font.width(" "));
+            int padding = start == 0
+                    ? Math.max(0, (editBox.getWidth() - 8 - font.width(editBox.getValue())) / 2 / spaceWidth)
+                    : 0;
+            return net.minecraft.util.FormattedCharSequence.forward(" ".repeat(padding) + text,
+                    net.minecraft.network.chat.Style.EMPTY);
+        });
     }
 
     private void maintainAmountChanged(String value) {

@@ -358,7 +358,8 @@ public final class SkyNetworkTicker {
         if (!exactScan.complete()) return operations;
         int exactExcess = exactScan.total() < 0L ? -1
                 : (int)Math.min(Integer.MAX_VALUE,
-                        Math.max(0L, exactScan.total() - ((SkyNodeBlockEntity)sourceNode).exactQuantity()));
+                        Math.max(0L, exactScan.total()
+                                - ((SkyNodeBlockEntity)sourceNode).getItemSlotLimit(sourceEndpoint.direction())));
         if (exactExcess == 0) {
             SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemFailure(gameTime);
@@ -885,7 +886,7 @@ public final class SkyNetworkTicker {
     private static SlotLimitCheck checkExtractionSlotLimit(CachedEndpoint endpoint, IItemHandler source,
             int checkBudget) {
         NetworkEndpointBlockEntity node = endpoint.node();
-        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) {
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(endpoint.direction())) {
             SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
             return SlotLimitCheck.ALLOWED;
         }
@@ -921,7 +922,8 @@ public final class SkyNetworkTicker {
 
     private static ExactItemScanResult scanExactItems(CachedEndpoint endpoint, IItemHandler handler, int budget,
             Map<CachedEndpoint, ExactItemScan> scans) {
-        if (!(endpoint.node() instanceof SkyNodeBlockEntity node) || !node.hasExactQuantityUpgrade()) {
+        if (!(endpoint.node() instanceof SkyNodeBlockEntity node)
+                || !node.isItemLimitByItems(endpoint.direction())) {
             scans.remove(endpoint);
             return ExactItemScanResult.NOT_CONFIGURED;
         }
@@ -950,8 +952,8 @@ public final class SkyNetworkTicker {
             return SlotLimitCheck.ALLOWED;
         }
         NetworkEndpointBlockEntity node = endpoint.node();
-        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.hasExactQuantityUpgrade()) return SlotLimitCheck.ALLOWED;
         net.minecraft.core.Direction direction = endpoint.direction();
+        if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(direction)) return SlotLimitCheck.ALLOWED;
         int limit = node.getItemSlotLimit(direction);
         if (limit <= SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) return SlotLimitCheck.ALLOWED;
         int checks = 0;
@@ -1093,7 +1095,8 @@ public final class SkyNetworkTicker {
                 }
                 int exactRemaining = exactScan.total() < 0L ? -1
                         : (int)Math.min(Integer.MAX_VALUE,
-                                Math.max(0L, (long)((SkyNodeBlockEntity)targetEndpoint.node()).exactQuantity()
+                                Math.max(0L, (long)((SkyNodeBlockEntity)targetEndpoint.node())
+                                        .getItemSlotLimit(targetEndpoint.direction())
                                         - exactScan.total()));
                 TARGET_EXACT_ITEM_SCANS.remove(targetEndpoint);
                 if (exactRemaining == 0) continue;
