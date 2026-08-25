@@ -623,7 +623,7 @@ public final class SkyNecklaceTicker {
                         extracted, leftover, rollback);
             }
         }
-        sourceEndpoint.recordItemSlotSuccess(slot, source.getSlots());
+        sourceEndpoint.recordItemSlotSuccess(slot, source.getSlots(), gameTime);
         sourceEndpoint.recordItemSuccess();
         return true;
     }

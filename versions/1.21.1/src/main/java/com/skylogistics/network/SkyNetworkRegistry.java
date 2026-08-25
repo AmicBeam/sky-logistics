@@ -1563,6 +1563,7 @@ public final class SkyNetworkRegistry {
         private int chemicalSourceMisses;
         private int[] preferredItemSlots;
         private int[] preferredItemSlotMisses;
+        private long[] preferredItemSlotTriedAt;
         private int preferredItemSlotCursor;
         private int preferredItemSlotWriteCursor;
         private int itemSlotDiscoveryRemaining;
@@ -1630,14 +1631,41 @@ public final class SkyNetworkRegistry {
         }
 
         private void enableItemSourceCaching() {
+            int configuredSize = SkyLogisticsConfig.preferredItemSlotCacheSize();
             if (preferredItemSlots != null) {
+                if (preferredItemSlots.length != configuredSize) resizePreferredItemSlots(configuredSize);
                 return;
             }
-            preferredItemSlots = new int[SkyLogisticsConfig.preferredItemSlotCacheSize()];
+            preferredItemSlots = new int[configuredSize];
             preferredItemSlotMisses = new int[preferredItemSlots.length];
+            preferredItemSlotTriedAt = new long[preferredItemSlots.length];
             emptyItemSlots = new int[EMPTY_ITEM_SLOT_CACHE_SIZE];
             emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
             clearItemSlotCaches();
+        }
+
+        private void resizePreferredItemSlots(int configuredSize) {
+            int[] previousSlots = preferredItemSlots;
+            int[] previousMisses = preferredItemSlotMisses;
+            long[] previousTriedAt = preferredItemSlotTriedAt;
+            preferredItemSlots = new int[configuredSize];
+            preferredItemSlotMisses = new int[configuredSize];
+            preferredItemSlotTriedAt = new long[configuredSize];
+            for (int i = 0; i < configuredSize; i++) {
+                preferredItemSlots[i] = -1;
+                preferredItemSlotTriedAt[i] = Long.MIN_VALUE;
+            }
+            int copied = 0;
+            for (int i = 0; i < previousSlots.length && copied < configuredSize; i++) {
+                int index = Math.floorMod(preferredItemSlotCursor + i, previousSlots.length);
+                if (previousSlots[index] < 0) continue;
+                preferredItemSlots[copied] = previousSlots[index];
+                preferredItemSlotMisses[copied] = previousMisses[index];
+                preferredItemSlotTriedAt[copied] = previousTriedAt[index];
+                copied++;
+            }
+            preferredItemSlotCursor = 0;
+            preferredItemSlotWriteCursor = copied < configuredSize ? copied : 0;
         }
 
         private void enableItemTargetCaching() {
@@ -2233,6 +2261,7 @@ public final class SkyNetworkRegistry {
 
         public int nextPreferredItemSlot(int slots, long gameTime, int firstTriedSlot, int secondTriedSlot) {
             if (preferredItemSlots == null) return -1;
+            enableItemSourceCaching();
             for (int i = 0; i < preferredItemSlots.length; i++) {
                 int index = Math.floorMod(preferredItemSlotCursor + i, preferredItemSlots.length);
                 int slot = preferredItemSlots[index];
@@ -2244,27 +2273,33 @@ public final class SkyNetworkRegistry {
                     preferredItemSlotMisses[index] = 0;
                     continue;
                 }
-                if (wasSlotTried(firstTriedSlot, secondTriedSlot, slot) || !canTryItemSlot(slot, gameTime)) {
+                if (preferredItemSlotTriedAt[index] == gameTime
+                        || wasSlotTried(firstTriedSlot, secondTriedSlot, slot)
+                        || !canTryItemSlot(slot, gameTime)) {
                     continue;
                 }
                 preferredItemSlotCursor = (index + 1) % preferredItemSlots.length;
+                preferredItemSlotTriedAt[index] = gameTime;
                 return slot;
             }
             return -1;
         }
 
         public boolean canTryItemSlot(int slot, long gameTime) {
+            int preferredIndex = preferredItemSlots == null ? -1 : findPreferredItemSlot(slot);
+            if (preferredIndex >= 0 && preferredItemSlotTriedAt[preferredIndex] == gameTime) return false;
             if (emptyItemSlots == null) return true;
             int index = findEmptyItemSlot(slot);
             return index < 0 || gameTime >= emptyItemSlotUntil[index];
         }
 
-        public void recordItemSlotSuccess(int slot, int totalSlots) {
+        public void recordItemSlotSuccess(int slot, int totalSlots, long gameTime) {
             enableItemSourceCaching();
             int preferredCount = preferredItemSlotCount();
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
                 preferredItemSlotMisses[preferredIndex] = 0;
+                preferredItemSlotTriedAt[preferredIndex] = gameTime;
             } else {
                 int insertIndex = firstFreePreferredItemSlot();
                 if (insertIndex < 0) {
@@ -2273,6 +2308,7 @@ public final class SkyNetworkRegistry {
                 }
                 preferredItemSlots[insertIndex] = slot;
                 preferredItemSlotMisses[insertIndex] = 0;
+                preferredItemSlotTriedAt[insertIndex] = gameTime;
                 if (preferredCount == 0 && totalSlots > 1) {
                     itemSlotDiscoveryRemaining = Math.max(itemSlotDiscoveryRemaining, totalSlots - 1);
                     itemSlotDiscoveryDeferrals = 0;
@@ -2890,6 +2926,7 @@ public final class SkyNetworkRegistry {
                 for (int i = 0; i < preferredItemSlots.length; i++) {
                     preferredItemSlots[i] = -1;
                     preferredItemSlotMisses[i] = 0;
+                    preferredItemSlotTriedAt[i] = Long.MIN_VALUE;
                 }
                 for (int i = 0; i < emptyItemSlots.length; i++) {
                     emptyItemSlots[i] = -1;
