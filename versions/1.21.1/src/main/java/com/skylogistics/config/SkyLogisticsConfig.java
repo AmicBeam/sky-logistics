@@ -194,8 +194,7 @@ public final class SkyLogisticsConfig {
     }
 
     public static boolean forceExtractionDeviceModAllowed(String modId) {
-        return SERVER.forceExtractionDeviceModIdWhitelist.get().stream()
-                .anyMatch(value -> modId.equals(value));
+        return SERVER.forceExtractionDeviceModIdWhitelist.get().contains(modId);
     }
 
     private static boolean validModId(Object value) {

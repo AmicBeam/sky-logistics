@@ -7,12 +7,14 @@ import net.minecraft.world.item.ItemStack;
 
 public final class ItemStackKey {
     private final ItemStack stack;
+    private final int hash;
 
     private ItemStackKey(ItemStack stack) {
         this.stack = stack.copy();
         if (!this.stack.isEmpty()) {
             this.stack.setCount(1);
         }
+        this.hash = ItemStack.hashItemAndComponents(this.stack);
     }
 
     public static ItemStackKey of(ItemStack stack) {
@@ -47,6 +49,6 @@ public final class ItemStackKey {
 
     @Override
     public int hashCode() {
-        return ItemStack.hashItemAndComponents(stack);
+        return hash;
     }
 }

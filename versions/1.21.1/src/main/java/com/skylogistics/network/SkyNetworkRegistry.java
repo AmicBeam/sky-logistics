@@ -1616,6 +1616,7 @@ public final class SkyNetworkRegistry {
         private final int[] resourceTargetScanCursors =
                 new int[NetworkEndpointBlockEntity.TargetResource.values().length];
         private int absentCapabilityMask;
+        private BlockEntity cachedTargetBlockEntity;
         private BlockEntity capabilityTarget;
         private net.minecraft.world.level.block.state.BlockState capabilityTargetState;
         private final long[] capabilityLifecycleCheckAt = new long[6];
@@ -1741,10 +1742,19 @@ public final class SkyNetworkRegistry {
 
         public BlockEntity targetBlockEntity() {
             Level level = node.getLevel();
-            if (level == null || !level.isLoaded(targetPos)) {
+            if (level == null) {
+                cachedTargetBlockEntity = null;
                 return null;
             }
-            return level.getBlockEntity(targetPos);
+            if (cachedTargetBlockEntity != null) {
+                if (!cachedTargetBlockEntity.isRemoved() && cachedTargetBlockEntity.getLevel() == level) {
+                    return cachedTargetBlockEntity;
+                }
+                cachedTargetBlockEntity = null;
+            }
+            if (!level.isLoaded(targetPos)) return null;
+            cachedTargetBlockEntity = level.getBlockEntity(targetPos);
+            return cachedTargetBlockEntity;
         }
 
         public boolean canTryItems(long gameTime) {

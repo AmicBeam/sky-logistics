@@ -394,7 +394,8 @@ public final class SkyNetworkTicker {
             } else {
                 secondTriedSlot = slot;
             }
-            ItemStack simulated = simulateSourceItem(sourceEndpoint, source, slot, transferLimit);
+            SimulatedItem simulatedItem = simulateSourceItem(sourceEndpoint, source, slot, transferLimit);
+            ItemStack simulated = simulatedItem.stack();
             operations++;
             if (simulated.isEmpty()) {
                 if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
@@ -414,7 +415,8 @@ public final class SkyNetworkTicker {
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
-            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, targets,
+            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated,
+                    simulatedItem.forceExtractionSupported(), targets,
                     Math.max(1, budget - operations), gameTime);
             operations += result.operations();
             if (result.moved()) {
@@ -672,9 +674,10 @@ public final class SkyNetworkTicker {
         int targetAttempts = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
         int targetCount = targets.size();
-        int targetIndex = sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
+        boolean singleTarget = targetCount == 1;
+        ItemStackKey simulatedKey = singleTarget ? null : ItemStackKey.of(simulated);
+        int targetIndex = singleTarget ? 0 : sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
         targetLoop:
         for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
                 CachedEndpoint targetEndpoint = targets.get(targetIndex);
@@ -695,13 +698,14 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
+                    if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
                         targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                         continue;
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
-                    sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
+                    if (!singleTarget) sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
@@ -734,7 +738,9 @@ public final class SkyNetworkTicker {
                         gameTime, Math.max(1, budget - operations + 1));
                 operations += Math.max(0, handlerResult.slotChecks() - 1);
                 if (handlerResult.budgetExhausted()) {
-                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    if (!singleTarget) {
+                        sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    }
                     budgetExhausted = true;
                     break targetLoop;
                 }
@@ -744,7 +750,7 @@ public final class SkyNetworkTicker {
                     return new MoveResult(true, operations);
                 }
         }
-        if (!budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
+        if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordItemFailure(gameTime);
         }
@@ -980,7 +986,7 @@ public final class SkyNetworkTicker {
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, IItemHandler source, int slot, ItemStack simulated,
-            List<CachedEndpoint> targets, int budget, long gameTime) {
+            boolean forceExtractionSupported, List<CachedEndpoint> targets, int budget, long gameTime) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
@@ -992,9 +998,10 @@ public final class SkyNetworkTicker {
         int targetAttempts = 0;
         boolean redstoneBlocked = false;
         boolean budgetExhausted = false;
-        ItemStackKey simulatedKey = ItemStackKey.of(simulated);
         int targetCount = targets.size();
-        int targetIndex = sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
+        boolean singleTarget = targetCount == 1;
+        ItemStackKey simulatedKey = singleTarget ? null : ItemStackKey.of(simulated);
+        int targetIndex = singleTarget ? 0 : sourceEndpoint.itemTargetScanStart(simulatedKey, targetCount);
         targetLoop:
         for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
                 CachedEndpoint targetEndpoint = targets.get(targetIndex);
@@ -1015,13 +1022,14 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
+                    if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
                         targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                         continue;
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
-                    sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
+                    if (!singleTarget) sourceEndpoint.resumeItemTargetScan(simulatedKey, targetIndex, targetCount);
                     budgetExhausted = true;
                     break targetLoop;
                 }
@@ -1051,7 +1059,7 @@ public final class SkyNetworkTicker {
                 }
                 if (targetLongEndpoint != null) {
                     long moved = moveItemToLongTarget(sourceEndpoint, source, slot, simulated, targetEndpoint,
-                            targetLongEndpoint, skyContainerTransferLimit);
+                            targetLongEndpoint, skyContainerTransferLimit, forceExtractionSupported);
                     if (moved > 0L) {
                         finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                         targetEndpoint.recordItemSuccess();
@@ -1073,7 +1081,9 @@ public final class SkyNetworkTicker {
                         Math.max(1, budget - operations + 1));
                 operations += slotLimitCheck.checks();
                 if (!slotLimitCheck.complete()) {
-                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    if (!singleTarget) {
+                        sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    }
                     budgetExhausted = true;
                     break targetLoop;
                 }
@@ -1082,7 +1092,9 @@ public final class SkyNetworkTicker {
                         Math.max(1, budget - operations + 1), TARGET_EXACT_ITEM_SCANS);
                 operations += Math.max(0, exactScan.checks() - 1);
                 if (!exactScan.complete()) {
-                    sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    if (!singleTarget) {
+                        sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    }
                     budgetExhausted = true;
                     break targetLoop;
                 }
@@ -1108,7 +1120,7 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 ItemSlotTransfer transfer = transferItemSlot(sourceEndpoint, source, slot, targetEndpoint, target,
-                        targetSlot.slot(), movable);
+                        targetSlot.slot(), movable, forceExtractionSupported);
                 if (!transfer.extracted()) {
                     sourceEndpoint.recordItemFailure(gameTime);
                     return new MoveResult(false, operations);
@@ -1124,7 +1136,7 @@ public final class SkyNetworkTicker {
                 finishItemTargetScan(sourceEndpoint, simulatedKey, targets, visitedTargetIndex);
                 return new MoveResult(true, operations);
         }
-        if (!budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
+        if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordItemFailure(gameTime);
         }
@@ -1200,21 +1212,26 @@ public final class SkyNetworkTicker {
                 movable < stack.getCount(), usedHot);
     }
 
-    private static ItemStack simulateSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
+    private static SimulatedItem simulateSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
             int transferLimit) {
         ItemStack simulated = source.extractItem(slot, transferLimit, true);
+        boolean forceExtractionSupported = false;
         if (endpoint.node() instanceof SkyNodeBlockEntity node) {
-            simulated = ForceExtractionCompat.fullSlotCandidate(node, endpoint.targetBlockEntity(), source,
-                    slot, simulated, transferLimit);
+            ForceExtractionCompat.FullSlotCandidate candidate = ForceExtractionCompat.fullSlotCandidate(node,
+                    endpoint.targetBlockEntity(), source, slot, simulated, transferLimit);
+            simulated = candidate.stack();
+            forceExtractionSupported = candidate.forceExtractionSupported();
         }
-        return SophisticatedStorageCompat.fullSlotCandidate(
+        simulated = SophisticatedStorageCompat.fullSlotCandidate(
                 endpoint.targetBlockEntity(), slot, simulated, transferLimit);
+        return new SimulatedItem(simulated, forceExtractionSupported);
     }
 
     private static ItemSlotTransfer transferItemSlot(CachedEndpoint sourceEndpoint, IItemHandler source,
-            int sourceSlot, CachedEndpoint targetEndpoint, IItemHandler target, int targetSlot, int amount) {
+            int sourceSlot, CachedEndpoint targetEndpoint, IItemHandler target, int targetSlot, int amount,
+            boolean forceExtractionSupported) {
         SourceExtraction extraction = extractSourceItem(sourceEndpoint, source, sourceSlot,
-                source.getStackInSlot(sourceSlot), amount);
+                source.getStackInSlot(sourceSlot), amount, forceExtractionSupported);
         ItemStack extracted = extraction.stack();
         if (extracted.isEmpty()) return new ItemSlotTransfer(false, 0, false);
         ItemStack leftover = target.insertItem(targetSlot, extracted, false);
@@ -1233,15 +1250,17 @@ public final class SkyNetworkTicker {
     }
 
     private static SourceExtraction extractSourceItem(CachedEndpoint endpoint, IItemHandler source, int slot,
-            ItemStack expected, int amount) {
+            ItemStack expected, int amount, boolean forceExtractionSupported) {
         ItemStack standard = source.extractItem(slot, amount, true);
         if (!standard.isEmpty() && standard.getCount() == amount
                 && StackData.sameItemAndComponents(standard, expected)) {
             return new SourceExtraction(source.extractItem(slot, amount, false), DirectSource.NONE);
         }
         if (endpoint.node() instanceof SkyNodeBlockEntity node) {
-            ForceExtractionCompat.DirectExtraction forced = ForceExtractionCompat.extractDirect(node,
-                    endpoint.targetBlockEntity(), source, slot, expected, amount);
+            ForceExtractionCompat.DirectExtraction forced = forceExtractionSupported
+                    ? ForceExtractionCompat.extractDirectSupported(source, slot, expected, amount)
+                    : ForceExtractionCompat.extractDirect(node, endpoint.targetBlockEntity(), source, slot,
+                            expected, amount);
             if (forced.supported()) return new SourceExtraction(forced.stack(), DirectSource.FORCED);
         }
         SophisticatedStorageCompat.DirectExtraction direct = SophisticatedStorageCompat.extractDirect(
@@ -1265,6 +1284,10 @@ public final class SkyNetworkTicker {
     }
 
     private static LongItemEndpoint longItemEndpoint(CachedEndpoint endpoint) {
+        LongItemEndpointCache cached = LONG_ITEM_ENDPOINTS.get(endpoint);
+        if (cached != null && cachedLongItemEndpointUsable(endpoint, cached.blockEntity())) {
+            return cached.endpoint();
+        }
         BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
                 || endpoint.node() instanceof SkyRSInterfaceBlockEntity
                 ? endpoint.node() : endpoint.targetBlockEntity();
@@ -1280,7 +1303,6 @@ public final class SkyNetworkTicker {
             LONG_ITEM_ENDPOINTS.remove(endpoint);
             return null;
         }
-        LongItemEndpointCache cached = LONG_ITEM_ENDPOINTS.get(endpoint);
         if (cached != null && cached.blockEntity() == blockEntity) return cached.endpoint();
         LongItemEndpoint resolved;
         if (blockEntity instanceof ItemVaultBlockEntity vault) resolved = new ItemVaultLongEndpoint(vault);
@@ -1290,6 +1312,19 @@ public final class SkyNetworkTicker {
         else resolved = new RefinedStorageItemLongEndpoint(blockEntity);
         LONG_ITEM_ENDPOINTS.put(endpoint, new LongItemEndpointCache(blockEntity, resolved));
         return resolved;
+    }
+
+    private static boolean cachedLongItemEndpointUsable(CachedEndpoint endpoint, BlockEntity blockEntity) {
+        if (endpoint.node().isRemoved() || blockEntity.isRemoved()
+                || blockEntity.getLevel() != endpoint.node().getLevel()) return false;
+        if (blockEntity instanceof SkyMEInterfaceBlockEntity) {
+            return AppliedEnergisticsCompat.isLoaded() && SkyLogisticsConfig.allowAe2ItemTransfer();
+        }
+        if (blockEntity instanceof SkyRSInterfaceBlockEntity) {
+            return RefinedStorageCompat.isLoaded() && SkyLogisticsConfig.allowRefinedStorageItemTransfer();
+        }
+        return blockEntity instanceof ItemVaultBlockEntity
+                || blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost;
     }
 
     private static long moveLongItem(CachedEndpoint sourceEndpoint, LongItemEndpoint sourceEndpointLong,
@@ -1359,7 +1394,8 @@ public final class SkyNetworkTicker {
     }
 
     private static long moveItemToLongTarget(CachedEndpoint sourceEndpoint, IItemHandler source, int sourceSlot,
-            ItemStack simulated, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong, long maxAmount) {
+            ItemStack simulated, CachedEndpoint targetEndpoint, LongItemEndpoint targetEndpointLong, long maxAmount,
+            boolean forceExtractionSupported) {
         long requested = Math.min(maxAmount, simulated.getCount());
         if (requested <= 0L) {
             return 0L;
@@ -1369,7 +1405,8 @@ public final class SkyNetworkTicker {
             return 0L;
         }
         int amount = (int) Math.min(Integer.MAX_VALUE, accepted);
-        SourceExtraction extraction = extractSourceItem(sourceEndpoint, source, sourceSlot, simulated, amount);
+        SourceExtraction extraction = extractSourceItem(sourceEndpoint, source, sourceSlot, simulated, amount,
+                forceExtractionSupported);
         ItemStack extracted = extraction.stack();
         if (extracted.isEmpty()) return -1L;
         long inserted = targetEndpointLong.insert(extracted, extracted.getCount(), false);
@@ -2969,12 +3006,13 @@ public final class SkyNetworkTicker {
     private static int advanceItemTargetScan(CachedEndpoint sourceEndpoint, ItemStackKey key, int currentIndex,
             int targetCount) {
         int nextIndex = (currentIndex + 1) % targetCount;
-        sourceEndpoint.resumeItemTargetScan(key, nextIndex, targetCount);
+        if (targetCount > 1) sourceEndpoint.resumeItemTargetScan(key, nextIndex, targetCount);
         return nextIndex;
     }
 
     private static void finishItemTargetScan(CachedEndpoint sourceEndpoint, ItemStackKey key,
             List<CachedEndpoint> targets, int successfulIndex) {
+        if (targets.size() <= 1) return;
         int nextIndex = successfulIndex + 1;
         int topPriority = targets.get(0).node().getPriority(targets.get(0).direction());
         int successfulPriority = targets.get(successfulIndex).node()
@@ -3080,6 +3118,9 @@ public final class SkyNetworkTicker {
     }
 
     private record SourceExtraction(ItemStack stack, DirectSource directSource) {
+    }
+
+    private record SimulatedItem(ItemStack stack, boolean forceExtractionSupported) {
     }
 
     private record TargetItemSelection(TargetItemSlot slot, int checks, boolean exhaustive) {

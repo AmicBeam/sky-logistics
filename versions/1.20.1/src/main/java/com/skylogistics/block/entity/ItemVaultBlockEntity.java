@@ -371,7 +371,15 @@ public class ItemVaultBlockEntity extends BlockEntity {
             slotChangeVersions[slot] = syncVersion;
             dirtySlots[slot] = false;
         }
-        setChanged();
+        markStorageDirty();
+    }
+
+    private void markStorageDirty() {
+        if (level != null) {
+            // Item vaults do not expose comparator output, so avoid BlockEntity#setChanged's
+            // unnecessary neighbour/comparator walk while still marking the chunk for saving.
+            level.blockEntityChanged(worldPosition);
+        }
     }
 
     private void markMetadataChanged() {
