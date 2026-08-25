@@ -1187,10 +1187,15 @@ public final class SkyNetworkTicker {
     private static TargetItemSlot simulateTargetItemSlot(CachedEndpoint endpoint, IItemHandler target, ItemStack stack, int lane,
             int slot, boolean usedHot, ItemStack existing) {
         ItemStack remainder = target.insertItem(slot, stack.copy(), true);
-        int movable = stack.getCount() - remainder.getCount();
+        int standardMovable = stack.getCount() - remainder.getCount();
+        ForceExtractionCompat.InsertionCandidate forced = endpoint.node() instanceof SkyNodeBlockEntity node
+                ? ForceExtractionCompat.insertionCandidate(node, endpoint.targetBlockEntity(), target,
+                        slot, stack, standardMovable)
+                : new ForceExtractionCompat.InsertionCandidate(standardMovable, false);
+        int movable = forced.movable();
         if (movable <= 0) return TargetItemSlot.NONE;
         int existingCount = existing.isEmpty() ? 0 : existing.getCount();
-        int effectiveLimit = SophisticatedStorageCompat.supports(endpoint.targetBlockEntity())
+        int effectiveLimit = forced.forced() || SophisticatedStorageCompat.supports(endpoint.targetBlockEntity())
                 ? target.getSlotLimit(slot)
                 : Math.min(target.getSlotLimit(slot), stack.getMaxStackSize());
         return new TargetItemSlot(lane, slot, movable, existingCount, effectiveLimit,
@@ -1214,7 +1219,13 @@ public final class SkyNetworkTicker {
                 source.getStackInSlot(sourceSlot), amount);
         ItemStack extracted = extraction.stack();
         if (extracted.isEmpty()) return new ItemSlotTransfer(false, 0, false);
-        ItemStack leftover = target.insertItem(targetSlot, extracted, false);
+        ForceExtractionCompat.DirectInsertion forced = targetEndpoint.node() instanceof SkyNodeBlockEntity node
+                ? ForceExtractionCompat.insertDirect(node, targetEndpoint.targetBlockEntity(), target,
+                        targetSlot, extracted)
+                : new ForceExtractionCompat.DirectInsertion(ItemStack.EMPTY, false);
+        ItemStack leftover = forced.supported()
+                ? forced.remainder()
+                : target.insertItem(targetSlot, extracted, false);
         int inserted = extracted.getCount() - leftover.getCount();
         if (!leftover.isEmpty()) {
             ItemStack rollbackRemainder = rollbackSourceItem(sourceEndpoint, source, sourceSlot, extraction, leftover);
