@@ -407,8 +407,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             if (!ItemStack.isSameItem(installed, stack)) {
                 continue;
             }
-            if (!stack.is(ModItems.SPEED_UPGRADE.get())
-                    || installed.getCount() >= maxUpgradeStackSize(stack)) {
+            if (installed.getCount() >= maxUpgradeStackSize(stack)) {
                 return false;
             }
             ItemStack grown = installed.copy();
@@ -958,44 +957,38 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
-        installCopiedSpeedUpgrades(config.speedUpgradeCount(), player);
-        installCopiedUpgrade(config.dimensionUpgrade(), ModItems.DIMENSION_UPGRADE.get(), player);
-    }
-
-    private void installCopiedSpeedUpgrades(int requestedCount, Player player) {
-        int targetCount = Math.min(Math.max(0, requestedCount), SkyLogisticsConfig.maxSpeedUpgradesPerNode());
-        while (speedUpgradeCount() < targetCount) {
-            if (speedUpgradeCount() == 0 && upgrades.stream().noneMatch(ItemStack::isEmpty)) {
-                break;
+        for (ItemStack requested : config.upgrades()) {
+            if (!isUpgradeItem(requested)) {
+                continue;
             }
-            if (!consumeUpgradeFromPlayer(player, ModItems.SPEED_UPGRADE.get())) {
-                break;
-            }
-            if (!addSingleUpgrade(new ItemStack(ModItems.SPEED_UPGRADE.get()))) {
-                break;
+            int targetCount = Math.min(requested.getCount(), maxUpgradeStackSize(requested));
+            while (upgradeCount(requested.getItem()) < targetCount && canAddSingleUpgrade(requested)) {
+                if (!consumeUpgradeFromPlayer(player, requested.getItem())) {
+                    break;
+                }
+                if (!addSingleUpgrade(requested)) {
+                    break;
+                }
             }
         }
     }
 
-    private void installCopiedUpgrade(boolean shouldInstall, Item item, Player player) {
-        if (!shouldInstall || hasUpgrade(item)) {
-            return;
-        }
-        int slot = firstUpgradeSlotFor(item);
-        if (slot < 0 || !consumeUpgradeFromPlayer(player, item)) {
-            return;
-        }
-        setUpgrade(slot, new ItemStack(item));
-    }
-
-    private int firstUpgradeSlotFor(Item item) {
-        ItemStack stack = new ItemStack(item);
-        for (int slot = 0; slot < upgrades.size(); slot++) {
-            if (canAcceptUpgrade(slot, stack)) {
-                return slot;
+    private int upgradeCount(Item item) {
+        for (ItemStack installed : upgrades) {
+            if (installed.is(item)) {
+                return installed.getCount();
             }
         }
-        return -1;
+        return 0;
+    }
+
+    private boolean canAddSingleUpgrade(ItemStack stack) {
+        for (ItemStack installed : upgrades) {
+            if (ItemStack.isSameItem(installed, stack)) {
+                return installed.getCount() < maxUpgradeStackSize(stack);
+            }
+        }
+        return upgrades.stream().anyMatch(ItemStack::isEmpty);
     }
 
     private static boolean consumeUpgradeFromPlayer(Player player, Item item) {
