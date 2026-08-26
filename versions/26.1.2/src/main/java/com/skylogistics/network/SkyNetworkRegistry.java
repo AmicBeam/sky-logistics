@@ -1528,6 +1528,10 @@ public final class SkyNetworkRegistry {
         private long manaRetryAfter;
         private long sourceRetryAfter;
         private int itemFailures;
+        private int maintainedItemProbeSlot = -1;
+        private ItemStack maintainedItemProbeStack = ItemStack.EMPTY;
+        private int maintainedItemProbeCount;
+        private long maintainedItemProbeAfter = Long.MAX_VALUE;
         private int fluidFailures;
         private int chemicalFailures;
         private int energyFailures;
@@ -1755,7 +1759,8 @@ public final class SkyNetworkRegistry {
         }
 
         public long nextItemWake(long gameTime) {
-            return nextCapabilityWake(CAPABILITY_ITEMS, itemRetryAfter, gameTime);
+            long wake = nextCapabilityWake(CAPABILITY_ITEMS, itemRetryAfter, gameTime);
+            return hasMaintainedItemProbe() ? Math.min(wake, maintainedItemProbeAfter) : wake;
         }
 
         public long nextFluidWake(long gameTime) {
@@ -2064,6 +2069,69 @@ public final class SkyNetworkRegistry {
         public void recordItemFailure(long gameTime) {
             itemFailures = Math.min(itemFailures + 1, MAX_TRANSFER_FAILURES);
             itemRetryAfter = gameTime + delay(itemFailures);
+        }
+
+        public void recordItemFailure(long gameTime, boolean maintainedProbeAvailable) {
+            recordItemFailure(gameTime);
+            if (maintainedProbeAvailable && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
+                itemRetryAfter = Math.min(itemRetryAfter,
+                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
+        }
+
+        public boolean canRecordMaintainedItemProbe() {
+            return SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()
+                    && node.getItemSlotLimit(direction) > NetworkEndpointBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED;
+        }
+
+        public void recordMaintainedItemProbe(int slot, ItemStack stack, int observedCount, long gameTime) {
+            if (!canRecordMaintainedItemProbe() || slot < 0 || stack.isEmpty()) return;
+            maintainedItemProbeSlot = slot;
+            maintainedItemProbeStack = stack.copyWithCount(1);
+            maintainedItemProbeCount = Math.max(0, observedCount);
+            maintainedItemProbeAfter = gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks();
+        }
+
+        public boolean hasMaintainedItemProbe() {
+            return SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()
+                    && maintainedItemProbeSlot >= 0 && !maintainedItemProbeStack.isEmpty();
+        }
+
+        public boolean isMaintainedItemProbeDue(long gameTime) {
+            return hasMaintainedItemProbe() && gameTime >= maintainedItemProbeAfter;
+        }
+
+        public boolean probeMaintainedItemChanged(long gameTime) {
+            if (!isMaintainedItemProbeDue(gameTime)) return false;
+            maintainedItemProbeAfter = gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks();
+            ItemHandler handler = maintainedItemProbeHandler(gameTime);
+            if (handler == null || maintainedItemProbeSlot >= handler.getSlots()) {
+                clearMaintainedItemProbe();
+                return false;
+            }
+            ItemStack observed = handler.getStackInSlot(maintainedItemProbeSlot);
+            int observedCount = observed.isEmpty() ? 0 : observed.getCount();
+            boolean changed = observedCount != maintainedItemProbeCount
+                    || !observed.isEmpty() && !StackData.sameItemAndComponents(observed, maintainedItemProbeStack);
+            if (changed) {
+                itemFailures = 0;
+                itemRetryAfter = 0L;
+                clearRejectedItemAccepts();
+                clearMaintainedItemProbe();
+            }
+            return changed;
+        }
+
+        private ItemHandler maintainedItemProbeHandler(long gameTime) {
+            ItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
+            return direct != null ? direct : itemHandler;
+        }
+
+        private void clearMaintainedItemProbe() {
+            maintainedItemProbeSlot = -1;
+            maintainedItemProbeStack = ItemStack.EMPTY;
+            maintainedItemProbeCount = 0;
+            maintainedItemProbeAfter = Long.MAX_VALUE;
         }
 
         public void deferItemsUntil(long gameTime) {
@@ -2822,6 +2890,7 @@ public final class SkyNetworkRegistry {
         private void clearItemCache() {
             recordCapabilityPresent(CAPABILITY_ITEMS);
             itemHandler = null;
+            clearMaintainedItemProbe();
             clearItemSlotCaches();
             clearRejectedItemAccepts();
             if (itemTargetScanCursors != null) itemTargetScanCursors.clear();

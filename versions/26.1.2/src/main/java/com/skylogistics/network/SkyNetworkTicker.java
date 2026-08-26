@@ -139,7 +139,14 @@ public final class SkyNetworkTicker {
                 boolean manaRoute = localManaRoute || dimensionUpgrade;
                 boolean sourceRoute = localSourceRoute || dimensionUpgrade;
                 int remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
-                if (itemRoute && node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)) {
+                if (itemRoute && node.isItemsEnabled(input.direction()) && !input.canTryItems(gameTime)
+                        && input.isMaintainedItemProbeDue(gameTime) && remainingLineBudget > 0) {
+                    operations++;
+                    input.probeMaintainedItemChanged(gameTime);
+                    remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
+                }
+                if (itemRoute && node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)
+                        && remainingLineBudget > 0) {
                     if (dimensionUpgrade && globalItemOutputs == null) {
                         globalItemOutputs = SkyNetworkRegistry.globalItemOutputs(line.lineId());
                     }
@@ -433,6 +440,11 @@ public final class SkyNetworkTicker {
                     Math.max(1, budget - operations), gameTime);
             operations += result.operations();
             if (result.moved()) {
+                if (sourceEndpoint.canRecordMaintainedItemProbe()) {
+                    ItemStack observed = source.getStackInSlot(slot);
+                    sourceEndpoint.recordMaintainedItemProbe(slot, simulated,
+                            StackData.sameItemAndComponents(observed, simulated) ? observed.getCount() : 0, gameTime);
+                }
                 sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
                 sourceEndpoint.recordItemSuccess();
                 movedFromHotPath = true;
@@ -715,8 +727,10 @@ public final class SkyNetworkTicker {
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
-                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
-                        continue;
+                        if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
+                            targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                            continue;
+                        }
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
@@ -767,7 +781,7 @@ public final class SkyNetworkTicker {
         }
         if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
-            sourceEndpoint.recordItemFailure(gameTime);
+            sourceEndpoint.recordItemFailure(gameTime, hasMaintainedItemProbe(targets));
         }
         return new MoveResult(false, operations);
     }
@@ -810,6 +824,8 @@ public final class SkyNetworkTicker {
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
         int inserted = extracted.getCount() - leftover.getCount();
         if (inserted > 0) {
+            targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), extracted,
+                    targetSlot.existingCount() + inserted, gameTime);
             targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
                     targetSlot.filledAfter(inserted, !leftover.isEmpty()), targetSlot.usedHot(), target.getSlots());
         } else {
@@ -1039,8 +1055,10 @@ public final class SkyNetworkTicker {
                 if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
-                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
-                        continue;
+                        if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
+                            targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                            continue;
+                        }
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
@@ -1142,6 +1160,8 @@ public final class SkyNetworkTicker {
                 }
                 int inserted = transfer.inserted();
                 if (inserted > 0) {
+                    targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), simulated,
+                            targetSlot.existingCount() + inserted, gameTime);
                     targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
                             targetSlot.filledAfter(inserted, transfer.hadLeftover()), targetSlot.usedHot(), target.getSlots());
                 } else {
@@ -1153,9 +1173,16 @@ public final class SkyNetworkTicker {
         }
         if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
-            sourceEndpoint.recordItemFailure(gameTime);
+            sourceEndpoint.recordItemFailure(gameTime, hasMaintainedItemProbe(targets));
         }
         return new MoveResult(false, operations);
+    }
+
+    private static boolean hasMaintainedItemProbe(List<CachedEndpoint> endpoints) {
+        for (CachedEndpoint endpoint : endpoints) {
+            if (endpoint.hasMaintainedItemProbe()) return true;
+        }
+        return false;
     }
 
     private static TargetItemSelection selectTargetItemSlot(CachedEndpoint endpoint, ItemHandler target,

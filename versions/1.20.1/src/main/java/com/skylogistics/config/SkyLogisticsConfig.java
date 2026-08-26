@@ -290,6 +290,14 @@ public final class SkyLogisticsConfig {
         return SERVER.transferRetryDelayTicks(failures);
     }
 
+    public static boolean enableMaintainedItemHotSlotPolling() {
+        return SERVER.enableMaintainedItemHotSlotPolling.get();
+    }
+
+    public static int maintainedItemHotSlotPollTicks() {
+        return SERVER.maintainedItemHotSlotPollTicks.get();
+    }
+
     public static int skyNecklaceTickInterval() {
         return SERVER.skyNecklaceTickInterval.get();
     }
@@ -341,6 +349,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue transferRetrySecondTicks;
         public final ForgeConfigSpec.IntValue transferRetryThirdTicks;
         public final ForgeConfigSpec.IntValue transferRetryMaxTicks;
+        public final ForgeConfigSpec.BooleanValue enableMaintainedItemHotSlotPolling;
+        public final ForgeConfigSpec.IntValue maintainedItemHotSlotPollTicks;
         public final ForgeConfigSpec.IntValue skyNecklaceTickInterval;
         public final ForgeConfigSpec.IntValue skyNecklaceSlotScansPerTick;
         public final ForgeConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
@@ -640,6 +650,14 @@ public final class SkyLogisticsConfig {
                     .comment("Ticks to wait after the fourth and later consecutive failed transfer attempts.",
                             "连续第四次及后续传输尝试失败后的等待 tick 数。")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
+            enableMaintainedItemHotSlotPolling = builder
+                    .comment("Whether item faces with a non-zero maintain limit probe their last successful transfer slot between full retry scans.",
+                            "物品面维持值非 0 时，是否在完整退避扫描之间探测上次成功传输的槽位。")
+                    .define("enableMaintainedItemHotSlotPolling", true);
+            maintainedItemHotSlotPollTicks = builder
+                    .comment("Ticks between low-cost probes of the last successful slot for maintained item input and output faces. The normal transfer retry remains the full-scan fallback.",
+                            "物品输入与输出维持面低成本探测上次成功槽位的间隔 tick；普通传输退避仍作为完整扫描兜底。")
+                    .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();
 
