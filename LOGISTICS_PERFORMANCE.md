@@ -61,11 +61,12 @@
 
 ## 相关服务端配置
 
-- `distributor.enableAdaptiveItemTargetProbes = true`：启用分配器独立的按机器物品抽取热度调度；关闭后恢复线路端点原有槽位扫描。
-- `distributor.itemTargetHotProbeTicks = 1`、`itemTargetWarmProbeTicks = 5`、`itemTargetCoolProbeTicks = 20`、`itemTargetFallbackProbeTicks = 40`：分配器机器四级探测间隔；运行时会自动按非递减顺序归一化。
-- `distributor.itemTargetMissesPerDemotion = 3`：目标机器连续空探测多少次后降低一级；任意成功探测都会立即升至热等级，各等级不限制机器数量。
+- `distributor.enableAdaptiveItemTargetProbes = true`：启用分配器独立的分层机器路由；抽取按机器保存热度，插入按精确 `ItemStackKey → 机器` 保存成功目标与退避。关闭后恢复旧的槽位扫描和 5 tick 单拒绝物缓存。
+- `distributor.itemRouteCacheSize = 64`：每个分配器接入面最多保留的精确物品路由 key 数；key 在 1.20.1 包含 NBT，在新版本包含全部 data components。
+- `distributor.itemTargetHotProbeTicks = 1`、`itemTargetWarmProbeTicks = 5`、`itemTargetCoolProbeTicks = 20`、`itemTargetFallbackProbeTicks = 40`：抽取机器与插入 `key × 机器` 共用的四级退避间隔；运行时会自动按非递减顺序归一化。
+- `distributor.itemTargetMissesPerDemotion = 3`：曾成功机器连续失败多少次后降低一级；任意成功都会立即升至热等级，首次完整拒绝的未知机器直接进入兜底等级。
 - `targetItemInsertionCursorCount = 9`：目标物品插入游标上限，范围 `0..64`；`0` 表示关闭。
 - `rejectedAcceptCacheSize = 9`：每个端点保存的物品、流体和化学品拒绝记录数，范围 `1..64`。
-- `endpointTargetAttempts = 1`：每个源端点单轮最多尝试的目标数；默认 `1` 以控制高扇出网络成本。
+- `endpointTargetAttempts = 4`：每个源端点单轮最多尝试的目标数；成功后立即停止。
 
 超大容量的 `long` 数量存储端点不进行普通槽位扫描，因此目标插入游标对其不生效，也没有必要生效。

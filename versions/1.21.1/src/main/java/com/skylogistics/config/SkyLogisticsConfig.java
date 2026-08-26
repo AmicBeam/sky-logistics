@@ -137,6 +137,7 @@ public final class SkyLogisticsConfig {
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
     public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
+    public static int distributorItemRouteCacheSize() { return SERVER.distributorItemRouteCacheSize.get(); }
     public static int distributorItemTargetHotProbeTicks() { return SERVER.distributorItemTargetHotProbeTicks.get(); }
     public static int distributorItemTargetWarmProbeTicks() { return SERVER.distributorItemTargetWarmProbeTicks.get(); }
     public static int distributorItemTargetCoolProbeTicks() { return SERVER.distributorItemTargetCoolProbeTicks.get(); }
@@ -412,6 +413,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue distributorScanOpsPerTick;
         public final ModConfigSpec.IntValue distributorOpsPerTick;
         public final ModConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
+        public final ModConfigSpec.IntValue distributorItemRouteCacheSize;
         public final ModConfigSpec.IntValue distributorItemTargetHotProbeTicks;
         public final ModConfigSpec.IntValue distributorItemTargetWarmProbeTicks;
         public final ModConfigSpec.IntValue distributorItemTargetCoolProbeTicks;
@@ -719,28 +721,32 @@ public final class SkyLogisticsConfig {
                             "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
                     .defineInRange("opsPerTick", 64, 1, 4096);
             enableDistributorAdaptiveItemTargetProbes = builder
-                    .comment("Whether item extraction maintains independent adaptive probe tiers for each distributor target machine.",
-                            "物品抽取是否为分配器连接的每台目标机器维护独立的自适应探测等级。")
+                    .comment("Whether distributor item extraction and insertion use independent adaptive per-machine routing tiers.",
+                            "分配器物品抽取与插入是否使用独立的按机器自适应路由等级。")
                     .define("enableAdaptiveItemTargetProbes", true);
+            distributorItemRouteCacheSize = builder
+                    .comment("Maximum exact item keys retained by each distributor face for hierarchical machine routing.",
+                            "分配器每个面为分层机器路由保留的精确物品 key 数量上限。")
+                    .defineInRange("itemRouteCacheSize", 64, 1, 256);
             distributorItemTargetHotProbeTicks = builder
-                    .comment("Probe interval for distributor item targets that most recently produced an item.",
-                            "最近成功产出物品的分配器目标机器探测间隔 tick。")
+                    .comment("Retry interval for hot distributor machines after successful extraction or keyed insertion.",
+                            "成功抽取或按 key 插入后的热分配器机器重试间隔 tick。")
                     .defineInRange("itemTargetHotProbeTicks", 1, 1, 1200);
             distributorItemTargetWarmProbeTicks = builder
-                    .comment("Probe interval for warm distributor item targets after repeated misses.",
-                            "分配器物品目标连续未命中后进入温热等级时的探测间隔 tick。")
+                    .comment("Retry interval for warm distributor machine routes after repeated misses.",
+                            "分配器机器路由连续失败后进入温热等级时的重试间隔 tick。")
                     .defineInRange("itemTargetWarmProbeTicks", 5, 1, 1200);
             distributorItemTargetCoolProbeTicks = builder
-                    .comment("Probe interval for cool distributor item targets after further repeated misses.",
-                            "分配器物品目标进一步连续未命中后进入低频等级时的探测间隔 tick。")
+                    .comment("Retry interval for cool distributor machine routes after further misses.",
+                            "分配器机器路由进一步连续失败后进入低频等级时的重试间隔 tick。")
                     .defineInRange("itemTargetCoolProbeTicks", 20, 1, 1200);
             distributorItemTargetFallbackProbeTicks = builder
-                    .comment("Fallback probe interval for cold distributor item targets. Initial probes are staggered across this window.",
-                            "冷分配器物品目标的兜底探测间隔 tick；首次探测会在该窗口内错峰安排。")
+                    .comment("Fallback interval for cold distributor machine routes. Extraction probes are staggered across this window.",
+                            "冷分配器机器路由的兜底间隔 tick；抽取首次探测会在该窗口内错峰安排。")
                     .defineInRange("itemTargetFallbackProbeTicks", 40, 1, 1200);
             distributorItemTargetMissesPerDemotion = builder
-                    .comment("Consecutive empty probes required to demote a distributor item target by one probe tier.",
-                            "分配器物品目标每次降低一个探测等级所需的连续空探测次数。")
+                    .comment("Consecutive empty extraction or rejected insertion probes required to demote a distributor item target by one tier.",
+                            "分配器物品目标每次降低一个抽取或插入探测等级所需的连续失败次数。")
                     .defineInRange("itemTargetMissesPerDemotion", 3, 1, 64);
             builder.pop();
 
