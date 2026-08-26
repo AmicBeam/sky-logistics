@@ -6,4 +6,6 @@ public interface DistributedHandlerLookup<T> {
     T handler(int index);
 
     boolean takeOperation();
+
+    default boolean sequentialInsertion() { return false; }
 }

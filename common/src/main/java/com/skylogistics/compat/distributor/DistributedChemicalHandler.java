@@ -64,12 +64,14 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge {
         if (targets <= 0) return 0L;
         long inserted = 0L;
         int start = Math.floorMod(insertCursor, targets);
+        long share = DistributorInsertMode.offer(stack.getAmount(), targets, lookup.sequentialInsertion());
         for (int offset = 0; offset < targets && inserted < stack.getAmount(); offset++) {
             if (!lookup.takeOperation()) break;
             int target = (start + offset) % targets;
             ChemicalHandlerBridge handler = lookup.handler(target);
             if (handler == null) continue;
-            ChemicalStackView offer = stack.copyWithAmount(stack.getAmount() - inserted);
+            long requested = Math.min(share, stack.getAmount() - inserted);
+            ChemicalStackView offer = stack.copyWithAmount(requested);
             inserted += Math.max(0L, handler.insertChemical(offer, simulate));
             if (!simulate) visibleTanks[target] = -1;
         }

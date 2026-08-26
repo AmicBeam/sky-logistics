@@ -6,6 +6,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.DistributedChemicalHandler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
+import com.skylogistics.compat.distributor.DistributorInsertMode;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
@@ -317,6 +318,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     public record IndexStatus(boolean indexing, int boundDevices) {}
 
+    public boolean sequentialInsertion() {
+        return level != null && level.hasNeighborSignal(worldPosition);
+    }
+
     private long gameTime() { return level == null ? Long.MIN_VALUE : level.getGameTime(); }
 
     private void selectSide(Direction side) {
@@ -410,6 +415,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void clearTransientCaches() {
         operationBudgetTick = Long.MIN_VALUE;
         energySnapshotTick = Long.MIN_VALUE;
+        itemInsertPlan = null;
+        itemInsertPlanAwaitingExecution = false;
+        itemExtractPlan = null;
+        fluidInsertPlan = null;
+        fluidDrainPlan = null;
+        energyReceivePlan = null;
+        energyExtractPlan = null;
         Arrays.fill(rejectedItems, null);
         Arrays.fill(rejectedItemUntil, 0L);
         Arrays.fill(rejectedFluids, null);
@@ -484,6 +496,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : chemical(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
     }
 
     private final class ManaLookup implements DistributedHandlerLookup<ManaHandlerBridge> {
@@ -495,6 +508,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : mana(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
     }
 
     private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
@@ -506,6 +520,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : source(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
     }
 
     private final class DistributedItems implements ItemHandler, BudgetedDistributorHandler {
@@ -593,9 +608,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<ItemMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
                 int start = Math.floorMod(itemInsertCursor, all.size());
-                int candidateLimit = Math.min(stack.getCount(), all.size());
-                int share = (int)(((long)stack.getCount() + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
+                boolean sequential = sequentialInsertion();
+                int share = DistributorInsertMode.offer(stack.getCount(), all.size(), sequential);
+                int planned = 0;
+                for (int offset = 0; offset < all.size() && planned < stack.getCount(); offset++) {
                     int target = (start + offset) % all.size();
                     if (!takeOperation()) break;
                     itemInsertCursor = target + 1;
@@ -612,10 +628,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                             break;
                         }
                         int slot = (slotStart + checked) % slots;
-                        ItemStack offer = stack.copy(); offer.setCount(share);
+                        ItemStack offer = stack.copy(); offer.setCount(Math.min(share, stack.getCount() - planned));
                         ItemStack rejected = handler.insertItem(slot, offer, true);
                         int accepted = offer.getCount() - rejected.getCount();
-                        if (accepted > 0) { moves.add(new ItemMove(target, slot, accepted)); break; }
+                        if (accepted > 0) {
+                            moves.add(new ItemMove(target, slot, accepted));
+                            planned += accepted;
+                            if (!sequential || planned >= stack.getCount()) break;
+                        }
                         itemInsertSlotCursors[target] = slot + 1;
                     }
                     if (fullyScanned && (moves.isEmpty() || moves.get(moves.size() - 1).target != target)) {
@@ -728,9 +748,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
                 int start = Math.floorMod(fluidInsertCursor, all.size());
-                int candidateLimit = Math.min(resource.getAmount(), all.size());
-                int share = (int)(((long)resource.getAmount() + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
+                int share = DistributorInsertMode.offer(resource.getAmount(), all.size(), sequentialInsertion());
+                int planned = 0;
+                for (int offset = 0; offset < all.size() && planned < resource.getAmount(); offset++) {
                     int target = (start + offset) % all.size();
                     if (!takeOperation()) break;
                     fluidInsertCursor = target + 1;
@@ -738,9 +758,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                             && sameFluidType(rejectedFluids[target], resource)) continue;
                     FluidHandler handler = fluid(all.get(target));
                     if (handler == null) continue;
-                    FluidStack offer = resource.copy(); offer.setAmount(share);
+                    FluidStack offer = resource.copy(); offer.setAmount(Math.min(share, resource.getAmount() - planned));
                     int accepted = handler.fill(offer, FluidAction.SIMULATE);
-                    if (accepted > 0) moves.add(new FluidMove(target, accepted));
+                    if (accepted > 0) { moves.add(new FluidMove(target, accepted)); planned += accepted; }
                     else {
                         rejectedFluids[target] = resource.copy(); rejectedFluids[target].setAmount(1);
                         rejectedFluidUntil[target] = gameTime() + 5L;
@@ -839,17 +859,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             if (!all.isEmpty() && amount > 0) {
                 int cursor = receive ? energyReceiveCursor : energyExtractCursor;
                 int start = Math.floorMod(cursor, all.size());
-                int candidateLimit = Math.min(amount, all.size());
-                int share = (int)(((long)amount + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
+                int share = DistributorInsertMode.offer(amount, all.size(), receive && sequentialInsertion());
+                int planned = 0;
+                for (int offset = 0; offset < all.size() && planned < amount; offset++) {
                     if (!takeOperation()) break;
                     int target = (start + offset) % all.size();
                     if (receive) energyReceiveCursor = target + 1;
                     else energyExtractCursor = target + 1;
                     EnergyStorage handler = energy(all.get(target));
                     if (handler == null) continue;
-                    int accepted = receive ? handler.receiveEnergy(share, true) : handler.extractEnergy(share, true);
-                    if (accepted > 0) moves.add(new FluidMove(target, accepted));
+                    int offer = Math.min(share, amount - planned);
+                    int accepted = receive ? handler.receiveEnergy(offer, true) : handler.extractEnergy(offer, true);
+                    if (accepted > 0) { moves.add(new FluidMove(target, accepted)); planned += accepted; }
                 }
             }
             int accepted = (int)Math.min(amount, moves.stream().mapToLong(FluidMove::amount).sum());

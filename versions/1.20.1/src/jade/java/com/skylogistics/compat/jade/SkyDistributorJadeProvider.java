@@ -24,6 +24,10 @@ public final class SkyDistributorJadeProvider extends BaseSkyLogisticsJadeProvid
                 : Component.translatable("jade.skylogistics.distributor_status_bound",
                         distributorData.getInt("BoundDevices"));
         tooltip.add(Component.translatable("jade.skylogistics.status", status));
+        Component mode = Component.translatable(distributorData.getBoolean("Sequential")
+                ? "jade.skylogistics.distributor_mode_sequential"
+                : "jade.skylogistics.distributor_mode_balanced");
+        tooltip.add(Component.translatable("jade.skylogistics.distributor_mode", mode));
     }
 
     @Override
@@ -33,6 +37,7 @@ public final class SkyDistributorJadeProvider extends BaseSkyLogisticsJadeProvid
         CompoundTag distributorData = new CompoundTag();
         distributorData.putBoolean("Indexing", status.indexing());
         distributorData.putInt("BoundDevices", status.boundDevices());
+        distributorData.putBoolean("Sequential", distributor.sequentialInsertion());
         data.put(DATA, distributorData);
     }
 }

@@ -11,6 +11,24 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class DistributedResourceHandlersTest {
+    @Test void redstoneModeSwitchesManaFromBalancedToSequentialInsertion() {
+        ScalarMana balancedFirst = new ScalarMana(0, 100);
+        ScalarMana balancedSecond = new ScalarMana(0, 100);
+        DistributedManaHandler balanced = new DistributedManaHandler(
+                lookup(List.of(balancedFirst, balancedSecond), false));
+        assertEquals(80, balanced.insertMana(80, false));
+        assertEquals(40, balancedFirst.stored);
+        assertEquals(40, balancedSecond.stored);
+
+        ScalarMana sequentialFirst = new ScalarMana(0, 100);
+        ScalarMana sequentialSecond = new ScalarMana(0, 100);
+        DistributedManaHandler sequential = new DistributedManaHandler(
+                lookup(List.of(sequentialFirst, sequentialSecond), true));
+        assertEquals(80, sequential.insertMana(80, false));
+        assertEquals(80, sequentialFirst.stored);
+        assertEquals(0, sequentialSecond.stored);
+    }
+
     @Test void distributesManaAcrossTargetsWithoutMutatingSimulation() {
         ScalarMana first = new ScalarMana(60, 100);
         ScalarMana second = new ScalarMana(10, 100);
@@ -50,10 +68,15 @@ class DistributedResourceHandlersTest {
     }
 
     private static <T> DistributedHandlerLookup<T> lookup(List<T> handlers) {
+        return lookup(handlers, false);
+    }
+
+    private static <T> DistributedHandlerLookup<T> lookup(List<T> handlers, boolean sequential) {
         return new DistributedHandlerLookup<>() {
             @Override public int size() { return handlers.size(); }
             @Override public T handler(int index) { return handlers.get(index); }
             @Override public boolean takeOperation() { return true; }
+            @Override public boolean sequentialInsertion() { return sequential; }
         };
     }
 

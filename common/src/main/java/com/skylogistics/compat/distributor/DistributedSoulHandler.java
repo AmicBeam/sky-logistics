@@ -64,11 +64,13 @@ public final class DistributedSoulHandler implements SoulHandlerBridge {
         int cursor = receive ? insertCursor : extractCursor;
         int start = Math.floorMod(cursor, targets);
         int moved = 0;
+        int share = receive ? DistributorInsertMode.offer(amount, targets, lookup.sequentialInsertion()) : amount;
         for (int offset = 0; offset < targets && moved < amount; offset++) {
             if (!lookup.takeOperation()) break;
             SoulHandlerBridge handler = lookup.handler((start + offset) % targets);
             if (handler == null) continue;
-            moved += receive ? handler.fill(amount - moved, simulate) : handler.drain(amount - moved, simulate);
+            int request = Math.min(share, amount - moved);
+            moved += receive ? handler.fill(request, simulate) : handler.drain(amount - moved, simulate);
         }
         if (!simulate) {
             if (receive) insertCursor = (start + 1) % targets;

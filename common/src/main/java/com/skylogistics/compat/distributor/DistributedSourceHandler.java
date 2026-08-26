@@ -41,11 +41,13 @@ public final class DistributedSourceHandler implements SourceHandlerBridge {
         int cursor = receive ? insertCursor : extractCursor;
         int start = Math.floorMod(cursor, targets);
         int moved = 0;
+        int share = receive ? DistributorInsertMode.offer(amount, targets, lookup.sequentialInsertion()) : amount;
         for (int offset = 0; offset < targets && moved < amount; offset++) {
             if (!lookup.takeOperation()) break;
             SourceHandlerBridge handler = lookup.handler((start + offset) % targets);
             if (handler == null) continue;
-            moved += receive ? handler.insertSource(amount - moved, simulate)
+            int request = Math.min(share, amount - moved);
+            moved += receive ? handler.insertSource(request, simulate)
                     : handler.extractSource(amount - moved, simulate);
         }
         if (!simulate) {
