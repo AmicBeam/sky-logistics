@@ -65,4 +65,8 @@ public final class OrderedMatchingPolicy {
     public static boolean canEnqueueDetention(int queueSize, int capacity) {
         return capacity > 0 && queueSize >= 0 && queueSize < capacity;
     }
+
+    public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, int detentionCount) {
+        return !hasTransferableResource && detentionCount <= 0;
+    }
 }

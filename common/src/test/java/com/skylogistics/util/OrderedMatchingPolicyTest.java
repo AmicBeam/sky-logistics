@@ -120,4 +120,11 @@ class OrderedMatchingPolicyTest {
         assertFalse(OrderedMatchingPolicy.canEnqueueDetention(1, 1));
         assertFalse(OrderedMatchingPolicy.canEnqueueDetention(0, 0));
     }
+
+    @Test
+    void idleSourceAddsCursorResetWhenNoDetentionRemains() {
+        assertTrue(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(true, 0));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 1));
+    }
 }

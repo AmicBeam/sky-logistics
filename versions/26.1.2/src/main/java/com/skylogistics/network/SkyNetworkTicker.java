@@ -347,8 +347,17 @@ public final class SkyNetworkTicker {
         if (source == null || budget <= 0) {
             return 0;
         }
+        SkyNodeBlockEntity orderedMatchingNode = sourceNode instanceof SkyNodeBlockEntity skyNode
+                && skyNode.hasOrderedMatchingUpgrade() ? skyNode : null;
+        boolean orderedMatching = orderedMatchingNode != null;
+        boolean orderedPerItem = orderedMatching
+                && orderedMatchingNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM;
         int slots = source.getSlots();
         if (slots <= 0) {
+            if (orderedPerItem) {
+                orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
+                resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
+            }
             sourceEndpoint.recordItemFailure(gameTime);
             return 0;
         }
@@ -357,6 +366,9 @@ public final class SkyNetworkTicker {
         if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
         if (!extractionSlotLimit.complete()) return operations;
         if (extractionSlotLimit.blocked()) {
+            if (orderedPerItem) {
+                resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
+            }
             sourceEndpoint.recordItemFailure(gameTime);
             return operations;
         }
@@ -370,6 +382,12 @@ public final class SkyNetworkTicker {
                         Math.max(0L, exactScan.total()
                                 - ((SkyNodeBlockEntity)sourceNode).getItemSlotLimit(sourceEndpoint.direction())));
         if (exactExcess == 0) {
+            if (orderedPerItem) {
+                if (exactScan.total() == 0L) {
+                    orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
+                }
+                resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
+            }
             SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemFailure(gameTime);
             return operations;
@@ -383,11 +401,6 @@ public final class SkyNetworkTicker {
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
-        SkyNodeBlockEntity orderedMatchingNode = sourceNode instanceof SkyNodeBlockEntity skyNode
-                && skyNode.hasOrderedMatchingUpgrade() ? skyNode : null;
-        boolean orderedMatching = orderedMatchingNode != null;
-        boolean orderedPerItem = orderedMatching
-                && orderedMatchingNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
         if (orderedPerItem) {
@@ -497,6 +510,9 @@ public final class SkyNetworkTicker {
                     successfulSlot, budget - operations);
         }
         if (!foundCandidate) {
+            if (orderedPerItem) {
+                resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
+            }
             if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
             if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
@@ -1099,6 +1115,14 @@ public final class SkyNetworkTicker {
             }
         }
         return new OrderedPerItemMoveResult(movedItems > 0, operations, continueSourceSearch, movedItems);
+    }
+
+    private static void resetOrderedPerItemCursorIfIdle(CachedEndpoint sourceEndpoint,
+            SkyNodeBlockEntity sourceNode, int targetCount) {
+        int detentionCount = sourceNode.orderedMatchingDetentionCount(sourceEndpoint.direction());
+        if (OrderedMatchingPolicy.shouldResetPerItemCursor(false, detentionCount)) {
+            sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), 0, targetCount);
+        }
     }
 
     private static OrderedPerItemMoveResult tryMoveOrderedPerItem(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,

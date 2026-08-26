@@ -57,7 +57,7 @@
     {
       "type": "patchouli:text",
       "title": "Per Item",
-      "text": "Extract cycles receivers; insert cycles slots. Cursors advance only after success, and every batched target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Six resources keep separate order lists. Fullness and filters do not change them; equal priorities remain separate. The Configurator uses the same order."
+      "text": "Extract cycles receivers; insert cycles slots. Cursors advance after success. The extract cursor also resets to 0 when no transferable item or detained assignment remains. Every batched target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Equal priorities remain separate."
     }
   ]
 }
