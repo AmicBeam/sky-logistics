@@ -129,6 +129,10 @@ public final class SkyLogisticsConfig {
         return SERVER.enableSimpleEnergyPipe.get();
     }
 
+    public static boolean useDiamondForSimplePipeRecipes() {
+        return SERVER.useDiamondForSimplePipeRecipes.get();
+    }
+
     public static boolean enableDistributorItems() { return SERVER.enableDistributorItems.get(); }
     public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
@@ -383,6 +387,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableSimpleItemPipe;
         public final ForgeConfigSpec.BooleanValue enableSimpleFluidPipe;
         public final ForgeConfigSpec.BooleanValue enableSimpleEnergyPipe;
+        public final ForgeConfigSpec.BooleanValue useDiamondForSimplePipeRecipes;
         public final ForgeConfigSpec.BooleanValue enableDistributorItems;
         public final ForgeConfigSpec.BooleanValue enableDistributorFluids;
         public final ForgeConfigSpec.BooleanValue enableDistributorEnergy;
@@ -459,6 +464,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether simple energy pipes connect to FE storages and transfer energy.",
                             "简易能量管道是否连接 FE 储能设备并传输能量。")
                     .define("enableSimpleEnergyPipe", true);
+            useDiamondForSimplePipeRecipes = builder
+                    .comment("Whether simple pipe recipes use diamonds instead of amethyst shards.",
+                            "简易管道配方是否使用钻石；关闭后改用紫水晶碎片。")
+                    .define("useDiamondForSimplePipeRecipes", true);
             simpleItemPipeTransferRate = builder
                     .comment("Maximum items moved by each extracting simple item pipe per tick. A transfer still uses at most one source slot and one target slot.",
                             "每个抽取型简易物品管道每 tick 最多搬运的物品数；一次传输仍最多使用一个来源槽和一个目标槽。")

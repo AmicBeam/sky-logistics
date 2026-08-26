@@ -2,9 +2,11 @@ package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.recipe.OfferingRecipe;
+import com.skylogistics.recipe.SimplePipeRecipeCondition;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -31,6 +33,7 @@ public final class ModRecipes {
     }
 
     public static void register(IEventBus bus) {
+        CraftingHelper.register(SimplePipeRecipeCondition.Serializer.INSTANCE);
         TYPES.register(bus);
         SERIALIZERS.register(bus);
     }

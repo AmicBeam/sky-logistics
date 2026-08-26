@@ -93,7 +93,7 @@
 - 节点传输使用预算、缓存、就绪线路队列、热槽追踪、能力缓存和端点退避来控制性能开销。
 - 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick；`skyNecklaceTargetAttemptsPerWork` 限制每次工作访问的输出端点数，默认 1。
 - 仓库类型上限、节点物品/能量单次传输量、天穹容器间直连传输量、分配器目标数与操作预算、热槽缓存大小、供奉高度和水晶充能时间均可配置。
-- 简易管道配置集中在 `transfers.simplePipes` 分类；其中各资源的 `...TransferRate` 可独立限速，`simplePipeMaxConnectedBlocks` 控制单条线路规模，`enforceSimplePipeConnectionLimit` 可关闭上限检查。
+- 简易管道配置集中在 `transfers.simplePipes` 分类；其中各资源的 `...TransferRate` 可独立限速，`useDiamondForSimplePipeRecipes` 可将默认钻石配方切换为紫水晶配方，`simplePipeMaxConnectedBlocks` 控制单条线路规模，`enforceSimplePipeConnectionLimit` 可关闭上限检查。
 - AStages 控制单次操作上限，而不是操作频率；它不会提高速度升级速率或服务器、线路的每 tick 操作预算。
 - Patchouli 支持为纯数据内容，安装 Patchouli 后会显示指南书内容。
 - 可选联动仅在检测到对应 Mod 且版本/API 兼容时启用。

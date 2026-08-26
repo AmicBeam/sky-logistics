@@ -43,7 +43,7 @@ Forge 1.20.1 public test build for celestial wireless logistics.
   - Pipes have no GUI or hidden buffer and are always active when their type is enabled.
   - They reuse the logistics-node scheduler and add only per-resource rate limits. Defaults are 64 items/t, 10,000 mB/t and 100,000 FE/t; an item transfer touches at most one source slot and one target slot.
   - Fluid pipes also support Mekanism chemicals. Energy pipes also support Botania mana and Ars Nouveau Source when the corresponding integration toggle is enabled and a matching handler exists.
-  - Simple pipe settings are grouped under `transfers.simplePipes`. Chemical, mana and Source limits are independent; `simplePipeMaxConnectedBlocks` defaults to 1024, and `enforceSimplePipeConnectionLimit` can disable the connection check.
+  - Simple pipe settings are grouped under `transfers.simplePipes`. Chemical, mana and Source limits are independent; `useDiamondForSimplePipeRecipes` switches the default diamond recipes back to amethyst; `simplePipeMaxConnectedBlocks` defaults to 1024, and `enforceSimplePipeConnectionLimit` can disable the connection check.
   - Their recipes do not require Sky Crystals.
 
 - `Starlit Nectar` / `星辉甘露`

@@ -1,9 +1,10 @@
 {
+  "conditions": [{"type": "skylogistics:simple_pipe_recipe", "diamond": true}],
   "type": "minecraft:crafting_shaped",
   "pattern": ["GAG", "LBL", "GAG"],
   "key": {
     "G": {"tag": "forge:glass/colorless"},
-    "A": {"tag": "forge:gems/amethyst"},
+    "A": {"tag": "forge:gems/diamond"},
     "L": {"tag": "forge:gems/lapis"},
     "B": {"item": "minecraft:bucket"}
   },
