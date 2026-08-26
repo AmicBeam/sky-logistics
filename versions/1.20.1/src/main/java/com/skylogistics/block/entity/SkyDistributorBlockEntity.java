@@ -670,15 +670,24 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     }
                 }
                 boolean sequential = sequentialInsertion();
-                int share = DistributorInsertMode.offer(stack.getCount(), all.size(), sequential);
+                int successfulTargets = adaptiveRoutes
+                        ? insertionRoutes.successfulTargetCount(routeKey, all.size()) : all.size();
+                int shareTargets = successfulTargets > 0 ? successfulTargets : all.size();
+                int share = DistributorInsertMode.offer(stack.getCount(), shareTargets, sequential);
                 int planned = 0;
+                int successfulTargetRank = 0;
                 boolean discoveryProbeCompleted = false;
                 for (int offset = 0; offset < candidateCount; offset++) {
                     int target = insertionRouteCandidates[offset];
                     boolean knownRoute = adaptiveRoutes
                             && insertionRoutes.isSuccessful(routeKey, target, all.size());
+                    int targetShare = !sequential && knownRoute && successfulTargets > 0
+                            ? DistributorInsertMode.balancedOffer(
+                                    stack.getCount(), successfulTargets, successfulTargetRank++)
+                            : share;
                     boolean discoveryOnly = planned >= stack.getCount();
                     if (discoveryOnly && (knownRoute || discoveryProbeCompleted)) continue;
+                    if (!discoveryOnly && targetShare <= 0) continue;
                     if (!takeOperation()) break;
                     if (!adaptiveRoutes) {
                         itemInsertCursors[side.ordinal()] = target + 1;
@@ -701,7 +710,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                         }
                         int slot = (slotStart + checked) % slots;
                         ItemStack offer = stack.copy();
-                        offer.setCount(discoveryOnly ? 1 : Math.min(share, stack.getCount() - planned));
+                        offer.setCount(discoveryOnly ? 1 : Math.min(targetShare, stack.getCount() - planned));
                         ItemStack rejected = handler.insertItem(slot, offer, true);
                         int accepted = offer.getCount() - rejected.getCount();
                         if (accepted > 0) {
@@ -743,6 +752,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             boolean adaptiveRoutes = SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
             ItemStackKey routeKey = adaptiveRoutes ? ItemStackKey.of(request) : null;
             int inserted = 0;
+            int lastSuccessfulTarget = -1;
             for (ItemMove move : plan.moves) {
                 if (move.target >= all.size() || inserted >= request.getCount()) break;
                 IItemHandler handler = item(all.get(move.target));
@@ -753,6 +763,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int moved = offer.getCount() - rejected.getCount();
                 if (moved > 0) {
                     inserted += moved;
+                    lastSuccessfulTarget = move.target;
                     itemInsertSlotCursors[move.target] = rejected.isEmpty() ? move.slot : move.slot + 1;
                     if (adaptiveRoutes) insertionRoutes.recordSuccess(routeKey, move.target, all.size());
                     else rejectedItems[move.target] = null;
@@ -762,6 +773,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                         insertionRoutes.recordMiss(routeKey, move.target, all.size(), gameTime());
                     }
                 }
+            }
+            if (adaptiveRoutes && lastSuccessfulTarget >= 0) {
+                insertionRoutes.advanceHotCursorAfter(routeKey, lastSuccessfulTarget, all.size());
             }
             return inserted;
         }

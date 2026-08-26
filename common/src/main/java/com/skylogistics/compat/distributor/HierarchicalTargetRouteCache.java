@@ -27,9 +27,10 @@ public final class HierarchicalTargetRouteCache<K> {
         int written = 0;
         for (int offset = 0; offset < targetCount && written < limit; offset++) {
             int target = Math.floorMod(route.hotCursor + offset, targetCount);
-            if (route.successful[target]) output[written++] = target;
+            if (route.successful[target]) {
+                output[written++] = target;
+            }
         }
-        route.hotCursor = (route.hotCursor + 1) % targetCount;
         for (int offset = 0; offset < targetCount && written < limit; offset++) {
             int target = Math.floorMod(route.discoveryCursor + offset, targetCount);
             if (!route.successful[target] && gameTime >= route.retryAfter[target]) {
@@ -46,6 +47,23 @@ public final class HierarchicalTargetRouteCache<K> {
                 && target >= 0 && target < targetCount && route.successful[target];
     }
 
+    public int successfulTargetCount(K key, int targetCount) {
+        RouteState route = routes.get(key);
+        if (route == null || route.targetCount != targetCount) return 0;
+        int count = 0;
+        for (boolean successful : route.successful) {
+            if (successful) count++;
+        }
+        return count;
+    }
+
+    /** Continues the next request after the last machine that actually received this key. */
+    public void advanceHotCursorAfter(K key, int target, int targetCount) {
+        RouteState route = routes.get(key);
+        if (route == null || route.targetCount != targetCount || target < 0 || target >= targetCount) return;
+        route.hotCursor = (target + 1) % targetCount;
+    }
+
     public void recordSuccess(K key, int target, int targetCount) {
         if (key == null || target < 0 || target >= targetCount) return;
         RouteState route = route(key, targetCount);
@@ -54,7 +72,6 @@ public final class HierarchicalTargetRouteCache<K> {
         route.tiers[target] = AdaptiveProbeBackoff.HOT;
         route.tierMisses[target] = 0;
         route.retryAfter[target] = Long.MIN_VALUE;
-        route.hotCursor = (target + 1) % targetCount;
     }
 
     public void recordMiss(K key, int target, int targetCount, long gameTime) {

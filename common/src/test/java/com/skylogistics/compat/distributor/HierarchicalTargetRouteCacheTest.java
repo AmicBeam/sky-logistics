@@ -47,6 +47,23 @@ class HierarchicalTargetRouteCacheTest {
         assertEquals(3, candidates(routes, "iron", 4, 0)[0]);
     }
 
+    @Test void sparseHotMachinesRotateBySuccessfulTargetInsteadOfPhysicalIndex() {
+        HierarchicalTargetRouteCache<String> routes = routes();
+        routes.recordSuccess("iron", 1, 20);
+        routes.recordSuccess("iron", 5, 20);
+        routes.recordSuccess("iron", 9, 20);
+        routes.recordSuccess("iron", 13, 20);
+
+        assertEquals(4, routes.successfulTargetCount("iron", 20));
+        assertEquals(16, DistributorInsertMode.offer(64,
+                routes.successfulTargetCount("iron", 20), false));
+        assertEquals(1, candidates(routes, "iron", 20, 0)[0]);
+        routes.advanceHotCursorAfter("iron", 5, 20);
+        assertEquals(9, candidates(routes, "iron", 20, 0)[0]);
+        routes.advanceHotCursorAfter("iron", 13, 20);
+        assertEquals(1, candidates(routes, "iron", 20, 0)[0]);
+    }
+
     @Test void routeBankIsBoundedAndTargetCountChangesResetTheRoute() {
         HierarchicalTargetRouteCache<String> routes = routes();
         routes.configure(2, 1, 5, 20, 40, 3);

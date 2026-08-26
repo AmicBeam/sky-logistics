@@ -62,6 +62,7 @@
 ## 相关服务端配置
 
 - `distributor.enableAdaptiveItemTargetProbes = true`：启用分配器独立的分层机器路由；抽取按机器保存热度，插入按精确 `ItemStackKey → 机器` 保存成功目标与退避。关闭后恢复旧的槽位扫描和 5 tick 单拒绝物缓存。
+- 均分模式使用该 `ItemStackKey` 已确认可接收的热机器数计算精确份额，并从上批最后实际收到物品的机器之后继续；因此 20 台设备中只有 4 台接收某种原料、每批只产出 2 个时，会交替形成 `1/1/0/0` 和 `0/0/1/1`，而不是长期只喂前两台。冷启动发现新机器后，下一次插入即纳入均分。
 - `distributor.itemRouteCacheSize = 64`：每个分配器接入面最多保留的精确物品路由 key 数；key 在 1.20.1 包含 NBT，在新版本包含全部 data components。
 - `distributor.itemTargetHotProbeTicks = 1`、`itemTargetWarmProbeTicks = 5`、`itemTargetCoolProbeTicks = 20`、`itemTargetFallbackProbeTicks = 40`：抽取机器与插入 `key × 机器` 共用的四级退避间隔；运行时会自动按非递减顺序归一化。
 - `distributor.itemTargetMissesPerDemotion = 3`：曾成功机器连续失败多少次后降低一级；任意成功都会立即升至热等级，首次完整拒绝的未知机器直接进入兜底等级。

@@ -13,4 +13,10 @@ public final class DistributorInsertMode {
         if (requested <= 0L || targetCount <= 0) return 0L;
         return sequential ? requested : 1L + (requested - 1L) / targetCount;
     }
+
+    /** Exact balanced quota for one zero-based target rank; earlier ranks receive the remainder. */
+    public static int balancedOffer(int requested, int targetCount, int targetRank) {
+        if (requested <= 0 || targetCount <= 0 || targetRank < 0 || targetRank >= targetCount) return 0;
+        return requested / targetCount + (targetRank < requested % targetCount ? 1 : 0);
+    }
 }
