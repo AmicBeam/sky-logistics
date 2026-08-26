@@ -53,6 +53,8 @@
   - Sophisticated Backpacks 3.25+（可选）
   - AStages 2.x（可选，默认关闭）
   - AE2 19+（可选）
+  - Industrial Foregoing: Souls 1.10.3+ 与 Soulplied Energistics 1.0.3+（可选，坚守者灵魂运输）
+  - AppliedSoul（可选，AE 坚守者灵魂存储元件；复用 Soulplied Energistics 的 Soul Key）
   - Refined Storage 2+（可选）
   - Beyond Dimensions 0.7.6+（可选）
 - **NeoForge（Minecraft 26.1.2）**：使用 `versions/26.1.2`

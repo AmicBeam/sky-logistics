@@ -16,7 +16,7 @@ item_ids:
 
 ## 天穹 ME 接口
 
-<ItemLink id="sky_me_interface" /> 仅在安装 Applied Energistics 2 时可用。它搬运 ME 网络中的物品和流体；安装 AppFlux、Applied Mekanistics、Applied Botanics 或 Ars Énergistique 后，还可分别访问 FE、化学品、mana 或 Source。在 Minecraft 1.21.1 中，安装 Soulplied Energistics 后还可访问坚守者灵魂。每条资源路径都有独立服务端开关。
+<ItemLink id="sky_me_interface" /> 仅在安装 Applied Energistics 2 时可用。它搬运 ME 网络中的物品和流体；安装 AppFlux、Applied Mekanistics、Applied Botanics 或 Ars Énergistique 后，还可分别访问 FE、化学品、mana 或 Source。在 Minecraft 1.21.1 中，安装 Soulplied Energistics 后还可访问坚守者灵魂；AppliedSoul 复用相同的 Soul Key，因此其灵魂存储元件也可直接访问。每条资源路径都有独立服务端开关。
 
 <RecipeFor id="sky_me_interface" fallbackText="安装 AE2 后可查看天穹 ME 接口配方。" />
 

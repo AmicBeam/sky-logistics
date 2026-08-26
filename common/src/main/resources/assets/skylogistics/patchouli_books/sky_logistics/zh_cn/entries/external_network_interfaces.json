@@ -12,7 +12,7 @@
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "天穹 ME 接口",
-      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体。安装 AppFlux、Applied Mekanistics、Applied Botanics 或 Ars Énergistique 时，还可分别搬运 FE、化学品、mana 或 Source；每条路径都能在服务端配置中独立关闭。"
+      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；附属模组还可启用 FE、化学品、mana、Source 或坚守者灵魂。1.21.1 由 Soulplied Energistics 提供 Soul Key，AppliedSoul 灵魂元件复用同一 Key，可直接支持。"
     },
     {
       "type": "patchouli:crafting",

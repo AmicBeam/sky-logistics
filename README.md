@@ -54,6 +54,8 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
   - Sophisticated Backpacks 3.25+ (optional)
   - AStages 2.x (optional, disabled by default)
   - AE2 19+ (optional)
+  - Industrial Foregoing: Souls 1.10.3+ and Soulplied Energistics 1.0.3+ (optional Warden Soul transport)
+  - AppliedSoul (optional AE Warden Soul storage cells; uses Soulplied Energistics' Soul Key)
   - Refined Storage 2+ (optional)
   - Beyond Dimensions 0.7.6+ (optional)
 - **NeoForge (Minecraft 26.1.2)**: use `versions/26.1.2`

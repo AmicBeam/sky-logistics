@@ -109,6 +109,12 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="appliedsoul"
+type="optional"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="refinedstorage"
 type="optional"
 versionRange="[2,)"

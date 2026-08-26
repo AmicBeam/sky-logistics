@@ -12,7 +12,7 @@
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "Sky ME Interface",
-      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. With AppFlux, Applied Mekanistics, Applied Botanics, or Ars Énergistique installed, it can also move FE, chemicals, mana, or Source. Every path has its own server switch."
+      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. Optional add-ons enable FE, chemicals, mana, Source, or Warden Souls. On 1.21.1, Soulplied Energistics supplies the Soul Key; AppliedSoul cells use that same key and are supported directly."
     },
     {
       "type": "patchouli:crafting",

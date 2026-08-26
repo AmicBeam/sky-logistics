@@ -576,8 +576,8 @@ public final class SkyLogisticsConfig {
                             "启用流体的物流面是否也可传输 Mekanism 化学品。")
                     .define("allowFluidChemicalTransfer", true);
             allowFluidSoulTransfer = builder
-                    .comment("Whether fluid-enabled logistics faces and simple fluid pipes may transfer Industrial Foregoing: Souls warden souls. Requires Industrial Foregoing: Souls; AE2 storage access additionally requires Soulplied Energistics.",
-                            "启用流体的物流面和简易流体管道是否可传输 Industrial Foregoing: Souls 的坚守者灵魂。需要 Industrial Foregoing: Souls；访问 AE2 存储还需要 Soulplied Energistics。")
+                    .comment("Whether fluid-enabled logistics faces and simple fluid pipes may transfer Industrial Foregoing: Souls warden souls. Requires Industrial Foregoing: Souls; AE2 storage access additionally requires Soulplied Energistics, which is also used by AppliedSoul.",
+                            "启用流体的物流面和简易流体管道是否可传输 Industrial Foregoing: Souls 的坚守者灵魂。需要 Industrial Foregoing: Souls；访问 AE2 存储还需要 Soulplied Energistics，AppliedSoul 同样使用该灵魂类型。")
                     .define("allowFluidSoulTransfer", true);
             allowEnergyManaTransfer = builder
                     .comment("Whether energy-enabled logistics faces may also transfer Botania mana.",

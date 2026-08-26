@@ -16,7 +16,7 @@ External network interfaces connect large storage networks from other mods to a 
 
 ## Sky ME Interface
 
-The <ItemLink id="sky_me_interface" /> is available with Applied Energistics 2. It moves items and fluids in an ME network. With AppFlux, Applied Mekanistics, Applied Botanics, or Ars Énergistique installed, it can also access FE, chemicals, mana, or Source. On Minecraft 1.21.1, Soulplied Energistics additionally enables Warden Soul access. Every resource path has an independent server switch.
+The <ItemLink id="sky_me_interface" /> is available with Applied Energistics 2. It moves items and fluids in an ME network. With AppFlux, Applied Mekanistics, Applied Botanics, or Ars Énergistique installed, it can also access FE, chemicals, mana, or Source. On Minecraft 1.21.1, Soulplied Energistics additionally enables Warden Soul access, including souls stored in AppliedSoul storage cells because AppliedSoul uses the same Soul Key. Every resource path has an independent server switch.
 
 <RecipeFor id="sky_me_interface" fallbackText="Install AE2 to view the Sky ME Interface recipe." />
 
