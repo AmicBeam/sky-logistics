@@ -20,9 +20,9 @@ import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.SimplePipeType;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -185,7 +185,7 @@ public final class SkyNetworkRegistry {
     public static synchronized void markPriorityDirty(ServerLevel level, BlockPos pos) {
         LineIndex line = findLine(level, pos);
         if (line != null) {
-            line.refreshPriorityOutputs(pos);
+            line.rebuildPriorityOutputs();
             refreshGlobalLineIds(Set.of(line.lineId()));
         }
     }
@@ -226,6 +226,7 @@ public final class SkyNetworkRegistry {
             LineIndex line = index.lines.get(lineId);
             if (line != null) result.addAll(line.itemInputsView());
         }
+        sortByPriority(result);
         return result;
     }
 
@@ -1068,8 +1069,22 @@ public final class SkyNetworkRegistry {
     }
 
     private static void sortByPriority(List<CachedEndpoint> endpoints) {
-        endpoints.sort(Comparator.comparingInt(
-                (CachedEndpoint endpoint) -> endpoint.node().getPriority(endpoint.direction())).reversed());
+        endpoints.sort(SkyNetworkRegistry::compareByPriority);
+    }
+
+    private static int compareByPriority(CachedEndpoint left, CachedEndpoint right) {
+        int result = Integer.compare(right.node().getPriority(right.direction()),
+                left.node().getPriority(left.direction()));
+        if (result != 0) return result;
+        result = left.node().getLevel().dimension().location().toString()
+                .compareTo(right.node().getLevel().dimension().location().toString());
+        if (result != 0) return result;
+        result = Integer.compare(left.node().getBlockPos().getX(), right.node().getBlockPos().getX());
+        if (result != 0) return result;
+        result = Integer.compare(left.node().getBlockPos().getY(), right.node().getBlockPos().getY());
+        if (result != 0) return result;
+        result = Integer.compare(left.node().getBlockPos().getZ(), right.node().getBlockPos().getZ());
+        return result != 0 ? result : Integer.compare(left.direction().ordinal(), right.direction().ordinal());
     }
 
     private static ReadyLines activeLinesView() {
@@ -1185,7 +1200,11 @@ public final class SkyNetworkRegistry {
                                  boolean fluidsEnabled, boolean energyEnabled, RedstoneControl redstoneControl,
                                  int priority) {
         private static int compare(LineFaceDetail left, LineFaceDetail right) {
-            int result = left.dimension.compareTo(right.dimension);
+            int result = Integer.compare(modeOrder(left.mode), modeOrder(right.mode));
+            if (result != 0) return result;
+            result = Integer.compare(right.priority, left.priority);
+            if (result != 0) return result;
+            result = left.dimension.compareTo(right.dimension);
             if (result != 0) {
                 return result;
             }
@@ -1202,6 +1221,10 @@ public final class SkyNetworkRegistry {
                 return result;
             }
             return Integer.compare(left.face.ordinal(), right.face.ordinal());
+        }
+
+        private static int modeOrder(NodeFaceMode mode) {
+            return mode == NodeFaceMode.INPUT ? 0 : mode == NodeFaceMode.OUTPUT ? 1 : 2;
         }
     }
 
@@ -1388,6 +1411,12 @@ public final class SkyNetworkRegistry {
         }
 
         private void rebuildPriorityOutputs() {
+            sortByPriority(itemInputs);
+            sortByPriority(fluidInputs);
+            sortByPriority(chemicalInputs);
+            sortByPriority(energyInputs);
+            sortByPriority(manaInputs);
+            sortByPriority(sourceInputs);
             sortByPriority(priorityItemOutputs);
             sortByPriority(priorityFluidOutputs);
             sortByPriority(priorityChemicalOutputs);
@@ -1460,14 +1489,12 @@ public final class SkyNetworkRegistry {
         }
 
         private static void insertByPriority(List<CachedEndpoint> endpoints, CachedEndpoint endpoint) {
-            int priority = endpoint.node().getPriority(endpoint.direction());
             int low = 0;
             int high = endpoints.size();
             while (low < high) {
                 int middle = (low + high) >>> 1;
                 CachedEndpoint candidate = endpoints.get(middle);
-                int candidatePriority = candidate.node().getPriority(candidate.direction());
-                if (candidatePriority >= priority) low = middle + 1;
+                if (compareByPriority(candidate, endpoint) <= 0) low = middle + 1;
                 else high = middle;
             }
             endpoints.add(low, endpoint);

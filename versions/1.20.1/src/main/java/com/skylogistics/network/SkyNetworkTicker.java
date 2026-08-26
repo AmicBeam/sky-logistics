@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -456,8 +457,10 @@ public final class SkyNetworkTicker {
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
-            int mappedTarget = orderedMatching && !orderedPerItem ? OrderedMatchingPolicy.targetIndex(slot, targets.size(),
-                    SkyLogisticsConfig.orderedMatchingWrapTargets()) : -1;
+            int mappedTarget = orderedMatching && !orderedPerItem
+                    ? OrderedMatchingPolicy.offsetTargetIndex(slot, targets.size(),
+                            orderedMatchingNode.getOrderedMatchingOffset(),
+                            SkyLogisticsConfig.orderedMatchingWrapTargets()) : -1;
             if (orderedMatching && !orderedPerItem && mappedTarget < 0) {
                 sourceEndpoint.recordItemFailure(gameTime);
                 return operations;
@@ -748,6 +751,7 @@ public final class SkyNetworkTicker {
         targetLoop:
         for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
                 CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                boolean orderedMatchingTarget = orderedMatchingTargetNode(targetEndpoint) != null;
                 if (targetVisits >= budget) {
                     budgetExhausted = true;
                     break targetLoop;
@@ -767,7 +771,7 @@ public final class SkyNetworkTicker {
                     targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
-                if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
+                if (!orderedMatchingTarget && targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
                         if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
@@ -850,12 +854,18 @@ public final class SkyNetworkTicker {
             return HandlerMoveResult.NONE;
         }
         ItemStack offer = simulated.copyWithCount(requested);
-        TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer,
-                Math.max(1, slotCheckBudget - slotLimitCheck.checks()));
+        int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+        if (orderedTargetSlot == -2) {
+            return new HandlerMoveResult(false, slotLimitCheck.checks(), false);
+        }
+        TargetItemSelection selection = orderedTargetSlot >= 0
+                ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
+                : selectTargetItemSlot(targetEndpoint, target, offer,
+                        Math.max(1, slotCheckBudget - slotLimitCheck.checks()));
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
         if (movable <= 0) {
-            if (selection.exhaustive()) {
+            if (orderedTargetSlot < 0 && selection.exhaustive()) {
                 if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                 targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
             }
@@ -870,6 +880,7 @@ public final class SkyNetworkTicker {
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
         int inserted = extracted.getCount() - leftover.getCount();
         if (inserted > 0) {
+            advanceOrderedMatchingTargetCursor(targetEndpoint, targetSlot.slot(), target.getSlots());
             targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), extracted,
                     targetSlot.existingCount() + inserted, gameTime);
             targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
@@ -1171,6 +1182,7 @@ public final class SkyNetworkTicker {
         targetLoop:
         for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
                 CachedEndpoint targetEndpoint = targets.get(targetIndex);
+                boolean orderedMatchingTarget = orderedMatchingTargetNode(targetEndpoint) != null;
                 if (targetVisits >= budget) {
                     budgetExhausted = true;
                     break targetLoop;
@@ -1190,7 +1202,7 @@ public final class SkyNetworkTicker {
                     targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
                     continue;
                 }
-                if (targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
+                if (!orderedMatchingTarget && targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
                         if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
@@ -1279,13 +1291,17 @@ public final class SkyNetworkTicker {
                 if (exactRemaining == 0) continue;
                 ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
                         ? simulated.copyWithCount(exactRemaining) : simulated;
-                TargetItemSelection selection = selectTargetItemSlot(targetEndpoint, target, offer,
-                        Math.max(1, budget - Math.max(operations, targetVisits) + 1));
+                int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+                if (orderedTargetSlot == -2) continue;
+                TargetItemSelection selection = orderedTargetSlot >= 0
+                        ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
+                        : selectTargetItemSlot(targetEndpoint, target, offer,
+                                Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += Math.max(0, selection.checks() - 1);
                 TargetItemSlot targetSlot = selection.slot();
                 int movable = targetSlot.movable();
                 if (movable <= 0) {
-                    if (selection.exhaustive()) {
+                    if (orderedTargetSlot < 0 && selection.exhaustive()) {
                         if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                         targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
                     }
@@ -1299,6 +1315,7 @@ public final class SkyNetworkTicker {
                 }
                 int inserted = transfer.inserted();
                 if (inserted > 0) {
+                    advanceOrderedMatchingTargetCursor(targetEndpoint, targetSlot.slot(), target.getSlots());
                     targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), simulated,
                             targetSlot.existingCount() + inserted, gameTime);
                     targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
@@ -1366,6 +1383,47 @@ public final class SkyNetworkTicker {
         if (lastSlot >= 0) endpoint.recordTargetItemSlotMiss(lane, lastSlot, slots);
         boolean exhaustive = scannedSlots >= slots - (hotSlot >= 0 ? 1 : 0);
         return new TargetItemSelection(emptyCandidate, checks, exhaustive);
+    }
+
+    private static TargetItemSelection fixedTargetItemSelection(CachedEndpoint endpoint, IItemHandler target,
+            ItemStack stack, int slot) {
+        int lane = endpoint.targetItemCursorLane(stack, target.getSlots());
+        return new TargetItemSelection(simulateTargetItemSlot(endpoint, target, stack, lane, slot, false), 1, true);
+    }
+
+    private static SkyNodeBlockEntity orderedMatchingTargetNode(CachedEndpoint endpoint) {
+        return endpoint.node() instanceof SkyNodeBlockEntity node && node.hasOrderedMatchingUpgrade() ? node : null;
+    }
+
+    private static int orderedMatchingTargetSlot(CachedEndpoint sourceEndpoint, CachedEndpoint targetEndpoint,
+            int targetSlots) {
+        SkyNodeBlockEntity targetNode = orderedMatchingTargetNode(targetEndpoint);
+        if (targetNode == null || targetSlots <= 0) return -1;
+        if (targetNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM) {
+            return targetNode.getOrderedMatchingCursor(targetEndpoint.direction(), targetSlots);
+        }
+        int sourcePriorityIndex = itemSourcePriorityIndex(sourceEndpoint);
+        if (sourcePriorityIndex < 0) return -2;
+        int slot = OrderedMatchingPolicy.offsetPosition(sourcePriorityIndex,
+                targetNode.getOrderedMatchingOffset(), targetSlots);
+        return slot < 0 ? -2 : slot;
+    }
+
+    private static void advanceOrderedMatchingTargetCursor(CachedEndpoint targetEndpoint, int insertedSlot,
+            int targetSlots) {
+        SkyNodeBlockEntity targetNode = orderedMatchingTargetNode(targetEndpoint);
+        if (targetNode != null && targetNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM) {
+            targetNode.setOrderedMatchingCursor(targetEndpoint.direction(), insertedSlot + 1, targetSlots);
+        }
+    }
+
+    private static int itemSourcePriorityIndex(CachedEndpoint sourceEndpoint) {
+        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        if (!(sourceNode.getLevel() instanceof ServerLevel level)) return -1;
+        List<CachedEndpoint> sources = sourceNode.hasDimensionUpgrade()
+                ? SkyNetworkRegistry.globalItemInputs(level.getServer(), sourceNode.getLineId())
+                : SkyNetworkRegistry.lineItemInputs(level.getServer(), level.dimension(), sourceNode.getLineId());
+        return sources.indexOf(sourceEndpoint);
     }
 
     private static TargetItemSlot simulateSingleTargetItemSlot(IItemHandler target, ItemStack stack) {

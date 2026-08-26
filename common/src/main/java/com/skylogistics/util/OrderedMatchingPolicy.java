@@ -11,6 +11,22 @@ public final class OrderedMatchingPolicy {
         return wrapTargets ? Math.floorMod(sourceSlot, targetCount) : -1;
     }
 
+    public static int offsetTargetIndex(int sourceSlot, int targetCount, int offset, boolean wrapTargets) {
+        if (offset >= 0) {
+            int availableTargets = targetCount - offset;
+            int relative = targetIndex(sourceSlot, availableTargets, wrapTargets);
+            return relative < 0 ? -1 : offset + relative;
+        }
+        long relativeSourceSlot = (long) sourceSlot + offset;
+        return relativeSourceSlot < 0 || relativeSourceSlot > Integer.MAX_VALUE
+                ? -1 : targetIndex((int) relativeSourceSlot, targetCount, wrapTargets);
+    }
+
+    public static int offsetPosition(int priorityIndex, int offset, int positionCount) {
+        long position = (long) priorityIndex - offset;
+        return position >= 0 && position < positionCount ? (int) position : -1;
+    }
+
     public static boolean stopAfterAttempt(boolean moved, boolean continueAfterTargetFailure) {
         return moved || !continueAfterTargetFailure;
     }

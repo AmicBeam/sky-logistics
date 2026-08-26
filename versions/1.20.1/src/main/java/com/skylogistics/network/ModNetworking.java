@@ -49,6 +49,8 @@ public final class ModNetworking {
                 ExactQuantityPacket::decode, ExactQuantityPacket::handle);
         CHANNEL.registerMessage(12, ChemicalFilterPacket.class, ChemicalFilterPacket::encode,
                 ChemicalFilterPacket::decode, ChemicalFilterPacket::handle);
+        CHANNEL.registerMessage(13, OrderedMatchingOffsetPacket.class, OrderedMatchingOffsetPacket::encode,
+                OrderedMatchingOffsetPacket::decode, OrderedMatchingOffsetPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -61,6 +63,10 @@ public final class ModNetworking {
 
     public static void sendChemicalFilter(int slot, String chemical) {
         CHANNEL.sendToServer(new ChemicalFilterPacket(slot, chemical));
+    }
+
+    public static void sendOrderedMatchingOffset(boolean increase) {
+        CHANNEL.sendToServer(new OrderedMatchingOffsetPacket(increase));
     }
 
     public static void sendLineRename(String lineName) {

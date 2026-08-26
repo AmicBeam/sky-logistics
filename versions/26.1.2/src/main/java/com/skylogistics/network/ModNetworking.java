@@ -20,6 +20,8 @@ public final class ModNetworking {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
         registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
+        registrar.playToServer(OrderedMatchingOffsetPacket.TYPE, OrderedMatchingOffsetPacket.STREAM_CODEC,
+                OrderedMatchingOffsetPacket::handle);
         registrar.playToServer(RequestSkyOfferingRecipesPacket.TYPE, RequestSkyOfferingRecipesPacket.STREAM_CODEC,
                 RequestSkyOfferingRecipesPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
@@ -51,6 +53,10 @@ public final class ModNetworking {
 
     public static void sendExactQuantity(int amount) {
         ClientPacketDistributor.sendToServer(new ExactQuantityPacket(amount));
+    }
+
+    public static void sendOrderedMatchingOffset(boolean increase) {
+        ClientPacketDistributor.sendToServer(new OrderedMatchingOffsetPacket(increase));
     }
 
     public static void requestSkyOfferingRecipes() {

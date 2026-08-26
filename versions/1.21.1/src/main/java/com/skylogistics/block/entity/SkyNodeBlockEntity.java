@@ -590,6 +590,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return OrderedMatchingMode.PER_SLOT;
     }
 
+    public int getOrderedMatchingOffset() {
+        for (ItemStack upgrade : upgrades) {
+            if (upgrade.is(ModItems.ORDERED_MATCHING_UPGRADE.get())) {
+                return UpgradeCardItem.orderedMatchingOffset(upgrade);
+            }
+        }
+        return 0;
+    }
+
     public int getOrderedMatchingCursor(Direction direction, int targetCount) {
         return com.skylogistics.util.OrderedMatchingPolicy.normalizeCursor(
                 orderedMatchingCursors.getOrDefault(direction, 0), targetCount);

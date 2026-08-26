@@ -20,6 +20,8 @@ public final class ModNetworking {
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
         registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
         registrar.playToServer(ChemicalFilterPacket.TYPE, ChemicalFilterPacket.STREAM_CODEC, ChemicalFilterPacket::handle);
+        registrar.playToServer(OrderedMatchingOffsetPacket.TYPE, OrderedMatchingOffsetPacket.STREAM_CODEC,
+                OrderedMatchingOffsetPacket::handle);
         registrar.playToClient(ItemVaultSnapshotPacket.TYPE, ItemVaultSnapshotPacket.STREAM_CODEC,
                 ItemVaultSnapshotPacket::handle);
         registrar.playToClient(FluidVaultSnapshotPacket.TYPE, FluidVaultSnapshotPacket.STREAM_CODEC,
@@ -49,6 +51,10 @@ public final class ModNetworking {
 
     public static void sendChemicalFilter(int slot, String chemical) {
         PacketDistributor.sendToServer(new ChemicalFilterPacket(slot, chemical));
+    }
+
+    public static void sendOrderedMatchingOffset(boolean increase) {
+        PacketDistributor.sendToServer(new OrderedMatchingOffsetPacket(increase));
     }
 
     public static void sendLineRename(String lineName) {

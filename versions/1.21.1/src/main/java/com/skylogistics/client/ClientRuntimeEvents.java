@@ -2,7 +2,11 @@ package com.skylogistics.client;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.UpgradeCardItem;
+import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlocks;
+import com.skylogistics.registry.ModItems;
+import com.skylogistics.util.OrderedMatchingMode;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -13,6 +17,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 
 @EventBusSubscriber(modid = SkyLogistics.MOD_ID, value = Dist.CLIENT)
@@ -24,6 +29,17 @@ public final class ClientRuntimeEvents {
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+    }
+
+    @SubscribeEvent
+    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || !minecraft.player.isShiftKeyDown() || event.getScrollDeltaY() == 0.0D) return;
+        var stack = minecraft.player.getMainHandItem();
+        if (!stack.is(ModItems.ORDERED_MATCHING_UPGRADE.get())
+                || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
+        ModNetworking.sendOrderedMatchingOffset(event.getScrollDeltaY() > 0.0D);
+        event.setCanceled(true);
     }
 
     @SubscribeEvent

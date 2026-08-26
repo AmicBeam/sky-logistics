@@ -15,6 +15,7 @@ import net.minecraft.world.level.Level;
 
 public class UpgradeCardItem extends Item {
     private static final String ORDERED_MATCHING_MODE = "OrderedMatchingMode";
+    private static final String ORDERED_MATCHING_OFFSET = "OrderedMatchingOffset";
     private final String tooltipKey;
     private final boolean orderedMatchingModeSwitch;
 
@@ -48,6 +49,10 @@ public class UpgradeCardItem extends Item {
             tooltip.add(Component.translatable("tooltip.skylogistics.ordered_matching_upgrade.mode",
                     Component.translatable(orderedMatchingMode(stack).translationKey()))
                     .withStyle(ChatFormatting.DARK_GRAY));
+            if (orderedMatchingMode(stack) == OrderedMatchingMode.PER_SLOT) {
+                tooltip.add(Component.translatable("tooltip.skylogistics.ordered_matching_upgrade.offset",
+                        orderedMatchingOffset(stack)).withStyle(ChatFormatting.DARK_GRAY));
+            }
         }
     }
 
@@ -55,6 +60,22 @@ public class UpgradeCardItem extends Item {
         CompoundTag tag = stack.getTag();
         return tag == null ? OrderedMatchingMode.PER_SLOT
                 : OrderedMatchingMode.byName(tag.getString(ORDERED_MATCHING_MODE));
+    }
+
+    public static int orderedMatchingOffset(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag == null ? 0 : tag.getInt(ORDERED_MATCHING_OFFSET);
+    }
+
+    public static void setOrderedMatchingOffset(ItemStack stack, int offset) {
+        if (offset == 0) {
+            if (stack.hasTag()) {
+                stack.getTag().remove(ORDERED_MATCHING_OFFSET);
+                if (stack.getTag().isEmpty()) stack.setTag(null);
+            }
+        } else {
+            stack.getOrCreateTag().putInt(ORDERED_MATCHING_OFFSET, offset);
+        }
     }
 
     private static void setOrderedMatchingMode(ItemStack stack, OrderedMatchingMode mode) {

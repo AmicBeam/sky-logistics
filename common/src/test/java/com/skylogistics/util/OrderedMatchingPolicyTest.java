@@ -34,6 +34,38 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
+    void offsetSkipsHighestPriorityTargets() {
+        assertEquals(2, OrderedMatchingPolicy.offsetTargetIndex(0, 5, 2, true));
+        assertEquals(4, OrderedMatchingPolicy.offsetTargetIndex(2, 5, 2, true));
+        assertEquals(2, OrderedMatchingPolicy.offsetTargetIndex(3, 5, 2, true));
+        assertEquals(-1, OrderedMatchingPolicy.offsetTargetIndex(0, 2, 2, true));
+    }
+
+    @Test
+    void offsetMapsSourcePriorityToReceivingSlot() {
+        assertEquals(-1, OrderedMatchingPolicy.offsetPosition(0, 1, 4));
+        assertEquals(0, OrderedMatchingPolicy.offsetPosition(1, 1, 4));
+        assertEquals(3, OrderedMatchingPolicy.offsetPosition(4, 1, 4));
+        assertEquals(-1, OrderedMatchingPolicy.offsetPosition(5, 1, 4));
+    }
+
+    @Test
+    void negativeOffsetSkipsLeadingSourceSlots() {
+        assertEquals(-1, OrderedMatchingPolicy.offsetTargetIndex(0, 5, -2, true));
+        assertEquals(-1, OrderedMatchingPolicy.offsetTargetIndex(1, 5, -2, true));
+        assertEquals(0, OrderedMatchingPolicy.offsetTargetIndex(2, 5, -2, true));
+        assertEquals(1, OrderedMatchingPolicy.offsetTargetIndex(3, 5, -2, true));
+        assertEquals(0, OrderedMatchingPolicy.offsetTargetIndex(7, 5, -2, true));
+    }
+
+    @Test
+    void negativeOffsetSkipsLeadingReceivingSlots() {
+        assertEquals(2, OrderedMatchingPolicy.offsetPosition(0, -2, 5));
+        assertEquals(3, OrderedMatchingPolicy.offsetPosition(1, -2, 5));
+        assertEquals(-1, OrderedMatchingPolicy.offsetPosition(3, -2, 5));
+    }
+
+    @Test
     void targetFailureContinuationIsConfigurableButSuccessAlwaysStops() {
         assertTrue(OrderedMatchingPolicy.stopAfterAttempt(true, true));
         assertTrue(OrderedMatchingPolicy.stopAfterAttempt(false, false));
