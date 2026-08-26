@@ -352,6 +352,7 @@ public final class SkyNetworkTicker {
         boolean orderedMatching = orderedMatchingNode != null;
         boolean orderedPerItem = orderedMatching
                 && orderedMatchingNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM;
+        int orderedMatchingOffset = orderedMatching ? orderedMatchingNode.getOrderedMatchingOffset() : 0;
         int slots = source.getSlots();
         if (slots <= 0) {
             if (orderedPerItem) {
@@ -431,6 +432,10 @@ public final class SkyNetworkTicker {
                 sourceSlotsExhausted = search.exhausted();
                 break;
             }
+            if (orderedMatching && !orderedPerItem
+                    && OrderedMatchingPolicy.isSourceSlotSkippedByOffset(slot, orderedMatchingOffset)) {
+                continue;
+            }
             if (firstTriedSlot < 0) {
                 firstTriedSlot = slot;
             } else {
@@ -466,7 +471,7 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordItemCandidateFound();
             int mappedTarget = orderedMatching && !orderedPerItem
                     ? OrderedMatchingPolicy.offsetTargetIndex(slot, targets.size(),
-                            orderedMatchingNode.getOrderedMatchingOffset(),
+                            orderedMatchingOffset,
                             SkyLogisticsConfig.orderedMatchingWrapTargets()) : -1;
             if (orderedMatching && !orderedPerItem && mappedTarget < 0) {
                 sourceEndpoint.recordItemFailure(gameTime);

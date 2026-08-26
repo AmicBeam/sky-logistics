@@ -22,6 +22,10 @@ public final class OrderedMatchingPolicy {
                 ? -1 : targetIndex((int) relativeSourceSlot, targetCount, wrapTargets);
     }
 
+    public static boolean isSourceSlotSkippedByOffset(int sourceSlot, int offset) {
+        return sourceSlot >= 0 && offset < 0 && (long) sourceSlot < -(long) offset;
+    }
+
     public static int offsetPosition(int priorityIndex, int offset, int positionCount) {
         long position = (long) priorityIndex - offset;
         return position >= 0 && position < positionCount ? (int) position : -1;

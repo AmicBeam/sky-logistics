@@ -59,6 +59,15 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
+    void negativeFourContinuesPastFourSkippedSourceSlots() {
+        assertTrue(OrderedMatchingPolicy.isSourceSlotSkippedByOffset(0, -4));
+        assertTrue(OrderedMatchingPolicy.isSourceSlotSkippedByOffset(3, -4));
+        assertFalse(OrderedMatchingPolicy.isSourceSlotSkippedByOffset(4, -4));
+        assertFalse(OrderedMatchingPolicy.isSourceSlotSkippedByOffset(0, 4));
+        assertEquals(0, OrderedMatchingPolicy.offsetTargetIndex(4, 5, -4, true));
+    }
+
+    @Test
     void negativeOffsetSkipsLeadingReceivingSlots() {
         assertEquals(2, OrderedMatchingPolicy.offsetPosition(0, -2, 5));
         assertEquals(3, OrderedMatchingPolicy.offsetPosition(1, -2, 5));
