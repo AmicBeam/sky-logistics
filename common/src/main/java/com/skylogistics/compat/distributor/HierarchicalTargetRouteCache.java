@@ -2,6 +2,7 @@ package com.skylogistics.compat.distributor;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Bounded key-to-target routing state shared by hierarchical distributor insertion paths.
@@ -93,6 +94,27 @@ public final class HierarchicalTargetRouteCache<K> {
         routes.clear();
     }
 
+    /** Preserves per-machine state across stable-identity reorder, addition, and removal. */
+    public void remapTargets(int[] oldIndexForNew) {
+        if (oldIndexForNew == null) return;
+        for (Map.Entry<K, RouteState> entry : routes.entrySet()) {
+            RouteState old = entry.getValue();
+            RouteState remapped = new RouteState(oldIndexForNew.length);
+            for (int target = 0; target < oldIndexForNew.length; target++) {
+                int oldTarget = oldIndexForNew[target];
+                if (oldTarget < 0 || oldTarget >= old.targetCount) continue;
+                remapped.successful[target] = old.successful[oldTarget];
+                remapped.everSuccessful[target] = old.everSuccessful[oldTarget];
+                remapped.tiers[target] = old.tiers[oldTarget];
+                remapped.tierMisses[target] = old.tierMisses[oldTarget];
+                remapped.retryAfter[target] = old.retryAfter[oldTarget];
+            }
+            remapped.hotCursor = remappedCursor(old, old.hotCursor, oldIndexForNew, true);
+            remapped.discoveryCursor = remappedCursor(old, old.discoveryCursor, oldIndexForNew, false);
+            entry.setValue(remapped);
+        }
+    }
+
     int size() {
         return routes.size();
     }
@@ -112,6 +134,18 @@ public final class HierarchicalTargetRouteCache<K> {
             K eldest = routes.keySet().iterator().next();
             routes.remove(eldest);
         }
+    }
+
+    private static int remappedCursor(RouteState old, int oldCursor, int[] oldIndexForNew, boolean successful) {
+        if (oldIndexForNew.length == 0 || old.targetCount == 0) return 0;
+        for (int offset = 0; offset < old.targetCount; offset++) {
+            int candidate = Math.floorMod(oldCursor + offset, old.targetCount);
+            if (old.successful[candidate] != successful) continue;
+            for (int target = 0; target < oldIndexForNew.length; target++) {
+                if (oldIndexForNew[target] == candidate) return target;
+            }
+        }
+        return 0;
     }
 
     private static final class RouteState {

@@ -136,6 +136,8 @@ public final class SkyLogisticsConfig {
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
     public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
+    public static boolean enableDistributorAdaptiveFluidTargetProbes() { return SERVER.enableDistributorAdaptiveFluidTargetProbes.get(); }
+    public static boolean enableDistributorAdaptiveChemicalTargetProbes() { return SERVER.enableDistributorAdaptiveChemicalTargetProbes.get(); }
     public static int distributorItemRouteCacheSize() { return SERVER.distributorItemRouteCacheSize.get(); }
     public static int distributorItemTargetHotProbeTicks() { return SERVER.distributorItemTargetHotProbeTicks.get(); }
     public static int distributorItemTargetWarmProbeTicks() { return SERVER.distributorItemTargetWarmProbeTicks.get(); }
@@ -397,6 +399,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue distributorScanOpsPerTick;
         public final ForgeConfigSpec.IntValue distributorOpsPerTick;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
+        public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveFluidTargetProbes;
+        public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveChemicalTargetProbes;
         public final ForgeConfigSpec.IntValue distributorItemRouteCacheSize;
         public final ForgeConfigSpec.IntValue distributorItemTargetHotProbeTicks;
         public final ForgeConfigSpec.IntValue distributorItemTargetWarmProbeTicks;
@@ -696,13 +700,21 @@ public final class SkyLogisticsConfig {
                     .comment("Whether distributor item extraction and insertion use independent adaptive per-machine routing tiers.",
                             "分配器物品抽取与插入是否使用独立的按机器自适应路由等级。")
                     .define("enableAdaptiveItemTargetProbes", true);
+            enableDistributorAdaptiveFluidTargetProbes = builder
+                    .comment("Whether distributor fluid extraction and insertion use adaptive per-machine routing tiers.",
+                            "分配器流体抽取与插入是否使用按机器自适应路由等级。")
+                    .define("enableAdaptiveFluidTargetProbes", true);
+            enableDistributorAdaptiveChemicalTargetProbes = builder
+                    .comment("Whether distributor chemical extraction and insertion use adaptive per-machine routing tiers.",
+                            "分配器化学品抽取与插入是否使用按机器自适应路由等级。")
+                    .define("enableAdaptiveChemicalTargetProbes", true);
             distributorItemRouteCacheSize = builder
-                    .comment("Maximum exact item keys retained by each distributor face for hierarchical machine routing.",
-                            "分配器每个面为分层机器路由保留的精确物品 key 数量上限。")
+                    .comment("Maximum exact resource keys retained per item, fluid, or chemical route bank on each distributor face. The legacy key name is retained for config compatibility.",
+                            "分配器每个面、每种物品/流体/化学品路由库保留的精确资源 key 数量上限；为兼容旧配置保留原字段名。")
                     .defineInRange("itemRouteCacheSize", 64, 1, 256);
             distributorItemTargetHotProbeTicks = builder
-                    .comment("Retry interval for hot distributor machines after successful extraction or keyed insertion.",
-                            "成功抽取或按 key 插入后的热分配器机器重试间隔 tick。")
+                    .comment("Retry interval for hot distributor resource machines after successful extraction or keyed insertion.",
+                            "物品、流体或化学品成功抽取或按 key 插入后的热机器重试间隔 tick。")
                     .defineInRange("itemTargetHotProbeTicks", 1, 1, 1200);
             distributorItemTargetWarmProbeTicks = builder
                     .comment("Retry interval for warm distributor machine routes after repeated misses.",
@@ -717,8 +729,8 @@ public final class SkyLogisticsConfig {
                             "冷分配器机器路由的兜底间隔 tick；抽取首次探测会在该窗口内错峰安排。")
                     .defineInRange("itemTargetFallbackProbeTicks", 40, 1, 1200);
             distributorItemTargetMissesPerDemotion = builder
-                    .comment("Consecutive empty extraction or rejected insertion probes required to demote a distributor item target by one tier.",
-                            "分配器物品目标每次降低一个抽取或插入探测等级所需的连续失败次数。")
+                    .comment("Consecutive empty extraction or rejected insertion probes required to demote an item, fluid, or chemical target by one tier.",
+                            "物品、流体或化学品目标每次降低一个抽取或插入探测等级所需的连续失败次数。")
                     .defineInRange("itemTargetMissesPerDemotion", 3, 1, 64);
             builder.pop();
 

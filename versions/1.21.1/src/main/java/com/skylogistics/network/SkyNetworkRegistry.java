@@ -2274,6 +2274,9 @@ public final class SkyNetworkRegistry {
             itemRetryAfter = Math.max(itemRetryAfter, gameTime);
         }
 
+        public void deferFluidsUntil(long gameTime) { fluidRetryAfter = Math.max(fluidRetryAfter, gameTime); }
+        public void deferChemicalsUntil(long gameTime) { chemicalRetryAfter = Math.max(chemicalRetryAfter, gameTime); }
+
         public boolean isItemFilterRejected(ItemStack stack, long gameTime) {
             if (rejectedItems == null) return false;
             for (int i = 0; i < rejectedItems.length; i++) {

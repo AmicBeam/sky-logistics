@@ -78,6 +78,17 @@ class HierarchicalTargetRouteCacheTest {
         assertTrue(routes.isSuccessful("c", 1, 3));
     }
 
+    @Test void topologyRemapPreservesSuccessfulMachinesAndNextFairTarget() {
+        HierarchicalTargetRouteCache<String> routes = routes();
+        for (int target = 0; target < 4; target++) routes.recordSuccess("iron", target, 4);
+        routes.advanceHotCursorAfter("iron", 1, 4);
+
+        routes.remapTargets(new int[] {3, 2, 0, 1});
+
+        assertEquals(4, routes.successfulTargetCount("iron", 4));
+        assertEquals(1, candidates(routes, "iron", 4, 0)[0]);
+    }
+
     @Test void twentyKeysConvergeFromFourHundredColdCandidatesToTwentyHotCandidates() {
         HierarchicalTargetRouteCache<String> routes = new HierarchicalTargetRouteCache<>();
         routes.configure(64, 1, 5, 20, 40, 3);

@@ -65,6 +65,64 @@ public final class DistributedTargetProbeScheduler<T> {
         }
     }
 
+    public void remapTargets(DistributedSlotMap<T> current, long gameTime) {
+        remapTargets(current, null, gameTime);
+    }
+
+    public void remapTargets(DistributedSlotMap<T> current, int[] oldIndexForNew, long gameTime) {
+        if (current == null || current.equals(slotMap)) return;
+        if (slotMap == null) {
+            refreshMap(current, gameTime);
+            return;
+        }
+        DistributedSlotMap<T> oldMap = slotMap;
+        long[] oldInitial = initialProbeTicks;
+        long[] oldLast = lastProbeTicks;
+        long[] oldAvailable = lastAvailableProbeTicks;
+        byte[] oldTiers = tiers;
+        int[] oldMisses = tierMisses;
+        int[] oldCycleChecks = cycleChecks;
+        int[] oldLocalSlots = nextLocalSlots;
+        int oldCursor = targetCursor;
+        slotMap = current;
+        int targets = current.targetCount();
+        initialProbeTicks = new long[targets];
+        lastProbeTicks = new long[targets];
+        Arrays.fill(lastProbeTicks, Long.MIN_VALUE);
+        lastAvailableProbeTicks = new long[targets];
+        Arrays.fill(lastAvailableProbeTicks, Long.MIN_VALUE);
+        tiers = new byte[targets];
+        Arrays.fill(tiers, AdaptiveProbeBackoff.FALLBACK);
+        tierMisses = new int[targets];
+        cycleChecks = new int[targets];
+        nextLocalSlots = new int[targets];
+        targetCursor = 0;
+        for (int target = 0; target < targets; target++) {
+            int oldTarget = oldIndexForNew != null && target < oldIndexForNew.length
+                    ? oldIndexForNew[target] : findTarget(oldMap, current.target(target));
+            if (oldTarget >= 0 && oldTarget < oldLast.length) {
+                initialProbeTicks[target] = oldInitial[oldTarget];
+                lastProbeTicks[target] = oldLast[oldTarget];
+                lastAvailableProbeTicks[target] = oldAvailable[oldTarget];
+                tiers[target] = oldTiers[oldTarget];
+                tierMisses[target] = oldMisses[oldTarget];
+                cycleChecks[target] = Math.min(oldCycleChecks[oldTarget], current.slotCount(target) - 1);
+                nextLocalSlots[target] = Math.floorMod(oldLocalSlots[oldTarget], current.slotCount(target));
+                if (oldTarget == oldCursor) targetCursor = target;
+            } else {
+                initialProbeTicks[target] = gameTime
+                        + (long)target * backoff.interval(AdaptiveProbeBackoff.FALLBACK) / Math.max(1, targets);
+            }
+        }
+    }
+
+    private static <T> int findTarget(DistributedSlotMap<T> map, T target) {
+        for (int index = 0; index < map.targetCount(); index++) {
+            if (java.util.Objects.equals(map.target(index), target)) return index;
+        }
+        return -1;
+    }
+
     private boolean isDue(int target, long gameTime) {
         long lastProbe = lastProbeTicks[target];
         return lastProbe == Long.MIN_VALUE
@@ -74,6 +132,10 @@ public final class DistributedTargetProbeScheduler<T> {
 
     private void refreshMap(DistributedSlotMap<T> current, long gameTime) {
         if (current.equals(slotMap)) return;
+        if (slotMap != null) {
+            remapTargets(current, gameTime);
+            return;
+        }
         slotMap = current;
         int targets = current.targetCount();
         initialProbeTicks = new long[targets];

@@ -83,8 +83,25 @@ class DistributedTargetProbeSchedulerTest {
         assertEquals(0, scheduler.nextDueSlot(slots, 4));
     }
 
+    @Test void explicitTopologyIdentityPreservesStateWhenUnrelatedMetadataChanges() {
+        DistributedSlotMap<Machine> oldSlots = DistributedSlotMap.create(List.of(
+                new Machine("a", false), new Machine("b", false), new Machine("c", false)), ignored -> 1);
+        DistributedTargetProbeScheduler<Machine> scheduler = new DistributedTargetProbeScheduler<>();
+        scheduler.configure(1, 5, 20, 40, 3);
+        for (int target = 0; target < 3; target++) scheduler.recordProbe(oldSlots, target, 0, false);
+        scheduler.recordProbe(oldSlots, 1, 0, true);
+
+        DistributedSlotMap<Machine> newSlots = DistributedSlotMap.create(List.of(
+                new Machine("c", true), new Machine("a", true), new Machine("b", true)), ignored -> 1);
+        scheduler.remapTargets(newSlots, new int[] {2, 0, 1}, 0);
+
+        assertEquals(2, scheduler.nextDueSlot(newSlots, 1));
+    }
+
     private static DistributedSlotMap<String> slots(Map<String, Integer> counts) {
         List<String> targets = counts.keySet().stream().sorted().toList();
         return DistributedSlotMap.create(targets, counts::get);
     }
+
+    private record Machine(String id, boolean unrelatedCapability) {}
 }

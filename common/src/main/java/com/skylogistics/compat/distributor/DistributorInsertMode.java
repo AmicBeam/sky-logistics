@@ -19,4 +19,9 @@ public final class DistributorInsertMode {
         if (requested <= 0 || targetCount <= 0 || targetRank < 0 || targetRank >= targetCount) return 0;
         return requested / targetCount + (targetRank < requested % targetCount ? 1 : 0);
     }
+
+    public static long balancedOffer(long requested, int targetCount, int targetRank) {
+        if (requested <= 0L || targetCount <= 0 || targetRank < 0 || targetRank >= targetCount) return 0L;
+        return requested / targetCount + (targetRank < requested % targetCount ? 1L : 0L);
+    }
 }

@@ -38,6 +38,10 @@ public final class DistributedSlotMap<T> {
         return spans.size();
     }
 
+    public T target(int targetIndex) {
+        return targetIndex < 0 || targetIndex >= spans.size() ? null : spans.get(targetIndex).target;
+    }
+
     public int firstSlot(int targetIndex) {
         return targetIndex < 0 || targetIndex >= spans.size() ? -1 : spans.get(targetIndex).firstSlot;
     }

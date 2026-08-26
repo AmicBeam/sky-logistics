@@ -594,6 +594,18 @@ public final class SkyNetworkTicker {
         return true;
     }
 
+    private static boolean deferExhaustedDistributorFluid(CachedEndpoint endpoint, Object handler, long gameTime) {
+        if (!distributorBudgetExhausted(handler)) return false;
+        endpoint.deferFluidsUntil(gameTime + 1L);
+        return true;
+    }
+
+    private static boolean deferExhaustedDistributorChemical(CachedEndpoint endpoint, Object handler, long gameTime) {
+        if (!distributorBudgetExhausted(handler)) return false;
+        endpoint.deferChemicalsUntil(gameTime + 1L);
+        return true;
+    }
+
     private static boolean distributorBudgetExhausted(Object handler) {
         return handler instanceof BudgetedDistributorHandler budgeted && budgeted.distributorBudgetExhausted();
     }
@@ -1882,8 +1894,12 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean foundCandidate = false;
+        boolean independentDistributorProbes = usesIndependentDistributorProbes(source);
         int tankChecks = Math.min(tanks,
                 Math.min(sourceNode.getOperationRate(), SkyLogisticsConfig.externalTankScansPerEndpoint()));
+        if (independentDistributorProbes && source instanceof BudgetedDistributorHandler distributor) {
+            tankChecks = Math.min(tanks, Math.max(tankChecks, distributor.fairExtractionProbesDue(gameTime)));
+        }
         int firstTriedTank = -1;
         int secondTriedTank = -1;
         boolean sourceTanksExhausted = false;
@@ -1904,7 +1920,8 @@ public final class SkyNetworkTicker {
             FluidStack inTank = source.getFluidInTank(tank);
             operations++;
             if (inTank.isEmpty()) {
-                sourceEndpoint.recordFluidTankMiss(tank, gameTime);
+                if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return operations;
+                if (!independentDistributorProbes) sourceEndpoint.recordFluidTankMiss(tank, gameTime);
                 continue;
             }
             int transferLimit = (int) Math.min(Integer.MAX_VALUE,
@@ -1912,11 +1929,12 @@ public final class SkyNetworkTicker {
             FluidStack simulated = source.drain(copyWithAmount(inTank, transferLimit),
                     IFluidHandler.FluidAction.SIMULATE);
             if (simulated.isEmpty()) {
-                sourceEndpoint.recordFluidTankMiss(tank, gameTime);
+                if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return operations;
+                if (!independentDistributorProbes) sourceEndpoint.recordFluidTankMiss(tank, gameTime);
                 continue;
             }
             if (!sourceNode.allowsFluid(sourceEndpoint.direction(), simulated)) {
-                sourceEndpoint.recordFluidTankRejected(tank, gameTime);
+                if (!independentDistributorProbes) sourceEndpoint.recordFluidTankRejected(tank, gameTime);
                 continue;
             }
             foundCandidate = true;
@@ -1925,11 +1943,12 @@ public final class SkyNetworkTicker {
                     budget - operations, gameTime);
             operations += result.operations();
             if (result.moved()) {
-                sourceEndpoint.recordFluidTankSuccess(tank, tanks);
+                if (!independentDistributorProbes) sourceEndpoint.recordFluidTankSuccess(tank, tanks);
                 sourceEndpoint.recordFluidSuccess();
             }
         }
         if (!foundCandidate) {
+            if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return operations;
             sourceEndpoint.recordFluidSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
         }
         return operations;
@@ -2006,6 +2025,12 @@ public final class SkyNetworkTicker {
 
     private static SourceSearchResult nextFluidTank(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
             int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
+        IFluidHandler handler = sourceEndpoint.fluidHandler(gameTime);
+        if (usesIndependentDistributorProbes(handler) && handler instanceof BudgetedDistributorHandler distributor) {
+            int fairTank = distributor.nextFairExtractionSlot(gameTime);
+            return fairTank >= 0 && fairTank < tanks && !wasSlotTried(firstTriedTank, secondTriedTank, fairTank)
+                    ? new SourceSearchResult(fairTank, 0, false) : new SourceSearchResult(-1, 0, false);
+        }
         if (sourceEndpoint.shouldTryFluidTankDiscoveryBeforePreferred()) {
             SourceSearchResult discovery = nextSequentialFluidTank(sourceEndpoint, sourceNode, tanks, gameTime,
                     firstTriedTank, secondTriedTank, true, skipBudget);
@@ -2126,11 +2151,19 @@ public final class SkyNetworkTicker {
                 }
                 int accepted = target.fill(simulated.copy(), IFluidHandler.FluidAction.SIMULATE);
                 if (accepted <= 0) {
+                    if (deferExhaustedDistributorFluid(targetEndpoint, target, gameTime)) {
+                        sourceEndpoint.resumeFluidTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                        budgetExhausted = true;
+                        break targetLoop;
+                    }
                     targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
                     continue;
                 }
                 FluidStack drained = source.drain(copyWithAmount(simulated, accepted), IFluidHandler.FluidAction.EXECUTE);
                 if (drained.isEmpty()) {
+                    if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) {
+                        return new MoveResult(false, operations);
+                    }
                     sourceEndpoint.recordFluidFailure(gameTime);
                     return new MoveResult(false, operations);
                 }
@@ -2250,6 +2283,7 @@ public final class SkyNetworkTicker {
         FluidStack offer = copyWithAmount(simulated, requested);
         int accepted = target.fill(offer.copy(), IFluidHandler.FluidAction.SIMULATE);
         if (accepted <= 0) {
+            if (deferExhaustedDistributorFluid(targetEndpoint, target, gameTime)) return false;
             if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
             targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
             return false;
@@ -2539,8 +2573,12 @@ public final class SkyNetworkTicker {
         }
         int operations = 0;
         boolean foundCandidate = false;
+        boolean independentDistributorProbes = usesIndependentDistributorProbes(source);
         int tankChecks = Math.min(tanks,
                 Math.min(sourceNode.getOperationRate(), SkyLogisticsConfig.externalTankScansPerEndpoint()));
+        if (independentDistributorProbes && source instanceof BudgetedDistributorHandler distributor) {
+            tankChecks = Math.min(tanks, Math.max(tankChecks, distributor.fairExtractionProbesDue(gameTime)));
+        }
         int firstTriedTank = -1;
         int secondTriedTank = -1;
         boolean sourceTanksExhausted = false;
@@ -2561,13 +2599,15 @@ public final class SkyNetworkTicker {
             ChemicalStackView inTank = source.getChemicalInTank(tank);
             operations++;
             if (inTank.isEmpty()) {
-                sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
+                if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return operations;
+                if (!independentDistributorProbes) sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
             long transferLimit = sourceNode.limitChemicalTransfer(Long.MAX_VALUE);
             ChemicalStackView simulated = source.extractChemical(tank, transferLimit, true);
             if (simulated.isEmpty()) {
-                sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
+                if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return operations;
+                if (!independentDistributorProbes) sourceEndpoint.recordChemicalTankMiss(tank, gameTime);
                 continue;
             }
             if (!sourceNode.allowsChemical(sourceEndpoint.direction(), simulated)) continue;
@@ -2577,11 +2617,12 @@ public final class SkyNetworkTicker {
                     budget - operations, gameTime);
             operations += result.operations();
             if (result.moved()) {
-                sourceEndpoint.recordChemicalTankSuccess(tank, tanks);
+                if (!independentDistributorProbes) sourceEndpoint.recordChemicalTankSuccess(tank, tanks);
                 sourceEndpoint.recordChemicalSuccess();
             }
         }
         if (!foundCandidate) {
+            if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return operations;
             sourceEndpoint.recordChemicalSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
         }
         return operations;
@@ -2589,6 +2630,12 @@ public final class SkyNetworkTicker {
 
     private static SourceSearchResult nextChemicalTank(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
             int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
+        ChemicalHandlerBridge handler = sourceEndpoint.chemicalHandler(gameTime);
+        if (usesIndependentDistributorProbes(handler) && handler instanceof BudgetedDistributorHandler distributor) {
+            int fairTank = distributor.nextFairExtractionSlot(gameTime);
+            return fairTank >= 0 && fairTank < tanks && !wasSlotTried(firstTriedTank, secondTriedTank, fairTank)
+                    ? new SourceSearchResult(fairTank, 0, false) : new SourceSearchResult(-1, 0, false);
+        }
         if (sourceEndpoint.shouldTryChemicalTankDiscoveryBeforePreferred()) {
             SourceSearchResult discovery = nextSequentialChemicalTank(sourceEndpoint, sourceNode, tanks, gameTime,
                     firstTriedTank, secondTriedTank, true, skipBudget);
@@ -2680,11 +2727,19 @@ public final class SkyNetworkTicker {
                 }
                 long accepted = target.insertChemical(simulated, true);
                 if (accepted <= 0L) {
+                    if (deferExhaustedDistributorChemical(targetEndpoint, target, gameTime)) {
+                        sourceEndpoint.resumeChemicalTargetScan(simulated, visitedTargetIndex, targetCount);
+                        budgetExhausted = true;
+                        break targetLoop;
+                    }
                     targetEndpoint.recordChemicalAcceptReject(simulated, gameTime);
                     continue;
                 }
                 ChemicalStackView drained = source.extractChemical(sourceTank, accepted, false);
                 if (drained.isEmpty()) {
+                    if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) {
+                        return new MoveResult(false, operations);
+                    }
                     sourceEndpoint.recordChemicalFailure(gameTime);
                     return new MoveResult(false, operations);
                 }
