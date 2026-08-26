@@ -18,24 +18,36 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Speed upgrades stack in one node upgrade slot. Each card adds one slot check per tick. By default, up to 8 cards raise the base rate from 1 to 9 slots/t; the server can configure this limit. They do not increase line capacity."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Force Extraction Upgrades belong on extracting nodes. For devices whose mod ID appears in the server-configured list and that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default list is mekanism_extras; an empty list disables the behavior, and rejected transfers restore the source slot."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Ordered Matching Upgrades work on item extract or insert nodes. Right-click air to switch Per Slot/Per Item; Per Slot is default. Switching to Per Item clears the order offset, so switching back starts at 0. Per Slot follows local slot + order offset = network position. Sneak-scroll up/down raises/lowers the signed offset without changing the hotbar: positive values skip leading network positions (offset 2 maps slot 0 to position 2), while negative values skip leading local slots (offset -2 maps slot 2 to position 0). Extract nodes map slots to receivers; insert nodes reverse-map sources to inventory slots. Per Item cycles receivers on extract nodes and inventory slots on insert nodes, advancing after success; each batched target consumes budget. Items, fluids, FE, chemicals, mana, and source have independent order lists that ignore fullness and filter contents; the Configurator uses the same order. Failed Per Item extraction assignments use the persistent detention queue, length 1 by default."
+      "title": "Speed Upgrade",
+      "text": "Speed Upgrades stack in one node upgrade slot. Each card adds one slot check per tick.$(br2)By default, up to 8 cards raise the base rate from 1 to 9 slots/t. The server can configure this limit."
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
       "text": "Speed Upgrades can be crafted at a crafting table."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Dimension Upgrade",
+      "text": "Dimension Upgrades only need to be installed on extract nodes. They allow resources to reach same-line insert nodes in other dimensions.$(br2)They do not load chunks. Unloaded dimensions or target chunks are skipped."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Tier 2 offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables.$(br2)The ritual takes about 12 seconds."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Force Extraction",
+      "text": "Install it only on extract nodes. For server-whitelisted devices, it bypasses the external interface's 64-item return limit.$(br2)It extracts the amount the target can actually accept. A rejected transfer restores the source slot."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The device whitelist defaults to mekanism_extras; an empty list disables this feature.$(br2)Tier 2 offering: put a Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Ordered Matching",
+      "text": "Install this upgrade on item extract or insert nodes. Right-click air to switch Per Slot/Per Item; Per Slot is the default.$(br2)Switching to Per Item clears the order offset. Switching back to Per Slot therefore starts at 0."
     },
     {
       "type": "patchouli:crafting",
@@ -44,11 +56,28 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Dimension upgrades are made through a tier 2 sky offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables. The ritual takes about 12 seconds, and the upgrade only needs to be installed on the extracting node."
+      "title": "Per Slot: Mapping",
+      "text": "Per Slot follows:$(br)local slot + order offset$(br)= network position$(br2)Extract nodes map local slots to receivers. Insert nodes reverse the same relation to map sources to inventory slots."
     },
     {
       "type": "patchouli:text",
-      "text": "Force Extraction Upgrades also use a tier 2 offering: place one Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap. The ritual takes about 12 seconds."
+      "title": "Per Slot: Offset",
+      "text": "Sneak-scroll up/down to raise/lower the offset without changing the hotbar.$(br2)Positive skips network positions: offset 2 maps slot 0 to position 2.$(br2)Negative skips local slots: offset -2 maps slot 2 to position 0."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Per Item Mode",
+      "text": "Extract nodes cycle receivers; insert nodes cycle inventory slots. The cursor advances only after success.$(br2)Every target visited by a batch consumes its own budget. Order offsets do not apply in Per Item mode."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Per Item Failures",
+      "text": "A failed extraction assignment stays in its source and enters the persistent detention queue for priority retries.$(br2)The default queue length is 1. A full queue prevents passing another newly failed target."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Network Order Lists",
+      "text": "Items, fluids, FE, chemicals, mana, and source each have separate source and receiver lists.$(br2)Fullness and filter contents do not affect membership. Equal priorities remain separate, and the Configurator uses the same order."
     }
   ]
 }
