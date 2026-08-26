@@ -55,11 +55,15 @@ public final class SkyLogisticsConfig {
     }
 
     public static boolean orderedMatchingWrapTargets() {
-        return SERVER.orderedMatchingWrapTargets.get();
+        return SERVER.orderedMatchingUpgrade.wrapTargets.get();
     }
 
     public static boolean orderedMatchingContinueAfterTargetFailure() {
-        return SERVER.orderedMatchingContinueAfterTargetFailure.get();
+        return SERVER.orderedMatchingUpgrade.continueAfterTargetFailure.get();
+    }
+
+    public static int orderedMatchingPerItemDetentionQueueLength() {
+        return SERVER.orderedMatchingUpgrade.perItemDetentionQueueLength.get();
     }
 
     public static boolean enableAStagesTransferRates() {
@@ -388,8 +392,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ModConfigSpec.IntValue simplePipeMaxConnectedBlocks;
         public final ModConfigSpec.IntValue maxSpeedUpgradesPerNode;
-        public final ModConfigSpec.BooleanValue orderedMatchingWrapTargets;
-        public final ModConfigSpec.BooleanValue orderedMatchingContinueAfterTargetFailure;
+        public final OrderedMatchingUpgrade orderedMatchingUpgrade;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -487,18 +490,6 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
                             "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
                     .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
-            builder.comment("Ordered Matching Upgrade behavior.",
-                            "顺序匹配升级行为。")
-                    .push("orderedMatchingUpgrade");
-            orderedMatchingWrapTargets = builder
-                    .comment("Whether source slots wrap across receiving endpoints with slotIndex % targetCount. When disabled, source slots beyond the receiving endpoint count are not dispatched.",
-                            "来源槽位是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
-                    .define("wrapTargets", true);
-            orderedMatchingContinueAfterTargetFailure = builder
-                    .comment("Whether a failed or temporarily unavailable mapped target allows later source slots to be attempted. When disabled, the first such failure blocks later slots.",
-                            "映射目标拒收或暂时不可用时，是否继续尝试后续来源槽位。关闭后，首次失败会阻塞后续槽位。")
-                    .define("continueAfterTargetFailure", false);
-            builder.pop();
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
                             "天穹物流仓库容器之间每次直接传输操作可搬运的最大数量。")
@@ -651,6 +642,7 @@ public final class SkyLogisticsConfig {
                     .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();
+            orderedMatchingUpgrade = new OrderedMatchingUpgrade(builder);
 
             builder.push("distributor");
             enableDistributorItems = builder.comment("Whether Celestial Distributors proxy item storage.",
@@ -714,6 +706,31 @@ public final class SkyLogisticsConfig {
                 return transferRetryThirdTicks.get();
             }
             return transferRetryMaxTicks.get();
+        }
+    }
+
+    public static final class OrderedMatchingUpgrade {
+        public final ModConfigSpec.BooleanValue wrapTargets;
+        public final ModConfigSpec.BooleanValue continueAfterTargetFailure;
+        public final ModConfigSpec.IntValue perItemDetentionQueueLength;
+
+        private OrderedMatchingUpgrade(ModConfigSpec.Builder builder) {
+            builder.comment("Ordered Matching Upgrade behavior.",
+                            "顺序匹配升级行为。")
+                    .push("orderedMatchingUpgrade");
+            wrapTargets = builder
+                    .comment("Whether Per Slot maps source slots cyclically with slotIndex % targetCount. When disabled, source slots beyond the receiving endpoint count are not dispatched.",
+                            "逐槽模式是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
+                    .define("wrapTargets", true);
+            continueAfterTargetFailure = builder
+                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when queue capacity is available.",
+                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在队列有容量时扣押被跳过的分配。")
+                    .define("continueAfterTargetFailure", true);
+            perItemDetentionQueueLength = builder
+                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. Zero disables detention and prevents passing a failed target.",
+                            "逐个模式每个抽取面最多保留的单物品失败分配数。0 表示禁用扣押，并阻止越过失败目标。")
+                    .defineInRange("perItemDetentionQueueLength", 1, 0, 1024);
+            builder.pop();
         }
     }
 

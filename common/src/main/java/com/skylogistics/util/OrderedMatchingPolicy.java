@@ -41,4 +41,12 @@ public final class OrderedMatchingPolicy {
         return Math.min(batchTargetCount(itemCount, targetCount),
                 Math.min(Math.max(0, targetBudget), Math.max(0, targetAttemptLimit)));
     }
+
+    public static int availableAfterDetention(int sourceCount, int reservedCount) {
+        return Math.max(0, sourceCount - Math.max(0, reservedCount));
+    }
+
+    public static boolean canEnqueueDetention(int queueSize, int capacity) {
+        return capacity > 0 && queueSize >= 0 && queueSize < capacity;
+    }
 }

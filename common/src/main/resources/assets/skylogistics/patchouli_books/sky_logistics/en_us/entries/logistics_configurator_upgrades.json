@@ -30,7 +30,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default. Both modes strictly select the lowest eligible source slot. Per Slot maps slotIndex % targetCount across the priority list, with every equal-priority endpoint still occupying its own position. Per Item keeps a persistent cursor per extract face: it moves one item when the source count does not exceed the target count, then batches complete rounds and remainders across multiple targets when it does. Every visited target consumes its own operation budget. Per Slot wrapping and failure continuation use transfers.orderedMatchingUpgrade; Per Item always cycles its cursor and uses the same failure-continuation setting. Slotless external-network enumeration is unaffected."
+      "text": "Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Right-click air to switch between Per Slot and Per Item; Per Slot is the default. Per Slot maps slotIndex % targetCount, and equal-priority endpoints remain separate positions. Per Item keeps a persistent cyclic cursor and batches complete rounds plus remainders, charging each target budget separately. continueAfterTargetFailure defaults to true. Per Item puts each failed one-item assignment into a persistent detention queue; it remains in the source, is excluded from fresh dispatch, and receives priority round-robin retries. perItemDetentionQueueLength defaults to 1, and a full queue prevents passing another failed target. Settings live in the standalone orderedMatchingUpgrade section."
     },
     {
       "type": "patchouli:crafting",

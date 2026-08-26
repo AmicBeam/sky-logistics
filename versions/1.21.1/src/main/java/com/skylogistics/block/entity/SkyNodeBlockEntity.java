@@ -18,6 +18,7 @@ import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.OrderedMatchingMode;
@@ -83,6 +84,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private final EnumMap<Direction, Boolean> faceFluidsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceEnergyEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> orderedMatchingCursors = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, List<OrderedMatchingDetention>> orderedMatchingDetentions =
+            new EnumMap<>(Direction.class);
     private final EnumMap<Direction, NonNullList<ItemStack>> faceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FilterListItem.CompiledFilter[]> compiledFaceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, boolean[]> compiledFaceFilterDirty = new EnumMap<>(Direction.class);
@@ -114,6 +117,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faceFluidsEnabled.put(direction, true);
             faceEnergyEnabled.put(direction, true);
             orderedMatchingCursors.put(direction, 0);
+            orderedMatchingDetentions.put(direction, new ArrayList<>());
             faceFilters.put(direction, NonNullList.withSize(FACE_FILTER_SLOTS, ItemStack.EMPTY));
             FilterListItem.CompiledFilter[] compiled = new FilterListItem.CompiledFilter[FACE_FILTER_SLOTS];
             boolean[] dirty = new boolean[FACE_FILTER_SLOTS];
@@ -596,6 +600,60 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (orderedMatchingCursors.getOrDefault(direction, 0) == normalized) return;
         orderedMatchingCursors.put(direction, normalized);
         setChanged();
+    }
+
+    public OrderedMatchingDetention peekOrderedMatchingDetention(Direction direction) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        return queue == null || queue.isEmpty() ? null : queue.get(0);
+    }
+
+    public int orderedMatchingDetentionCount(Direction direction) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        return queue == null ? 0 : queue.size();
+    }
+
+    public int orderedMatchingReservedItems(Direction direction, int sourceSlot, ItemStack stack) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || queue.isEmpty() || stack.isEmpty()) return 0;
+        ItemStackKey key = ItemStackKey.of(stack);
+        int reserved = 0;
+        for (OrderedMatchingDetention detention : queue) {
+            if (detention.sourceSlot() == sourceSlot && detention.item().equals(key)) reserved++;
+        }
+        return reserved;
+    }
+
+    public boolean enqueueOrderedMatchingDetention(Direction direction, int sourceSlot, int targetIndex,
+            ItemStack stack, int capacity) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || stack.isEmpty()
+                || !com.skylogistics.util.OrderedMatchingPolicy.canEnqueueDetention(queue.size(), capacity)) return false;
+        queue.add(new OrderedMatchingDetention(sourceSlot, Math.max(0, targetIndex), ItemStackKey.of(stack)));
+        setChanged();
+        return true;
+    }
+
+    public void removeOrderedMatchingDetention(Direction direction, OrderedMatchingDetention detention) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue != null && queue.remove(detention)) setChanged();
+    }
+
+    public void rotateOrderedMatchingDetention(Direction direction, OrderedMatchingDetention detention) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || queue.size() < 2 || !queue.remove(detention)) return;
+        queue.add(detention);
+        setChanged();
+    }
+
+    public void trimOrderedMatchingDetentions(Direction direction, int capacity) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null) return;
+        boolean changed = false;
+        while (queue.size() > Math.max(0, capacity)) {
+            queue.remove(queue.size() - 1);
+            changed = true;
+        }
+        if (changed) setChanged();
     }
 
     public boolean hasUpgrade(Item item) {
@@ -1507,6 +1565,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             settings.putBoolean("EnergyEnabled", isEnergyEnabled(direction));
             int orderedMatchingCursor = orderedMatchingCursors.getOrDefault(direction, 0);
             if (orderedMatchingCursor != 0) settings.putInt("OrderedMatchingCursor", orderedMatchingCursor);
+            ListTag detentionTags = new ListTag();
+            for (OrderedMatchingDetention detention : orderedMatchingDetentions.get(direction)) {
+                CompoundTag entry = new CompoundTag();
+                entry.putInt("SourceSlot", detention.sourceSlot());
+                entry.putInt("TargetIndex", detention.targetIndex());
+                entry.put("Item", detention.item().save());
+                detentionTags.add(entry);
+            }
+            if (!detentionTags.isEmpty()) settings.put("OrderedMatchingDetentions", detentionTags);
             ListTag filterTags = new ListTag();
             NonNullList<ItemStack> filters = faceFilters.get(direction);
             if (filters != null) {
@@ -1618,6 +1685,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faceFluidsEnabled.put(direction, fluidsEnabled);
             faceEnergyEnabled.put(direction, energyEnabled);
             orderedMatchingCursors.put(direction, 0);
+            orderedMatchingDetentions.get(direction).clear();
         }
         if (tag.contains("Faces", Tag.TAG_COMPOUND)) {
             CompoundTag faces = tag.getCompound("Faces");
@@ -1639,6 +1707,18 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getInt("Priority"))));
                 if (settings.contains("OrderedMatchingCursor")) {
                     orderedMatchingCursors.put(direction, Math.max(0, settings.getInt("OrderedMatchingCursor")));
+                }
+                if (settings.contains("OrderedMatchingDetentions", Tag.TAG_LIST)) {
+                    ListTag detentionTags = settings.getList("OrderedMatchingDetentions", Tag.TAG_COMPOUND);
+                    List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+                    for (int i = 0; i < detentionTags.size(); i++) {
+                        CompoundTag entry = detentionTags.getCompound(i);
+                        ItemStackKey item = ItemStackKey.load(entry.getCompound("Item"));
+                        if (!item.toStack(1).isEmpty()) {
+                            queue.add(new OrderedMatchingDetention(Math.max(0, entry.getInt("SourceSlot")),
+                                    Math.max(0, entry.getInt("TargetIndex")), item));
+                        }
+                    }
                 }
                 if (settings.contains("SlotLimit")) {
                     boolean byItems = settings.getBoolean("LimitByItems");
@@ -1669,6 +1749,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         itemsEnabled = allFacesEnabled(faceItemsEnabled);
         fluidsEnabled = allFacesEnabled(faceFluidsEnabled);
         energyEnabled = allFacesEnabled(faceEnergyEnabled);
+    }
+
+    public record OrderedMatchingDetention(int sourceSlot, int targetIndex, ItemStackKey item) {
     }
 
     @Override

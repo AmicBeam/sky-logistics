@@ -74,4 +74,18 @@ class OrderedMatchingPolicyTest {
         assertEquals(1, OrderedMatchingPolicy.budgetedBatchTargetCount(64, 4, 8, 1));
         assertEquals(0, OrderedMatchingPolicy.budgetedBatchTargetCount(64, 4, 0, 8));
     }
+
+    @Test
+    void detainedItemsAreExcludedFromFreshDispatch() {
+        assertEquals(9, OrderedMatchingPolicy.availableAfterDetention(10, 1));
+        assertEquals(0, OrderedMatchingPolicy.availableAfterDetention(1, 1));
+        assertEquals(0, OrderedMatchingPolicy.availableAfterDetention(1, 3));
+    }
+
+    @Test
+    void detentionQueueAppliesBackpressureAtCapacity() {
+        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(0, 1));
+        assertFalse(OrderedMatchingPolicy.canEnqueueDetention(1, 1));
+        assertFalse(OrderedMatchingPolicy.canEnqueueDetention(0, 0));
+    }
 }
