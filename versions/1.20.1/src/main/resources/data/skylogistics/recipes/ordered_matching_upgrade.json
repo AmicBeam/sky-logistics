@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "pattern": ["GRG", "RNR", "GRG"],
   "key": {
-    "G": {"tag": "forge:ingots/gold"},
+    "G": {"tag": "forge:nuggets/gold"},
     "R": {"tag": "forge:dusts/redstone"},
     "N": {"item": "skylogistics:celestial_stone"}
   },
