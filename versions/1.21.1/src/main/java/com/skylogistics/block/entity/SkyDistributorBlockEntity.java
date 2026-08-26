@@ -8,10 +8,13 @@ import com.skylogistics.compat.distributor.DistributedChemicalHandler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
+import com.skylogistics.compat.distributor.DistributedSoulHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
 import java.util.ArrayDeque;
@@ -40,6 +43,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedFluids[] fluids = new DistributedFluids[DIRECTIONS.length];
     private final DistributedEnergy[] energy = new DistributedEnergy[DIRECTIONS.length];
     private final DistributedChemicalHandler[] chemicals = new DistributedChemicalHandler[DIRECTIONS.length];
+    private final DistributedSoulHandler[] souls = new DistributedSoulHandler[DIRECTIONS.length];
     private final DistributedManaHandler[] mana = new DistributedManaHandler[DIRECTIONS.length];
     private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
@@ -96,6 +100,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             fluids[index] = new DistributedFluids(direction);
             energy[index] = new DistributedEnergy(direction);
             chemicals[index] = new DistributedChemicalHandler(new ChemicalLookup(direction));
+            souls[index] = new DistributedSoulHandler(new SoulLookup(direction));
             mana[index] = new DistributedManaHandler(new ManaLookup(direction));
             source[index] = new DistributedSourceHandler(new SourceLookup(direction));
         }
@@ -167,6 +172,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             if (target.items) scan.itemTargets.add(target);
             if (target.fluids) scan.fluidTargets.add(target);
             if (target.chemical) scan.chemicalTargets.add(target);
+            if (target.soul) scan.soulTargets.add(target);
             if (target.energy) scan.energyTargets.add(target);
             if (target.mana) scan.manaTargets.add(target);
             if (target.source) scan.sourceTargets.add(target);
@@ -177,7 +183,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         List<Target> itemTargets = List.copyOf(scan.itemTargets);
         return new TargetCache(itemTargets, DistributedSlotMap.create(itemTargets, Target::itemSlots),
                 List.copyOf(scan.fluidTargets),
-                List.copyOf(scan.chemicalTargets), List.copyOf(scan.energyTargets),
+                List.copyOf(scan.chemicalTargets), List.copyOf(scan.soulTargets), List.copyOf(scan.energyTargets),
                 List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets), scan.found);
     }
 
@@ -193,6 +199,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         boolean chemical = SkyLogisticsConfig.enableDistributorFluids()
                 && SkyLogisticsConfig.allowFluidChemicalTransfer()
                 && usableChemical(MekanismCompat.chemicalHandler(level, pos, accessSide));
+        boolean soul = SkyLogisticsConfig.enableDistributorFluids()
+                && IndustrialForegoingSoulsCompat.canTransfer()
+                && usableSoul(IndustrialForegoingSoulsCompat.soulHandler(level, pos, accessSide));
         boolean mana = SkyLogisticsConfig.enableDistributorEnergy()
                 && SkyLogisticsConfig.allowEnergyManaTransfer()
                 && usableMana(BotaniaCompat.manaHandler(level, pos, accessSide));
@@ -200,7 +209,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 && SkyLogisticsConfig.allowEnergySourceTransfer()
                 && usableSource(ArsNouveauCompat.sourceHandler(level, pos, accessSide));
         return new Target(pos.immutable(), accessSide,
-                itemSide != null, itemSlots, fluidSide != null, chemical, energySide != null, mana, source);
+                itemSide != null, itemSlots, fluidSide != null, chemical, soul, energySide != null, mana, source);
     }
 
     private static boolean usableFluids(IFluidHandler handler) { return handler != null && handler.getTanks() > 0; }
@@ -209,6 +218,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
     private static boolean usableChemical(ChemicalHandlerBridge handler) {
         return handler != null && handler.getTanks() > 0;
+    }
+    private static boolean usableSoul(SoulHandlerBridge handler) {
+        return handler != null && handler.getSoulTanks() > 0;
     }
     private static boolean usableMana(ManaHandlerBridge handler) {
         return handler != null && (handler.getMaxMana() > 0 || handler.canExtract() || handler.canReceive());
@@ -236,6 +248,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return target.chemical ? MekanismCompat.chemicalHandler(level, target.pos, target.accessSide) : null;
     }
 
+    private SoulHandlerBridge soul(Target target) {
+        return target.soul ? IndustrialForegoingSoulsCompat.soulHandler(level, target.pos, target.accessSide) : null;
+    }
+
     private ManaHandlerBridge mana(Target target) {
         return target.mana ? BotaniaCompat.manaHandler(level, target.pos, target.accessSide) : null;
     }
@@ -250,6 +266,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     public ChemicalHandlerBridge chemicalHandler(Direction side) {
         return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidChemicalTransfer()
                 ? chemicals[side.ordinal()] : null;
+    }
+    public SoulHandlerBridge soulHandler(Direction side) {
+        return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidSoulTransfer()
+                ? souls[side.ordinal()] : null;
     }
     public ManaHandlerBridge manaHandler(Direction side) {
         return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergyManaTransfer()
@@ -275,6 +295,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidChemicalTransfer()
                 && (!targets(side).chemicals.isEmpty() || targetDiscoveries[side.ordinal()] != null);
     }
+    public boolean hasSoulTargets(Direction side) {
+        return SkyLogisticsConfig.enableDistributorFluids() && SkyLogisticsConfig.allowFluidSoulTransfer()
+                && (!targets(side).souls.isEmpty() || targetDiscoveries[side.ordinal()] != null);
+    }
     public boolean hasManaTargets(Direction side) {
         return SkyLogisticsConfig.enableDistributorEnergy() && SkyLogisticsConfig.allowEnergyManaTransfer()
                 && (!targets(side).mana.isEmpty() || targetDiscoveries[side.ordinal()] != null);
@@ -294,6 +318,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         cache.items.forEach(target -> masks.merge(target.pos, 1, (left, right) -> left | right));
         cache.fluids.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
         cache.chemicals.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
+        cache.souls.forEach(target -> masks.merge(target.pos, 2, (left, right) -> left | right));
         cache.energy.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
         cache.mana.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
         cache.source.forEach(target -> masks.merge(target.pos, 4, (left, right) -> left | right));
@@ -431,16 +456,17 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private static boolean sameFluidType(FluidStack first, FluidStack second) { return FluidStack.isSameFluidSameComponents(first, second); }
 
     private record Target(BlockPos pos, Direction accessSide,
-            boolean items, int itemSlots, boolean fluids, boolean chemical, boolean energy, boolean mana, boolean source) {
-        boolean usable() { return items || fluids || chemical || energy || mana || source; }
+            boolean items, int itemSlots, boolean fluids, boolean chemical, boolean soul,
+            boolean energy, boolean mana, boolean source) {
+        boolean usable() { return items || fluids || chemical || soul || energy || mana || source; }
     }
 
     private record TargetCache(List<Target> items, DistributedSlotMap<Target> itemSlots,
-            List<Target> fluids, List<Target> chemicals,
+            List<Target> fluids, List<Target> chemicals, List<Target> souls,
             List<Target> energy, List<Target> mana, List<Target> source, int deviceCount) {
         private static final TargetCache EMPTY = new TargetCache(
                 List.of(), DistributedSlotMap.create(List.of(), target -> 0),
-                List.of(), List.of(), List.of(), List.of(), List.of(), 0);
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), 0);
     }
 
     private static final class DiscoveryState {
@@ -448,6 +474,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private final List<Target> itemTargets;
         private final List<Target> fluidTargets;
         private final List<Target> chemicalTargets;
+        private final List<Target> soulTargets;
         private final List<Target> energyTargets;
         private final List<Target> manaTargets;
         private final List<Target> sourceTargets;
@@ -461,6 +488,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             itemTargets = new ArrayList<>(maxTargets);
             fluidTargets = new ArrayList<>(maxTargets);
             chemicalTargets = new ArrayList<>(maxTargets);
+            soulTargets = new ArrayList<>(maxTargets);
             energyTargets = new ArrayList<>(maxTargets);
             manaTargets = new ArrayList<>(maxTargets);
             sourceTargets = new ArrayList<>(maxTargets);
@@ -482,6 +510,17 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public ChemicalHandlerBridge handler(int index) {
             List<Target> all = targets(side).chemicals;
             return index < 0 || index >= all.size() ? null : chemical(all.get(index));
+        }
+        @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+    }
+
+    private final class SoulLookup implements DistributedHandlerLookup<SoulHandlerBridge> {
+        private final Direction side;
+        private SoulLookup(Direction side) { this.side = side; }
+        @Override public int size() { return targets(side).souls.size(); }
+        @Override public SoulHandlerBridge handler(int index) {
+            List<Target> all = targets(side).souls;
+            return index < 0 || index >= all.size() ? null : soul(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
     }

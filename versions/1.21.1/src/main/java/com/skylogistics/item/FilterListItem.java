@@ -753,6 +753,30 @@ public class FilterListItem extends Item {
                     || modIds.contains(namespace(candidate.chemicalKey())));
         }
 
+        public boolean hasSoulRules() {
+            if (mode == Mode.MOD || modIds.contains("industrialforegoingsouls")) return true;
+            for (Entry entry : entries) {
+                if ("industrialforegoingsouls".equals(entry.stack().getItem().builtInRegistryHolder().key()
+                        .location().getNamespace())) return true;
+            }
+            return false;
+        }
+
+        public boolean matchesSoul() {
+            if (mode == Mode.ALLOW_ALL) return true;
+            boolean matched = modIds.contains("industrialforegoingsouls");
+            if (!matched) {
+                for (Entry entry : entries) {
+                    if ("industrialforegoingsouls".equals(entry.stack().getItem().builtInRegistryHolder().key()
+                            .location().getNamespace())) {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+            return whitelist == matched;
+        }
+
         public boolean hasEnergyRules() { return !modIds.isEmpty(); }
         public boolean matchesEnergy(String modId) { return modIds.isEmpty() || matchesMod(modId); }
         private boolean matchesMod(String modId) { return whitelist == modIds.contains(modId); }

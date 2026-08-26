@@ -4,6 +4,7 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.astages.AStagesTransferLimiter;
 import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -27,7 +28,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 /** Minimal scheduler-facing state shared by configurable nodes and simple pipes. */
 public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
-    public enum TargetResource { ITEM, FLUID, CHEMICAL, ENERGY, MANA, SOURCE }
+    public enum TargetResource { ITEM, FLUID, CHEMICAL, SOUL, ENERGY, MANA, SOURCE }
     private int itemCursor;
     private int fluidCursor;
     private final int[] targetCursors = new int[TargetResource.values().length];
@@ -97,6 +98,10 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         SkyDistributorBlockEntity distributor = distributor(direction);
         return distributor == null ? null : distributor.chemicalHandler(getAccessSide(direction));
     }
+    public SoulHandlerBridge getEndpointSoulHandler(Direction direction, long gameTime) {
+        SkyDistributorBlockEntity distributor = distributor(direction);
+        return distributor == null ? null : distributor.soulHandler(getAccessSide(direction));
+    }
     public IEnergyStorage getEndpointEnergyHandler(Direction direction, long gameTime) {
         SkyDistributorBlockEntity distributor = distributor(direction);
         return distributor == null ? null : distributor.energyHandler(getAccessSide(direction));
@@ -112,6 +117,7 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean allowsItem(Direction direction, ItemStack stack) { return true; }
     public boolean allowsFluid(Direction direction, FluidStack stack) { return true; }
     public boolean allowsChemical(Direction direction, ChemicalStackView stack) { return true; }
+    public boolean allowsSoul(Direction direction) { return true; }
     public boolean allowsEnergy(Direction direction) { return true; }
     public boolean allowsMana(Direction direction) { return true; }
     public boolean allowsSource(Direction direction) { return true; }
@@ -130,9 +136,11 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public long limitFluidTransfer(long amount) { return limitAStages(TransferResource.FLUIDS, amount); }
     public long limitEnergyTransfer(long amount) { return limitAStages(TransferResource.ENERGY, amount); }
     public long limitChemicalTransfer(long amount) { return limitAStages(TransferResource.CHEMICALS, amount); }
+    public long limitSoulTransfer(long amount) { return limitAStages(TransferResource.FLUIDS, amount); }
     public long limitManaTransfer(long amount) { return limitAStages(TransferResource.MANA, amount); }
     public long limitSourceTransfer(long amount) { return limitAStages(TransferResource.SOURCE, amount); }
     public boolean supportsChemicalEndpoint(Direction direction) { return false; }
+    public boolean supportsSoulEndpoint(Direction direction) { return false; }
     public boolean supportsManaEndpoint(Direction direction) { return false; }
     public boolean supportsSourceEndpoint(Direction direction) { return false; }
 

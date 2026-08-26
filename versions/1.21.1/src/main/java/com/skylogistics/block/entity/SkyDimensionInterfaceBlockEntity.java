@@ -2,6 +2,7 @@ package com.skylogistics.block.entity;
 
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -23,6 +24,7 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     private final ChemicalHandlerBridge chemicalHandler = BeyondDimensionsCompat.createChemicalHandler(this);
     private final IEnergyStorage energyHandler = BeyondDimensionsCompat.createEnergyHandler(this);
     private final SourceHandlerBridge sourceHandler = BeyondDimensionsCompat.createSourceHandler(this);
+    private final SoulHandlerBridge soulHandler = BeyondDimensionsCompat.createSoulHandler(this);
     private int dimensionNetworkId = -1;
 
     public SkyDimensionInterfaceBlockEntity(BlockPos pos, BlockState state) {
@@ -62,6 +64,11 @@ public class SkyDimensionInterfaceBlockEntity extends ExternalNetworkInterfaceBl
     @Override
     public SourceHandlerBridge getEndpointSourceHandler(Direction direction, long gameTime) {
         return direction == ENDPOINT_DIRECTION ? sourceHandler : null;
+    }
+
+    @Override
+    public SoulHandlerBridge getEndpointSoulHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION ? soulHandler : null;
     }
 
     @Override

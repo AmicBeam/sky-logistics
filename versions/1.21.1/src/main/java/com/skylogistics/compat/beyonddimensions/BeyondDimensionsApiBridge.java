@@ -3,6 +3,7 @@ package com.skylogistics.compat.beyonddimensions;
 import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -41,6 +42,8 @@ final class BeyondDimensionsApiBridge {
             "com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceUnifiedStorageHandler";
     private static final String SOURCE_KEY_CLASS =
             "com.wintercogs.beyonddimensions.integration.module.ars.storage.SourceStackKey";
+    private static final String WARDEN_SOUL_KEY_CLASS =
+            "com.wintercogs.beyonddimensions.integration.module.ifs.storage.WardenSoulStackKey";
 
     private BeyondDimensionsApiBridge() {
     }
@@ -237,6 +240,30 @@ final class BeyondDimensionsApiBridge {
         }
     }
 
+    static long soulStored(BlockEntity host) {
+        try {
+            return storedAmount(host, wardenSoulStackKey());
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    static long insertSoul(BlockEntity host, long amount, boolean simulate) {
+        try {
+            return insertLong(host, wardenSoulStackKey(), amount, simulate);
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    static long extractSoul(BlockEntity host, long amount, boolean simulate) {
+        try {
+            return extractLong(host, wardenSoulStackKey(), amount, simulate);
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
     static void bindOnPlaced(Level level, BlockPos pos, Player player) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!(blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost host)
@@ -340,6 +367,13 @@ final class BeyondDimensionsApiBridge {
 
     private static IStackKey<?> sourceStackKey() throws ReflectiveOperationException {
         return (IStackKey<?>) Class.forName(SOURCE_KEY_CLASS).getField("INSTANCE").get(null);
+    }
+
+    private static IStackKey<?> wardenSoulStackKey() throws ReflectiveOperationException {
+        if (!IndustrialForegoingSoulsCompat.isLoaded()) {
+            throw new ClassNotFoundException(IndustrialForegoingSoulsCompat.MOD_ID);
+        }
+        return (IStackKey<?>) Class.forName(WARDEN_SOUL_KEY_CLASS).getField("INSTANCE").get(null);
     }
 
     private static long storedAmount(BlockEntity host, IStackKey<?> key) {

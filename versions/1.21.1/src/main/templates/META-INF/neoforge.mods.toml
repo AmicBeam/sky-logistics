@@ -95,6 +95,20 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="industrialforegoingsouls"
+type="optional"
+versionRange="[1.10.3,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="soulplied_energistics"
+type="optional"
+versionRange="[1.0.3,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="refinedstorage"
 type="optional"
 versionRange="[2,)"

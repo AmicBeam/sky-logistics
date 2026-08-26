@@ -6,6 +6,7 @@ import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -224,6 +225,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasChemicalHandler(getTargetPos(direction), getAccessSide(direction));
     }
 
+    public boolean supportsSoulEndpoint(Direction direction) {
+        return hasSoulHandler(getTargetPos(direction), getAccessSide(direction));
+    }
+
     public boolean supportsManaEndpoint(Direction direction) {
         return hasManaHandler(getTargetPos(direction), getAccessSide(direction));
     }
@@ -304,6 +309,21 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 hasWhitelist = true;
                 whitelistMatched |= compiled.matchesChemical(stack);
             } else if (!compiled.matchesChemical(stack)) return false;
+        }
+        return !hasWhitelist || whitelistMatched;
+    }
+
+    @Override
+    public boolean allowsSoul(Direction direction) {
+        boolean hasWhitelist = false;
+        boolean whitelistMatched = false;
+        for (int slot = 0; slot < FACE_FILTER_SLOTS; slot++) {
+            FilterListItem.CompiledFilter compiled = compiledFaceFilter(direction, slot);
+            if (!compiled.hasSoulRules()) continue;
+            if (compiled.whitelist()) {
+                hasWhitelist = true;
+                whitelistMatched |= compiled.matchesSoul();
+            } else if (!compiled.matchesSoul()) return false;
         }
         return !hasWhitelist || whitelistMatched;
     }
@@ -944,7 +964,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         Direction accessSide = getAccessSide(direction);
         boolean supportsItems = hasItemHandler(targetPos, accessSide);
         boolean supportsFluids = hasFluidHandler(targetPos, accessSide)
-                || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
+                || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide))
+                || (SkyLogisticsConfig.allowFluidSoulTransfer() && hasSoulHandler(targetPos, accessSide));
         boolean supportsEnergy = hasEnergyHandler(targetPos, accessSide)
                 || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide))
                 || (SkyLogisticsConfig.allowEnergySourceTransfer() && hasSourceHandler(targetPos, accessSide));
@@ -984,6 +1005,14 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         }
         ChemicalHandlerBridge handler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
         return handler != null && handler.getTanks() > 0;
+    }
+
+    private boolean hasSoulHandler(BlockPos targetPos, Direction accessSide) {
+        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
+            return distributor.hasSoulTargets(accessSide);
+        }
+        var handler = IndustrialForegoingSoulsCompat.soulHandler(level, targetPos, accessSide);
+        return handler != null && handler.getSoulTanks() > 0;
     }
 
     private boolean hasEnergyHandler(BlockPos targetPos, Direction accessSide) {

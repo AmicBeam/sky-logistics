@@ -233,6 +233,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowFluidChemicalTransfer.get();
     }
 
+    public static boolean allowFluidSoulTransfer() {
+        return SERVER.allowFluidSoulTransfer.get();
+    }
+
     public static boolean allowEnergyManaTransfer() {
         return SERVER.allowEnergyManaTransfer.get();
     }
@@ -255,6 +259,10 @@ public final class SkyLogisticsConfig {
 
     public static boolean allowBeyondDimensionsFluidTransfer() {
         return SERVER.allowBeyondDimensionsFluidTransfer.get();
+    }
+
+    public static boolean allowBeyondDimensionsSoulTransfer() {
+        return SERVER.allowBeyondDimensionsSoulTransfer.get();
     }
 
     public static boolean allowBeyondDimensionsEnergyTransfer() {
@@ -367,12 +375,14 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowFluidSoulTransfer;
         public final ModConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsItemTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsFluidTransfer;
+        public final ModConfigSpec.BooleanValue allowBeyondDimensionsSoulTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsMekanismChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsSourceTransfer;
@@ -565,6 +575,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.",
                             "启用流体的物流面是否也可传输 Mekanism 化学品。")
                     .define("allowFluidChemicalTransfer", true);
+            allowFluidSoulTransfer = builder
+                    .comment("Whether fluid-enabled logistics faces and simple fluid pipes may transfer Industrial Foregoing: Souls warden souls. Requires Industrial Foregoing: Souls; AE2 storage access additionally requires Soulplied Energistics.",
+                            "启用流体的物流面和简易流体管道是否可传输 Industrial Foregoing: Souls 的坚守者灵魂。需要 Industrial Foregoing: Souls；访问 AE2 存储还需要 Soulplied Energistics。")
+                    .define("allowFluidSoulTransfer", true);
             allowEnergyManaTransfer = builder
                     .comment("Whether energy-enabled logistics faces may also transfer Botania mana.",
                             "启用能量的物流面是否也可传输 Botania 魔力。")
@@ -589,6 +603,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky Dimension Interfaces may transfer fluids stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的流体。")
                     .define("allowBeyondDimensionsFluidTransfer", true);
+            allowBeyondDimensionsSoulTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer Industrial Foregoing: Souls Warden Souls stored in Beyond Dimensions networks.",
+                            "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的 Industrial Foregoing: Souls 坚守者灵魂。")
+                    .define("allowBeyondDimensionsSoulTransfer", true);
             allowBeyondDimensionsEnergyTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer FE stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的 FE。")

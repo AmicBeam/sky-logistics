@@ -95,7 +95,11 @@ tasks.register('checkVersionConsistency') {
         def baseline = supportedVersions.first()
         def baselineRegistrations = registeredIds(baseline)
         def baselineRecipes = recipeIds(baseline)
-        def versionSpecificConfigKeys = ['allowBeyondDimensionsManaTransfer'] as Set
+        def versionSpecificConfigKeys = [
+                'allowBeyondDimensionsManaTransfer',
+                'allowBeyondDimensionsSoulTransfer',
+                'allowFluidSoulTransfer'
+        ] as Set
         def baselineConfig = configKeys(baseline) - versionSpecificConfigKeys
         def baselineTranslations = translationKeys(baseline, 'en_us')
         def baselineModVersion = modVersion(baseline)

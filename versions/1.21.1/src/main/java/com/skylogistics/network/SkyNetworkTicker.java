@@ -21,6 +21,8 @@ import com.skylogistics.compat.ForceExtractionCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
 import com.skylogistics.compat.sophisticated.SophisticatedStorageCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -94,6 +96,7 @@ public final class SkyNetworkTicker {
             List<CachedEndpoint> globalItemOutputs = null;
             List<CachedEndpoint> globalFluidOutputs = null;
             List<CachedEndpoint> globalChemicalOutputs = null;
+            List<CachedEndpoint> globalSoulOutputs = null;
             List<CachedEndpoint> globalEnergyOutputs = null;
             List<CachedEndpoint> globalManaOutputs = null;
             List<CachedEndpoint> globalSourceOutputs = null;
@@ -103,6 +106,7 @@ public final class SkyNetworkTicker {
             boolean localItemRoute = line.hasLocalItemRoute();
             boolean localFluidRoute = line.hasLocalFluidRoute();
             boolean localChemicalRoute = line.hasLocalChemicalRoute();
+            boolean localSoulRoute = line.hasLocalSoulRoute();
             boolean localEnergyRoute = line.hasLocalEnergyRoute();
             boolean localManaRoute = line.hasLocalManaRoute();
             boolean localSourceRoute = line.hasLocalSourceRoute();
@@ -138,6 +142,7 @@ public final class SkyNetworkTicker {
                 boolean itemRoute = localItemRoute || dimensionUpgrade;
                 boolean fluidRoute = localFluidRoute || dimensionUpgrade;
                 boolean chemicalRoute = localChemicalRoute || dimensionUpgrade;
+                boolean soulRoute = localSoulRoute || dimensionUpgrade;
                 boolean energyRoute = localEnergyRoute || dimensionUpgrade;
                 boolean manaRoute = localManaRoute || dimensionUpgrade;
                 boolean sourceRoute = localSourceRoute || dimensionUpgrade;
@@ -221,6 +226,29 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
+                if (soulRoute && node.isFluidsEnabled(input.direction())
+                        && IndustrialForegoingSoulsCompat.canTransfer() && input.canTrySouls(gameTime)) {
+                    if (dimensionUpgrade && globalSoulOutputs == null) {
+                        globalSoulOutputs = SkyNetworkRegistry.globalSoulOutputs(line.lineId());
+                    }
+                    List<CachedEndpoint> targets = targetsFor(dimensionUpgrade, line.prioritySoulOutputs(),
+                            globalSoulOutputs);
+                    if (targets.isEmpty()) {
+                        input.recordSoulFailure(gameTime);
+                    } else {
+                        operations += transferSouls(input, targets,
+                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                    }
+                }
+                if (operations >= serverOpsPerTick) {
+                    line.advanceInputCursor(lineEndpointVisits);
+                    return;
+                }
+                remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
+                if (remainingLineBudget <= 0) {
+                    lineBudgetExhausted = true;
+                    break;
+                }
                 if (energyRoute && node.isEnergyEnabled(input.direction()) && input.canTryEnergy(gameTime)) {
                     if (dimensionUpgrade && globalEnergyOutputs == null) {
                         globalEnergyOutputs = SkyNetworkRegistry.globalEnergyOutputs(line.lineId());
@@ -273,7 +301,7 @@ public final class SkyNetworkTicker {
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake, itemRoute, fluidRoute,
-                        chemicalRoute, energyRoute, manaRoute, sourceRoute);
+                        chemicalRoute, soulRoute, energyRoute, manaRoute, sourceRoute);
             }
             line.advanceInputCursor(endpointVisitBudgetExhausted ? lineEndpointVisits : 1);
             if (operations > lineOperationsBefore) {
@@ -303,8 +331,8 @@ public final class SkyNetworkTicker {
     }
 
     private static long nextInputWake(CachedEndpoint input, NetworkEndpointBlockEntity node, long gameTime,
-            long current, boolean itemRoute, boolean fluidRoute, boolean chemicalRoute, boolean energyRoute,
-            boolean manaRoute, boolean sourceRoute) {
+            long current, boolean itemRoute, boolean fluidRoute, boolean chemicalRoute, boolean soulRoute,
+            boolean energyRoute, boolean manaRoute, boolean sourceRoute) {
         long nextWake = current;
         if (itemRoute && node.isItemsEnabled(input.direction())) {
             nextWake = Math.min(nextWake, input.nextItemWake(gameTime));
@@ -313,6 +341,9 @@ public final class SkyNetworkTicker {
             nextWake = Math.min(nextWake, input.nextFluidWake(gameTime));
             if (chemicalRoute && SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()) {
                 nextWake = Math.min(nextWake, input.nextChemicalWake(gameTime));
+            }
+            if (soulRoute && IndustrialForegoingSoulsCompat.canTransfer()) {
+                nextWake = Math.min(nextWake, input.nextSoulWake(gameTime));
             }
         }
         if (energyRoute && node.isEnergyEnabled(input.direction())) {
@@ -3078,6 +3109,92 @@ public final class SkyNetworkTicker {
             sourceEndpoint.recordSourceSuccess();
         }
         return operations;
+    }
+
+    private static int transferSouls(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        if (!IndustrialForegoingSoulsCompat.canTransfer() || budget <= 0
+                || !sourceEndpoint.node().allowsSoul(sourceEndpoint.direction())) return 0;
+        SoulHandlerBridge source = sourceEndpoint.soulHandler(gameTime);
+        if (source == null) return 0;
+        int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                sourceEndpoint.node().limitSoulTransfer(Integer.MAX_VALUE));
+        int simulated = source.drain(transferLimit, true);
+        int operations = 1;
+        if (simulated <= 0) {
+            sourceEndpoint.recordSoulFailure(gameTime);
+            return operations;
+        }
+        MoveResult result = tryMoveSouls(sourceEndpoint, source, simulated, targets, budget - operations, gameTime);
+        operations += result.operations();
+        if (result.moved()) sourceEndpoint.recordSoulSuccess();
+        return operations;
+    }
+
+    private static MoveResult tryMoveSouls(CachedEndpoint sourceEndpoint, SoulHandlerBridge source, int simulated,
+            List<CachedEndpoint> targets, int budget, long gameTime) {
+        if (budget <= 0) return new MoveResult(false, 0);
+        int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        int targetAttempts = 0;
+        boolean redstoneBlocked = false;
+        boolean budgetExhausted = false;
+        int targetCount = targets.size();
+        int targetIndex = sourceEndpoint.resourceTargetScanStart(TargetResource.SOUL, targetCount);
+        for (int scannedTargets = 0; scannedTargets < targetCount; scannedTargets++) {
+            CachedEndpoint targetEndpoint = targets.get(targetIndex);
+            if (operations >= budget) { budgetExhausted = true; break; }
+            operations++;
+            if (!targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())) {
+                targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOUL, targetIndex, targetCount);
+                redstoneBlocked = true;
+                continue;
+            }
+            if (!targetEndpoint.canTrySouls(gameTime)
+                    || !targetEndpoint.node().allowsSoul(targetEndpoint.direction())
+                    || !targetEndpoint.node().isFluidsEnabled(targetEndpoint.direction())) {
+                targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOUL, targetIndex, targetCount);
+                continue;
+            }
+            if (targetAttempts >= targetAttemptBudget) {
+                sourceEndpoint.resumeResourceTargetScan(TargetResource.SOUL, targetIndex, targetCount);
+                budgetExhausted = true;
+                break;
+            }
+            targetAttempts++;
+            int visitedTargetIndex = targetIndex;
+            targetIndex = advanceResourceTargetScan(sourceEndpoint, TargetResource.SOUL, targetIndex, targetCount);
+            SoulHandlerBridge target = targetEndpoint.soulHandler(gameTime);
+            if (target == null) continue;
+            int accepted = target.fill(simulated, true);
+            if (accepted <= 0) {
+                targetEndpoint.recordSoulFailure(gameTime);
+                continue;
+            }
+            int extracted = source.drain(accepted, false);
+            if (extracted <= 0) {
+                sourceEndpoint.recordSoulFailure(gameTime);
+                return new MoveResult(false, operations);
+            }
+            int inserted = target.fill(extracted, false);
+            if (inserted < extracted) {
+                int rollback = extracted - inserted;
+                int rolledBack = source.fill(rollback, false);
+                if (rolledBack < rollback) {
+                    SkyLogistics.LOGGER.warn(
+                            "Soul rollback failed after simulated target receive changed during transfer. Source node {} face {}, target node {} face {}, extracted {} souls, inserted {} souls, rollback remainder {} souls",
+                            sourceEndpoint.node().getBlockPos(), sourceEndpoint.direction(),
+                            targetEndpoint.node().getBlockPos(), targetEndpoint.direction(), extracted, inserted,
+                            rollback - rolledBack);
+                }
+            }
+            targetEndpoint.recordSoulSuccess();
+            finishResourceTargetScan(sourceEndpoint, TargetResource.SOUL, targets, visitedTargetIndex);
+            return new MoveResult(true, operations);
+        }
+        if (!budgetExhausted) sourceEndpoint.resetResourceTargetScan(TargetResource.SOUL);
+        if (!redstoneBlocked && !budgetExhausted) sourceEndpoint.recordSoulFailure(gameTime);
+        return new MoveResult(false, operations);
     }
 
     private static MoveResult tryMoveSource(CachedEndpoint sourceEndpoint, SourceHandlerBridge source, int simulated,

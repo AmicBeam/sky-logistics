@@ -36,7 +36,7 @@
       "type": "patchouli:text",
       "flag": "mod:beyonddimensions",
       "title": "Sky Dimension Interface",
-      "text": "The $(item)Sky Dimension Interface$() accesses items, fluids, and FE in a Beyond Dimensions network. With Mekanism or Ars Nouveau installed, it can also access chemicals or Source. It connects third-party storage and is not the same as a Dimension Upgrade for ordinary nodes."
+      "text": "The $(item)Sky Dimension Interface$() accesses items, fluids, and FE in a Beyond Dimensions network. With Mekanism or Ars Nouveau, it also accesses chemicals or Source. On Minecraft 1.21.1, Industrial Foregoing: Souls adds Warden Souls, using fluid faces, pipes, limits, and filters."
     },
     {
       "type": "patchouli:crafting",

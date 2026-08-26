@@ -3,6 +3,7 @@ package com.skylogistics.block.entity;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
@@ -65,7 +66,8 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) {
             return switch (type) {
                 case ITEM -> distributor.hasItemTargets(side);
-                case FLUID -> distributor.hasFluidTargets(side) || distributor.hasChemicalTargets(side);
+                case FLUID -> distributor.hasFluidTargets(side) || distributor.hasChemicalTargets(side)
+                        || distributor.hasSoulTargets(side);
                 case ENERGY -> distributor.hasEnergyTargets(side) || distributor.hasManaTargets(side)
                         || distributor.hasSourceTargets(side);
             };
@@ -80,7 +82,9 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
                 yield handler != null && handler.getTanks() > 0
                         || SkyLogisticsConfig.allowFluidChemicalTransfer()
                         && MekanismCompat.isLoaded()
-                        && MekanismCompat.chemicalHandler(level, pos, side) != null;
+                        && MekanismCompat.chemicalHandler(level, pos, side) != null
+                        || IndustrialForegoingSoulsCompat.canTransfer()
+                        && IndustrialForegoingSoulsCompat.soulHandler(level, pos, side) != null;
             }
             case ENERGY -> {
                 IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, side);
@@ -252,6 +256,12 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     @Override
+    public boolean allowsSoul(Direction direction) {
+        FilterListItem.CompiledFilter filter = endpointFilter(direction);
+        return !filter.hasSoulRules() || filter.matchesSoul();
+    }
+
+    @Override
     public boolean allowsEnergy(Direction direction) {
         FilterListItem.CompiledFilter filter = endpointFilter(direction);
         return !filter.hasEnergyRules() || filter.matchesEnergy(TagFilterListItem.FORGE_ENERGY_MOD_ID);
@@ -331,6 +341,11 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     @Override
+    public long limitSoulTransfer(long amount) {
+        return Math.min(super.limitSoulTransfer(amount), SkyLogisticsConfig.simpleFluidPipeTransferRate());
+    }
+
+    @Override
     public long limitManaTransfer(long amount) {
         return Math.min(super.limitManaTransfer(amount), SkyLogisticsConfig.simpleManaPipeTransferRate());
     }
@@ -348,6 +363,17 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         }
         return enabled() && pipeType() == SimplePipeType.FLUID && level != null
                 && MekanismCompat.chemicalHandler(level, getTargetPos(direction), getAccessSide(direction)) != null;
+    }
+
+    @Override
+    public boolean supportsSoulEndpoint(Direction direction) {
+        if (level != null && level.getBlockEntity(getTargetPos(direction)) instanceof SkyDistributorBlockEntity distributor) {
+            return enabled() && pipeType() == SimplePipeType.FLUID
+                    && distributor.hasSoulTargets(getAccessSide(direction));
+        }
+        return enabled() && pipeType() == SimplePipeType.FLUID && level != null
+                && IndustrialForegoingSoulsCompat.soulHandler(
+                        level, getTargetPos(direction), getAccessSide(direction)) != null;
     }
 
     @Override
