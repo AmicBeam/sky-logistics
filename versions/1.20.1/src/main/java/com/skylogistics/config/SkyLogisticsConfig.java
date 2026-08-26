@@ -669,7 +669,7 @@ public final class SkyLogisticsConfig {
             distributorMaxTargets = builder
                     .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.",
                             "单个天穹分配器最多发现的相邻容器目标数；数值越高，扫描和代理开销越大。")
-                    .defineInRange("maxTargets", 16, 1, 64);
+                    .defineInRange("maxTargets", 32, 1, 64);
             distributorScanOpsPerTick = builder
                     .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.",
                             "单个天穹分配器每个服务器 tick 最多检查的 BFS 位置数；该预算独立于传输操作。")
