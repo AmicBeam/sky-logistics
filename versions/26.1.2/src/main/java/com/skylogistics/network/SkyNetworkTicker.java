@@ -402,6 +402,11 @@ public final class SkyNetworkTicker {
         boolean movedFromHotPath = false;
         int successfulSlot = -1;
         int slotChecks = Math.min(slots, sourceNode.getOperationRate());
+        boolean independentDistributorProbes = usesIndependentDistributorProbes(source);
+        if (independentDistributorProbes && source instanceof BudgetedDistributorHandler distributor) {
+            slotChecks = Math.min(slots,
+                    Math.max(slotChecks, distributor.fairExtractionProbesDue(gameTime)));
+        }
         boolean usedEmptyPreferredSlotFallback = false;
         boolean forceSequentialItemFallback = false;
         int firstTriedSlot = -1;
@@ -428,7 +433,7 @@ public final class SkyNetworkTicker {
                     : forceSequentialItemFallback
                     ? nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                             firstTriedSlot, secondTriedSlot, false, Math.max(1, budget - operations))
-                    : nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    : nextItemSlot(sourceEndpoint, sourceNode, source, slots, gameTime,
                             firstTriedSlot, secondTriedSlot, Math.max(1, budget - operations));
             forceSequentialItemFallback = false;
             operations += search.skippedChecks();
@@ -450,7 +455,9 @@ public final class SkyNetworkTicker {
             operations++;
             if (simulated.isEmpty()) {
                 if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
-                sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                if (!independentDistributorProbes) {
+                    sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                }
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
                     forceSequentialItemFallback = true;
@@ -460,7 +467,9 @@ public final class SkyNetworkTicker {
                 continue;
             }
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
-                sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                if (!independentDistributorProbes) {
+                    sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                }
                 continue;
             }
             if (orderedPerItem) {
@@ -493,12 +502,14 @@ public final class SkyNetworkTicker {
                     : new MoveResult(orderedResult.moved(), orderedResult.operations());
             operations += result.operations();
             if (result.moved()) {
-                if (sourceEndpoint.canRecordMaintainedItemProbe()) {
+                if (!independentDistributorProbes && sourceEndpoint.canRecordMaintainedItemProbe()) {
                     ItemStack observed = source.getStackInSlot(slot);
                     sourceEndpoint.recordMaintainedItemProbe(slot, simulated,
                             StackData.sameItemAndComponents(observed, simulated) ? observed.getCount() : 0, gameTime);
                 }
-                sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
+                if (!independentDistributorProbes) {
+                    sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
+                }
                 sourceEndpoint.recordItemSuccess();
                 movedFromHotPath = true;
                 successfulSlot = slot;
@@ -514,7 +525,8 @@ public final class SkyNetworkTicker {
             if (orderedMatching && OrderedMatchingPolicy.stopAfterAttempt(result.moved(),
                     SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure())) return operations;
         }
-        if (movedFromHotPath && !usedEmptyPreferredSlotFallback && operations < budget
+        if (!independentDistributorProbes && movedFromHotPath
+                && !usedEmptyPreferredSlotFallback && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
             operations += discoverAdditionalItemSlot(sourceEndpoint, sourceNode, source, slots, gameTime,
                     successfulSlot, budget - operations);
@@ -549,6 +561,11 @@ public final class SkyNetworkTicker {
 
     private static boolean distributorBudgetExhausted(Object handler) {
         return handler instanceof BudgetedDistributorHandler budgeted && budgeted.distributorBudgetExhausted();
+    }
+
+    private static boolean usesIndependentDistributorProbes(Object handler) {
+        return handler instanceof BudgetedDistributorHandler budgeted
+                && budgeted.usesIndependentExtractionProbes();
     }
 
     private static int transferExternalNetworkItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
@@ -637,7 +654,7 @@ public final class SkyNetworkTicker {
             ItemSourceSearchResult search = forceSequentialItemFallback
                     ? nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                             firstTriedSlot, secondTriedSlot, false, budget - operations)
-                    : nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
+                    : nextItemSlot(sourceEndpoint, sourceNode, null, slots, gameTime,
                             firstTriedSlot, secondTriedSlot, budget - operations);
             forceSequentialItemFallback = false;
             operations += search.skippedChecks();
@@ -913,8 +930,16 @@ public final class SkyNetworkTicker {
     }
 
     private static ItemSourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode,
+            NetworkEndpointBlockEntity sourceNode, ItemHandler source,
             int slots, long gameTime, int firstTriedSlot, int secondTriedSlot, int skipBudget) {
+        if (usesIndependentDistributorProbes(source)
+                && source instanceof BudgetedDistributorHandler distributor) {
+            int fairSlot = distributor.nextFairExtractionSlot(gameTime);
+            if (fairSlot >= 0 && fairSlot < slots && !wasSlotTried(firstTriedSlot, secondTriedSlot, fairSlot)) {
+                return new ItemSourceSearchResult(fairSlot, 0, false, false);
+            }
+            return new ItemSourceSearchResult(-1, 0, false, false);
+        }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return new ItemSourceSearchResult(preferredSlot, 0, false, true);

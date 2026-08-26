@@ -61,6 +61,9 @@
 
 ## 相关服务端配置
 
+- `distributor.enableAdaptiveItemTargetProbes = true`：启用分配器独立的按机器物品抽取热度调度；关闭后恢复线路端点原有槽位扫描。
+- `distributor.itemTargetHotProbeTicks = 1`、`itemTargetWarmProbeTicks = 5`、`itemTargetCoolProbeTicks = 20`、`itemTargetFallbackProbeTicks = 40`：分配器机器四级探测间隔；运行时会自动按非递减顺序归一化。
+- `distributor.itemTargetMissesPerDemotion = 3`：目标机器连续空探测多少次后降低一级；任意成功探测都会立即升至热等级，各等级不限制机器数量。
 - `targetItemInsertionCursorCount = 9`：目标物品插入游标上限，范围 `0..64`；`0` 表示关闭。
 - `rejectedAcceptCacheSize = 9`：每个端点保存的物品、流体和化学品拒绝记录数，范围 `1..64`。
 - `endpointTargetAttempts = 1`：每个源端点单轮最多尝试的目标数；默认 `1` 以控制高扇出网络成本。

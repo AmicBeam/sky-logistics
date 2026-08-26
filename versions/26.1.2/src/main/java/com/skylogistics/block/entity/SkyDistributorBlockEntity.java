@@ -11,6 +11,7 @@ import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
+import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -522,12 +523,30 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private final class DistributedItems implements ItemHandler, BudgetedDistributorHandler {
         private final Direction side;
+        private final DistributedTargetProbeScheduler<Target> extractionProbes =
+                new DistributedTargetProbeScheduler<>();
 
         private DistributedItems(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() {
             prepareOperationBudget();
             return operationBudgetBlocked;
+        }
+
+        @Override public int nextFairExtractionSlot(long gameTime) {
+            if (!usesIndependentExtractionProbes()) return -1;
+            configureExtractionProbes();
+            return extractionProbes.nextDueSlot(targets(side).itemSlots, gameTime);
+        }
+
+        @Override public int fairExtractionProbesDue(long gameTime) {
+            if (!usesIndependentExtractionProbes()) return 0;
+            configureExtractionProbes();
+            return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
+        }
+
+        @Override public boolean usesIndependentExtractionProbes() {
+            return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
         }
 
         @Override public int getSlots() {
@@ -538,7 +557,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
             ItemHandler handler = handler(mapped);
             if (handler == null || !takeOperation()) return ItemStack.EMPTY;
-            return handler.getStackInSlot(mapped.localSlot());
+            ItemStack stack = handler.getStackInSlot(mapped.localSlot());
+            recordExtractionProbe(slot, stack);
+            return stack;
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
             if (stack.isEmpty()) return ItemStack.EMPTY;
@@ -567,6 +588,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 itemExtractPlan = plan;
             }
             ItemStack extracted = handler.extractItem(plan.physicalSlot, amount, simulate);
+            recordExtractionProbe(slot, extracted);
             if (!simulate) {
                 itemExtractPlan = null;
             }
@@ -589,6 +611,20 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 return null;
             }
             return handler;
+        }
+
+        private void recordExtractionProbe(int slot, ItemStack stack) {
+            if (!SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes()) return;
+            configureExtractionProbes();
+            extractionProbes.recordProbe(targets(side).itemSlots, slot, gameTime(), !stack.isEmpty());
+        }
+
+        private void configureExtractionProbes() {
+            extractionProbes.configure(SkyLogisticsConfig.distributorItemTargetHotProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetWarmProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetCoolProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetMissesPerDemotion());
         }
 
         private ItemInsertPlan matchingItemInsertPlan(ItemStack stack, boolean simulate) {

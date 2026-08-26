@@ -135,6 +135,12 @@ public final class SkyLogisticsConfig {
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
+    public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
+    public static int distributorItemTargetHotProbeTicks() { return SERVER.distributorItemTargetHotProbeTicks.get(); }
+    public static int distributorItemTargetWarmProbeTicks() { return SERVER.distributorItemTargetWarmProbeTicks.get(); }
+    public static int distributorItemTargetCoolProbeTicks() { return SERVER.distributorItemTargetCoolProbeTicks.get(); }
+    public static int distributorItemTargetFallbackProbeTicks() { return SERVER.distributorItemTargetFallbackProbeTicks.get(); }
+    public static int distributorItemTargetMissesPerDemotion() { return SERVER.distributorItemTargetMissesPerDemotion.get(); }
 
     public static int simpleItemPipeTransferRate() {
         return SERVER.simpleItemPipeTransferRate.get();
@@ -389,6 +395,12 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue distributorMaxTargets;
         public final ForgeConfigSpec.IntValue distributorScanOpsPerTick;
         public final ForgeConfigSpec.IntValue distributorOpsPerTick;
+        public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
+        public final ForgeConfigSpec.IntValue distributorItemTargetHotProbeTicks;
+        public final ForgeConfigSpec.IntValue distributorItemTargetWarmProbeTicks;
+        public final ForgeConfigSpec.IntValue distributorItemTargetCoolProbeTicks;
+        public final ForgeConfigSpec.IntValue distributorItemTargetFallbackProbeTicks;
+        public final ForgeConfigSpec.IntValue distributorItemTargetMissesPerDemotion;
         public final ForgeConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ForgeConfigSpec.IntValue simpleEnergyPipeTransferRate;
@@ -678,6 +690,30 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.",
                             "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
                     .defineInRange("opsPerTick", 64, 1, 4096);
+            enableDistributorAdaptiveItemTargetProbes = builder
+                    .comment("Whether item extraction maintains independent adaptive probe tiers for each distributor target machine.",
+                            "物品抽取是否为分配器连接的每台目标机器维护独立的自适应探测等级。")
+                    .define("enableAdaptiveItemTargetProbes", true);
+            distributorItemTargetHotProbeTicks = builder
+                    .comment("Probe interval for distributor item targets that most recently produced an item.",
+                            "最近成功产出物品的分配器目标机器探测间隔 tick。")
+                    .defineInRange("itemTargetHotProbeTicks", 1, 1, 1200);
+            distributorItemTargetWarmProbeTicks = builder
+                    .comment("Probe interval for warm distributor item targets after repeated misses.",
+                            "分配器物品目标连续未命中后进入温热等级时的探测间隔 tick。")
+                    .defineInRange("itemTargetWarmProbeTicks", 5, 1, 1200);
+            distributorItemTargetCoolProbeTicks = builder
+                    .comment("Probe interval for cool distributor item targets after further repeated misses.",
+                            "分配器物品目标进一步连续未命中后进入低频等级时的探测间隔 tick。")
+                    .defineInRange("itemTargetCoolProbeTicks", 20, 1, 1200);
+            distributorItemTargetFallbackProbeTicks = builder
+                    .comment("Fallback probe interval for cold distributor item targets. Initial probes are staggered across this window.",
+                            "冷分配器物品目标的兜底探测间隔 tick；首次探测会在该窗口内错峰安排。")
+                    .defineInRange("itemTargetFallbackProbeTicks", 40, 1, 1200);
+            distributorItemTargetMissesPerDemotion = builder
+                    .comment("Consecutive empty probes required to demote a distributor item target by one probe tier.",
+                            "分配器物品目标每次降低一个探测等级所需的连续空探测次数。")
+                    .defineInRange("itemTargetMissesPerDemotion", 3, 1, 64);
             builder.pop();
 
             builder.push("necklaces");
