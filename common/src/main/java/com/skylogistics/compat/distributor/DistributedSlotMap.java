@@ -43,6 +43,17 @@ public final class DistributedSlotMap<T> {
         return null;
     }
 
+    @Override
+    public boolean equals(Object other) {
+        return this == other || other instanceof DistributedSlotMap<?> map
+                && size == map.size && spans.equals(map.spans);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * spans.hashCode() + size;
+    }
+
     public record Slot<T>(T target, int localSlot) {}
 
     private record Span<T>(T target, int firstSlot, int slots) {}

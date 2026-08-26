@@ -51,10 +51,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final boolean[] targetsDirty = new boolean[DIRECTIONS.length];
     private final long[] nextRescan = new long[DIRECTIONS.length];
     private Direction selectedSide = Direction.NORTH;
-    private int itemInsertCursor;
-    private int fluidInsertCursor;
-    private int energyReceiveCursor;
-    private int energyExtractCursor;
+    private final int[] itemInsertCursors = new int[DIRECTIONS.length];
+    private final int[] fluidInsertCursors = new int[DIRECTIONS.length];
+    private final int[] fluidDrainCursors = new int[DIRECTIONS.length];
+    private final int[] energyReceiveCursors = new int[DIRECTIONS.length];
+    private final int[] energyExtractCursors = new int[DIRECTIONS.length];
     private int energySnapshotCursor;
     private int energySnapshotScanned;
     private long energyStoredAccumulator;
@@ -345,10 +346,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energyReceivePlan = null;
         energyExtractPlan = null;
         energySnapshotTick = Long.MIN_VALUE;
-        itemInsertCursor = 0;
-        fluidInsertCursor = 0;
-        energyReceiveCursor = 0;
-        energyExtractCursor = 0;
         energySnapshotCursor = 0;
         energySnapshotScanned = 0;
         energyStoredAccumulator = 0L;
@@ -607,14 +604,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).items;
             List<ItemMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
-                int start = Math.floorMod(itemInsertCursor, all.size());
+                int cursorIndex = side.ordinal();
+                int start = Math.floorMod(itemInsertCursors[cursorIndex], all.size());
                 boolean sequential = sequentialInsertion();
                 int share = DistributorInsertMode.offer(stack.getCount(), all.size(), sequential);
                 int planned = 0;
                 for (int offset = 0; offset < all.size() && planned < stack.getCount(); offset++) {
                     int target = (start + offset) % all.size();
                     if (!takeOperation()) break;
-                    itemInsertCursor = target + 1;
+                    itemInsertCursors[cursorIndex] = target + 1;
                     if (isRejected(target, stack)) continue;
                     ItemHandler handler = item(all.get(target));
                     if (handler == null || handler.getSlots() == 0) continue;
@@ -623,7 +621,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                     boolean fullyScanned = true;
                     for (int checked = 0; checked < slots; checked++) {
                         if (checked > 0 && !takeOperation()) {
-                            itemInsertCursor = target;
+                            itemInsertCursors[cursorIndex] = target;
                             fullyScanned = false;
                             break;
                         }
@@ -747,13 +745,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).fluids;
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
-                int start = Math.floorMod(fluidInsertCursor, all.size());
+                int cursorIndex = side.ordinal();
+                int start = Math.floorMod(fluidInsertCursors[cursorIndex], all.size());
                 int share = DistributorInsertMode.offer(resource.getAmount(), all.size(), sequentialInsertion());
                 int planned = 0;
                 for (int offset = 0; offset < all.size() && planned < resource.getAmount(); offset++) {
                     int target = (start + offset) % all.size();
                     if (!takeOperation()) break;
-                    fluidInsertCursor = target + 1;
+                    fluidInsertCursors[cursorIndex] = target + 1;
                     if (rejectedFluids[target] != null && gameTime() < rejectedFluidUntil[target]
                             && sameFluidType(rejectedFluids[target], resource)) continue;
                     FluidHandler handler = fluid(all.get(target));
@@ -792,11 +791,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).fluids;
             List<FluidMove> moves = new ArrayList<>();
             int remaining = resource.getAmount();
-            int start = all.isEmpty() ? 0 : Math.floorMod(fluidInsertCursor, all.size());
+            int cursorIndex = side.ordinal();
+            int start = all.isEmpty() ? 0 : Math.floorMod(fluidDrainCursors[cursorIndex], all.size());
             for (int offset = 0; offset < all.size() && remaining > 0; offset++) {
                 if (!takeOperation()) break;
                 int target = (start + offset) % all.size();
-                fluidInsertCursor = target + 1;
+                fluidDrainCursors[cursorIndex] = target + 1;
                 FluidHandler handler = fluid(all.get(target));
                 if (handler == null) continue;
                 FluidStack request = resource.copy(); request.setAmount(remaining);
@@ -857,15 +857,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).energy;
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty() && amount > 0) {
-                int cursor = receive ? energyReceiveCursor : energyExtractCursor;
+                int cursorIndex = side.ordinal();
+                int cursor = receive ? energyReceiveCursors[cursorIndex] : energyExtractCursors[cursorIndex];
                 int start = Math.floorMod(cursor, all.size());
                 int share = DistributorInsertMode.offer(amount, all.size(), receive && sequentialInsertion());
                 int planned = 0;
                 for (int offset = 0; offset < all.size() && planned < amount; offset++) {
                     if (!takeOperation()) break;
                     int target = (start + offset) % all.size();
-                    if (receive) energyReceiveCursor = target + 1;
-                    else energyExtractCursor = target + 1;
+                    if (receive) energyReceiveCursors[cursorIndex] = target + 1;
+                    else energyExtractCursors[cursorIndex] = target + 1;
                     EnergyStorage handler = energy(all.get(target));
                     if (handler == null) continue;
                     int offer = Math.min(share, amount - planned);

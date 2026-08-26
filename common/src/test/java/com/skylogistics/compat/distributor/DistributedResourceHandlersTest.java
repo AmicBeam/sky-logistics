@@ -27,6 +27,21 @@ class DistributedResourceHandlersTest {
         assertEquals(80, sequential.insertMana(80, false));
         assertEquals(80, sequentialFirst.stored);
         assertEquals(0, sequentialSecond.stored);
+        assertEquals(10, sequential.insertMana(10, false));
+        assertEquals(80, sequentialFirst.stored);
+        assertEquals(10, sequentialSecond.stored);
+    }
+
+    @Test void redstoneModeAdvancesChemicalCursorAfterEachInsertion() {
+        ChemicalTank first = new ChemicalTank(0, 100);
+        ChemicalTank second = new ChemicalTank(0, 100);
+        DistributedChemicalHandler sequential = new DistributedChemicalHandler(
+                lookup(List.of(first, second), true));
+
+        assertEquals(80, sequential.insertChemical(new TestChemical(80), false));
+        assertEquals(10, sequential.insertChemical(new TestChemical(10), false));
+        assertEquals(80, first.stored);
+        assertEquals(10, second.stored);
     }
 
     @Test void distributesManaAcrossTargetsWithoutMutatingSimulation() {

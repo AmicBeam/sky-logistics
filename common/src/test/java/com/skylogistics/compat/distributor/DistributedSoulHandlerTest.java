@@ -8,6 +8,19 @@ import org.junit.jupiter.api.Test;
 
 class DistributedSoulHandlerTest {
     @Test
+    void redstoneModeAdvancesToTheNextTarget() {
+        FakeSoulHandler first = new FakeSoulHandler(0, 100);
+        FakeSoulHandler second = new FakeSoulHandler(0, 100);
+        DistributedSoulHandler distributed = new DistributedSoulHandler(
+                new Lookup(List.of(first, second), true));
+
+        assertEquals(80, distributed.fill(80, false));
+        assertEquals(10, distributed.fill(10, false));
+        assertEquals(80, first.amount);
+        assertEquals(10, second.amount);
+    }
+
+    @Test
     void exposesTanksAndMovesSoulsAcrossTargets() {
         FakeSoulHandler first = new FakeSoulHandler(3, 5);
         FakeSoulHandler second = new FakeSoulHandler(4, 8);
@@ -30,14 +43,21 @@ class DistributedSoulHandlerTest {
 
     private static final class Lookup implements DistributedHandlerLookup<SoulHandlerBridge> {
         private final List<SoulHandlerBridge> handlers;
+        private final boolean sequential;
 
         private Lookup(List<SoulHandlerBridge> handlers) {
+            this(handlers, false);
+        }
+
+        private Lookup(List<SoulHandlerBridge> handlers, boolean sequential) {
             this.handlers = handlers;
+            this.sequential = sequential;
         }
 
         @Override public int size() { return handlers.size(); }
         @Override public SoulHandlerBridge handler(int index) { return handlers.get(index); }
         @Override public boolean takeOperation() { return true; }
+        @Override public boolean sequentialInsertion() { return sequential; }
     }
 
     private static final class FakeSoulHandler implements SoulHandlerBridge {
