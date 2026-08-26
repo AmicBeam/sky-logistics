@@ -45,39 +45,19 @@
       "text": "The device whitelist defaults to mekanism_extras; an empty list disables this feature.$(br2)Tier 2 offering: put a Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
     },
     {
-      "type": "patchouli:text",
-      "title": "Ordered Matching",
-      "text": "Install this upgrade on item extract or insert nodes. Right-click air to switch Per Slot/Per Item; Per Slot is the default.$(br2)Switching to Per Item clears the order offset. Switching back to Per Slot therefore starts at 0."
-    },
-    {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:ordered_matching_upgrade",
-      "text": "Ordered Matching Upgrades can be crafted at a crafting table."
+      "text": "Works on item extract or insert nodes. Right-click air to switch modes; Per Slot is the default."
     },
     {
       "type": "patchouli:text",
-      "title": "Per Slot: Mapping",
-      "text": "Per Slot follows:$(br)local slot + order offset$(br)= network position$(br2)Extract nodes map local slots to receivers. Insert nodes reverse the same relation to map sources to inventory slots."
+      "title": "Per Slot",
+      "text": "Mapping:$(br)local slot + offset = network position$(br2)Extract maps slots to receivers; insert maps sources to slots. Sneak-scroll adjusts offset without changing the hotbar:$(br)+2: slot 0 → position 2$(br)-2: slot 2 → position 0$(br2)Per Item clears the offset."
     },
     {
       "type": "patchouli:text",
-      "title": "Per Slot: Offset",
-      "text": "Sneak-scroll up/down to raise/lower the offset without changing the hotbar.$(br2)Positive skips network positions: offset 2 maps slot 0 to position 2.$(br2)Negative skips local slots: offset -2 maps slot 2 to position 0."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Per Item Mode",
-      "text": "Extract nodes cycle receivers; insert nodes cycle inventory slots. The cursor advances only after success.$(br2)Every target visited by a batch consumes its own budget. Order offsets do not apply in Per Item mode."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Per Item Failures",
-      "text": "A failed extraction assignment stays in its source and enters the persistent detention queue for priority retries.$(br2)The default queue length is 1. A full queue prevents passing another newly failed target."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Network Order Lists",
-      "text": "Items, fluids, FE, chemicals, mana, and source each have separate source and receiver lists.$(br2)Fullness and filter contents do not affect membership. Equal priorities remain separate, and the Configurator uses the same order."
+      "title": "Per Item",
+      "text": "Extract cycles receivers; insert cycles slots. Cursors advance only after success, and every batched target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Six resources keep separate order lists. Fullness and filters do not change them; equal priorities remain separate. The Configurator uses the same order."
     }
   ]
 }
