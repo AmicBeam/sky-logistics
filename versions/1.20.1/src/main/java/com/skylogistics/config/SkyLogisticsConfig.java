@@ -54,6 +54,14 @@ public final class SkyLogisticsConfig {
         return SERVER.nodeEnergyTransferLimit.get();
     }
 
+    public static boolean orderedMatchingWrapTargets() {
+        return SERVER.orderedMatchingWrapTargets.get();
+    }
+
+    public static boolean orderedMatchingContinueAfterTargetFailure() {
+        return SERVER.orderedMatchingContinueAfterTargetFailure.get();
+    }
+
     public static boolean enableAStagesTransferRates() {
         return SERVER.enableAStagesTransferRates.get();
     }
@@ -376,6 +384,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ForgeConfigSpec.IntValue simplePipeMaxConnectedBlocks;
         public final ForgeConfigSpec.IntValue maxSpeedUpgradesPerNode;
+        public final ForgeConfigSpec.BooleanValue orderedMatchingWrapTargets;
+        public final ForgeConfigSpec.BooleanValue orderedMatchingContinueAfterTargetFailure;
 
         private Server(ForgeConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -473,6 +483,18 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
                             "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
                     .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
+            builder.comment("Ordered Matching Upgrade behavior.",
+                            "顺序匹配升级行为。")
+                    .push("orderedMatchingUpgrade");
+            orderedMatchingWrapTargets = builder
+                    .comment("Whether source slots wrap across receiving endpoints with slotIndex % targetCount. When disabled, source slots beyond the receiving endpoint count are not dispatched.",
+                            "来源槽位是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
+                    .define("wrapTargets", true);
+            orderedMatchingContinueAfterTargetFailure = builder
+                    .comment("Whether a failed or temporarily unavailable mapped target allows later source slots to be attempted. When disabled, the first such failure blocks later slots.",
+                            "映射目标拒收或暂时不可用时，是否继续尝试后续来源槽位。关闭后，首次失败会阻塞后续槽位。")
+                    .define("continueAfterTargetFailure", false);
+            builder.pop();
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
                             "天穹物流仓库容器之间每次直接传输操作可搬运的最大数量。")

@@ -30,6 +30,7 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.OrderedMatchingPolicy;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.List;
@@ -422,11 +423,14 @@ public final class SkyNetworkTicker {
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
-            if (orderedMatching && slot >= targets.size()) {
+            int mappedTarget = orderedMatching ? OrderedMatchingPolicy.targetIndex(slot, targets.size(),
+                    SkyLogisticsConfig.orderedMatchingWrapTargets()) : -1;
+            if (orderedMatching && mappedTarget < 0) {
                 sourceEndpoint.recordItemFailure(gameTime);
                 return operations;
             }
-            List<CachedEndpoint> candidateTargets = orderedMatching ? List.of(targets.get(slot)) : targets;
+            List<CachedEndpoint> candidateTargets = orderedMatching
+                    ? List.of(targets.get(mappedTarget)) : targets;
             MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated,
                     simulatedItem.forceExtractionSupported(), candidateTargets,
                     Math.max(1, budget - operations), gameTime);
@@ -441,7 +445,8 @@ public final class SkyNetworkTicker {
                 SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
                 return operations;
             }
-            if (orderedMatching) return operations;
+            if (orderedMatching && OrderedMatchingPolicy.stopAfterAttempt(result.moved(),
+                    SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure())) return operations;
         }
         if (movedFromHotPath && !usedEmptyPreferredSlotFallback && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {
