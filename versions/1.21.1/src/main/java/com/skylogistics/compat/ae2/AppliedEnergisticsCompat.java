@@ -375,6 +375,7 @@ public final class AppliedEnergisticsCompat {
 
     private static boolean canUseSoulpliedEnergistics() {
         return isLoaded() && IndustrialForegoingSoulsCompat.canTransfer()
+                && SkyLogisticsConfig.allowAe2SoulpliedEnergisticsSoulTransfer()
                 && IndustrialForegoingSoulsCompat.isSoulpliedEnergisticsLoaded();
     }
 

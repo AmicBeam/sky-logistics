@@ -73,6 +73,7 @@ public final class SkyLogisticsConfig {
     public static synchronized StageRateRules aStagesTransferRateRules() {
         TransferRates initial = new TransferRates(SERVER.aStagesInitialItems.get(),
                 SERVER.aStagesInitialFluids.get(), SERVER.aStagesInitialChemicals.get(),
+                SERVER.aStagesInitialSouls.get(),
                 SERVER.aStagesInitialEnergy.get(), SERVER.aStagesInitialMana.get(),
                 SERVER.aStagesInitialSource.get());
         List<? extends Object> entries = SERVER.aStagesStageRates.get();
@@ -150,6 +151,10 @@ public final class SkyLogisticsConfig {
 
     public static int simpleChemicalPipeTransferRate() {
         return SERVER.simpleChemicalPipeTransferRate.get();
+    }
+
+    public static int simpleSoulPipeTransferRate() {
+        return SERVER.simpleSoulPipeTransferRate.get();
     }
 
     public static int simpleManaPipeTransferRate() {
@@ -250,6 +255,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowAe2AppliedMekanisticsChemicalTransfer.get();
     }
 
+    public static boolean allowAe2SoulpliedEnergisticsSoulTransfer() {
+        return SERVER.allowAe2SoulpliedEnergisticsSoulTransfer.get();
+    }
+
     public static boolean allowBeyondDimensionsItemTransfer() {
         return SERVER.allowBeyondDimensionsItemTransfer.get();
     }
@@ -340,6 +349,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.LongValue aStagesInitialItems;
         public final ModConfigSpec.LongValue aStagesInitialFluids;
         public final ModConfigSpec.LongValue aStagesInitialChemicals;
+        public final ModConfigSpec.LongValue aStagesInitialSouls;
         public final ModConfigSpec.LongValue aStagesInitialEnergy;
         public final ModConfigSpec.LongValue aStagesInitialMana;
         public final ModConfigSpec.LongValue aStagesInitialSource;
@@ -377,6 +387,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2SoulpliedEnergisticsSoulTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsItemTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsFluidTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsSoulTransfer;
@@ -398,6 +409,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ModConfigSpec.IntValue simpleEnergyPipeTransferRate;
         public final ModConfigSpec.IntValue simpleChemicalPipeTransferRate;
+        public final ModConfigSpec.IntValue simpleSoulPipeTransferRate;
         public final ModConfigSpec.IntValue simpleManaPipeTransferRate;
         public final ModConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ModConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
@@ -439,14 +451,15 @@ public final class SkyLogisticsConfig {
             aStagesInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
             aStagesInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
             aStagesInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialSouls = builder.defineInRange("souls", 10_000L, 1L, Long.MAX_VALUE);
             aStagesInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
             aStagesInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
             aStagesInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
             builder.pop();
             aStagesStageRates = builder
-                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, energy, mana, source.",
-                            "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、energy、mana、source 中的任意字段。",
-                            "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
+                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, souls, energy, mana, source.",
+                            "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、souls、energy、mana、source 中的任意字段。",
+                            "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, souls = 20000 }]")
                     .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
@@ -480,6 +493,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum Mekanism chemical amount moved by each extracting simple fluid pipe per tick.",
                             "每个抽取型简易流体管道每 tick 最多搬运的 Mekanism 化学品数量。")
                     .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleSoulPipeTransferRate = builder
+                    .comment("Maximum Warden Soul amount moved by each extracting simple fluid pipe per tick.",
+                            "每个抽取型简易流体管道每 tick 最多搬运的坚守者灵魂数量。")
+                    .defineInRange("simpleSoulPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
             simpleManaPipeTransferRate = builder
                     .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.",
                             "每个抽取型简易能量管道每 tick 最多搬运的 Botania 魔力。")
@@ -587,6 +604,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky ME Interfaces may transfer Applied Mekanistics chemicals stored in AE2 networks.",
                             "天穹 ME 接口是否可传输 AE2 网络中由 Applied Mekanistics 存储的化学品。")
                     .define("allowAe2AppliedMekanisticsChemicalTransfer", true);
+            allowAe2SoulpliedEnergisticsSoulTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Soulplied Energistics or AppliedSoul Warden Souls stored in AE2 networks.",
+                            "天穹 ME 接口是否可传输 AE2 网络中由 Soulplied Energistics 或 AppliedSoul 存储的坚守者灵魂。")
+                    .define("allowAe2SoulpliedEnergisticsSoulTransfer", true);
             allowBeyondDimensionsItemTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer items stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的物品。")

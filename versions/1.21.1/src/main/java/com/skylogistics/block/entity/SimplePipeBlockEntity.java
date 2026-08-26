@@ -342,7 +342,7 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
 
     @Override
     public long limitSoulTransfer(long amount) {
-        return Math.min(super.limitSoulTransfer(amount), SkyLogisticsConfig.simpleFluidPipeTransferRate());
+        return Math.min(super.limitSoulTransfer(amount), SkyLogisticsConfig.simpleSoulPipeTransferRate());
     }
 
     @Override

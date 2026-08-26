@@ -98,7 +98,10 @@ tasks.register('checkVersionConsistency') {
         def versionSpecificConfigKeys = [
                 'allowBeyondDimensionsManaTransfer',
                 'allowBeyondDimensionsSoulTransfer',
-                'allowFluidSoulTransfer'
+                'allowFluidSoulTransfer',
+                'allowAe2SoulpliedEnergisticsSoulTransfer',
+                'simpleSoulPipeTransferRate',
+                'souls'
         ] as Set
         def baselineConfig = configKeys(baseline) - versionSpecificConfigKeys
         def baselineTranslations = translationKeys(baseline, 'en_us')

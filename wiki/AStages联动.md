@@ -8,7 +8,7 @@ Sky Logistics 的 **1.20.1 Forge 与 1.21.1 NeoForge** 版本可以按线路持�
 
 - 无线物流节点及接入同一线路的外部网络接口；
 - 天穹简易物品、流体和能量管道；
-- 物品、流体、Mekanism 化学品、FE、Botania mana、Ars Nouveau Source 六种资源。
+- 物品、流体、Mekanism 化学品、FE、Botania mana、Ars Nouveau Source 六种基础资源；1.21.1 还可独立限制坚守者灵魂。
 
 这里的“速率”只表示一次成功搬运最多提交多少资源，不改变：
 
@@ -48,7 +48,7 @@ Sky Logistics 的 **1.20.1 Forge 与 1.21.1 NeoForge** 版本可以按线路持�
 enabled = true
 stageRates = [
   { stage = "logistics_tier_1", items = 128, fluids = 20000 },
-  { stage = "logistics_tier_2", items = 256, chemicals = 40000, energy = 250000 },
+  { stage = "logistics_tier_2", items = 256, chemicals = 40000, souls = 40000, energy = 250000 },
   { stage = "magic_logistics", mana = 300000, source = 300000 }
 ]
 
@@ -56,18 +56,20 @@ stageRates = [
 items = 64
 fluids = 10000
 chemicals = 10000
+souls = 10000
 energy = 100000
 mana = 100000
 source = 100000
 ```
 
-`stageRates` 中每个字典必须包含非空的 `stage`，其余六个资源字段均为可选正整数：
+`stageRates` 中每个字典必须包含非空的 `stage`，其余资源字段均为可选正整数；`souls` 仅由 1.21.1 的坚守者灵魂运输使用：
 
 | 字段 | 资源 | 初始默认值 |
 | --- | --- | ---: |
 | `items` | 物品数量 | 64 |
 | `fluids` | 流体，mB | 10,000 |
 | `chemicals` | Mekanism 化学品 | 10,000 |
+| `souls` | Industrial Foregoing: Souls 坚守者灵魂（1.21.1） | 10,000 |
 | `energy` | FE | 100,000 |
 | `mana` | Botania mana | 100,000 |
 | `source` | Ars Nouveau Source | 100,000 |

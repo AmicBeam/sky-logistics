@@ -4,6 +4,7 @@ public enum TransferResource {
     ITEMS("items"),
     FLUIDS("fluids"),
     CHEMICALS("chemicals"),
+    SOULS("souls"),
     ENERGY("energy"),
     MANA("mana"),
     SOURCE("source");
