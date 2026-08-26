@@ -29,9 +29,18 @@
       "text": "Force Extraction Upgrades belong on extracting nodes. For devices whose mod ID appears in the server-configured list and that expose modifiable item slots, they bypass the external 64-item return cap and commit the full amount the destination can actually accept in one extraction. The default list is mekanism_extras; an empty list disables the behavior, and rejected transfers restore the source slot."
     },
     {
+      "type": "patchouli:text",
+      "text": "Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and strictly selects the lowest extractable source slot allowed by the filter. Source slot 0 maps to the first insert target; slot n maps to target n+1 after sorting from highest to lowest priority. If that target cannot accept the item, the transfer does not fall back or skip ahead. Slotless external-network enumeration is unaffected."
+    },
+    {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
       "text": "Speed Upgrades can be crafted at a crafting table."
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:ordered_matching_upgrade",
+      "text": "Ordered Matching Upgrades can be crafted at a crafting table."
     },
     {
       "type": "patchouli:text",

@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:ordered_matching_upgrade
 ---
 
 # Configurator and Upgrades
@@ -19,6 +20,10 @@ Sneak-right-click a node with the configurator to copy that node and enter paste
 Speed upgrades stack in one node upgrade slot. Each card adds one slot check per tick. By default, up to 8 cards raise the base rate from 1 to 9 slots/t; the server can configure this limit. They do not increase line capacity.
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
+
+Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and strictly selects the lowest extractable source slot allowed by the filter. Source slot 0 maps to the first insert target; slot n maps to target n+1 after sorting from highest to lowest priority. If that target cannot accept the item, the transfer does not fall back or skip ahead. Slotless external-network enumeration is unaffected.
+
+<RecipeFor id="ordered_matching_upgrade" fallbackText="The ordered matching upgrade recipe is unavailable." />
 
 Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped.
 

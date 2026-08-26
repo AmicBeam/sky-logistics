@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:ordered_matching_upgrade
 ---
 
 # 配置器与升级
@@ -19,6 +20,10 @@ item_ids:
 速度升级卡可堆叠在节点的一个升级槽里。每张让节点每 tick 多检查一个槽位；默认最多堆叠 8 张，使基础 1 槽/t 提升到 9 槽/t。上限可由服务器配置；它不会增加线路容量。
 
 <RecipeFor id="speed_upgrade" fallbackText="未找到速度升级卡配方。" />
+
+顺序匹配升级只影响抽取相邻库存的物品节点。它每次都从槽位 0 开始，严格选择槽位号最小的可抽取、符合过滤的物品；来源槽位号 n 只会送往按优先级从高到低排列的第 n+1 个存入节点。对应目标不能接收时不会改送其它目标，也不会越过它搬走后续槽位。外部网络的无槽位枚举不应用此规则。
+
+<RecipeFor id="ordered_matching_upgrade" fallbackText="未找到顺序匹配升级配方。" />
 
 维度升级卡也装在节点升级槽里，但只影响抽取面。带有维度升级的抽取面可以把资源送到其它已加载维度里同线路的存入面；存入面不需要维度升级。它不是区块加载器，未加载的维度或区块会被跳过。
 

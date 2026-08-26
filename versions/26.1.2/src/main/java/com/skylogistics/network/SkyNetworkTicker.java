@@ -373,10 +373,17 @@ public final class SkyNetworkTicker {
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
+        boolean orderedMatching = sourceNode instanceof SkyNodeBlockEntity skyNode
+                && skyNode.hasOrderedMatchingUpgrade();
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
-        for (int i = 0; i < slotChecks && (operations < budget || i == 0); i++) {
-            ItemSourceSearchResult search = forceSequentialItemFallback
+        // The upgrade promises a strict order, so it deliberately bypasses hot-slot rotation and
+        // rechecks from physical slot 0 even when that scan exceeds this endpoint's normal budget.
+        if (orderedMatching) slotChecks = slots;
+        for (int i = 0; i < slotChecks && (orderedMatching || operations < budget || i == 0); i++) {
+            ItemSourceSearchResult search = orderedMatching
+                    ? new ItemSourceSearchResult(i, 0, i + 1 >= slots, false)
+                    : forceSequentialItemFallback
                     ? nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
                             firstTriedSlot, secondTriedSlot, false, Math.max(1, budget - operations))
                     : nextItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
@@ -413,7 +420,12 @@ public final class SkyNetworkTicker {
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
-            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, targets,
+            if (orderedMatching && slot >= targets.size()) {
+                sourceEndpoint.recordItemFailure(gameTime);
+                return operations;
+            }
+            List<CachedEndpoint> candidateTargets = orderedMatching ? List.of(targets.get(slot)) : targets;
+            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, candidateTargets,
                     Math.max(1, budget - operations), gameTime);
             operations += result.operations();
             if (result.moved()) {
@@ -426,6 +438,7 @@ public final class SkyNetworkTicker {
                 SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
                 return operations;
             }
+            if (orderedMatching) return operations;
         }
         if (movedFromHotPath && !usedEmptyPreferredSlotFallback && operations < budget
                 && sourceEndpoint.shouldTryItemSlotDiscoveryAfterPreferred()) {

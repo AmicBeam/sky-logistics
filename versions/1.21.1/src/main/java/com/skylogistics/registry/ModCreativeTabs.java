@@ -34,6 +34,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
                         output.accept(ModItems.FORCE_EXTRACTION_UPGRADE.get());
+                        output.accept(ModItems.ORDERED_MATCHING_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
