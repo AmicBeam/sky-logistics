@@ -47,7 +47,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:ordered_matching_upgrade",
-      "text": "Works on item extract or insert nodes. Right-click air to switch modes; Per Slot is the default."
+      "text": "Per Slot works on item extract or insert nodes; Per Item affects extract nodes only. Right-click air to switch; Per Slot is the default."
     },
     {
       "type": "patchouli:text",
@@ -57,7 +57,7 @@
     {
       "type": "patchouli:text",
       "title": "Per Item",
-      "text": "Extract cycles receivers; insert cycles slots. Cursors advance after success. The extract cursor also resets to 0 when no transferable item or detained assignment remains. Every batched target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Equal priorities remain separate."
+      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. Success advances the cursor. An unfinished cross-tick batch resumes its original plan; an idle source with no detention resets to 0. Every target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Equal priorities remain separate."
     }
   ]
 }

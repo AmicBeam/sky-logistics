@@ -1,6 +1,7 @@
 package com.skylogistics.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -132,8 +133,40 @@ class OrderedMatchingPolicyTest {
 
     @Test
     void idleSourceAddsCursorResetWhenNoDetentionRemains() {
-        assertTrue(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0));
-        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(true, 0));
-        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 1));
+        assertTrue(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0, false));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(true, 0, false));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 1, false));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0, true));
+    }
+
+    @Test
+    void perItemBatchPlanSurvivesAFourTargetTickBudget() {
+        OrderedMatchingPolicy.PerItemBatchPlan plan =
+                new OrderedMatchingPolicy.PerItemBatchPlan(64, 5, 0);
+        assertEquals(13, plan.amount());
+        for (int target = 0; target < 4; target++) {
+            assertEquals(target, plan.targetIndex());
+            assertEquals(13, plan.amount());
+            plan.advance();
+        }
+        assertEquals(4, plan.targetIndex());
+        assertEquals(12, plan.amount());
+        assertEquals(12, plan.remainingAmount());
+        plan.advance();
+        assertTrue(plan.complete());
+    }
+
+    @Test
+    void sixtyFourItemsKeepTheirFiveTargetResultAcrossTicks() {
+        OrderedMatchingPolicy.PerItemBatchPlan plan =
+                new OrderedMatchingPolicy.PerItemBatchPlan(64, 5, 0);
+        int[] received = new int[5];
+        while (!plan.complete()) {
+            for (int visits = 0; visits < 4 && !plan.complete(); visits++) {
+                received[plan.targetIndex()] += plan.amount();
+                plan.advance();
+            }
+        }
+        assertArrayEquals(new int[] {13, 13, 13, 13, 12}, received);
     }
 }

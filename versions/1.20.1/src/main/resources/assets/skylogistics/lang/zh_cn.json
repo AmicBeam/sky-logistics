@@ -95,7 +95,7 @@
   "tooltip.skylogistics.speed_upgrade": "抽取时，额外检测一个槽位。",
   "tooltip.skylogistics.dimension_upgrade": "抽取时，允许向其他维度的同线路目标传输。",
   "tooltip.skylogistics.force_extraction_upgrade": "抽取时，对配置允许的超大可修改槽执行一次性强制抽取；不支持天穹分配器。",
-  "tooltip.skylogistics.ordered_matching_upgrade": "抽取时按顺位匹配；存入端也可分槽。",
+  "tooltip.skylogistics.ordered_matching_upgrade": "抽取时按顺位匹配；逐槽也支持存入端。",
   "tooltip.skylogistics.ordered_matching_upgrade.mode": "模式：%s（右击切换）",
   "tooltip.skylogistics.ordered_matching_upgrade.offset": "顺位偏移：%s（潜行滚轮）",
   "message.skylogistics.ordered_matching_upgrade.mode": "顺序匹配升级模式：%s",

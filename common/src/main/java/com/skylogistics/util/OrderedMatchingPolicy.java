@@ -70,7 +70,55 @@ public final class OrderedMatchingPolicy {
         return capacity > 0 && queueSize >= 0 && queueSize < capacity;
     }
 
-    public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, int detentionCount) {
-        return !hasTransferableResource && detentionCount <= 0;
+    public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, int detentionCount,
+            boolean hasPendingBatch) {
+        return !hasTransferableResource && detentionCount <= 0 && !hasPendingBatch;
+    }
+
+    public static final class PerItemBatchPlan {
+        private final int sourceAmount;
+        private final int targetCount;
+        private final int startCursor;
+        private final int assignmentCount;
+        private int nextAssignment;
+
+        public PerItemBatchPlan(int sourceAmount, int targetCount, int startCursor) {
+            this.sourceAmount = Math.max(0, sourceAmount);
+            this.targetCount = Math.max(0, targetCount);
+            this.startCursor = normalizeCursor(startCursor, targetCount);
+            this.assignmentCount = batchTargetCount(sourceAmount, targetCount);
+        }
+
+        public int targetCount() {
+            return targetCount;
+        }
+
+        public int targetIndex() {
+            return complete() ? -1 : Math.floorMod(startCursor + nextAssignment, targetCount);
+        }
+
+        public int amount() {
+            return complete() ? 0 : batchAmount(sourceAmount, targetCount, nextAssignment);
+        }
+
+        public int remainingAssignments() {
+            return Math.max(0, assignmentCount - nextAssignment);
+        }
+
+        public int remainingAmount() {
+            int remaining = 0;
+            for (int assignment = nextAssignment; assignment < assignmentCount; assignment++) {
+                remaining += batchAmount(sourceAmount, targetCount, assignment);
+            }
+            return remaining;
+        }
+
+        public void advance() {
+            if (!complete()) nextAssignment++;
+        }
+
+        public boolean complete() {
+            return nextAssignment >= assignmentCount;
+        }
     }
 }
