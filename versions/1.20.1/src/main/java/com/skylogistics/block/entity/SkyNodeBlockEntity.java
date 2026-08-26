@@ -13,12 +13,14 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.UpgradeCardItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
+import com.skylogistics.util.OrderedMatchingMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -78,6 +80,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private final EnumMap<Direction, Boolean> faceItemsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceFluidsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceEnergyEnabled = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, Integer> orderedMatchingCursors = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, NonNullList<ItemStack>> faceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FilterListItem.CompiledFilter[]> compiledFaceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, boolean[]> compiledFaceFilterDirty = new EnumMap<>(Direction.class);
@@ -108,6 +111,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faceItemsEnabled.put(direction, true);
             faceFluidsEnabled.put(direction, true);
             faceEnergyEnabled.put(direction, true);
+            orderedMatchingCursors.put(direction, 0);
             faceFilters.put(direction, NonNullList.withSize(FACE_FILTER_SLOTS, ItemStack.EMPTY));
             FilterListItem.CompiledFilter[] compiled = new FilterListItem.CompiledFilter[FACE_FILTER_SLOTS];
             boolean[] dirty = new boolean[FACE_FILTER_SLOTS];
@@ -570,6 +574,27 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public boolean hasForceExtractionUpgrade() { return hasUpgrade(ModItems.FORCE_EXTRACTION_UPGRADE.get()); }
 
     public boolean hasOrderedMatchingUpgrade() { return hasUpgrade(ModItems.ORDERED_MATCHING_UPGRADE.get()); }
+
+    public OrderedMatchingMode getOrderedMatchingMode() {
+        for (ItemStack upgrade : upgrades) {
+            if (upgrade.is(ModItems.ORDERED_MATCHING_UPGRADE.get())) {
+                return UpgradeCardItem.orderedMatchingMode(upgrade);
+            }
+        }
+        return OrderedMatchingMode.PER_SLOT;
+    }
+
+    public int getOrderedMatchingCursor(Direction direction, int targetCount) {
+        return com.skylogistics.util.OrderedMatchingPolicy.normalizeCursor(
+                orderedMatchingCursors.getOrDefault(direction, 0), targetCount);
+    }
+
+    public void setOrderedMatchingCursor(Direction direction, int cursor, int targetCount) {
+        int normalized = com.skylogistics.util.OrderedMatchingPolicy.normalizeCursor(cursor, targetCount);
+        if (orderedMatchingCursors.getOrDefault(direction, 0) == normalized) return;
+        orderedMatchingCursors.put(direction, normalized);
+        setChanged();
+    }
 
     public boolean hasUpgrade(Item item) {
         for (ItemStack upgrade : upgrades) {
@@ -1476,6 +1501,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             settings.putBoolean("ItemsEnabled", isItemsEnabled(direction));
             settings.putBoolean("FluidsEnabled", isFluidsEnabled(direction));
             settings.putBoolean("EnergyEnabled", isEnergyEnabled(direction));
+            int orderedMatchingCursor = orderedMatchingCursors.getOrDefault(direction, 0);
+            if (orderedMatchingCursor != 0) settings.putInt("OrderedMatchingCursor", orderedMatchingCursor);
             ListTag filterTags = new ListTag();
             NonNullList<ItemStack> filters = faceFilters.get(direction);
             if (filters != null) {
@@ -1586,6 +1613,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faceItemsEnabled.put(direction, itemsEnabled);
             faceFluidsEnabled.put(direction, fluidsEnabled);
             faceEnergyEnabled.put(direction, energyEnabled);
+            orderedMatchingCursors.put(direction, 0);
         }
         if (tag.contains("Faces", Tag.TAG_COMPOUND)) {
             CompoundTag faces = tag.getCompound("Faces");
@@ -1605,6 +1633,9 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 CompoundTag settings = faceSettings.getCompound(direction.getSerializedName());
                 redstoneControls.put(direction, RedstoneControl.byName(settings.getString("Redstone")));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getInt("Priority"))));
+                if (settings.contains("OrderedMatchingCursor")) {
+                    orderedMatchingCursors.put(direction, Math.max(0, settings.getInt("OrderedMatchingCursor")));
+                }
                 if (settings.contains("SlotLimit")) {
                     boolean byItems = settings.getBoolean("LimitByItems");
                     itemLimitByItems.put(direction, byItems);

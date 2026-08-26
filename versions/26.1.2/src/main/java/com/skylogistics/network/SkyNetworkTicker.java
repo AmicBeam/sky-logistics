@@ -30,6 +30,7 @@ import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.OrderedMatchingPolicy;
+import com.skylogistics.util.OrderedMatchingMode;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
@@ -381,8 +382,11 @@ public final class SkyNetworkTicker {
         int firstTriedSlot = -1;
         int secondTriedSlot = -1;
         boolean sourceSlotsExhausted = false;
-        boolean orderedMatching = sourceNode instanceof SkyNodeBlockEntity skyNode
-                && skyNode.hasOrderedMatchingUpgrade();
+        SkyNodeBlockEntity orderedMatchingNode = sourceNode instanceof SkyNodeBlockEntity skyNode
+                && skyNode.hasOrderedMatchingUpgrade() ? skyNode : null;
+        boolean orderedMatching = orderedMatchingNode != null;
+        boolean orderedPerItem = orderedMatching
+                && orderedMatchingNode.getOrderedMatchingMode() == OrderedMatchingMode.PER_ITEM;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
         // The upgrade promises a strict order, so it deliberately bypasses hot-slot rotation and
@@ -428,16 +432,19 @@ public final class SkyNetworkTicker {
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
             sourceEndpoint.recordItemCandidateFound();
-            int mappedTarget = orderedMatching ? OrderedMatchingPolicy.targetIndex(slot, targets.size(),
+            int mappedTarget = orderedMatching && !orderedPerItem ? OrderedMatchingPolicy.targetIndex(slot, targets.size(),
                     SkyLogisticsConfig.orderedMatchingWrapTargets()) : -1;
-            if (orderedMatching && mappedTarget < 0) {
+            if (orderedMatching && !orderedPerItem && mappedTarget < 0) {
                 sourceEndpoint.recordItemFailure(gameTime);
                 return operations;
             }
-            List<CachedEndpoint> candidateTargets = orderedMatching
+            List<CachedEndpoint> candidateTargets = orderedMatching && !orderedPerItem
                     ? List.of(targets.get(mappedTarget)) : targets;
-            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, simulated, candidateTargets,
-                    Math.max(1, budget - operations), gameTime);
+            MoveResult result = orderedPerItem
+                    ? tryMoveOrderedPerItem(sourceEndpoint, orderedMatchingNode, source, slot, simulated,
+                            candidateTargets, Math.max(1, budget - operations), gameTime)
+                    : tryMoveItem(sourceEndpoint, source, slot, simulated, candidateTargets,
+                            Math.max(1, budget - operations), gameTime, Long.MAX_VALUE);
             operations += result.operations();
             if (result.moved()) {
                 if (sourceEndpoint.canRecordMaintainedItemProbe()) {
@@ -454,6 +461,7 @@ public final class SkyNetworkTicker {
                 SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
                 return operations;
             }
+            if (orderedPerItem) return operations;
             if (orderedMatching && OrderedMatchingPolicy.stopAfterAttempt(result.moved(),
                     SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure())) return operations;
         }
@@ -1016,14 +1024,43 @@ public final class SkyNetworkTicker {
         return new SlotLimitCheck(scan.matchingSlots >= limit && !scan.canRefill, checks, true);
     }
 
+    private static MoveResult tryMoveOrderedPerItem(CachedEndpoint sourceEndpoint, SkyNodeBlockEntity sourceNode,
+            ItemHandler source, int slot, ItemStack simulated, List<CachedEndpoint> targets, int budget,
+            long gameTime) {
+        int targetCount = targets.size();
+        int batchTargets = OrderedMatchingPolicy.batchTargetCount(simulated.getCount(), targetCount);
+        if (batchTargets <= 0 || budget <= 0) return new MoveResult(false, 0);
+        int cursor = sourceNode.getOrderedMatchingCursor(sourceEndpoint.direction(), targetCount);
+        int maxAttempts = OrderedMatchingPolicy.budgetedBatchTargetCount(simulated.getCount(), targetCount,
+                budget, SkyLogisticsConfig.endpointTargetAttempts());
+        int operations = 0;
+        boolean moved = false;
+        for (int offset = 0; offset < maxAttempts && (offset == 0 || operations < budget); offset++) {
+            int targetIndex = Math.floorMod(cursor + offset, targetCount);
+            int amount = OrderedMatchingPolicy.batchAmount(simulated.getCount(), targetCount, offset);
+            if (amount <= 0) break;
+            ItemStack offer = simulated.copyWithCount(amount);
+            MoveResult result = tryMoveItem(sourceEndpoint, source, slot, offer,
+                    List.of(targets.get(targetIndex)), Math.max(1, budget - operations), gameTime, amount);
+            operations += result.operations();
+            if (result.moved()) {
+                moved = true;
+                sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), targetIndex + 1, targetCount);
+            } else if (!SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure()) {
+                break;
+            }
+        }
+        return new MoveResult(moved, operations);
+    }
+
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, ItemHandler source, int slot, ItemStack simulated,
-            List<CachedEndpoint> targets, int budget, long gameTime) {
+            List<CachedEndpoint> targets, int budget, long gameTime, long maxMoveAmount) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
-        long skyContainerTransferLimit = sourceEndpoint.node()
-                .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit());
+        long skyContainerTransferLimit = Math.min(maxMoveAmount, sourceEndpoint.node()
+                .limitItemTransfer(SkyLogisticsConfig.skyContainerTransferLimit()));
         int targetAttemptBudget = Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts());
         int operations = 0;
         int targetAttempts = 0;

@@ -30,7 +30,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and selects the lowest extractable source slot allowed by the filter. By default, slotIndex % targetCount maps slots across insert targets sorted from highest to lowest priority. Every receiving endpoint occupies its own position; equal-priority endpoints are not merged and can map to separate source slots. Mapping wraps to the top target when targets run out. Disable transfers.orderedMatchingUpgrade.wrapTargets to stop dispatching excess slots, or enable transfers.orderedMatchingUpgrade.continueAfterTargetFailure to try later slots when a mapped target rejects or is unavailable. Slotless external-network enumeration is unaffected."
+      "text": "Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default. Both modes strictly select the lowest eligible source slot. Per Slot maps slotIndex % targetCount across the priority list, with every equal-priority endpoint still occupying its own position. Per Item keeps a persistent cursor per extract face: it moves one item when the source count does not exceed the target count, then batches complete rounds and remainders across multiple targets when it does. Every visited target consumes its own operation budget. Per Slot wrapping and failure continuation use transfers.orderedMatchingUpgrade; Per Item always cycles its cursor and uses the same failure-continuation setting. Slotless external-network enumeration is unaffected."
     },
     {
       "type": "patchouli:crafting",

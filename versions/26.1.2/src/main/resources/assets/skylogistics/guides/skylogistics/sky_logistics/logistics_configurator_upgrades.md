@@ -21,7 +21,11 @@ Speed upgrades stack in one node upgrade slot. Each card adds one slot check per
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
 
-Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and selects the lowest extractable source slot allowed by the filter. By default, `slotIndex % targetCount` maps slots across insert targets sorted from highest to lowest priority. Every receiving endpoint occupies its own position; equal-priority endpoints are not merged and can map to separate source slots. Mapping wraps to the top target when targets run out. Disable `transfers.orderedMatchingUpgrade.wrapTargets` to stop dispatching excess slots, or enable `transfers.orderedMatchingUpgrade.continueAfterTargetFailure` to try later slots when a mapped target rejects or is unavailable. Slotless external-network enumeration is unaffected.
+Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default and the tooltip shows the saved mode. Both modes strictly select the lowest extractable source slot allowed by the filter.
+
+Per Slot maps `slotIndex % targetCount` across insert targets sorted from highest to lowest priority. Every receiving endpoint occupies its own position, including equal-priority endpoints. `transfers.orderedMatchingUpgrade.wrapTargets` can stop dispatching source slots beyond the target count.
+
+Per Item persists a target cursor for each extract face. When the source count does not exceed the target count, one item moves and a successful transfer advances the cursor. Larger source counts are batched into complete rounds plus a remainder across multiple targets. Batching combines item quantities only: every target actually visited consumes its own operation budget, and a budget-limited pass resumes from the saved cursor on the next tick. The Per Item cursor always cycles. Both modes use `continueAfterTargetFailure` to decide whether a failed target may be passed. Slotless external-network enumeration is unaffected.
 
 <RecipeFor id="ordered_matching_upgrade" fallbackText="The ordered matching upgrade recipe is unavailable." />
 
