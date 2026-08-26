@@ -23,7 +23,7 @@ Celestial-themed logistics for Minecraft. Sky Logistics moves items, fluids, ene
 - **Inventory and backpack interaction**: the Sky Necklace adds portable extract, insert, and maintain modes between logistics lines, the player inventory, and supported Sophisticated Backpack inventories. Its maintain target is directly editable and can count either items or occupied slots.
 - **Precise stock control**: the exact-quantity upgrade replaces matching-slot retention with an editable item total from 1 to `Integer.MAX_VALUE` on nodes and necklaces.
 - **Chemical filtering**: on Mekanism-capable versions, chemical ingredients can be dragged from JEI into ordinary filter lists and are enforced at both ends of chemical transfers.
-- **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
+- **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, GuideME, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
 - **Extended resources**: Mekanism chemicals use fluid-enabled faces and pipes. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes, but move only between matching handlers and are never converted to FE.
 - **AStages progression**: on Minecraft 1.20.1 and 1.21.1, servers can optionally limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration requires AStages 2.x and is disabled by default.
 
@@ -47,7 +47,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
   - NeoForge 21.1+
   - Jade 15+ (optional)
   - JEI 19+ (optional, client side)
-  - Patchouli 1+ (optional)
+  - GuideME 20.1+/21.1+/26.1+ or Patchouli 1+ (optional manual providers)
   - Mekanism 10.7+ (optional)
   - Ars Nouveau 5.x (optional)
   - Curios 9+ (optional)
@@ -96,7 +96,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
 - Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Speed Upgrade rates or server and line operation budgets.
-- Patchouli support is data-only and appears when Patchouli is installed.
+- The manual supports both Patchouli and GuideME; when both are installed, Patchouli is preferred and GuideME is the fallback.
 - Optional mod integrations are enabled only when the matching mod and compatible version/API are present.
 
 ## Build

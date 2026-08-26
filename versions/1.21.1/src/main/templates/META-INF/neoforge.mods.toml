@@ -54,6 +54,13 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="guideme"
+type="optional"
+versionRange="[21.1,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="mekanism"
 type="optional"
 versionRange="[10.7,)"

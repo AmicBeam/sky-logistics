@@ -41,8 +41,8 @@
 
 | Minecraft | 加载器 | 游戏内手册 |
 | --- | --- | --- |
-| 1.20.1 | Forge 47.x | Patchouli；基础祭坛内容 |
-| 1.21.1 | NeoForge 21.1+ | Patchouli；基础祭坛内容 |
-| 26.1.2 | NeoForge 26.1.2.71+ | GuideME 优先，亦兼容 Patchouli |
+| 1.20.1 | Forge 47.x | Patchouli 优先，GuideME 回退 |
+| 1.21.1 | NeoForge 21.1+ | Patchouli 优先，GuideME 回退 |
+| 26.1.2 | NeoForge 26.1.2.71+ | Patchouli 优先，GuideME 回退 |
 
 > 配方可能被整合包或数据包修改。Wiki 解释默认配方和功能，游戏内以 JEI/配方书显示为准。

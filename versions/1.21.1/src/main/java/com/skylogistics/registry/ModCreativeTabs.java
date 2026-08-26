@@ -1,7 +1,7 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
-import com.skylogistics.compat.PatchouliCompat;
+import com.skylogistics.compat.ManualCompat;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
@@ -23,7 +23,7 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.CONFIGURATOR.get()))
                     .title(Component.translatable("itemGroup.skylogistics"))
                     .displayItems((parameters, output) -> {
-                        if (PatchouliCompat.isLoaded()) {
+                        if (ManualCompat.isLoaded()) {
                             output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
                         }
                         output.accept(ModItems.CONFIGURATOR.get());
