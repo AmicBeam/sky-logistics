@@ -85,6 +85,7 @@ public class UpgradeCardItem extends Item {
                 if (stack.getTag().isEmpty()) stack.setTag(null);
             }
         } else {
+            setOrderedMatchingOffset(stack, 0);
             stack.getOrCreateTag().putString(ORDERED_MATCHING_MODE, mode.serializedName());
         }
     }

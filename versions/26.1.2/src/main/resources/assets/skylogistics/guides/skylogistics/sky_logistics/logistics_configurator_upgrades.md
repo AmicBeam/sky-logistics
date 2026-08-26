@@ -21,7 +21,7 @@ Speed upgrades stack in one node upgrade slot. Each card adds one slot check per
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
 
-Ordered Matching Upgrades work on item extract or insert nodes. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default and the tooltip shows the saved mode. Extraction still selects the lowest extractable source slot allowed by the filter.
+Ordered Matching Upgrades work on item extract or insert nodes. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default and the tooltip shows the saved mode. Switching to Per Item clears the order offset, so switching back to Per Slot starts at 0. Extraction still selects the lowest extractable source slot allowed by the filter.
 
 Per Slot follows `local slot + order offset = network position`. Sneak-scroll up/down raises/lowers the offset without changing the hotbar. Positive values skip leading network positions: offset `2` maps slot 0 to position 2. Negative values skip leading local slots: offset `-2` maps slot 2 to position 0. Extract nodes use this to match receiving endpoints; insert nodes reverse the same relation to match sources with inventory slots. Receivers cycle within the remaining positions by default; `orderedMatchingUpgrade.wrapTargets` disables that cycle.
 

@@ -81,6 +81,7 @@ public class UpgradeCardItem extends Item {
         if (mode == OrderedMatchingMode.PER_SLOT) {
             StackData.remove(stack, ORDERED_MATCHING_MODE);
         } else {
+            setOrderedMatchingOffset(stack, 0);
             StackData.update(stack, tag -> tag.putString(ORDERED_MATCHING_MODE, mode.serializedName()));
         }
     }
