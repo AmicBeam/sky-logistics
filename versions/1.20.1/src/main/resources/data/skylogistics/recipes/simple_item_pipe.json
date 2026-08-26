@@ -1,5 +1,4 @@
 {
-  "conditions": [{"type": "skylogistics:simple_pipe_recipe", "diamond": true}],
   "type": "minecraft:crafting_shaped",
   "pattern": ["GAG", "LHL", "GAG"],
   "key": {

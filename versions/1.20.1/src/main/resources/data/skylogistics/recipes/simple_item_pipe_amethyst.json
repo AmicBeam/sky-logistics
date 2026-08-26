@@ -1,1 +1,0 @@
-{"conditions":[{"type":"skylogistics:simple_pipe_recipe","diamond":false}],"type":"minecraft:crafting_shaped","pattern":["GAG","LHL","GAG"],"key":{"G":{"tag":"forge:glass/colorless"},"A":{"tag":"forge:gems/amethyst"},"L":{"tag":"forge:gems/lapis"},"H":{"tag":"forge:chests/wooden"}},"result":{"item":"skylogistics:simple_item_pipe","count":8}}

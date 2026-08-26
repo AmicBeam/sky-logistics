@@ -1,1 +1,0 @@
-{"neoforge:conditions":[{"type":"skylogistics:simple_pipe_recipe","diamond":false}],"type":"minecraft:crafting_shaped","pattern":["GAG","LBL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/amethyst"},"L":{"tag":"c:gems/lapis"},"B":{"item":"minecraft:bucket"}},"result":{"id":"skylogistics:simple_fluid_pipe","count":8}}

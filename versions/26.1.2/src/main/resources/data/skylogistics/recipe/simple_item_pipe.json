@@ -1,1 +1,1 @@
-{"neoforge:conditions":[{"type":"skylogistics:simple_pipe_recipe","diamond":true}],"type":"minecraft:crafting_shaped","pattern":["GAG","LHL","GAG"],"key":{"G":"#c:glass_blocks/colorless","A":"#c:gems/diamond","L":"#c:gems/lapis","H":"#c:chests/wooden"},"result":{"id":"skylogistics:simple_item_pipe","count":8}}
+{"type":"minecraft:crafting_shaped","pattern":["GAG","LHL","GAG"],"key":{"G":"#c:glass_blocks/colorless","A":"#c:gems/diamond","L":"#c:gems/lapis","H":"#c:chests/wooden"},"result":{"id":"skylogistics:simple_item_pipe","count":8}}
