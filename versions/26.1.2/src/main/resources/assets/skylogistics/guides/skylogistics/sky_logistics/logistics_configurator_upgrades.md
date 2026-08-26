@@ -21,7 +21,7 @@ Speed upgrades stack in one node upgrade slot. Each card adds one slot check per
 
 <RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
 
-Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and selects the lowest extractable source slot allowed by the filter. By default, `slotIndex % targetCount` maps slots across insert targets sorted from highest to lowest priority, wrapping to the top target when targets run out. Disable `transfers.orderedMatchingUpgrade.wrapTargets` to stop dispatching excess slots, or enable `transfers.orderedMatchingUpgrade.continueAfterTargetFailure` to try later slots when a mapped target rejects or is unavailable. Slotless external-network enumeration is unaffected.
+Ordered Matching Upgrades affect item nodes extracting adjacent inventories. Each transfer starts at slot 0 and selects the lowest extractable source slot allowed by the filter. By default, `slotIndex % targetCount` maps slots across insert targets sorted from highest to lowest priority. Every receiving endpoint occupies its own position; equal-priority endpoints are not merged and can map to separate source slots. Mapping wraps to the top target when targets run out. Disable `transfers.orderedMatchingUpgrade.wrapTargets` to stop dispatching excess slots, or enable `transfers.orderedMatchingUpgrade.continueAfterTargetFailure` to try later slots when a mapped target rejects or is unavailable. Slotless external-network enumeration is unaffected.
 
 <RecipeFor id="ordered_matching_upgrade" fallbackText="The ordered matching upgrade recipe is unavailable." />
 
