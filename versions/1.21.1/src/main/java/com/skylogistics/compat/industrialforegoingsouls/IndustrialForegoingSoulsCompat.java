@@ -75,7 +75,9 @@ public final class IndustrialForegoingSoulsCompat {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static void registerCapabilities(RegisterCapabilitiesEvent event,
             BlockEntityType<SkyMEInterfaceBlockEntity> type) {
-        if (!canTransfer()) return;
+        // Capability registration runs before server config values are available. Register the
+        // provider whenever the capability type exists; runtime handler creation enforces config.
+        if (!isLoaded()) return;
         try {
             BlockCapability soulCapability = (BlockCapability) capability();
             Class<?> soulHandlerType = Class.forName(
