@@ -213,6 +213,15 @@ public class SkyNodeBlock extends BaseEntityBlock {
         node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
     }
 
+    @Override
+    public void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
+            boolean moving) {
+        super.neighborChanged(state, level, pos, block, fromPos, moving);
+        if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.onRedstoneNeighborChanged();
+        }
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {

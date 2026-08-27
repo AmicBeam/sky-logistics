@@ -31,6 +31,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -224,6 +225,15 @@ public class SkyNodeBlock extends BaseEntityBlock {
         }
         if (placer instanceof Player player) SkyPlayerLines.claimOwner(level.getServer(), node.getLineId(), player);
         node.setFaceMode(targetDirection, placementMode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT);
+    }
+
+    @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
+            Orientation orientation, boolean moving) {
+        super.neighborChanged(state, level, pos, block, orientation, moving);
+        if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.onRedstoneNeighborChanged();
+        }
     }
 
     private static VoxelShape shapeForState(BlockState state) {

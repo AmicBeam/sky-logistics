@@ -39,6 +39,7 @@
   "tooltip.skylogistics.redstone.ignore": "忽略",
   "tooltip.skylogistics.redstone.high": "有信号",
   "tooltip.skylogistics.redstone.low": "无信号",
+  "tooltip.skylogistics.redstone.pulse": "脉冲",
   "tooltip.skylogistics.configurator.unbound": "右键打开配置器。",
   "tooltip.skylogistics.configurator.line": "线路：%s",
   "tooltip.skylogistics.configurator.types": "物品：%s，流体：%s，能量：%s",

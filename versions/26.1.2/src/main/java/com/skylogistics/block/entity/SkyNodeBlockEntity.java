@@ -25,6 +25,7 @@ import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
 import com.skylogistics.util.OrderedMatchingMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.RedstonePulseLatch;
 import com.skylogistics.util.StackData;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
@@ -85,6 +86,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private NodeMode mode = NodeMode.OUTPUT;
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, RedstoneControl> redstoneControls = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, RedstonePulseLatch> redstonePulseLatches = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> priorities = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> itemSlotLimits = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> itemLimitByItems = new EnumMap<>(Direction.class);
@@ -119,6 +121,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (Direction direction : Direction.values()) {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
+            redstonePulseLatches.put(direction, new RedstonePulseLatch());
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
             itemLimitByItems.put(direction, false);
@@ -853,7 +856,32 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             return true;
         }
         boolean powered = isPoweredCached();
+        if (control == RedstoneControl.PULSE) {
+            return redstonePulseLatches.get(direction).isArmed();
+        }
         return control == RedstoneControl.HIGH ? powered : !powered;
+    }
+
+    @Override
+    public boolean consumeRedstonePulse(Direction direction) {
+        if (getRedstoneControl(direction) != RedstoneControl.PULSE
+                || !redstonePulseLatches.get(direction).consume()) {
+            return false;
+        }
+        setChanged();
+        return true;
+    }
+
+    public void onRedstoneNeighborChanged() {
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        int armedBefore = armedRedstonePulseCount();
+        redstoneCacheTick = Long.MIN_VALUE;
+        isPoweredCached();
+        if (armedRedstonePulseCount() > armedBefore) {
+            markRuntimeChanged();
+        }
     }
 
     public int getConnectedFaces() {
@@ -898,7 +926,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             }
         }
         if (getRedstoneControl(direction) != face.redstoneControl()) {
-            redstoneControls.put(direction, face.redstoneControl());
+            setRedstoneControlValue(direction, face.redstoneControl());
             runtimeChanged = true;
         }
         if (getPriority(direction) != face.priority()) {
@@ -1053,7 +1081,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 topologyChanged = true;
             }
             if (getRedstoneControl(direction) != face.redstoneControl()) {
-                redstoneControls.put(direction, face.redstoneControl());
+                setRedstoneControlValue(direction, face.redstoneControl());
                 runtimeChanged = true;
             }
             if (getPriority(direction) != face.priority()) {
@@ -1511,8 +1539,13 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public void cycleRedstoneControl(Direction direction) {
-        redstoneControls.put(direction, getRedstoneControl(direction).next());
+        setRedstoneControlValue(direction, getRedstoneControl(direction).next());
         markRuntimeChanged();
+    }
+
+    private void setRedstoneControlValue(Direction direction, RedstoneControl control) {
+        redstoneControls.put(direction, control);
+        redstonePulseLatches.get(direction).reset(isPoweredCached());
     }
 
     public void adjustPriority(Direction direction, int delta) {
@@ -1593,6 +1626,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faces.putString(direction.getSerializedName(), getFaceMode(direction).name());
             CompoundTag settings = new CompoundTag();
             settings.putString("Redstone", getRedstoneControl(direction).name());
+            if (redstonePulseLatches.get(direction).isArmed()) settings.putBoolean("PulseArmed", true);
             settings.putInt("Priority", getPriority(direction));
             settings.putInt("SlotLimit", getItemSlotLimit(direction));
             settings.putBoolean("LimitByItems", isItemLimitByItems(direction));
@@ -1720,6 +1754,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (Direction direction : Direction.values()) {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
+            redstonePulseLatches.get(direction).restoreArmed(false);
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
             itemLimitByItems.put(direction, false);
@@ -1747,6 +1782,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 }
                 CompoundTag settings = faceSettings.getCompoundOrEmpty(direction.getSerializedName());
                 redstoneControls.put(direction, RedstoneControl.byName(settings.getStringOr("Redstone", "")));
+                redstonePulseLatches.get(direction).restoreArmed(settings.getBooleanOr("PulseArmed", false));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getIntOr("Priority", 0))));
                 if (settings.contains("OrderedMatchingCursor")) {
                     orderedMatchingCursors.put(direction,
@@ -2017,7 +2053,23 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (redstoneCacheTick != gameTime) {
             redstonePoweredCache = level.hasNeighborSignal(worldPosition);
             redstoneCacheTick = gameTime;
+            for (Direction direction : Direction.values()) {
+                if (getRedstoneControl(direction) == RedstoneControl.PULSE) {
+                    redstonePulseLatches.get(direction).sample(redstonePoweredCache);
+                }
+            }
         }
         return redstonePoweredCache;
+    }
+
+    private int armedRedstonePulseCount() {
+        int count = 0;
+        for (Direction direction : Direction.values()) {
+            if (getRedstoneControl(direction) == RedstoneControl.PULSE
+                    && redstonePulseLatches.get(direction).isArmed()) {
+                count++;
+            }
+        }
+        return count;
     }
 }

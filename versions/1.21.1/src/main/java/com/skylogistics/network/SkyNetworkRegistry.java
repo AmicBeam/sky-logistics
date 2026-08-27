@@ -2181,6 +2181,7 @@ public final class SkyNetworkRegistry {
 
         public void recordItemSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             itemFailures = 0;
             itemRetryAfter = 0L;
             itemSourceMisses = 0;
@@ -2570,6 +2571,7 @@ public final class SkyNetworkRegistry {
 
         public void recordFluidSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             fluidFailures = 0;
             fluidRetryAfter = 0L;
             fluidSourceMisses = 0;
@@ -2751,6 +2753,7 @@ public final class SkyNetworkRegistry {
 
         public void recordChemicalSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             chemicalFailures = 0;
             chemicalRetryAfter = 0L;
             chemicalSourceMisses = 0;
@@ -2938,12 +2941,14 @@ public final class SkyNetworkRegistry {
 
         public void recordEnergySuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             energyFailures = 0;
             energyRetryAfter = 0L;
         }
 
         public void recordSoulSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             soulFailures = 0;
             soulRetryAfter = 0L;
         }
@@ -2960,6 +2965,7 @@ public final class SkyNetworkRegistry {
 
         public void recordManaSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             manaFailures = 0;
             manaRetryAfter = 0L;
         }
@@ -2971,6 +2977,7 @@ public final class SkyNetworkRegistry {
 
         public void recordSourceSuccess() {
             node.recordRecentTransfer(direction);
+            node.consumeRedstonePulse(direction);
             sourceFailures = 0;
             sourceRetryAfter = 0L;
         }

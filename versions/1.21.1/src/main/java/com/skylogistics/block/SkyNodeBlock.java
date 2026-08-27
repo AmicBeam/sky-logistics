@@ -229,6 +229,15 @@ public class SkyNodeBlock extends BaseEntityBlock {
     }
 
     @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
+            boolean moving) {
+        super.neighborChanged(state, level, pos, block, fromPos, moving);
+        if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.onRedstoneNeighborChanged();
+        }
+    }
+
+    @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
             node.dropUpgrades();
