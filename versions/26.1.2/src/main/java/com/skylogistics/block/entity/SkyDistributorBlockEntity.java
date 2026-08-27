@@ -9,6 +9,7 @@ import com.skylogistics.compat.distributor.AdaptiveRoutingConfig;
 import com.skylogistics.compat.distributor.AdaptiveTargetProbeScheduler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributorInsertMode;
+import com.skylogistics.compat.distributor.DistributorLoadRefresh;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
@@ -18,6 +19,7 @@ import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.storage.FluidStackKey;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -82,6 +85,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private long scanBudgetTick = Long.MIN_VALUE;
     private int remainingScanOperations;
     private int discoveryCursor;
+    private final DistributorLoadRefresh loadRefresh = new DistributorLoadRefresh();
     private ItemInsertPlan itemInsertPlan;
     private boolean itemInsertPlanAwaitingExecution;
     private ItemExtractPlan itemExtractPlan;
@@ -109,6 +113,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             mana[index] = new DistributedManaHandler(new ManaLookup(direction));
             source[index] = new DistributedSourceHandler(new SourceLookup(direction));
         }
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        loadRefresh.schedule();
     }
     public void invalidateTargets() {
         Arrays.fill(targetsDirty, true);
@@ -147,8 +157,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
         highlightSnapshot = createTargetSnapshot(cache);
+        if (topologyChanged) wakeAccessLine(side);
         if (resetScan) {
             clearSelectedSideCaches();
+        }
+    }
+
+    private void wakeAccessLine(Direction side) {
+        if (level instanceof ServerLevel serverLevel
+                && level.getBlockEntity(worldPosition.relative(side)) instanceof NetworkEndpointBlockEntity) {
+            SkyNetworkRegistry.markRuntimeDirty(serverLevel, worldPosition.relative(side));
         }
     }
 
@@ -432,6 +450,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private void continueDiscovery() {
+        if (loadRefresh.consume()) {
+            refreshTargets();
+            return;
+        }
         for (int offset = 0; offset < DIRECTIONS.length; offset++) {
             int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
             if (!activeTargetSides[index]
