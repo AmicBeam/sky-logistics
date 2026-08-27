@@ -116,6 +116,7 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public ItemStack getFaceFilter(Direction direction, int slot) { return ItemStack.EMPTY; }
     public boolean isFaceRedstoneAllowed(Direction direction) { return true; }
     public RedstoneControl getRedstoneControl(Direction direction) { return RedstoneControl.IGNORE; }
+    public boolean consumeRedstonePulse(Direction direction) { return false; }
     public int getPriority(Direction direction) { return 0; }
     public int getItemSlotLimit(Direction direction) { return ITEM_SLOT_LIMIT_UNLIMITED; }
     public int getOperationRate() { return 1; }

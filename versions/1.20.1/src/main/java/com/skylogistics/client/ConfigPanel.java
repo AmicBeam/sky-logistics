@@ -12,6 +12,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
 
 final class ConfigPanel {
     static final int BG = 0xFFC6C6C6;
@@ -102,6 +103,10 @@ final class ConfigPanel {
     }
 
     static void drawRedstoneIcon(GuiGraphics graphics, int x, int y, RedstoneControl control) {
+        if (control == RedstoneControl.PULSE) {
+            graphics.renderItem(Items.STONE_BUTTON.getDefaultInstance(), x, y);
+            return;
+        }
         ResourceLocation texture = new ResourceLocation("skylogistics",
                 "textures/gui/configurator/redstone_" + control.getSerializedName() + ".png");
         graphics.blit(texture, x, y, 0, 0, 16, 16, 16, 16);

@@ -31,6 +31,7 @@ public class SkyNecklaceItem extends Item {
     private static final String MODE = "SkyNecklaceMode";
     private static final String FILTER = "SkyNecklaceFilter";
     private static final String INSERT_SLOTS = "SkyNecklaceInsertSlots";
+    private static final String MAINTAIN_ITEMS = "SkyNecklaceMaintainItems";
     private static final String PRIORITY = "SkyNecklacePriority";
     private static final String UPGRADES = "SkyNecklaceUpgrades";
     private static final String UPGRADE_SLOT = "Slot";
@@ -78,15 +79,14 @@ public class SkyNecklaceItem extends Item {
             tooltip.accept(Component.translatable("tooltip.skylogistics.sky_necklace.filter",
                     FilterListItem.countItemRules(filter)).withStyle(ChatFormatting.GRAY));
         }
-        tooltip.accept(Component.translatable("tooltip.skylogistics.sky_necklace.insert_slots",
-                insertSlotsDisplay(stack)).withStyle(ChatFormatting.GRAY));
+        tooltip.accept(Component.translatable("tooltip.skylogistics.sky_necklace.maintain_amount",
+                maintainAmount(stack), Component.translatable(maintainByItems(stack)
+                        ? "screen.skylogistics.sky_necklace.unit.items"
+                        : "screen.skylogistics.sky_necklace.unit.slots")).withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable("tooltip.skylogistics.sky_necklace.priority",
                 priority(stack)).withStyle(ChatFormatting.GRAY));
         if (hasDimensionUpgrade(stack)) tooltip.accept(Component.translatable(
                 "tooltip.skylogistics.sky_necklace.dimension_upgrade").withStyle(ChatFormatting.LIGHT_PURPLE));
-        if (hasExactQuantityUpgrade(stack)) tooltip.accept(Component.translatable(
-                "tooltip.skylogistics.sky_necklace.exact_quantity", exactQuantity(stack))
-                .withStyle(ChatFormatting.LIGHT_PURPLE));
         if (!filter.isEmpty()) {
             HolderLookup.Provider registries = context.registries() == null
                     ? StackData.builtinRegistries() : context.registries();
@@ -107,11 +107,16 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static int insertSlots(ItemStack stack) {
+        return maintainByItems(stack) ? MIN_INSERT_SLOTS : maintainAmount(stack);
+    }
+
+    public static int maintainAmount(ItemStack stack) {
         CompoundTag tag = StackData.get(stack);
         if (tag == null || !tag.contains(INSERT_SLOTS)) {
             return MIN_INSERT_SLOTS;
         }
-        return clampInsertSlots(tag.getIntOr(INSERT_SLOTS, 0));
+        int amount = Math.max(MIN_INSERT_SLOTS, tag.getIntOr(INSERT_SLOTS, 0));
+        return maintainByItems(stack) ? amount : clampInsertSlots(amount);
     }
 
     public static Component insertSlotsDisplay(ItemStack stack) {
@@ -121,12 +126,22 @@ public class SkyNecklaceItem extends Item {
                 : Component.literal(String.valueOf(slots));
     }
 
-    public static void adjustInsertSlots(ItemStack stack, int delta) {
-        setInsertSlots(stack, insertSlots(stack) + delta);
+    public static boolean maintainByItems(ItemStack stack) {
+        CompoundTag tag = StackData.get(stack);
+        return tag != null && tag.getBooleanOr(MAINTAIN_ITEMS, false);
     }
 
-    public static void setInsertSlots(ItemStack stack, int slots) {
-        StackData.update(stack, tag -> tag.putInt(INSERT_SLOTS, clampInsertSlots(slots)));
+    public static void setMaintainByItems(ItemStack stack, boolean items) {
+        int amount = maintainAmount(stack);
+        StackData.update(stack, tag -> {
+            tag.putBoolean(MAINTAIN_ITEMS, items);
+            tag.putInt(INSERT_SLOTS, items ? amount : clampInsertSlots(amount));
+        });
+    }
+
+    public static void setMaintainAmount(ItemStack stack, int amount) {
+        int clamped = maintainByItems(stack) ? Math.max(0, amount) : clampInsertSlots(amount);
+        StackData.update(stack, tag -> tag.putInt(INSERT_SLOTS, clamped));
     }
 
     public static int priority(ItemStack stack) {
@@ -202,7 +217,7 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static boolean isUpgradeItem(ItemStack stack) {
-        return stack.is(ModItems.DIMENSION_UPGRADE.get()) || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get());
+        return stack.is(ModItems.DIMENSION_UPGRADE.get());
     }
 
     public static ItemStack getUpgrade(ItemStack necklace, int slot) {
@@ -245,24 +260,6 @@ public class SkyNecklaceItem extends Item {
     }
 
     public static boolean hasDimensionUpgrade(ItemStack necklace) { return hasUpgrade(necklace, ModItems.DIMENSION_UPGRADE.get()); }
-    public static boolean hasExactQuantityUpgrade(ItemStack necklace) { return hasUpgrade(necklace, ModItems.EXACT_QUANTITY_UPGRADE.get()); }
-    public static int exactQuantity(ItemStack necklace) {
-        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) {
-            ItemStack upgrade = getUpgrade(necklace, i);
-            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
-        }
-        return ExactQuantityUpgrade.DEFAULT;
-    }
-    public static void setExactQuantity(ItemStack necklace, int amount) {
-        for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) {
-            ItemStack upgrade = getUpgrade(necklace, i);
-            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
-                ExactQuantityUpgrade.setAmount(upgrade, amount);
-                setUpgrade(necklace, i, upgrade);
-                return;
-            }
-        }
-    }
     private static boolean hasUpgrade(ItemStack necklace, Item item) {
         for (int i = 0; i < SkyNecklaceMenu.UPGRADE_SLOTS; i++) if (getUpgrade(necklace, i).is(item)) return true;
         return false;

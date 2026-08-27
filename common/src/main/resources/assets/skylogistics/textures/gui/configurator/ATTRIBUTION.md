@@ -10,3 +10,4 @@ The local state mapping is:
 - Sky Logistics `IGNORE` -> unlit redstone dust
 - Sky Logistics `HIGH` -> lit redstone torch
 - Sky Logistics `LOW` -> unlit redstone torch
+- Sky Logistics `PULSE` -> Minecraft's rendered stone button item

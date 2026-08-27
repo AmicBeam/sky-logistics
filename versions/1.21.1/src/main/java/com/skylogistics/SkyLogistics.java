@@ -44,6 +44,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
 
 @Mod(SkyLogistics.MOD_ID)
 public class SkyLogistics {
@@ -179,5 +180,6 @@ public class SkyLogistics {
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.SKY_DIMENSION_INTERFACE.get(),
                 (blockEntity, side) -> blockEntity.exposedEnergyHandler());
         AppliedEnergisticsCompat.registerCapabilities(event, ModBlockEntities.SKY_ME_INTERFACE.get());
+        IndustrialForegoingSoulsCompat.registerCapabilities(event, ModBlockEntities.SKY_ME_INTERFACE.get());
     }
 }

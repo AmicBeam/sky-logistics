@@ -45,7 +45,6 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putString("LineName", node.getLineName());
         data.putBoolean("SpeedUpgrade", node.hasSpeedUpgrade());
         data.putBoolean("DimensionUpgrade", node.hasDimensionUpgrade());
-        data.putBoolean("ExactUpgrade", node.hasExactQuantityUpgrade());
         data.putBoolean("ForceExtractionUpgrade", node.hasForceExtractionUpgrade());
         data.putBoolean("Active", node.hasRecentTransfer());
         boolean items = false;
@@ -70,7 +69,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 resourceSummary(data.getBoolean("Items"), data.getBoolean("Fluids"), data.getBoolean("Energy"))));
         tooltip.add(Component.translatable("jade.skylogistics.upgrades",
                 upgradeSummary(data.getBoolean("SpeedUpgrade"), data.getBoolean("DimensionUpgrade"),
-                        data.getBoolean("ExactUpgrade"), data.getBoolean("ForceExtractionUpgrade"))));
+                        data.getBoolean("ForceExtractionUpgrade"))));
         tooltip.add(Component.translatable("jade.skylogistics.status",
                 Component.translatable(data.getBoolean("Active")
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
@@ -87,8 +86,8 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
                 .append(energy ? Component.translatable("screen.skylogistics.resource_short.energy") : Component.literal("-"));
     }
 
-    private static Component upgradeSummary(boolean speed, boolean dimension, boolean exact, boolean forceExtraction) {
-        if (!speed && !dimension && !exact && !forceExtraction) {
+    private static Component upgradeSummary(boolean speed, boolean dimension, boolean forceExtraction) {
+        if (!speed && !dimension && !forceExtraction) {
             return Component.translatable("jade.skylogistics.upgrade_none");
         }
         var summary = Component.empty();
@@ -101,12 +100,8 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
             }
             summary.append(Component.translatable("jade.skylogistics.upgrade_dimension_name"));
         }
-        if (exact) {
-            if (speed || dimension) summary.append(Component.literal(", "));
-            summary.append(Component.translatable("jade.skylogistics.upgrade_exact_name"));
-        }
         if (forceExtraction) {
-            if (speed || dimension || exact) summary.append(Component.literal(", "));
+            if (speed || dimension) summary.append(Component.literal(", "));
             summary.append(Component.translatable("jade.skylogistics.upgrade_force_extraction_name"));
         }
         return summary;

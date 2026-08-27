@@ -118,6 +118,11 @@ public abstract class ExternalNetworkInterfaceBlockEntity extends SkyNodeBlockEn
     }
 
     @Override
+    public boolean supportsSoulEndpoint(Direction direction) {
+        return getEndpointSoulHandler(direction, 0L) != null;
+    }
+
+    @Override
     public boolean supportsManaEndpoint(Direction direction) {
         return getEndpointManaHandler(direction, 0L) != null;
     }

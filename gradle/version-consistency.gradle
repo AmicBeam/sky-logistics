@@ -6,10 +6,15 @@ def versionRoot = { String version -> new File(repositoryRoot, "versions/${versi
 
 def registeredIds = { String version ->
     def ids = [] as Set
-    fileTree(new File(versionRoot(version), 'src/main/java/com/skylogistics/registry')) {
-        include '*.java'
+    fileTree(new File(versionRoot(version), 'src/main/java/com/skylogistics')) {
+        include 'registry/*.java'
+        include 'recipe/*Condition.java'
     }.files.each { source ->
-        (source.getText('UTF-8') =~ /(?s)\.register\(\s*"([^"]+)"/).each { match ->
+        def text = source.getText('UTF-8')
+        (text =~ /(?s)\.register\(\s*"([^"]+)"/).each { match ->
+            ids.add(match[1])
+        }
+        (text =~ /(?s)ResourceLocation\s+ID\s*=\s*new ResourceLocation\(\s*SkyLogistics\.MOD_ID\s*,\s*"([^"]+)"/).each { match ->
             ids.add(match[1])
         }
     }
@@ -76,6 +81,7 @@ tasks.register('checkVersionConsistency') {
     inputs.files(supportedVersions.collectMany { version ->
         fileTree(new File(versionRoot(version), 'src/main')) {
             include 'java/com/skylogistics/registry/*.java'
+            include 'java/com/skylogistics/recipe/*Condition.java'
             include 'java/com/skylogistics/config/SkyLogisticsConfig.java'
             include 'resources/assets/skylogistics/lang/*.json'
             include 'resources/data/skylogistics/recipe/**/*.json'
@@ -89,7 +95,14 @@ tasks.register('checkVersionConsistency') {
         def baseline = supportedVersions.first()
         def baselineRegistrations = registeredIds(baseline)
         def baselineRecipes = recipeIds(baseline)
-        def versionSpecificConfigKeys = ['allowBeyondDimensionsManaTransfer'] as Set
+        def versionSpecificConfigKeys = [
+                'allowBeyondDimensionsManaTransfer',
+                'allowBeyondDimensionsSoulTransfer',
+                'allowFluidSoulTransfer',
+                'allowAe2SoulpliedEnergisticsSoulTransfer',
+                'simpleSoulPipeTransferRate',
+                'souls'
+        ] as Set
         def baselineConfig = configKeys(baseline) - versionSpecificConfigKeys
         def baselineTranslations = translationKeys(baseline, 'en_us')
         def baselineModVersion = modVersion(baseline)

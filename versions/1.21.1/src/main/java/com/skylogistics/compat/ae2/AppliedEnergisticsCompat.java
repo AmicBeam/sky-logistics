@@ -5,6 +5,8 @@ import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -48,6 +50,7 @@ public final class AppliedEnergisticsCompat {
     private static final String MEKANISM_KEY_CLASS = "me.ramidzkh.mekae2.ae2.MekanismKey";
     private static final String MANA_KEY_CLASS = "appbot.ae2.ManaKey";
     private static final String SOURCE_KEY_CLASS = "gripe._90.arseng.me.key.SourceKey";
+    private static final String SOUL_KEY_CLASS = "com.buuz135.soulplied_energistics.applied.SoulKey";
     private static boolean warned;
     private static Object cachedSimulateAction;
     private static Object cachedModulateAction;
@@ -202,6 +205,16 @@ public final class AppliedEnergisticsCompat {
         }
     }
 
+    public static SoulHandlerBridge createSoulHandler(BlockEntity host) {
+        if (!canUseSoulpliedEnergistics()) return null;
+        try {
+            return new SoulHandler(host, Reflect.staticField(SOUL_KEY_CLASS, "INSTANCE"));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+            warn(error);
+            return null;
+        }
+    }
+
     public static boolean supportsEnergyEndpoint() {
         return canUseAppFlux() || canUseAppliedBotanics() || canUseArsEnergistique();
     }
@@ -220,6 +233,10 @@ public final class AppliedEnergisticsCompat {
 
     public static boolean supportsSourceEndpoint() {
         return canUseArsEnergistique();
+    }
+
+    public static boolean supportsSoulEndpoint() {
+        return canUseSoulpliedEnergistics();
     }
 
     public static GridNodeHandle createGridNodeHandle(BlockEntity host) {
@@ -354,6 +371,12 @@ public final class AppliedEnergisticsCompat {
         return isLoaded() && SkyLogisticsConfig.allowAe2ArsEnergistiqueSourceTransfer()
                 && SkyLogisticsConfig.allowEnergySourceTransfer()
                 && ModList.get().isLoaded(ARSENG);
+    }
+
+    private static boolean canUseSoulpliedEnergistics() {
+        return isLoaded() && IndustrialForegoingSoulsCompat.canTransfer()
+                && SkyLogisticsConfig.allowAe2SoulpliedEnergisticsSoulTransfer()
+                && IndustrialForegoingSoulsCompat.isSoulpliedEnergisticsLoaded();
     }
 
     private static Object cachedAppFluxEnergyKey;
@@ -1123,6 +1146,33 @@ public final class AppliedEnergisticsCompat {
         @Override
         public int insertSource(int amount, boolean simulate) {
             return clampInt(insertKey(host, storage(host), key, amount, simulate));
+        }
+    }
+
+    private record SoulHandler(BlockEntity host, Object key) implements SoulHandlerBridge {
+        @Override
+        public int getSoulTanks() {
+            return 1;
+        }
+
+        @Override
+        public int getSoulInTank(int tank) {
+            return tank == 0 ? clampInt(amountStored(host, storage(host), key)) : 0;
+        }
+
+        @Override
+        public int getTankCapacity(int tank) {
+            return tank == 0 && (getSoulInTank(0) > 0 || fill(1, true) > 0) ? Integer.MAX_VALUE : 0;
+        }
+
+        @Override
+        public int fill(int amount, boolean simulate) {
+            return clampInt(insertKey(host, storage(host), key, amount, simulate));
+        }
+
+        @Override
+        public int drain(int amount, boolean simulate) {
+            return clampInt(extractKey(host, storage(host), key, amount, simulate));
         }
     }
 

@@ -10,9 +10,8 @@
     }
   ],
   "type": "minecraft:crafting_shaped",
-  "pattern": ["L L", " A ", " G "],
+  "pattern": ["L L", " G ", " G "],
   "key": {
-    "A": {"tag": "forge:gems/amethyst"},
     "G": {"tag": "forge:glass/colorless"},
     "L": {"tag": "forge:gems/lapis"}
   },

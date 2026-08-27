@@ -4,6 +4,7 @@ import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,6 +18,7 @@ public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEnti
     private final AppliedEnergisticsCompat.GridNodeHandle ae2GridNode =
             AppliedEnergisticsCompat.createGridNodeHandle(this);
     private final ChemicalHandlerBridge chemicalHandler = AppliedEnergisticsCompat.createChemicalHandler(this);
+    private final SoulHandlerBridge soulHandler = AppliedEnergisticsCompat.createSoulHandler(this);
     private final ManaHandlerBridge manaHandler = AppliedEnergisticsCompat.createManaHandler(this);
     private final SourceHandlerBridge sourceHandler = AppliedEnergisticsCompat.createSourceHandler(this);
 
@@ -29,6 +31,17 @@ public class SkyMEInterfaceBlockEntity extends ExternalNetworkInterfaceBlockEnti
         return direction == ENDPOINT_DIRECTION && AppliedEnergisticsCompat.supportsChemicalEndpoint()
                 ? chemicalHandler
                 : null;
+    }
+
+    @Override
+    public SoulHandlerBridge getEndpointSoulHandler(Direction direction, long gameTime) {
+        return direction == ENDPOINT_DIRECTION && AppliedEnergisticsCompat.supportsSoulEndpoint()
+                ? soulHandler
+                : null;
+    }
+
+    public SoulHandlerBridge exposedSoulHandler() {
+        return soulHandler;
     }
 
     @Override

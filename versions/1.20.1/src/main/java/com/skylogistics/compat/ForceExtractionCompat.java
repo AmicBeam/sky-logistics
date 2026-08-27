@@ -15,21 +15,28 @@ public final class ForceExtractionCompat {
     private ForceExtractionCompat() {
     }
 
-    public static ItemStack fullSlotCandidate(SkyNodeBlockEntity node, BlockEntity blockEntity,
+    public static FullSlotCandidate fullSlotCandidate(SkyNodeBlockEntity node, BlockEntity blockEntity,
             IItemHandler handler, int slot, ItemStack simulated, int transferLimit) {
-        if (!supports(node, blockEntity, handler) || simulated.isEmpty()) return simulated;
+        boolean supported = supports(node, blockEntity, handler);
+        if (!supported || simulated.isEmpty()) return new FullSlotCandidate(simulated, supported);
         ItemStack stored = handler.getStackInSlot(slot);
         if (stored.isEmpty() || !ItemStack.isSameItemSameTags(stored, simulated)
                 || stored.getCount() > handler.getSlotLimit(slot)) {
-            return simulated;
+            return new FullSlotCandidate(simulated, true);
         }
         int count = Math.min(stored.getCount(), transferLimit);
-        return count > simulated.getCount() ? stored.copyWithCount(count) : simulated;
+        return new FullSlotCandidate(count > simulated.getCount() ? stored.copyWithCount(count) : simulated, true);
     }
 
     public static DirectExtraction extractDirect(SkyNodeBlockEntity node, BlockEntity blockEntity,
             IItemHandler handler, int slot, ItemStack expected, int amount) {
         if (!supports(node, blockEntity, handler)) return DirectExtraction.UNSUPPORTED;
+        return extractDirectSupported(handler, slot, expected, amount);
+    }
+
+    public static DirectExtraction extractDirectSupported(IItemHandler handler, int slot, ItemStack expected,
+            int amount) {
+        if (!(handler instanceof IItemHandlerModifiable)) return DirectExtraction.UNSUPPORTED;
         IItemHandlerModifiable modifiable = (IItemHandlerModifiable) handler;
         ItemStack current = handler.getStackInSlot(slot);
         if (amount <= 0 || current.isEmpty() || amount > current.getCount()
@@ -75,6 +82,9 @@ public final class ForceExtractionCompat {
     private static boolean sameStack(ItemStack first, ItemStack second) {
         return first.getCount() == second.getCount()
                 && (first.isEmpty() ? second.isEmpty() : ItemStack.isSameItemSameTags(first, second));
+    }
+
+    public record FullSlotCandidate(ItemStack stack, boolean forceExtractionSupported) {
     }
 
     public record DirectExtraction(ItemStack stack, boolean supported) {

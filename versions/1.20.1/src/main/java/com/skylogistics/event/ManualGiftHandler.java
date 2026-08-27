@@ -1,8 +1,7 @@
 package com.skylogistics.event;
 
 import com.skylogistics.SkyLogistics;
-import com.skylogistics.compat.PatchouliCompat;
-import com.skylogistics.registry.ModItems;
+import com.skylogistics.compat.ManualCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -21,12 +20,9 @@ public final class ManualGiftHandler {
             return;
         }
 
-        if (!PatchouliCompat.isLoaded()) {
-            return;
-        }
-        ItemStack toGive = new ItemStack(ModItems.SKY_LOGISTICS_MANUAL.get());
-        if (!player.addItem(toGive)) {
-            player.drop(toGive, false);
-        }
+        ManualCompat.createManualStack().ifPresent(manual -> {
+            ItemStack toGive = manual.copy();
+            if (!player.addItem(toGive)) player.drop(toGive, false);
+        });
     }
 }

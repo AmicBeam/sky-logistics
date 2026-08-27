@@ -28,6 +28,20 @@ ordering="NONE"
 side="BOTH"
 
 [[dependencies.skylogistics]]
+modId="patchouli"
+mandatory=false
+versionRange="[1,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.skylogistics]]
+modId="guideme"
+mandatory=false
+versionRange="[20.1,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.skylogistics]]
 modId="sophisticatedstorage"
 mandatory=false
 versionRange="[0,)"

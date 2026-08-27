@@ -8,6 +8,14 @@ import net.minecraft.core.Direction;
 import org.junit.jupiter.api.Test;
 
 class SkyDistributorFaceContractTest {
+    @Test void transferCursorsAreStoredPerAccessFace() throws Exception {
+        assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("itemInsertCursors").getType());
+        assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("fluidInsertCursors").getType());
+        assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("fluidDrainCursors").getType());
+        assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("energyReceiveCursors").getType());
+        assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("energyExtractCursors").getType());
+    }
+
     @Test void everyProxyHandlerRequiresTheDistributorAccessFace() throws Exception {
         assertArrayEquals(new Class<?>[] {Direction.class},
                 SkyDistributorBlockEntity.class.getMethod("itemHandler", Direction.class).getParameterTypes());

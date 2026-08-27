@@ -4,6 +4,8 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.EmptyExternalHandlers;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -58,6 +60,12 @@ public final class BeyondDimensionsCompat {
         return isLoaded() && ArsNouveauCompat.isLoaded()
                 && SkyLogisticsConfig.allowBeyondDimensionsSourceTransfer()
                 ? new SourceHandler(host) : null;
+    }
+
+    public static SoulHandlerBridge createSoulHandler(BlockEntity host) {
+        return isLoaded() && IndustrialForegoingSoulsCompat.canTransfer()
+                && SkyLogisticsConfig.allowBeyondDimensionsSoulTransfer()
+                ? new SoulHandler(host) : null;
     }
 
     public static ItemResource itemResourceInSlot(BlockEntity host, int slot) {
@@ -243,6 +251,45 @@ public final class BeyondDimensionsCompat {
         }
     }
 
+    public static long soulStored(BlockEntity host) {
+        if (!isLoaded() || !IndustrialForegoingSoulsCompat.canTransfer()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSoulTransfer()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.soulStored(host);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long insertSoul(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !IndustrialForegoingSoulsCompat.canTransfer()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSoulTransfer()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.insertSoul(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
+    public static long extractSoul(BlockEntity host, long amount, boolean simulate) {
+        if (!isLoaded() || !IndustrialForegoingSoulsCompat.canTransfer()
+                || !SkyLogisticsConfig.allowBeyondDimensionsSoulTransfer()) {
+            return 0L;
+        }
+        try {
+            return BeyondDimensionsApiBridge.extractSoul(host, amount, simulate);
+        } catch (RuntimeException | LinkageError error) {
+            warn(error);
+            return 0L;
+        }
+    }
+
     public static void bindOnPlaced(Level level, BlockPos pos, LivingEntity placer) {
         if (!isLoaded() || level.isClientSide || !(placer instanceof Player player)) {
             return;
@@ -327,6 +374,33 @@ public final class BeyondDimensionsCompat {
             SkyLogistics.LOGGER.warn(
                     "Beyond Dimensions compat is disabled because the loaded Beyond Dimensions API is not compatible.",
                     error);
+        }
+    }
+
+    private record SoulHandler(BlockEntity host) implements SoulHandlerBridge {
+        @Override
+        public int getSoulTanks() {
+            return 1;
+        }
+
+        @Override
+        public int getSoulInTank(int tank) {
+            return tank == 0 ? (int) Math.min(Integer.MAX_VALUE, soulStored(host)) : 0;
+        }
+
+        @Override
+        public int getTankCapacity(int tank) {
+            return tank == 0 ? Integer.MAX_VALUE : 0;
+        }
+
+        @Override
+        public int fill(int amount, boolean simulate) {
+            return (int) Math.min(Integer.MAX_VALUE, insertSoul(host, amount, simulate));
+        }
+
+        @Override
+        public int drain(int amount, boolean simulate) {
+            return (int) Math.min(Integer.MAX_VALUE, extractSoul(host, amount, simulate));
         }
     }
 

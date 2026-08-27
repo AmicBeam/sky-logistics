@@ -166,8 +166,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     public void setExactQuantity(Player player, int amount) {
         if (player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity node
-                && node.hasExactQuantityUpgrade()) {
-            node.setExactQuantity(amount);
+                && node.canConfigureFace(selectedFace)) {
+            node.setItemSlotLimit(selectedFace, amount);
             broadcastChanges();
         }
     }
@@ -349,6 +349,15 @@ public class SkyNodeMenu extends AbstractContainerMenu {
                 return;
             }
             node.adjustItemSlotLimit(face, 10);
+            broadcastChanges();
+            return;
+        }
+        face = faceForAction(action, MenuAction.FACE_TOGGLE_LIMIT_UNIT_BASE);
+        if (face != null) {
+            if (!node.canConfigureFace(face)) {
+                return;
+            }
+            node.toggleItemLimitUnit(face);
             broadcastChanges();
             return;
         }

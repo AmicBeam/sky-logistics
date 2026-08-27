@@ -12,15 +12,18 @@ import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
-import com.skylogistics.item.ExactQuantityUpgrade;
 import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.item.UpgradeCardItem;
 import com.skylogistics.network.SkyLineNames;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.NodeMode;
+import com.skylogistics.util.OrderedMatchingMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.RedstonePulseLatch;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -73,11 +76,17 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private NodeMode mode = NodeMode.OUTPUT;
     private final EnumMap<Direction, NodeFaceMode> faceModes = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, RedstoneControl> redstoneControls = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, RedstonePulseLatch> redstonePulseLatches = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> priorities = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Integer> itemSlotLimits = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, Boolean> itemLimitByItems = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceItemsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceFluidsEnabled = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, Boolean> faceEnergyEnabled = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, Integer> orderedMatchingCursors = new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, List<OrderedMatchingDetention>> orderedMatchingDetentions =
+            new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, OrderedMatchingBatch> orderedMatchingBatches = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, NonNullList<ItemStack>> faceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, FilterListItem.CompiledFilter[]> compiledFaceFilters = new EnumMap<>(Direction.class);
     private final EnumMap<Direction, boolean[]> compiledFaceFilterDirty = new EnumMap<>(Direction.class);
@@ -102,11 +111,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (Direction direction : Direction.values()) {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
+            redstonePulseLatches.put(direction, new RedstonePulseLatch());
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
+            itemLimitByItems.put(direction, false);
             faceItemsEnabled.put(direction, true);
             faceFluidsEnabled.put(direction, true);
             faceEnergyEnabled.put(direction, true);
+            orderedMatchingCursors.put(direction, 0);
+            orderedMatchingDetentions.put(direction, new ArrayList<>());
             faceFilters.put(direction, NonNullList.withSize(FACE_FILTER_SLOTS, ItemStack.EMPTY));
             FilterListItem.CompiledFilter[] compiled = new FilterListItem.CompiledFilter[FACE_FILTER_SLOTS];
             boolean[] dirty = new boolean[FACE_FILTER_SLOTS];
@@ -407,8 +420,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             if (!ItemStack.isSameItem(installed, stack)) {
                 continue;
             }
-            if (!stack.is(ModItems.SPEED_UPGRADE.get())
-                    || installed.getCount() >= maxUpgradeStackSize(stack)) {
+            if (installed.getCount() >= maxUpgradeStackSize(stack)) {
                 return false;
             }
             ItemStack grown = installed.copy();
@@ -503,6 +515,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             return;
         }
         upgrades.set(slot, copy);
+        orderedMatchingBatches.clear();
         markRuntimeChanged();
     }
 
@@ -567,25 +580,111 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return hasUpgrade(ModItems.DIMENSION_UPGRADE.get());
     }
 
-    public boolean hasExactQuantityUpgrade() { return hasUpgrade(ModItems.EXACT_QUANTITY_UPGRADE.get()); }
-
     public boolean hasForceExtractionUpgrade() { return hasUpgrade(ModItems.FORCE_EXTRACTION_UPGRADE.get()); }
 
-    public int exactQuantity() {
-        for (ItemStack upgrade : upgrades) if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) return ExactQuantityUpgrade.amount(upgrade);
-        return ExactQuantityUpgrade.DEFAULT;
-    }
+    public boolean hasOrderedMatchingUpgrade() { return hasUpgrade(ModItems.ORDERED_MATCHING_UPGRADE.get()); }
 
-    public void setExactQuantity(int amount) {
-        for (int slot = 0; slot < upgrades.size(); slot++) {
-            ItemStack upgrade = upgrades.get(slot);
-            if (upgrade.is(ModItems.EXACT_QUANTITY_UPGRADE.get())) {
-                ItemStack copy = upgrade.copy();
-                ExactQuantityUpgrade.setAmount(copy, amount);
-                setUpgrade(slot, copy);
-                return;
+    public OrderedMatchingMode getOrderedMatchingMode() {
+        for (ItemStack upgrade : upgrades) {
+            if (upgrade.is(ModItems.ORDERED_MATCHING_UPGRADE.get())) {
+                return UpgradeCardItem.orderedMatchingMode(upgrade);
             }
         }
+        return OrderedMatchingMode.PER_SLOT;
+    }
+
+    public int getOrderedMatchingOffset() {
+        for (ItemStack upgrade : upgrades) {
+            if (upgrade.is(ModItems.ORDERED_MATCHING_UPGRADE.get())) {
+                return UpgradeCardItem.orderedMatchingOffset(upgrade);
+            }
+        }
+        return 0;
+    }
+
+    public int getOrderedMatchingCursor(Direction direction, int targetCount) {
+        return com.skylogistics.util.OrderedMatchingPolicy.normalizeCursor(
+                orderedMatchingCursors.getOrDefault(direction, 0), targetCount);
+    }
+
+    public void setOrderedMatchingCursor(Direction direction, int cursor, int targetCount) {
+        int normalized = com.skylogistics.util.OrderedMatchingPolicy.normalizeCursor(cursor, targetCount);
+        if (orderedMatchingCursors.getOrDefault(direction, 0) == normalized) return;
+        orderedMatchingCursors.put(direction, normalized);
+        setChanged();
+    }
+
+    public OrderedMatchingBatch prepareOrderedMatchingBatch(Direction direction, int sourceSlot, ItemStack stack,
+            int targetCount, int startCursor) {
+        OrderedMatchingBatch current = orderedMatchingBatches.get(direction);
+        if (current != null && current.matches(sourceSlot, stack, targetCount)) return current;
+        OrderedMatchingBatch created = new OrderedMatchingBatch(sourceSlot, ItemStackKey.of(stack),
+                new com.skylogistics.util.OrderedMatchingPolicy.PerItemBatchPlan(stack.getCount(), targetCount,
+                        startCursor));
+        orderedMatchingBatches.put(direction, created);
+        return created;
+    }
+
+    public boolean hasOrderedMatchingBatch(Direction direction) {
+        return orderedMatchingBatches.containsKey(direction);
+    }
+
+    public void clearOrderedMatchingBatch(Direction direction) {
+        orderedMatchingBatches.remove(direction);
+    }
+
+    public OrderedMatchingDetention peekOrderedMatchingDetention(Direction direction) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        return queue == null || queue.isEmpty() ? null : queue.get(0);
+    }
+
+    public int orderedMatchingDetentionCount(Direction direction) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        return queue == null ? 0 : queue.size();
+    }
+
+    public int orderedMatchingReservedItems(Direction direction, int sourceSlot, ItemStack stack) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || queue.isEmpty() || stack.isEmpty()) return 0;
+        ItemStackKey key = ItemStackKey.of(stack);
+        int reserved = 0;
+        for (OrderedMatchingDetention detention : queue) {
+            if (detention.sourceSlot() == sourceSlot && detention.item().equals(key)) reserved++;
+        }
+        return reserved;
+    }
+
+    public boolean enqueueOrderedMatchingDetention(Direction direction, int sourceSlot, int targetIndex,
+            ItemStack stack, int capacity) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || stack.isEmpty()
+                || !com.skylogistics.util.OrderedMatchingPolicy.canEnqueueDetention(queue.size(), capacity)) return false;
+        queue.add(new OrderedMatchingDetention(sourceSlot, Math.max(0, targetIndex), ItemStackKey.of(stack)));
+        setChanged();
+        return true;
+    }
+
+    public void removeOrderedMatchingDetention(Direction direction, OrderedMatchingDetention detention) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue != null && queue.remove(detention)) setChanged();
+    }
+
+    public void rotateOrderedMatchingDetention(Direction direction, OrderedMatchingDetention detention) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null || queue.size() < 2 || !queue.remove(detention)) return;
+        queue.add(detention);
+        setChanged();
+    }
+
+    public void trimOrderedMatchingDetentions(Direction direction, int capacity) {
+        List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+        if (queue == null) return;
+        boolean changed = false;
+        while (queue.size() > Math.max(0, capacity)) {
+            queue.remove(queue.size() - 1);
+            changed = true;
+        }
+        if (changed) setChanged();
     }
 
     public boolean hasUpgrade(Item item) {
@@ -600,8 +699,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     public static boolean isUpgradeItem(ItemStack stack) {
         return stack.is(ModItems.SPEED_UPGRADE.get())
                 || stack.is(ModItems.DIMENSION_UPGRADE.get())
-                || stack.is(ModItems.EXACT_QUANTITY_UPGRADE.get())
-                || stack.is(ModItems.FORCE_EXTRACTION_UPGRADE.get());
+                || stack.is(ModItems.FORCE_EXTRACTION_UPGRADE.get())
+                || stack.is(ModItems.ORDERED_MATCHING_UPGRADE.get());
     }
 
     public static boolean isFaceFilterItem(ItemStack stack) {
@@ -692,22 +791,26 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         boolean endpointFluids = isFluidsEnabled(endpoint);
         boolean endpointEnergy = energyAllowed && isEnergyEnabled(endpoint);
         int endpointSlotLimit = getItemSlotLimit(endpoint);
+        boolean endpointLimitByItems = isItemLimitByItems(endpoint);
         for (Direction direction : Direction.values()) {
             NodeFaceMode newMode = direction == endpoint ? endpointMode : NodeFaceMode.NONE;
             boolean newItems = direction == endpoint && endpointItems;
             boolean newFluids = direction == endpoint && endpointFluids;
             boolean newEnergy = direction == endpoint && endpointEnergy;
             int newSlotLimit = direction == endpoint ? endpointSlotLimit : ITEM_SLOT_LIMIT_UNLIMITED;
+            boolean newLimitByItems = direction == endpoint && endpointLimitByItems;
             changed |= getFaceMode(direction) != newMode;
             changed |= isItemsEnabled(direction) != newItems;
             changed |= isFluidsEnabled(direction) != newFluids;
             changed |= isEnergyEnabled(direction) != newEnergy;
             changed |= getItemSlotLimit(direction) != newSlotLimit;
+            changed |= isItemLimitByItems(direction) != newLimitByItems;
             faceModes.put(direction, newMode);
             faceItemsEnabled.put(direction, newItems);
             faceFluidsEnabled.put(direction, newFluids);
             faceEnergyEnabled.put(direction, newEnergy);
             itemSlotLimits.put(direction, newSlotLimit);
+            itemLimitByItems.put(direction, newLimitByItems);
         }
         itemsEnabled = endpointItems;
         fluidsEnabled = endpointFluids;
@@ -742,13 +845,42 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return itemSlotLimits.getOrDefault(direction, ITEM_SLOT_LIMIT_UNLIMITED);
     }
 
+    public boolean isItemLimitByItems(Direction direction) {
+        return itemLimitByItems.getOrDefault(direction, false);
+    }
+
     public boolean isFaceRedstoneAllowed(Direction direction) {
         RedstoneControl control = getRedstoneControl(direction);
         if (control == RedstoneControl.IGNORE) {
             return true;
         }
         boolean powered = isPoweredCached();
+        if (control == RedstoneControl.PULSE) {
+            return redstonePulseLatches.get(direction).isArmed();
+        }
         return control == RedstoneControl.HIGH ? powered : !powered;
+    }
+
+    @Override
+    public boolean consumeRedstonePulse(Direction direction) {
+        if (getRedstoneControl(direction) != RedstoneControl.PULSE
+                || !redstonePulseLatches.get(direction).consume()) {
+            return false;
+        }
+        setChanged();
+        return true;
+    }
+
+    public void onRedstoneNeighborChanged() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        int armedBefore = armedRedstonePulseCount();
+        redstoneCacheTick = Long.MIN_VALUE;
+        isPoweredCached();
+        if (armedRedstonePulseCount() > armedBefore) {
+            markRuntimeChanged();
+        }
     }
 
     public int getConnectedFaces() {
@@ -793,15 +925,16 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             }
         }
         if (getRedstoneControl(direction) != face.redstoneControl()) {
-            redstoneControls.put(direction, face.redstoneControl());
+            setRedstoneControlValue(direction, face.redstoneControl());
             runtimeChanged = true;
         }
         if (getPriority(direction) != face.priority()) {
             priorities.put(direction, face.priority());
             priorityChanged = true;
         }
-        if (getItemSlotLimit(direction) != face.slotLimit()) {
+        if (getItemSlotLimit(direction) != face.slotLimit() || isItemLimitByItems(direction)) {
             itemSlotLimits.put(direction, face.slotLimit());
+            itemLimitByItems.put(direction, false);
             runtimeChanged = true;
         }
         if (config.hasCopiedFaces() && applyFaceFilters(direction, face)) {
@@ -944,15 +1077,16 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 topologyChanged = true;
             }
             if (getRedstoneControl(direction) != face.redstoneControl()) {
-                redstoneControls.put(direction, face.redstoneControl());
+                setRedstoneControlValue(direction, face.redstoneControl());
                 runtimeChanged = true;
             }
             if (getPriority(direction) != face.priority()) {
                 priorities.put(direction, face.priority());
                 priorityChanged = true;
             }
-            if (getItemSlotLimit(direction) != face.slotLimit()) {
+            if (getItemSlotLimit(direction) != face.slotLimit() || isItemLimitByItems(direction)) {
                 itemSlotLimits.put(direction, face.slotLimit());
+                itemLimitByItems.put(direction, false);
                 runtimeChanged = true;
             }
             if (applyFaceFilters(direction, face)) {
@@ -966,44 +1100,38 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
-        installCopiedSpeedUpgrades(config.speedUpgradeCount(), player);
-        installCopiedUpgrade(config.dimensionUpgrade(), ModItems.DIMENSION_UPGRADE.get(), player);
-    }
-
-    private void installCopiedSpeedUpgrades(int requestedCount, Player player) {
-        int targetCount = Math.min(Math.max(0, requestedCount), SkyLogisticsConfig.maxSpeedUpgradesPerNode());
-        while (speedUpgradeCount() < targetCount) {
-            if (speedUpgradeCount() == 0 && upgrades.stream().noneMatch(ItemStack::isEmpty)) {
-                break;
+        for (ItemStack requested : config.upgrades()) {
+            if (!isUpgradeItem(requested)) {
+                continue;
             }
-            if (!consumeUpgradeFromPlayer(player, ModItems.SPEED_UPGRADE.get())) {
-                break;
-            }
-            if (!addSingleUpgrade(new ItemStack(ModItems.SPEED_UPGRADE.get()))) {
-                break;
+            int targetCount = Math.min(requested.getCount(), maxUpgradeStackSize(requested));
+            while (upgradeCount(requested.getItem()) < targetCount && canAddSingleUpgrade(requested)) {
+                if (!consumeUpgradeFromPlayer(player, requested.getItem())) {
+                    break;
+                }
+                if (!addSingleUpgrade(requested)) {
+                    break;
+                }
             }
         }
     }
 
-    private void installCopiedUpgrade(boolean shouldInstall, Item item, Player player) {
-        if (!shouldInstall || hasUpgrade(item)) {
-            return;
-        }
-        int slot = firstUpgradeSlotFor(item);
-        if (slot < 0 || !consumeUpgradeFromPlayer(player, item)) {
-            return;
-        }
-        setUpgrade(slot, new ItemStack(item));
-    }
-
-    private int firstUpgradeSlotFor(Item item) {
-        ItemStack stack = new ItemStack(item);
-        for (int slot = 0; slot < upgrades.size(); slot++) {
-            if (canAcceptUpgrade(slot, stack)) {
-                return slot;
+    private int upgradeCount(Item item) {
+        for (ItemStack installed : upgrades) {
+            if (installed.is(item)) {
+                return installed.getCount();
             }
         }
-        return -1;
+        return 0;
+    }
+
+    private boolean canAddSingleUpgrade(ItemStack stack) {
+        for (ItemStack installed : upgrades) {
+            if (ItemStack.isSameItem(installed, stack)) {
+                return installed.getCount() < maxUpgradeStackSize(stack);
+            }
+        }
+        return upgrades.stream().anyMatch(ItemStack::isEmpty);
     }
 
     private static boolean consumeUpgradeFromPlayer(Player player, Item item) {
@@ -1407,8 +1535,13 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public void cycleRedstoneControl(Direction direction) {
-        redstoneControls.put(direction, getRedstoneControl(direction).next());
+        setRedstoneControlValue(direction, getRedstoneControl(direction).next());
         markRuntimeChanged();
+    }
+
+    private void setRedstoneControlValue(Direction direction, RedstoneControl control) {
+        redstoneControls.put(direction, control);
+        redstonePulseLatches.get(direction).reset(isPoweredCached());
     }
 
     public void adjustPriority(Direction direction, int delta) {
@@ -1425,11 +1558,20 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public void setItemSlotLimit(Direction direction, int limit) {
-        int clamped = clampItemSlotLimit(limit);
+        int clamped = isItemLimitByItems(direction) ? Math.max(0, limit) : clampItemSlotLimit(limit);
         if (getItemSlotLimit(direction) == clamped) {
             return;
         }
         itemSlotLimits.put(direction, clamped);
+        markRuntimeChanged();
+    }
+
+    public void toggleItemLimitUnit(Direction direction) {
+        boolean byItems = !isItemLimitByItems(direction);
+        itemLimitByItems.put(direction, byItems);
+        if (!byItems) {
+            itemSlotLimits.put(direction, clampItemSlotLimit(getItemSlotLimit(direction)));
+        }
         markRuntimeChanged();
     }
 
@@ -1474,11 +1616,24 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             faces.putString(direction.getSerializedName(), getFaceMode(direction).name());
             CompoundTag settings = new CompoundTag();
             settings.putString("Redstone", getRedstoneControl(direction).name());
+            if (redstonePulseLatches.get(direction).isArmed()) settings.putBoolean("PulseArmed", true);
             settings.putInt("Priority", getPriority(direction));
             settings.putInt("SlotLimit", getItemSlotLimit(direction));
+            settings.putBoolean("LimitByItems", isItemLimitByItems(direction));
             settings.putBoolean("ItemsEnabled", isItemsEnabled(direction));
             settings.putBoolean("FluidsEnabled", isFluidsEnabled(direction));
             settings.putBoolean("EnergyEnabled", isEnergyEnabled(direction));
+            int orderedMatchingCursor = orderedMatchingCursors.getOrDefault(direction, 0);
+            if (orderedMatchingCursor != 0) settings.putInt("OrderedMatchingCursor", orderedMatchingCursor);
+            ListTag detentionTags = new ListTag();
+            for (OrderedMatchingDetention detention : orderedMatchingDetentions.get(direction)) {
+                CompoundTag entry = new CompoundTag();
+                entry.putInt("SourceSlot", detention.sourceSlot());
+                entry.putInt("TargetIndex", detention.targetIndex());
+                entry.put("Item", detention.item().save());
+                detentionTags.add(entry);
+            }
+            if (!detentionTags.isEmpty()) settings.put("OrderedMatchingDetentions", detentionTags);
             ListTag filterTags = new ListTag();
             NonNullList<ItemStack> filters = faceFilters.get(direction);
             if (filters != null) {
@@ -1583,12 +1738,17 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         for (Direction direction : Direction.values()) {
             faceModes.put(direction, NodeFaceMode.NONE);
             redstoneControls.put(direction, RedstoneControl.IGNORE);
+            redstonePulseLatches.get(direction).restoreArmed(false);
             priorities.put(direction, 0);
             itemSlotLimits.put(direction, ITEM_SLOT_LIMIT_UNLIMITED);
+            itemLimitByItems.put(direction, false);
             faceItemsEnabled.put(direction, itemsEnabled);
             faceFluidsEnabled.put(direction, fluidsEnabled);
             faceEnergyEnabled.put(direction, energyEnabled);
+            orderedMatchingCursors.put(direction, 0);
+            orderedMatchingDetentions.get(direction).clear();
         }
+        orderedMatchingBatches.clear();
         if (tag.contains("Faces", Tag.TAG_COMPOUND)) {
             CompoundTag faces = tag.getCompound("Faces");
             for (Direction direction : Direction.values()) {
@@ -1606,9 +1766,28 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 }
                 CompoundTag settings = faceSettings.getCompound(direction.getSerializedName());
                 redstoneControls.put(direction, RedstoneControl.byName(settings.getString("Redstone")));
+                redstonePulseLatches.get(direction).restoreArmed(settings.getBoolean("PulseArmed"));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getInt("Priority"))));
+                if (settings.contains("OrderedMatchingCursor")) {
+                    orderedMatchingCursors.put(direction, Math.max(0, settings.getInt("OrderedMatchingCursor")));
+                }
+                if (settings.contains("OrderedMatchingDetentions", Tag.TAG_LIST)) {
+                    ListTag detentionTags = settings.getList("OrderedMatchingDetentions", Tag.TAG_COMPOUND);
+                    List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
+                    for (int i = 0; i < detentionTags.size(); i++) {
+                        CompoundTag entry = detentionTags.getCompound(i);
+                        ItemStackKey item = ItemStackKey.load(entry.getCompound("Item"));
+                        if (item.item() != net.minecraft.world.item.Items.AIR) {
+                            queue.add(new OrderedMatchingDetention(Math.max(0, entry.getInt("SourceSlot")),
+                                    Math.max(0, entry.getInt("TargetIndex")), item));
+                        }
+                    }
+                }
                 if (settings.contains("SlotLimit")) {
-                    itemSlotLimits.put(direction, clampItemSlotLimit(settings.getInt("SlotLimit")));
+                    boolean byItems = settings.getBoolean("LimitByItems");
+                    itemLimitByItems.put(direction, byItems);
+                    int limit = settings.getInt("SlotLimit");
+                    itemSlotLimits.put(direction, byItems ? Math.max(0, limit) : clampItemSlotLimit(limit));
                 }
                 if (settings.contains("ItemsEnabled")) {
                     faceItemsEnabled.put(direction, settings.getBoolean("ItemsEnabled"));
@@ -1633,6 +1812,31 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         itemsEnabled = allFacesEnabled(faceItemsEnabled);
         fluidsEnabled = allFacesEnabled(faceFluidsEnabled);
         energyEnabled = allFacesEnabled(faceEnergyEnabled);
+    }
+
+    public record OrderedMatchingDetention(int sourceSlot, int targetIndex, ItemStackKey item) {
+    }
+
+    public static final class OrderedMatchingBatch {
+        private final int sourceSlot;
+        private final ItemStackKey item;
+        private final com.skylogistics.util.OrderedMatchingPolicy.PerItemBatchPlan plan;
+
+        private OrderedMatchingBatch(int sourceSlot, ItemStackKey item,
+                com.skylogistics.util.OrderedMatchingPolicy.PerItemBatchPlan plan) {
+            this.sourceSlot = sourceSlot;
+            this.item = item;
+            this.plan = plan;
+        }
+
+        private boolean matches(int sourceSlot, ItemStack stack, int targetCount) {
+            return this.sourceSlot == sourceSlot && !stack.isEmpty() && item.equals(ItemStackKey.of(stack))
+                    && plan.targetCount() == targetCount && stack.getCount() >= plan.remainingAmount();
+        }
+
+        public com.skylogistics.util.OrderedMatchingPolicy.PerItemBatchPlan plan() {
+            return plan;
+        }
     }
 
     @Override
@@ -1827,7 +2031,23 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         if (redstoneCacheTick != gameTime) {
             redstonePoweredCache = level.hasNeighborSignal(worldPosition);
             redstoneCacheTick = gameTime;
+            for (Direction direction : Direction.values()) {
+                if (getRedstoneControl(direction) == RedstoneControl.PULSE) {
+                    redstonePulseLatches.get(direction).sample(redstonePoweredCache);
+                }
+            }
         }
         return redstonePoweredCache;
+    }
+
+    private int armedRedstonePulseCount() {
+        int count = 0;
+        for (Direction direction : Direction.values()) {
+            if (getRedstoneControl(direction) == RedstoneControl.PULSE
+                    && redstonePulseLatches.get(direction).isArmed()) {
+                count++;
+            }
+        }
+        return count;
     }
 }

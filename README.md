@@ -18,13 +18,13 @@ Celestial-themed logistics for Minecraft. Sky Logistics moves items, fluids, ene
 - **Simple local pipes**: affordable item, fluid, and energy pipes automatically connect to compatible adjacent containers and neighboring pipes of the same type. Each connected group forms a bounded local line with no line setup, GUI, or hidden buffer.
 - **Fast placement and adjustment**: normal placement creates an insert endpoint on the clicked container, while sneak-placement creates an extract endpoint. The Sky Configurator switches pipe endpoints between insert and extract; the Celestial Wrench and compatible tagged wrenches disconnect or reconnect individual pipe sides.
 - **High throughput**: normal nodes scan 1 slot/t, and each stacked Speed Upgrade adds one more. Up to 8 cards fit in one upgrade slot by default, reaching 9 slots/t. Standard item and FE operations use a configurable 2.1B-class limit. Direct transfers between long-capable storage endpoints can use a configurable limit of up to approximately 9.22e18 per operation. By default, each extracting simple pipe can move 64 items, 10,000 mB of fluid, 100,000 FE, 10,000 chemical units, 50 mana, or 50 Source per tick.
-- **Multi-container access**: the Celestial Distributor lets one connected logistics node or simple pipe interact with a group of connected compatible containers. Incoming resources are divided as evenly as possible among accepting targets, while extraction aggregates available resources. A distributor supports 16 targets by default, configurable up to 64.
+- **Multi-container access**: the Celestial Distributor lets one connected logistics node or simple pipe interact with a group of connected compatible containers. Incoming resources are divided as evenly as possible among accepting targets by default; while powered by redstone, they are stored sequentially in cursor order instead. Extraction aggregates available resources. A distributor supports 32 targets by default, configurable up to 64.
 - **Built-in high-stack storage**: Celestial Item Vaults and Celestial Fluid Vaults aggregate resources by type. Each type can hold approximately 9.22e18 units in searchable terminal-style interfaces, while type limits remain expandable and configurable.
-- **Inventory and backpack interaction**: the Sky Necklace adds portable extract, insert, and maintain modes between logistics lines, the player inventory, and supported Sophisticated Backpack inventories. Its two upgrade slots accept Dimension and Exact Quantity Upgrades.
+- **Inventory and backpack interaction**: the Sky Necklace adds portable extract, insert, and maintain modes between logistics lines, the player inventory, and supported Sophisticated Backpack inventories. Its maintain target is directly editable and can count either items or occupied slots.
 - **Precise stock control**: the exact-quantity upgrade replaces matching-slot retention with an editable item total from 1 to `Integer.MAX_VALUE` on nodes and necklaces.
 - **Chemical filtering**: on Mekanism-capable versions, chemical ingredients can be dragged from JEI into ordinary filter lists and are enforced at both ends of chemical transfers.
-- **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
-- **Extended resources**: Mekanism chemicals use fluid-enabled faces and pipes. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes, but move only between matching handlers and are never converted to FE.
+- **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, GuideME, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
+- **Extended resources**: Mekanism chemicals and, on 1.21.1, Warden Souls use fluid-enabled faces and pipes with independent transfer limits. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes; extended resources move only between matching handlers.
 - **AStages progression**: on Minecraft 1.20.1 and 1.21.1, servers can optionally limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration requires AStages 2.x and is disabled by default.
 
 ## Requirements
@@ -47,13 +47,15 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
   - NeoForge 21.1+
   - Jade 15+ (optional)
   - JEI 19+ (optional, client side)
-  - Patchouli 1+ (optional)
+  - GuideME 20.1+/21.1+/26.1+ or Patchouli 1+ (optional manual providers)
   - Mekanism 10.7+ (optional)
   - Ars Nouveau 5.x (optional)
   - Curios 9+ (optional)
   - Sophisticated Backpacks 3.25+ (optional)
   - AStages 2.x (optional, disabled by default)
   - AE2 19+ (optional)
+  - Industrial Foregoing: Souls 1.10.3+ and Soulplied Energistics 1.0.3+ (optional Warden Soul transport)
+  - AppliedSoul (optional AE Warden Soul storage cells; uses Soulplied Energistics' Soul Key)
   - Refined Storage 2+ (optional)
   - Beyond Dimensions 0.7.6+ (optional)
 - **NeoForge (Minecraft 26.1.2)**: use `versions/26.1.2`
@@ -78,7 +80,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 5. Place Celestial Item Vaults or Celestial Fluid Vaults as aggregate storage endpoints.
 6. Place Sky Logistics Nodes against machines, vaults, distributors, or external storage interfaces. Normal placement creates insert mode, while sneak-placement creates extract mode.
 7. Use the Sky Configurator to create and manage named lines, copy and paste node settings, and preset newly placed nodes from the offhand.
-8. Add Filter Lists, Tag Filter Lists, Speed Upgrades, Dimension Upgrades, and Exact Quantity Upgrades as needed.
+8. Add Filter Lists, Tag Filter Lists, Speed Upgrades, and Dimension Upgrades as needed.
 9. Use the Sky Necklace with a whitelist filter to extract, insert, or maintain items between a logistics line and the player inventory or supported backpacks.
 10. Install the appropriate integration mods to connect Sky Logistics directly to AE2, Refined Storage, or Beyond Dimensions networks. Available resource paths depend on the installed mod version and compatible add-ons.
 
@@ -94,9 +96,9 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
 - Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
-- Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check.
+- Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check. Simple pipe recipes use diamonds.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Speed Upgrade rates or server and line operation budgets.
-- Patchouli support is data-only and appears when Patchouli is installed.
+- The manual supports both Patchouli and GuideME; when both are installed, Patchouli is preferred and GuideME is the fallback.
 - Optional mod integrations are enabled only when the matching mod and compatible version/API are present.
 
 ## Build

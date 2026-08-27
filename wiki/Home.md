@@ -33,7 +33,7 @@
 | [[供奉系统]] | 水晶充能、一阶/二阶法阵和供奉配方 |
 | [[联动与版本差异]] | AE2、精致存储、Beyond Dimensions 等联动及版本差异 |
 | [[外部网络接口]] | ME、RS、Beyond Dimensions 三种接口的统一说明 |
-| [AStages 联动](AStages联动) | 按线路持有者 stage 限制并解锁六种资源的单次搬运量 |
+| [AStages 联动](AStages联动) | 按线路持有者 stage 分别限制并解锁各资源的单次搬运量，1.21.1 包含坚守者灵魂 |
 | [[配置说明]] | 常用服务端配置与默认值 |
 | [[常见问题]] | 不工作、无法跨维度、管道断开等排查方法 |
 
@@ -41,8 +41,8 @@
 
 | Minecraft | 加载器 | 游戏内手册 |
 | --- | --- | --- |
-| 1.20.1 | Forge 47.x | Patchouli；基础祭坛内容 |
-| 1.21.1 | NeoForge 21.1+ | Patchouli；基础祭坛内容 |
-| 26.1.2 | NeoForge 26.1.2.71+ | GuideME 优先，亦兼容 Patchouli |
+| 1.20.1 | Forge 47.x | Patchouli 优先，GuideME 回退 |
+| 1.21.1 | NeoForge 21.1+ | Patchouli 优先，GuideME 回退 |
+| 26.1.2 | NeoForge 26.1.2.71+ | Patchouli 优先，GuideME 回退 |
 
 > 配方可能被整合包或数据包修改。Wiki 解释默认配方和功能，游戏内以 JEI/配方书显示为准。

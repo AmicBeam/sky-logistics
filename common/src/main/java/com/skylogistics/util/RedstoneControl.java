@@ -6,7 +6,8 @@ import net.minecraft.util.StringRepresentable;
 public enum RedstoneControl implements StringRepresentable {
     IGNORE,
     HIGH,
-    LOW;
+    LOW,
+    PULSE;
 
     public static RedstoneControl byName(String name) {
         try {

@@ -54,6 +54,18 @@ public final class SkyLogisticsConfig {
         return SERVER.nodeEnergyTransferLimit.get();
     }
 
+    public static boolean orderedMatchingWrapTargets() {
+        return SERVER.orderedMatchingUpgrade.wrapTargets.get();
+    }
+
+    public static boolean orderedMatchingContinueAfterTargetFailure() {
+        return SERVER.orderedMatchingUpgrade.continueAfterTargetFailure.get();
+    }
+
+    public static int orderedMatchingPerItemDetentionQueueLength() {
+        return SERVER.orderedMatchingUpgrade.perItemDetentionQueueLength.get();
+    }
+
     public static boolean enableAStagesTransferRates() {
         return SERVER.enableAStagesTransferRates.get();
     }
@@ -61,6 +73,7 @@ public final class SkyLogisticsConfig {
     public static synchronized StageRateRules aStagesTransferRateRules() {
         TransferRates initial = new TransferRates(SERVER.aStagesInitialItems.get(),
                 SERVER.aStagesInitialFluids.get(), SERVER.aStagesInitialChemicals.get(),
+                SERVER.aStagesInitialSouls.get(),
                 SERVER.aStagesInitialEnergy.get(), SERVER.aStagesInitialMana.get(),
                 SERVER.aStagesInitialSource.get());
         List<? extends Object> entries = SERVER.aStagesStageRates.get();
@@ -116,12 +129,22 @@ public final class SkyLogisticsConfig {
     public static boolean enableSimpleEnergyPipe() {
         return SERVER.enableSimpleEnergyPipe.get();
     }
+
     public static boolean enableDistributorItems() { return SERVER.enableDistributorItems.get(); }
     public static boolean enableDistributorFluids() { return SERVER.enableDistributorFluids.get(); }
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
+    public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
+    public static boolean enableDistributorAdaptiveFluidTargetProbes() { return SERVER.enableDistributorAdaptiveFluidTargetProbes.get(); }
+    public static boolean enableDistributorAdaptiveChemicalTargetProbes() { return SERVER.enableDistributorAdaptiveChemicalTargetProbes.get(); }
+    public static int distributorItemRouteCacheSize() { return SERVER.distributorItemRouteCacheSize.get(); }
+    public static int distributorItemTargetHotProbeTicks() { return SERVER.distributorItemTargetHotProbeTicks.get(); }
+    public static int distributorItemTargetWarmProbeTicks() { return SERVER.distributorItemTargetWarmProbeTicks.get(); }
+    public static int distributorItemTargetCoolProbeTicks() { return SERVER.distributorItemTargetCoolProbeTicks.get(); }
+    public static int distributorItemTargetFallbackProbeTicks() { return SERVER.distributorItemTargetFallbackProbeTicks.get(); }
+    public static int distributorItemTargetMissesPerDemotion() { return SERVER.distributorItemTargetMissesPerDemotion.get(); }
 
     public static int simpleItemPipeTransferRate() {
         return SERVER.simpleItemPipeTransferRate.get();
@@ -137,6 +160,10 @@ public final class SkyLogisticsConfig {
 
     public static int simpleChemicalPipeTransferRate() {
         return SERVER.simpleChemicalPipeTransferRate.get();
+    }
+
+    public static int simpleSoulPipeTransferRate() {
+        return SERVER.simpleSoulPipeTransferRate.get();
     }
 
     public static int simpleManaPipeTransferRate() {
@@ -194,8 +221,7 @@ public final class SkyLogisticsConfig {
     }
 
     public static boolean forceExtractionDeviceModAllowed(String modId) {
-        return SERVER.forceExtractionDeviceModIdWhitelist.get().stream()
-                .anyMatch(value -> modId.equals(value));
+        return SERVER.forceExtractionDeviceModIdWhitelist.get().contains(modId);
     }
 
     private static boolean validModId(Object value) {
@@ -218,6 +244,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowFluidChemicalTransfer.get();
     }
 
+    public static boolean allowFluidSoulTransfer() {
+        return SERVER.allowFluidSoulTransfer.get();
+    }
+
     public static boolean allowEnergyManaTransfer() {
         return SERVER.allowEnergyManaTransfer.get();
     }
@@ -234,12 +264,20 @@ public final class SkyLogisticsConfig {
         return SERVER.allowAe2AppliedMekanisticsChemicalTransfer.get();
     }
 
+    public static boolean allowAe2SoulpliedEnergisticsSoulTransfer() {
+        return SERVER.allowAe2SoulpliedEnergisticsSoulTransfer.get();
+    }
+
     public static boolean allowBeyondDimensionsItemTransfer() {
         return SERVER.allowBeyondDimensionsItemTransfer.get();
     }
 
     public static boolean allowBeyondDimensionsFluidTransfer() {
         return SERVER.allowBeyondDimensionsFluidTransfer.get();
+    }
+
+    public static boolean allowBeyondDimensionsSoulTransfer() {
+        return SERVER.allowBeyondDimensionsSoulTransfer.get();
     }
 
     public static boolean allowBeyondDimensionsEnergyTransfer() {
@@ -278,6 +316,14 @@ public final class SkyLogisticsConfig {
         return SERVER.transferRetryDelayTicks(failures);
     }
 
+    public static boolean enableMaintainedItemHotSlotPolling() {
+        return SERVER.enableMaintainedItemHotSlotPolling.get();
+    }
+
+    public static int maintainedItemHotSlotPollTicks() {
+        return SERVER.maintainedItemHotSlotPollTicks.get();
+    }
+
     public static int skyNecklaceTickInterval() {
         return SERVER.skyNecklaceTickInterval.get();
     }
@@ -312,6 +358,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.LongValue aStagesInitialItems;
         public final ModConfigSpec.LongValue aStagesInitialFluids;
         public final ModConfigSpec.LongValue aStagesInitialChemicals;
+        public final ModConfigSpec.LongValue aStagesInitialSouls;
         public final ModConfigSpec.LongValue aStagesInitialEnergy;
         public final ModConfigSpec.LongValue aStagesInitialMana;
         public final ModConfigSpec.LongValue aStagesInitialSource;
@@ -329,6 +376,8 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue transferRetrySecondTicks;
         public final ModConfigSpec.IntValue transferRetryThirdTicks;
         public final ModConfigSpec.IntValue transferRetryMaxTicks;
+        public final ModConfigSpec.BooleanValue enableMaintainedItemHotSlotPolling;
+        public final ModConfigSpec.IntValue maintainedItemHotSlotPollTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
         public final ModConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
@@ -342,12 +391,15 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowFluidSoulTransfer;
         public final ModConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppFluxEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowAe2AppliedMekanisticsChemicalTransfer;
+        public final ModConfigSpec.BooleanValue allowAe2SoulpliedEnergisticsSoulTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsItemTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsFluidTransfer;
+        public final ModConfigSpec.BooleanValue allowBeyondDimensionsSoulTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsEnergyTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsMekanismChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowBeyondDimensionsSourceTransfer;
@@ -362,15 +414,26 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue distributorMaxTargets;
         public final ModConfigSpec.IntValue distributorScanOpsPerTick;
         public final ModConfigSpec.IntValue distributorOpsPerTick;
+        public final ModConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
+        public final ModConfigSpec.BooleanValue enableDistributorAdaptiveFluidTargetProbes;
+        public final ModConfigSpec.BooleanValue enableDistributorAdaptiveChemicalTargetProbes;
+        public final ModConfigSpec.IntValue distributorItemRouteCacheSize;
+        public final ModConfigSpec.IntValue distributorItemTargetHotProbeTicks;
+        public final ModConfigSpec.IntValue distributorItemTargetWarmProbeTicks;
+        public final ModConfigSpec.IntValue distributorItemTargetCoolProbeTicks;
+        public final ModConfigSpec.IntValue distributorItemTargetFallbackProbeTicks;
+        public final ModConfigSpec.IntValue distributorItemTargetMissesPerDemotion;
         public final ModConfigSpec.IntValue simpleItemPipeTransferRate;
         public final ModConfigSpec.IntValue simpleFluidPipeTransferRate;
         public final ModConfigSpec.IntValue simpleEnergyPipeTransferRate;
         public final ModConfigSpec.IntValue simpleChemicalPipeTransferRate;
+        public final ModConfigSpec.IntValue simpleSoulPipeTransferRate;
         public final ModConfigSpec.IntValue simpleManaPipeTransferRate;
         public final ModConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ModConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ModConfigSpec.IntValue simplePipeMaxConnectedBlocks;
         public final ModConfigSpec.IntValue maxSpeedUpgradesPerNode;
+        public final OrderedMatchingUpgrade orderedMatchingUpgrade;
 
         private Server(ModConfigSpec.Builder builder) {
             builder.push("vaults");
@@ -406,14 +469,15 @@ public final class SkyLogisticsConfig {
             aStagesInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
             aStagesInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
             aStagesInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
+            aStagesInitialSouls = builder.defineInRange("souls", 10_000L, 1L, Long.MAX_VALUE);
             aStagesInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
             aStagesInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
             aStagesInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
             builder.pop();
             aStagesStageRates = builder
-                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, energy, mana, source.",
-                            "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、energy、mana、source 中的任意字段。",
-                            "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
+                    .comment("AStages unlock entries. Each entry requires stage and may define any of: items, fluids, chemicals, souls, energy, mana, source.",
+                            "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、souls、energy、mana、source 中的任意字段。",
+                            "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, souls = 20000 }]")
                     .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
@@ -447,6 +511,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum Mekanism chemical amount moved by each extracting simple fluid pipe per tick.",
                             "每个抽取型简易流体管道每 tick 最多搬运的 Mekanism 化学品数量。")
                     .defineInRange("simpleChemicalPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
+            simpleSoulPipeTransferRate = builder
+                    .comment("Maximum Warden Soul amount moved by each extracting simple fluid pipe per tick.",
+                            "每个抽取型简易流体管道每 tick 最多搬运的坚守者灵魂数量。")
+                    .defineInRange("simpleSoulPipeTransferRate", 10_000, 1, Integer.MAX_VALUE);
             simpleManaPipeTransferRate = builder
                     .comment("Maximum Botania mana moved by each extracting simple energy pipe per tick.",
                             "每个抽取型简易能量管道每 tick 最多搬运的 Botania 魔力。")
@@ -465,8 +533,8 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             builder.pop();
             maxSpeedUpgradesPerNode = builder
-                    .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one.",
-                            "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。")
+                    .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
+                            "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
                     .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
@@ -534,6 +602,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.",
                             "启用流体的物流面是否也可传输 Mekanism 化学品。")
                     .define("allowFluidChemicalTransfer", true);
+            allowFluidSoulTransfer = builder
+                    .comment("Whether fluid-enabled logistics faces and simple fluid pipes may transfer Industrial Foregoing: Souls warden souls. Requires Industrial Foregoing: Souls; AE2 storage access additionally requires Soulplied Energistics, which is also used by AppliedSoul.",
+                            "启用流体的物流面和简易流体管道是否可传输 Industrial Foregoing: Souls 的坚守者灵魂。需要 Industrial Foregoing: Souls；访问 AE2 存储还需要 Soulplied Energistics，AppliedSoul 同样使用该灵魂类型。")
+                    .define("allowFluidSoulTransfer", true);
             allowEnergyManaTransfer = builder
                     .comment("Whether energy-enabled logistics faces may also transfer Botania mana.",
                             "启用能量的物流面是否也可传输 Botania 魔力。")
@@ -550,6 +622,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky ME Interfaces may transfer Applied Mekanistics chemicals stored in AE2 networks.",
                             "天穹 ME 接口是否可传输 AE2 网络中由 Applied Mekanistics 存储的化学品。")
                     .define("allowAe2AppliedMekanisticsChemicalTransfer", true);
+            allowAe2SoulpliedEnergisticsSoulTransfer = builder
+                    .comment("Whether Sky ME Interfaces may transfer Soulplied Energistics or AppliedSoul Warden Souls stored in AE2 networks.",
+                            "天穹 ME 接口是否可传输 AE2 网络中由 Soulplied Energistics 或 AppliedSoul 存储的坚守者灵魂。")
+                    .define("allowAe2SoulpliedEnergisticsSoulTransfer", true);
             allowBeyondDimensionsItemTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer items stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的物品。")
@@ -558,6 +634,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky Dimension Interfaces may transfer fluids stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的流体。")
                     .define("allowBeyondDimensionsFluidTransfer", true);
+            allowBeyondDimensionsSoulTransfer = builder
+                    .comment("Whether Sky Dimension Interfaces may transfer Industrial Foregoing: Souls Warden Souls stored in Beyond Dimensions networks.",
+                            "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的 Industrial Foregoing: Souls 坚守者灵魂。")
+                    .define("allowBeyondDimensionsSoulTransfer", true);
             allowBeyondDimensionsEnergyTransfer = builder
                     .comment("Whether Sky Dimension Interfaces may transfer FE stored in Beyond Dimensions networks.",
                             "天穹维度接口是否可传输 Beyond Dimensions 网络中存储的 FE。")
@@ -610,8 +690,17 @@ public final class SkyLogisticsConfig {
                     .comment("Ticks to wait after the fourth and later consecutive failed transfer attempts.",
                             "连续第四次及后续传输尝试失败后的等待 tick 数。")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
+            enableMaintainedItemHotSlotPolling = builder
+                    .comment("Whether item faces with a non-zero maintain limit probe their last successful transfer slot between full retry scans.",
+                            "物品面维持值非 0 时，是否在完整退避扫描之间探测上次成功传输的槽位。")
+                    .define("enableMaintainedItemHotSlotPolling", true);
+            maintainedItemHotSlotPollTicks = builder
+                    .comment("Ticks between low-cost probes of the last successful slot for maintained item input and output faces. The normal transfer retry remains the full-scan fallback.",
+                            "物品输入与输出维持面低成本探测上次成功槽位的间隔 tick；普通传输退避仍作为完整扫描兜底。")
+                    .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();
+            orderedMatchingUpgrade = new OrderedMatchingUpgrade(builder);
 
             builder.push("distributor");
             enableDistributorItems = builder.comment("Whether Celestial Distributors proxy item storage.",
@@ -626,7 +715,7 @@ public final class SkyLogisticsConfig {
             distributorMaxTargets = builder
                     .comment("Maximum adjacent container targets discovered by one Celestial Distributor. Higher values increase scan and proxy costs.",
                             "单个天穹分配器最多发现的相邻容器目标数；数值越高，扫描和代理开销越大。")
-                    .defineInRange("maxTargets", 16, 1, 64);
+                    .defineInRange("maxTargets", 32, 1, 64);
             distributorScanOpsPerTick = builder
                     .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.",
                             "单个天穹分配器每个服务器 tick 最多检查的 BFS 位置数；该预算独立于传输操作。")
@@ -635,6 +724,42 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.",
                             "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
                     .defineInRange("opsPerTick", 64, 1, 4096);
+            enableDistributorAdaptiveItemTargetProbes = builder
+                    .comment("Whether distributor item extraction and insertion use independent adaptive per-machine routing tiers.",
+                            "分配器物品抽取与插入是否使用独立的按机器自适应路由等级。")
+                    .define("enableAdaptiveItemTargetProbes", true);
+            enableDistributorAdaptiveFluidTargetProbes = builder
+                    .comment("Whether distributor fluid extraction and insertion use adaptive per-machine routing tiers.",
+                            "分配器流体抽取与插入是否使用按机器自适应路由等级。")
+                    .define("enableAdaptiveFluidTargetProbes", true);
+            enableDistributorAdaptiveChemicalTargetProbes = builder
+                    .comment("Whether distributor chemical extraction and insertion use adaptive per-machine routing tiers.",
+                            "分配器化学品抽取与插入是否使用按机器自适应路由等级。")
+                    .define("enableAdaptiveChemicalTargetProbes", true);
+            distributorItemRouteCacheSize = builder
+                    .comment("Maximum exact resource keys retained per item, fluid, or chemical route bank on each distributor face. The legacy key name is retained for config compatibility.",
+                            "分配器每个面、每种物品/流体/化学品路由库保留的精确资源 key 数量上限；为兼容旧配置保留原字段名。")
+                    .defineInRange("itemRouteCacheSize", 64, 1, 256);
+            distributorItemTargetHotProbeTicks = builder
+                    .comment("Retry interval for hot distributor resource machines after successful extraction or keyed insertion.",
+                            "物品、流体或化学品成功抽取或按 key 插入后的热机器重试间隔 tick。")
+                    .defineInRange("itemTargetHotProbeTicks", 1, 1, 1200);
+            distributorItemTargetWarmProbeTicks = builder
+                    .comment("Retry interval for warm distributor machine routes after repeated misses.",
+                            "分配器机器路由连续失败后进入温热等级时的重试间隔 tick。")
+                    .defineInRange("itemTargetWarmProbeTicks", 5, 1, 1200);
+            distributorItemTargetCoolProbeTicks = builder
+                    .comment("Retry interval for cool distributor machine routes after further misses.",
+                            "分配器机器路由进一步连续失败后进入低频等级时的重试间隔 tick。")
+                    .defineInRange("itemTargetCoolProbeTicks", 20, 1, 1200);
+            distributorItemTargetFallbackProbeTicks = builder
+                    .comment("Fallback interval for cold distributor machine routes. Extraction probes are staggered across this window.",
+                            "冷分配器机器路由的兜底间隔 tick；抽取首次探测会在该窗口内错峰安排。")
+                    .defineInRange("itemTargetFallbackProbeTicks", 40, 1, 1200);
+            distributorItemTargetMissesPerDemotion = builder
+                    .comment("Consecutive empty extraction or rejected insertion probes required to demote an item, fluid, or chemical target by one tier.",
+                            "物品、流体或化学品目标每次降低一个抽取或插入探测等级所需的连续失败次数。")
+                    .defineInRange("itemTargetMissesPerDemotion", 3, 1, 64);
             builder.pop();
 
             builder.push("necklaces");
@@ -675,6 +800,31 @@ public final class SkyLogisticsConfig {
                 return transferRetryThirdTicks.get();
             }
             return transferRetryMaxTicks.get();
+        }
+    }
+
+    public static final class OrderedMatchingUpgrade {
+        public final ModConfigSpec.BooleanValue wrapTargets;
+        public final ModConfigSpec.BooleanValue continueAfterTargetFailure;
+        public final ModConfigSpec.IntValue perItemDetentionQueueLength;
+
+        private OrderedMatchingUpgrade(ModConfigSpec.Builder builder) {
+            builder.comment("Ordered Matching Upgrade behavior.",
+                            "顺序匹配升级行为。")
+                    .push("orderedMatchingUpgrade");
+            wrapTargets = builder
+                    .comment("Whether Per Slot maps source slots cyclically with slotIndex % targetCount. When disabled, source slots beyond the receiving endpoint count are not dispatched.",
+                            "逐槽模式是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
+                    .define("wrapTargets", true);
+            continueAfterTargetFailure = builder
+                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when queue capacity is available.",
+                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在队列有容量时扣押被跳过的分配。")
+                    .define("continueAfterTargetFailure", true);
+            perItemDetentionQueueLength = builder
+                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. Zero disables detention and prevents passing a failed target.",
+                            "逐个模式每个抽取面最多保留的单物品失败分配数。0 表示禁用扣押，并阻止越过失败目标。")
+                    .defineInRange("perItemDetentionQueueLength", 1, 0, 1024);
+            builder.pop();
         }
     }
 

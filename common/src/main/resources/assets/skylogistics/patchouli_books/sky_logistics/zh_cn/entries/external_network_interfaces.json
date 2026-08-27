@@ -12,7 +12,7 @@
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "天穹 ME 接口",
-      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体。安装 AppFlux、Applied Mekanistics、Applied Botanics 或 Ars Énergistique 时，还可分别搬运 FE、化学品、mana 或 Source；每条路径都能在服务端配置中独立关闭。"
+      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；附属模组还可启用 FE、化学品、mana、Source 或坚守者灵魂。1.21.1 由 Soulplied Energistics 提供 Soul Key，AppliedSoul 灵魂元件复用同一 Key，可直接支持。"
     },
     {
       "type": "patchouli:crafting",
@@ -36,7 +36,7 @@
       "type": "patchouli:text",
       "flag": "mod:beyonddimensions",
       "title": "天穹维度网络接口",
-      "text": "$(item)天穹维度网络接口$()访问 Beyond Dimensions 网络中的物品、流体和 FE；安装 Mekanism 或 Ars Nouveau 时还可访问化学品或 Source。它接入的是第三方存储网络，不等同于让普通节点跨维度工作的维度升级卡。"
+      "text": "$(item)天穹维度网络接口$()访问 Beyond Dimensions 网络中的物品、流体和 FE；安装 Mekanism 或 Ars Nouveau 时还可访问化学品或 Source。Minecraft 1.21.1 安装 Industrial Foregoing: Souls 后还可传输坚守者灵魂，沿用流体物流面、管道、限额与过滤。"
     },
     {
       "type": "patchouli:crafting",

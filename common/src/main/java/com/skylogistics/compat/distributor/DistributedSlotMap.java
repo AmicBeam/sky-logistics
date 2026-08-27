@@ -34,6 +34,32 @@ public final class DistributedSlotMap<T> {
         return size;
     }
 
+    public int targetCount() {
+        return spans.size();
+    }
+
+    public T target(int targetIndex) {
+        return targetIndex < 0 || targetIndex >= spans.size() ? null : spans.get(targetIndex).target;
+    }
+
+    public int firstSlot(int targetIndex) {
+        return targetIndex < 0 || targetIndex >= spans.size() ? -1 : spans.get(targetIndex).firstSlot;
+    }
+
+    public int slotCount(int targetIndex) {
+        return targetIndex < 0 || targetIndex >= spans.size() ? 0 : spans.get(targetIndex).slots;
+    }
+
+    public int targetIndex(int slot) {
+        if (slot < 0 || slot >= size) return -1;
+        for (int i = 0; i < spans.size(); i++) {
+            Span<T> span = spans.get(i);
+            int localSlot = slot - span.firstSlot;
+            if (localSlot >= 0 && localSlot < span.slots) return i;
+        }
+        return -1;
+    }
+
     public Slot<T> resolve(int slot) {
         if (slot < 0 || slot >= size) return null;
         for (Span<T> span : spans) {
@@ -41,6 +67,17 @@ public final class DistributedSlotMap<T> {
             if (localSlot >= 0 && localSlot < span.slots) return new Slot<>(span.target, localSlot);
         }
         return null;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || other instanceof DistributedSlotMap<?> map
+                && size == map.size && spans.equals(map.spans);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * spans.hashCode() + size;
     }
 
     public record Slot<T>(T target, int localSlot) {}

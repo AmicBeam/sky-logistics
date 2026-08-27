@@ -4,12 +4,15 @@ import com.mojang.math.OctahedralGroup;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.UpgradeCardItem;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.registry.ModRecipes;
+import com.skylogistics.registry.ModItems;
+import com.skylogistics.util.OrderedMatchingMode;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +32,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
@@ -53,6 +57,7 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingIn);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingOut);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onExtractBlockOutline);
+        NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
     }
 
     private static void registerMenuScreens(RegisterMenuScreensEvent event) {
@@ -147,6 +152,16 @@ public final class ClientModEvents {
         ClientOfferingRecipes.clear();
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+    }
+
+    private static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || !minecraft.player.isShiftKeyDown() || event.getScrollDeltaY() == 0.0D) return;
+        var stack = minecraft.player.getMainHandItem();
+        if (!stack.is(ModItems.ORDERED_MATCHING_UPGRADE.get())
+                || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
+        ModNetworking.sendOrderedMatchingOffset(event.getScrollDeltaY() > 0.0D);
+        event.setCanceled(true);
     }
 
     private static void onExtractBlockOutline(ExtractBlockOutlineRenderStateEvent event) {

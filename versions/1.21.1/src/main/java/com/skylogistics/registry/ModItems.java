@@ -73,12 +73,12 @@ public final class ModItems {
     public static final DeferredHolder<Item, UpgradeCardItem> DIMENSION_UPGRADE = ITEMS.register("dimension_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
                     "tooltip.skylogistics.dimension_upgrade"));
-    public static final DeferredHolder<Item, UpgradeCardItem> EXACT_QUANTITY_UPGRADE = ITEMS.register("exact_quantity_upgrade",
-            () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
-                    "tooltip.skylogistics.exact_quantity_upgrade"));
     public static final DeferredHolder<Item, UpgradeCardItem> FORCE_EXTRACTION_UPGRADE = ITEMS.register("force_extraction_upgrade",
             () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
                     "tooltip.skylogistics.force_extraction_upgrade"));
+    public static final DeferredHolder<Item, UpgradeCardItem> ORDERED_MATCHING_UPGRADE = ITEMS.register("ordered_matching_upgrade",
+            () -> new UpgradeCardItem(new Item.Properties().stacksTo(64),
+                    "tooltip.skylogistics.ordered_matching_upgrade", true));
     public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",

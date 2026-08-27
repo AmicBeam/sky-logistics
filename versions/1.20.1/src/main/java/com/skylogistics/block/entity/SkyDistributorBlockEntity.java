@@ -5,15 +5,22 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.DistributedChemicalHandler;
+import com.skylogistics.compat.distributor.AdaptiveRoutingConfig;
+import com.skylogistics.compat.distributor.AdaptiveTargetProbeScheduler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
+import com.skylogistics.compat.distributor.DistributorInsertMode;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
+import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
+import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.storage.FluidStackKey;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,10 +57,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final boolean[] targetsDirty = new boolean[DIRECTIONS.length];
     private final long[] nextRescan = new long[DIRECTIONS.length];
     private Direction selectedSide = Direction.NORTH;
-    private int itemInsertCursor;
-    private int fluidInsertCursor;
-    private int energyReceiveCursor;
-    private int energyExtractCursor;
+    private final int[] itemInsertCursors = new int[DIRECTIONS.length];
+    private final int[] fluidInsertCursors = new int[DIRECTIONS.length];
+    private final int[] fluidDrainCursors = new int[DIRECTIONS.length];
+    private final int[] energyReceiveCursors = new int[DIRECTIONS.length];
+    private final int[] energyExtractCursors = new int[DIRECTIONS.length];
     private int energySnapshotCursor;
     private int energySnapshotScanned;
     private long energyStoredAccumulator;
@@ -78,6 +86,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private boolean itemInsertPlanAwaitingExecution;
     private ItemExtractPlan itemExtractPlan;
     private FluidInsertPlan fluidInsertPlan;
+    private boolean fluidInsertPlanAwaitingExecution;
     private FluidDrainPlan fluidDrainPlan;
     private EnergyPlan energyReceivePlan;
     private EnergyPlan energyExtractPlan;
@@ -126,13 +135,22 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             nextRescan[index] = level.getGameTime() + 1L;
             return;
         }
-        boolean resetScan = selectedSide != side || !cache.equals(targetCaches[index]);
+        TargetCache previous = targetCaches[index];
+        boolean topologyChanged = !cache.equals(previous);
+        boolean resetScan = topologyChanged && selectedSide == side;
+        if (topologyChanged) {
+            items[index].remapAdaptiveState(previous.itemSlots, cache.itemSlots,
+                    targetRemap(previous.items, cache.items));
+            fluids[index].remapAdaptiveState(targetRemap(previous.fluids, cache.fluids));
+            chemicals[index].remapAdaptiveState(targetRemap(previous.chemicals, cache.chemicals));
+        }
         targetCaches[index] = cache;
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
-        selectedSide = side;
         highlightSnapshot = createTargetSnapshot(cache);
-        if (resetScan) clearSelectedSideCaches();
+        if (resetScan) {
+            clearSelectedSideCaches();
+        }
     }
 
     private TargetCache targets(Direction side) {
@@ -323,7 +341,28 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     public record IndexStatus(boolean indexing, int boundDevices) {}
 
+    public boolean sequentialInsertion() {
+        return level != null && level.hasNeighborSignal(worldPosition);
+    }
+
     private long gameTime() { return level == null ? Long.MIN_VALUE : level.getGameTime(); }
+
+    private AdaptiveRoutingConfig fluidRoutingConfig() {
+        return routingConfig(SkyLogisticsConfig.enableDistributorAdaptiveFluidTargetProbes());
+    }
+
+    private AdaptiveRoutingConfig chemicalRoutingConfig() {
+        return routingConfig(SkyLogisticsConfig.enableDistributorAdaptiveChemicalTargetProbes());
+    }
+
+    private AdaptiveRoutingConfig routingConfig(boolean enabled) {
+        return new AdaptiveRoutingConfig(enabled, SkyLogisticsConfig.distributorItemRouteCacheSize(),
+                SkyLogisticsConfig.distributorItemTargetHotProbeTicks(),
+                SkyLogisticsConfig.distributorItemTargetWarmProbeTicks(),
+                SkyLogisticsConfig.distributorItemTargetCoolProbeTicks(),
+                SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks(),
+                SkyLogisticsConfig.distributorItemTargetMissesPerDemotion());
+    }
 
     private void selectSide(Direction side) {
         if (selectedSide == side) return;
@@ -346,10 +385,6 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energyReceivePlan = null;
         energyExtractPlan = null;
         energySnapshotTick = Long.MIN_VALUE;
-        itemInsertCursor = 0;
-        fluidInsertCursor = 0;
-        energyReceiveCursor = 0;
-        energyExtractCursor = 0;
         energySnapshotCursor = 0;
         energySnapshotScanned = 0;
         energyStoredAccumulator = 0L;
@@ -416,6 +451,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private void clearTransientCaches() {
         operationBudgetTick = Long.MIN_VALUE;
         energySnapshotTick = Long.MIN_VALUE;
+        itemInsertPlan = null;
+        itemInsertPlanAwaitingExecution = false;
+        itemExtractPlan = null;
+        fluidInsertPlan = null;
+        fluidDrainPlan = null;
+        energyReceivePlan = null;
+        energyExtractPlan = null;
         Arrays.fill(rejectedItems, null);
         Arrays.fill(rejectedItemUntil, 0L);
         Arrays.fill(rejectedFluids, null);
@@ -439,6 +481,29 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private record Target(BlockPos pos, Direction accessSide,
             boolean items, int itemSlots, boolean fluids, boolean chemical, boolean energy, boolean mana, boolean source) {
         boolean usable() { return items || fluids || chemical || energy || mana || source; }
+    }
+
+    private static int[] targetRemap(List<Target> previous, List<Target> current) {
+        int[] oldIndexForNew = new int[current.size()];
+        Arrays.fill(oldIndexForNew, -1);
+        for (int target = 0; target < current.size(); target++) {
+            Target candidate = current.get(target);
+            for (int oldTarget = 0; oldTarget < previous.size(); oldTarget++) {
+                Target old = previous.get(oldTarget);
+                if (old.pos.equals(candidate.pos) && old.accessSide == candidate.accessSide) {
+                    oldIndexForNew[target] = oldTarget;
+                    break;
+                }
+            }
+        }
+        return oldIndexForNew;
+    }
+
+    private static int remappedTarget(int oldTarget, int[] oldIndexForNew) {
+        for (int target = 0; target < oldIndexForNew.length; target++) {
+            if (oldIndexForNew[target] == oldTarget) return target;
+        }
+        return -1;
     }
 
     private record TargetCache(List<Target> items, DistributedSlotMap<Target> itemSlots,
@@ -490,6 +555,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : chemical(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
+        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
+        @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
+            return chemicalRoutingConfig();
+        }
     }
 
     private final class ManaLookup implements DistributedHandlerLookup<ManaHandlerBridge> {
@@ -501,6 +572,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : mana(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
     }
 
     private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
@@ -512,16 +584,38 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return index < 0 || index >= all.size() ? null : source(all.get(index));
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
+        @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
     }
 
     private final class DistributedItems implements IItemHandler, BudgetedDistributorHandler {
         private final Direction side;
+        private final DistributedTargetProbeScheduler<Target> extractionProbes =
+                new DistributedTargetProbeScheduler<>();
+        private final HierarchicalTargetRouteCache<ItemStackKey> insertionRoutes =
+                new HierarchicalTargetRouteCache<>();
+        private final int[] insertionRouteCandidates = new int[MAX_CONFIGURABLE_TARGETS];
 
         private DistributedItems(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() {
             prepareOperationBudget();
             return operationBudgetBlocked;
+        }
+
+        @Override public int nextFairExtractionSlot(long gameTime) {
+            if (!usesIndependentExtractionProbes()) return -1;
+            configureExtractionProbes();
+            return extractionProbes.nextDueSlot(targets(side).itemSlots, gameTime);
+        }
+
+        @Override public int fairExtractionProbesDue(long gameTime) {
+            if (!usesIndependentExtractionProbes()) return 0;
+            configureExtractionProbes();
+            return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
+        }
+
+        @Override public boolean usesIndependentExtractionProbes() {
+            return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
         }
 
         @Override public int getSlots() {
@@ -532,7 +626,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
             IItemHandler handler = handler(mapped);
             if (handler == null || !takeOperation()) return ItemStack.EMPTY;
-            return handler.getStackInSlot(mapped.localSlot());
+            ItemStack stack = handler.getStackInSlot(mapped.localSlot());
+            recordExtractionProbe(slot, stack);
+            return stack;
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
             if (stack.isEmpty()) return ItemStack.EMPTY;
@@ -561,6 +657,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 itemExtractPlan = plan;
             }
             ItemStack extracted = handler.extractItem(plan.physicalSlot, amount, simulate);
+            recordExtractionProbe(slot, extracted);
             if (!simulate) {
                 itemExtractPlan = null;
             }
@@ -585,6 +682,20 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return handler;
         }
 
+        private void recordExtractionProbe(int slot, ItemStack stack) {
+            if (!SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes()) return;
+            configureExtractionProbes();
+            extractionProbes.recordProbe(targets(side).itemSlots, slot, gameTime(), !stack.isEmpty());
+        }
+
+        private void configureExtractionProbes() {
+            extractionProbes.configure(SkyLogisticsConfig.distributorItemTargetHotProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetWarmProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetCoolProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetMissesPerDemotion());
+        }
+
         private ItemInsertPlan matchingItemInsertPlan(ItemStack stack, boolean simulate) {
             prepareOperationBudget();
             if (itemInsertPlan == null || itemInsertPlan.tick != gameTime()
@@ -598,37 +709,86 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).items;
             List<ItemMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
-                int start = Math.floorMod(itemInsertCursor, all.size());
-                int candidateLimit = Math.min(stack.getCount(), all.size());
-                int share = (int)(((long)stack.getCount() + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
-                    int target = (start + offset) % all.size();
+                boolean adaptiveRoutes = SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
+                ItemStackKey routeKey = adaptiveRoutes ? ItemStackKey.of(stack) : null;
+                int candidateCount;
+                if (adaptiveRoutes) {
+                    configureInsertionRoutes();
+                    candidateCount = insertionRoutes.orderCandidates(
+                            routeKey, all.size(), gameTime(), insertionRouteCandidates);
+                } else {
+                    int start = Math.floorMod(itemInsertCursors[side.ordinal()], all.size());
+                    candidateCount = all.size();
+                    for (int offset = 0; offset < candidateCount; offset++) {
+                        insertionRouteCandidates[offset] = (start + offset) % all.size();
+                    }
+                }
+                boolean sequential = sequentialInsertion();
+                int successfulTargets = adaptiveRoutes
+                        ? insertionRoutes.successfulTargetCount(routeKey, all.size()) : all.size();
+                int shareTargets = successfulTargets > 0 ? successfulTargets : all.size();
+                int share = DistributorInsertMode.offer(stack.getCount(), shareTargets, sequential);
+                int planned = 0;
+                int successfulTargetRank = 0;
+                boolean discoveryProbeCompleted = false;
+                for (int offset = 0; offset < candidateCount; offset++) {
+                    if (!adaptiveRoutes && planned >= stack.getCount()) break;
+                    int target = insertionRouteCandidates[offset];
+                    boolean knownRoute = adaptiveRoutes
+                            && insertionRoutes.isSuccessful(routeKey, target, all.size());
+                    int targetShare = !sequential && knownRoute && successfulTargets > 0
+                            ? DistributorInsertMode.balancedOffer(
+                                    stack.getCount(), successfulTargets, successfulTargetRank++)
+                            : share;
+                    boolean discoveryOnly = adaptiveRoutes && planned >= stack.getCount();
+                    if (discoveryOnly && (knownRoute || discoveryProbeCompleted)) continue;
+                    if (!discoveryOnly && targetShare <= 0) continue;
                     if (!takeOperation()) break;
-                    itemInsertCursor = target + 1;
-                    if (isRejected(target, stack)) continue;
+                    if (!adaptiveRoutes) {
+                        itemInsertCursors[side.ordinal()] = target + 1;
+                        if (isRejected(target, stack)) continue;
+                    }
                     IItemHandler handler = item(all.get(target));
-                    if (handler == null || handler.getSlots() == 0) continue;
+                    if (handler == null || handler.getSlots() == 0) {
+                        if (adaptiveRoutes) insertionRoutes.recordMiss(routeKey, target, all.size(), gameTime());
+                        continue;
+                    }
                     int slots = handler.getSlots();
                     int slotStart = Math.floorMod(itemInsertSlotCursors[target], slots);
                     boolean fullyScanned = true;
+                    boolean targetAccepted = false;
                     for (int checked = 0; checked < slots; checked++) {
                         if (checked > 0 && !takeOperation()) {
-                            itemInsertCursor = target;
+                            if (!adaptiveRoutes) itemInsertCursors[side.ordinal()] = target;
                             fullyScanned = false;
                             break;
                         }
                         int slot = (slotStart + checked) % slots;
-                        ItemStack offer = stack.copy(); offer.setCount(share);
+                        ItemStack offer = stack.copy();
+                        offer.setCount(discoveryOnly ? 1 : Math.min(targetShare, stack.getCount() - planned));
                         ItemStack rejected = handler.insertItem(slot, offer, true);
                         int accepted = offer.getCount() - rejected.getCount();
-                        if (accepted > 0) { moves.add(new ItemMove(target, slot, accepted)); break; }
+                        if (accepted > 0) {
+                            targetAccepted = true;
+                            if (adaptiveRoutes) insertionRoutes.recordSuccess(routeKey, target, all.size());
+                            if (!discoveryOnly) {
+                                moves.add(new ItemMove(target, slot, accepted));
+                                planned += accepted;
+                            }
+                            if (discoveryOnly || !sequential || planned >= stack.getCount()) break;
+                        }
                         itemInsertSlotCursors[target] = slot + 1;
                     }
-                    if (fullyScanned && (moves.isEmpty() || moves.get(moves.size() - 1).target != target)) {
-                        rejectedItems[target] = stack.copy();
-                        rejectedItems[target].setCount(1);
-                        rejectedItemUntil[target] = gameTime() + 5L;
+                    if (fullyScanned && !targetAccepted) {
+                        if (adaptiveRoutes) {
+                            insertionRoutes.recordMiss(routeKey, target, all.size(), gameTime());
+                        } else {
+                            rejectedItems[target] = stack.copy();
+                            rejectedItems[target].setCount(1);
+                            rejectedItemUntil[target] = gameTime() + 5L;
+                        }
                     }
+                    if (discoveryOnly) discoveryProbeCompleted = true;
                 }
             }
             int accepted = (int)Math.min(stack.getCount(), moves.stream().mapToLong(ItemMove::amount).sum());
@@ -644,7 +804,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         private int executeItemInsertPlan(ItemInsertPlan plan, ItemStack request) {
             List<Target> all = targets(side).items;
+            boolean adaptiveRoutes = SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
+            ItemStackKey routeKey = adaptiveRoutes ? ItemStackKey.of(request) : null;
             int inserted = 0;
+            int lastSuccessfulTarget = -1;
             for (ItemMove move : plan.moves) {
                 if (move.target >= all.size() || inserted >= request.getCount()) break;
                 IItemHandler handler = item(all.get(move.target));
@@ -655,20 +818,61 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 int moved = offer.getCount() - rejected.getCount();
                 if (moved > 0) {
                     inserted += moved;
+                    lastSuccessfulTarget = move.target;
                     itemInsertSlotCursors[move.target] = rejected.isEmpty() ? move.slot : move.slot + 1;
-                    rejectedItems[move.target] = null;
+                    if (adaptiveRoutes) insertionRoutes.recordSuccess(routeKey, move.target, all.size());
+                    else rejectedItems[move.target] = null;
                 } else {
                     itemInsertSlotCursors[move.target] = move.slot + 1;
+                    if (adaptiveRoutes) {
+                        insertionRoutes.recordMiss(routeKey, move.target, all.size(), gameTime());
+                    }
                 }
+            }
+            if (adaptiveRoutes && lastSuccessfulTarget >= 0) {
+                insertionRoutes.advanceHotCursorAfter(routeKey, lastSuccessfulTarget, all.size());
             }
             return inserted;
         }
+
+        private void configureInsertionRoutes() {
+            insertionRoutes.configure(SkyLogisticsConfig.distributorItemRouteCacheSize(),
+                    SkyLogisticsConfig.distributorItemTargetHotProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetWarmProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetCoolProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks(),
+                    SkyLogisticsConfig.distributorItemTargetMissesPerDemotion());
+        }
+
+        private void clearInsertionRoutes() {
+            insertionRoutes.clear();
+        }
+
+        private void remapAdaptiveState(DistributedSlotMap<Target> previous,
+                DistributedSlotMap<Target> current, int[] oldIndexForNew) {
+            insertionRoutes.remapTargets(oldIndexForNew);
+            extractionProbes.remapTargets(current, oldIndexForNew, gameTime());
+            itemInsertPlan = null;
+            itemInsertPlanAwaitingExecution = false;
+            itemExtractPlan = null;
+        }
     }
 
-    private final class DistributedFluids implements IFluidHandler {
+    private final class DistributedFluids implements IFluidHandler, BudgetedDistributorHandler {
         private final Direction side;
+        private final AdaptiveTargetProbeScheduler extractionProbes = new AdaptiveTargetProbeScheduler();
+        private final HierarchicalTargetRouteCache<FluidStackKey> insertionRoutes = new HierarchicalTargetRouteCache<>();
+        private final int[] insertionRouteCandidates = new int[MAX_CONFIGURABLE_TARGETS];
+        private int observedDrainTarget = -1;
+        private FluidStackKey observedDrainKey;
+        private long observedDrainTick = Long.MIN_VALUE;
 
         private DistributedFluids(Direction side) { this.side = side; }
+
+        @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
+        @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
+        @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
 
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;
@@ -676,9 +880,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public FluidStack getFluidInTank(int tank) {
             IFluidHandler handler = handler(tank);
-            if (handler == null || handler.getTanks() == 0) return FluidStack.EMPTY;
+            if (handler == null || handler.getTanks() == 0) { recordExtractionProbe(tank, false); return FluidStack.EMPTY; }
             prepareOperationBudget();
-            if (visibleFluids[tank] != null) return visibleFluids[tank].copy();
+            if (visibleFluids[tank] != null) { observeDrainTarget(tank, visibleFluids[tank]); recordExtractionProbe(tank, true); return visibleFluids[tank].copy(); }
             int cached = visibleFluidTanks[tank];
             if (cached == -1) return FluidStack.EMPTY;
             int start = cached >= 0 ? cached : Math.floorMod(fluidExtractCursors[tank], handler.getTanks());
@@ -690,11 +894,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 if (!stack.isEmpty()) {
                     visibleFluidTanks[tank] = sourceTank;
                     visibleFluids[tank] = stack.copy();
+                    observeDrainTarget(tank, stack);
+                    recordExtractionProbe(tank, true);
                     return stack;
                 }
                 fluidExtractCursors[tank] = sourceTank + 1;
             }
             visibleFluidTanks[tank] = -1;
+            recordExtractionProbe(tank, false);
             return FluidStack.EMPTY;
         }
         @Override public int getTankCapacity(int tank) { IFluidHandler h = handler(tank); return h == null ? 0 : Integer.MAX_VALUE; }
@@ -702,10 +909,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public int fill(FluidStack resource, FluidAction action) {
             if (resource.isEmpty()) return 0;
             FluidInsertPlan plan = fluidInsertPlan;
-            if (plan == null || plan.tick != gameTime() || !sameFluid(plan.request, resource)) {
+            boolean execute = action.execute();
+            if (plan == null || plan.tick != gameTime()
+                    || (execute ? !sameFluidType(plan.request, resource)
+                            || !fluidInsertPlanAwaitingExecution || resource.getAmount() > plan.accepted
+                            : !sameFluid(plan.request, resource))) {
                 plan = buildFluidInsertPlan(resource);
             }
-            if (!action.execute()) return plan.accepted;
+            if (!execute) {
+                fluidInsertPlanAwaitingExecution = true;
+                return plan.accepted;
+            }
+            fluidInsertPlanAwaitingExecution = false;
             int inserted = executeFluidInsertPlan(plan, resource);
             fluidInsertPlan = null;
             return inserted;
@@ -733,24 +948,50 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).fluids;
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty()) {
-                int start = Math.floorMod(fluidInsertCursor, all.size());
-                int candidateLimit = Math.min(resource.getAmount(), all.size());
-                int share = (int)(((long)resource.getAmount() + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
-                    int target = (start + offset) % all.size();
+                AdaptiveRoutingConfig config = fluidRoutingConfig();
+                FluidStackKey key = FluidStackKey.of(resource);
+                int candidateCount;
+                if (config.enabled()) {
+                    configureInsertionRoutes(config);
+                    candidateCount = insertionRoutes.orderCandidates(key, all.size(), gameTime(), insertionRouteCandidates);
+                } else {
+                    int start = Math.floorMod(fluidInsertCursors[side.ordinal()], all.size());
+                    candidateCount = all.size();
+                    for (int offset = 0; offset < candidateCount; offset++) insertionRouteCandidates[offset] = (start + offset) % all.size();
+                }
+                boolean sequential = sequentialInsertion();
+                int successfulTargets = config.enabled() ? insertionRoutes.successfulTargetCount(key, all.size()) : all.size();
+                int shareTargets = successfulTargets > 0 ? successfulTargets : all.size();
+                int share = DistributorInsertMode.offer(resource.getAmount(), shareTargets, sequential);
+                int planned = 0;
+                int successfulTargetRank = 0;
+                boolean discoveryProbeCompleted = false;
+                for (int offset = 0; offset < candidateCount; offset++) {
+                    if (!config.enabled() && planned >= resource.getAmount()) break;
+                    int target = insertionRouteCandidates[offset];
+                    boolean knownRoute = config.enabled() && insertionRoutes.isSuccessful(key, target, all.size());
+                    int targetShare = !sequential && knownRoute && successfulTargets > 0
+                            ? DistributorInsertMode.balancedOffer(resource.getAmount(), successfulTargets, successfulTargetRank++) : share;
+                    boolean discoveryOnly = config.enabled() && planned >= resource.getAmount();
+                    if (discoveryOnly && (knownRoute || discoveryProbeCompleted)) continue;
+                    if (!discoveryOnly && targetShare <= 0) continue;
                     if (!takeOperation()) break;
-                    fluidInsertCursor = target + 1;
-                    if (rejectedFluids[target] != null && gameTime() < rejectedFluidUntil[target]
+                    if (!config.enabled()) fluidInsertCursors[side.ordinal()] = target + 1;
+                    if (!config.enabled() && rejectedFluids[target] != null && gameTime() < rejectedFluidUntil[target]
                             && sameFluidType(rejectedFluids[target], resource)) continue;
                     IFluidHandler handler = fluid(all.get(target));
-                    if (handler == null) continue;
-                    FluidStack offer = resource.copy(); offer.setAmount(share);
+                    if (handler == null) { if (config.enabled()) insertionRoutes.recordMiss(key, target, all.size(), gameTime()); continue; }
+                    FluidStack offer = resource.copy(); offer.setAmount(discoveryOnly ? 1 : Math.min(targetShare, resource.getAmount() - planned));
                     int accepted = handler.fill(offer, FluidAction.SIMULATE);
-                    if (accepted > 0) moves.add(new FluidMove(target, accepted));
+                    if (accepted > 0) {
+                        if (config.enabled()) insertionRoutes.recordSuccess(key, target, all.size());
+                        if (!discoveryOnly) { moves.add(new FluidMove(target, Math.min(offer.getAmount(), accepted))); planned += Math.min(offer.getAmount(), accepted); }
+                    } else if (config.enabled()) insertionRoutes.recordMiss(key, target, all.size(), gameTime());
                     else {
                         rejectedFluids[target] = resource.copy(); rejectedFluids[target].setAmount(1);
                         rejectedFluidUntil[target] = gameTime() + 5L;
                     }
+                    if (discoveryOnly) discoveryProbeCompleted = true;
                 }
             }
             int accepted = (int)Math.min(resource.getAmount(), moves.stream().mapToLong(FluidMove::amount).sum());
@@ -760,7 +1001,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         private int executeFluidInsertPlan(FluidInsertPlan plan, FluidStack resource) {
             List<Target> all = targets(side).fluids;
+            AdaptiveRoutingConfig config = fluidRoutingConfig();
+            FluidStackKey key = FluidStackKey.of(resource);
             int inserted = 0;
+            int lastSuccessfulTarget = -1;
             for (FluidMove move : plan.moves) {
                 if (move.target >= all.size() || inserted >= resource.getAmount()) break;
                 IFluidHandler handler = fluid(all.get(move.target));
@@ -769,8 +1013,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 offer.setAmount(Math.min(move.amount, resource.getAmount() - inserted));
                 int moved = handler.fill(offer, FluidAction.EXECUTE);
                 inserted += moved;
-                if (moved > 0) rejectedFluids[move.target] = null;
+                if (moved > 0) { lastSuccessfulTarget = move.target; if (config.enabled()) insertionRoutes.recordSuccess(key, move.target, all.size()); else rejectedFluids[move.target] = null; }
+                else if (config.enabled()) insertionRoutes.recordMiss(key, move.target, all.size(), gameTime());
             }
+            if (config.enabled() && lastSuccessfulTarget >= 0) insertionRoutes.advanceHotCursorAfter(key, lastSuccessfulTarget, all.size());
             return inserted;
         }
 
@@ -778,11 +1024,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).fluids;
             List<FluidMove> moves = new ArrayList<>();
             int remaining = resource.getAmount();
-            int start = all.isEmpty() ? 0 : Math.floorMod(fluidInsertCursor, all.size());
+            int cursorIndex = side.ordinal();
+            FluidStackKey drainKey = FluidStackKey.of(resource);
+            int start = all.isEmpty() ? 0 : observedDrainTick == gameTime() && drainKey.equals(observedDrainKey)
+                    && observedDrainTarget >= 0 && observedDrainTarget < all.size()
+                    ? observedDrainTarget : Math.floorMod(fluidDrainCursors[cursorIndex], all.size());
             for (int offset = 0; offset < all.size() && remaining > 0; offset++) {
                 if (!takeOperation()) break;
                 int target = (start + offset) % all.size();
-                fluidInsertCursor = target + 1;
+                fluidDrainCursors[cursorIndex] = target + 1;
                 IFluidHandler handler = fluid(all.get(target));
                 if (handler == null) continue;
                 FluidStack request = resource.copy(); request.setAmount(remaining);
@@ -804,13 +1054,23 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 FluidStack extracted = handler.drain(request, FluidAction.EXECUTE);
                 if (!extracted.isEmpty()) {
                     if (result.isEmpty()) result = extracted.copy(); else result.grow(extracted.getAmount());
+                    recordExtractionProbe(move.target, true);
                     fluidExtractCursors[move.target]++;
                     visibleFluidTanks[move.target] = -2;
                     visibleFluids[move.target] = null;
                 }
+                else recordExtractionProbe(move.target, false);
             }
+            observedDrainTarget = -1; observedDrainKey = null; observedDrainTick = Long.MIN_VALUE;
             return result;
         }
+
+        private void observeDrainTarget(int target, FluidStack stack) { observedDrainTarget = target; observedDrainKey = FluidStackKey.of(stack); observedDrainTick = gameTime(); }
+        private void recordExtractionProbe(int target, boolean available) { AdaptiveRoutingConfig config = fluidRoutingConfig(); if (!config.enabled() || operationBudgetBlocked) return; configureExtractionProbes(); extractionProbes.recordProbe(targets(side).fluids.size(), target, gameTime(), available); }
+        private void configureExtractionProbes() { AdaptiveRoutingConfig config = fluidRoutingConfig(); extractionProbes.configure(config.hotTicks(), config.warmTicks(), config.coolTicks(), config.fallbackTicks(), config.missesPerDemotion()); }
+        private void configureInsertionRoutes(AdaptiveRoutingConfig config) { insertionRoutes.configure(config.routeCacheSize(), config.hotTicks(), config.warmTicks(), config.coolTicks(), config.fallbackTicks(), config.missesPerDemotion()); }
+        private void clearAdaptiveState() { insertionRoutes.clear(); extractionProbes.clear(); observedDrainTarget = -1; observedDrainKey = null; observedDrainTick = Long.MIN_VALUE; }
+        private void remapAdaptiveState(int[] oldIndexForNew) { insertionRoutes.remapTargets(oldIndexForNew); extractionProbes.remapTargets(oldIndexForNew, gameTime()); observedDrainTarget = remappedTarget(observedDrainTarget, oldIndexForNew); fluidInsertPlan = null; fluidDrainPlan = null; }
     }
 
     private final class DistributedEnergy implements IEnergyStorage {
@@ -843,19 +1103,21 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             List<Target> all = targets(side).energy;
             List<FluidMove> moves = new ArrayList<>();
             if (!all.isEmpty() && amount > 0) {
-                int cursor = receive ? energyReceiveCursor : energyExtractCursor;
+                int cursorIndex = side.ordinal();
+                int cursor = receive ? energyReceiveCursors[cursorIndex] : energyExtractCursors[cursorIndex];
                 int start = Math.floorMod(cursor, all.size());
-                int candidateLimit = Math.min(amount, all.size());
-                int share = (int)(((long)amount + all.size() - 1L) / all.size());
-                for (int offset = 0; offset < all.size() && moves.size() < candidateLimit; offset++) {
+                int share = DistributorInsertMode.offer(amount, all.size(), receive && sequentialInsertion());
+                int planned = 0;
+                for (int offset = 0; offset < all.size() && planned < amount; offset++) {
                     if (!takeOperation()) break;
                     int target = (start + offset) % all.size();
-                    if (receive) energyReceiveCursor = target + 1;
-                    else energyExtractCursor = target + 1;
+                    if (receive) energyReceiveCursors[cursorIndex] = target + 1;
+                    else energyExtractCursors[cursorIndex] = target + 1;
                     IEnergyStorage handler = energy(all.get(target));
                     if (handler == null) continue;
-                    int accepted = receive ? handler.receiveEnergy(share, true) : handler.extractEnergy(share, true);
-                    if (accepted > 0) moves.add(new FluidMove(target, accepted));
+                    int offer = Math.min(share, amount - planned);
+                    int accepted = receive ? handler.receiveEnergy(offer, true) : handler.extractEnergy(offer, true);
+                    if (accepted > 0) { moves.add(new FluidMove(target, accepted)); planned += accepted; }
                 }
             }
             int accepted = (int)Math.min(amount, moves.stream().mapToLong(FluidMove::amount).sum());

@@ -1,6 +1,7 @@
 package com.skylogistics.compat.distributor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
@@ -9,6 +10,17 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class DistributedSlotMapTest {
+    @Test
+    void identicalRefreshLayoutsCompareEqual() {
+        DistributedSlotMap<String> first = DistributedSlotMap.create(List.of("first", "second"), ignored -> 3);
+        DistributedSlotMap<String> refreshed = DistributedSlotMap.create(List.of("first", "second"), ignored -> 3);
+        DistributedSlotMap<String> changed = DistributedSlotMap.create(List.of("first", "second"), ignored -> 4);
+
+        assertEquals(first, refreshed);
+        assertEquals(first.hashCode(), refreshed.hashCode());
+        assertNotEquals(first, changed);
+    }
+
     @Test
     void flattensSixteenSeventeenSlotTargetsWithoutScanningTheirContents() {
         List<Integer> targets = IntStream.range(0, 16).boxed().toList();

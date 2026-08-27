@@ -1,6 +1,6 @@
 package com.skylogistics.item;
 
-import com.skylogistics.compat.PatchouliCompat;
+import com.skylogistics.compat.ManualCompat;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -20,7 +20,7 @@ public class SkyLogisticsManualItem extends Item {
         if (level.isClientSide) {
             return InteractionResultHolder.success(stack);
         }
-        if (PatchouliCompat.openManual(player)) {
+        if (ManualCompat.openManual(player)) {
             return InteractionResultHolder.consume(stack);
         }
         player.displayClientMessage(Component.translatable("message.skylogistics.manual.missing_provider"), true);

@@ -471,18 +471,16 @@ public class FluidVaultBlockEntity extends BlockEntity {
         if (current <= 0 && contents.size() >= getTypeLimit()) {
             return 0L;
         }
-        long space = Math.max(0L, capacityPerType - current);
-        long inserted = Math.min(space, amount);
-        if (inserted <= 0L) {
-            return 0L;
-        }
+        // Existing types remain terminal sinks at the long limit; overflow is intentionally discarded.
         if (!simulate) {
-            long updated = current + inserted;
-            contents.put(key, updated);
-            markSlotDirty(slot);
-            markContentsChanged();
+            long updated = Math.min(capacityPerType, saturatingAdd(current, amount));
+            if (updated != current) {
+                contents.put(key, updated);
+                markSlotDirty(slot);
+                markContentsChanged();
+            }
         }
-        return inserted;
+        return amount;
     }
 
     private void removeStored(FluidStackKey key, long amount) {

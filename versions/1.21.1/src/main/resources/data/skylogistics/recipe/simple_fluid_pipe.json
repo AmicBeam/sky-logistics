@@ -1,1 +1,1 @@
-{"type":"minecraft:crafting_shaped","pattern":["GAG","LBL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/amethyst"},"L":{"tag":"c:gems/lapis"},"B":{"item":"minecraft:bucket"}},"result":{"id":"skylogistics:simple_fluid_pipe","count":8}}
+{"type":"minecraft:crafting_shaped","pattern":["GAG","LBL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/diamond"},"L":{"tag":"c:gems/lapis"},"B":{"item":"minecraft:bucket"}},"result":{"id":"skylogistics:simple_fluid_pipe","count":8}}

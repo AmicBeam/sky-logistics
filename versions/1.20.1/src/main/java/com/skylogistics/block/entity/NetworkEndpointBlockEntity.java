@@ -171,6 +171,10 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return RedstoneControl.IGNORE;
     }
 
+    public boolean consumeRedstonePulse(Direction direction) {
+        return false;
+    }
+
     public int getPriority(Direction direction) {
         return 0;
     }

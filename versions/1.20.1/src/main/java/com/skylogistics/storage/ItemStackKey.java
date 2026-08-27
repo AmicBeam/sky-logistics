@@ -11,10 +11,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class ItemStackKey {
     private final Item item;
     private final CompoundTag tag;
+    private final int hash;
 
     private ItemStackKey(Item item, CompoundTag tag) {
         this.item = item;
         this.tag = tag == null ? null : tag.copy();
+        this.hash = Objects.hash(this.item, this.tag);
     }
 
     public static ItemStackKey of(ItemStack stack) {
@@ -66,6 +68,6 @@ public final class ItemStackKey {
 
     @Override
     public int hashCode() {
-        return Objects.hash(item, tag);
+        return hash;
     }
 }

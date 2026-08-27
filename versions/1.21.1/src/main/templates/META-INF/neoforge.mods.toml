@@ -54,6 +54,13 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.${mod_id}]]
+modId="guideme"
+type="optional"
+versionRange="[21.1,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
 modId="mekanism"
 type="optional"
 versionRange="[10.7,)"
@@ -84,6 +91,26 @@ side="BOTH"
 modId="ae2"
 type="optional"
 versionRange="[19,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="industrialforegoingsouls"
+type="optional"
+versionRange="[1.10.3,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="soulplied_energistics"
+type="optional"
+versionRange="[1.0.3,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="appliedsoul"
+type="optional"
 ordering="AFTER"
 side="BOTH"
 

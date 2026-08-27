@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Upgrade-card silhouette restored from the removed exact-quantity card. -->
+  <path fill="#0f1c24" d="M3 1h10v2h1v10h-1v2H3v-2H2V3h1z"/>
+  <path fill="#1d303a" d="M4 2h8v1H4zm0 11h8v1H4z"/>
+  <path fill="#598b99" d="M4 3h8v10H4z"/>
+  <path fill="#162630" d="M5 4h6v8H5z"/>
+  <path fill="#b4e2e8" fill-opacity=".75" d="M4 2h1v1H4zm7 0h1v1h-1z"/>
+
+  <!-- Two source nodes, two target nodes, and horizontal matching edges only. -->
+  <path fill="#79e6a5" d="M7 6h2v1H7zm0 4h2v1H7z"/>
+  <path fill="#b0f4c8" d="M5 5h2v3H5zm4 0h2v3H9zM5 9h2v3H5zm4 0h2v3H9z"/>
+</svg>

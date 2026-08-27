@@ -16,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -46,6 +47,15 @@ public abstract class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
             }
         }
         if (placer instanceof Player player) SkyPlayerLines.claimOwner(level.getServer(), node.getLineId(), player);
+    }
+
+    @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
+            boolean moving) {
+        super.neighborChanged(state, level, pos, block, fromPos, moving);
+        if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.onRedstoneNeighborChanged();
+        }
     }
 
     @Override

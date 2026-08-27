@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The necklace has two upgrade slots and accepts one Dimension Upgrade and one Exact Quantity Upgrade. Dimension allows access to same-line endpoints in other loaded dimensions. Exact Quantity replaces the slot buttons with a 1–2147483647 count and makes all three modes count every item matching the whitelist."
+      "text": "The necklace upgrade slots accept a Dimension Upgrade for access to same-line endpoints in other loaded dimensions. The maintain target is entered directly; its button switches between item and slot counts, with slots as the default."
     },
     {
       "type": "patchouli:text",
