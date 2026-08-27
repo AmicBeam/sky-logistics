@@ -20,7 +20,10 @@ public final class HierarchicalTargetRouteCache<K> {
         trimToCapacity();
     }
 
-    /** Writes hot targets first, followed by key-specific targets whose retry is due. */
+    /**
+     * Writes hot targets first, then newly added topology targets, followed by older
+     * key-specific targets whose retry is due.
+     */
     public int orderCandidates(K key, int targetCount, long gameTime, int[] output) {
         if (key == null || targetCount <= 0 || output.length == 0) return 0;
         RouteState route = route(key, targetCount);
@@ -34,7 +37,15 @@ public final class HierarchicalTargetRouteCache<K> {
         }
         for (int offset = 0; offset < targetCount && written < limit; offset++) {
             int target = Math.floorMod(route.discoveryCursor + offset, targetCount);
-            if (!route.successful[target] && gameTime >= route.retryAfter[target]) {
+            if (!route.successful[target] && route.newTopologyTarget[target]
+                    && gameTime >= route.retryAfter[target]) {
+                output[written++] = target;
+            }
+        }
+        for (int offset = 0; offset < targetCount && written < limit; offset++) {
+            int target = Math.floorMod(route.discoveryCursor + offset, targetCount);
+            if (!route.successful[target] && !route.newTopologyTarget[target]
+                    && gameTime >= route.retryAfter[target]) {
                 output[written++] = target;
             }
         }
@@ -70,6 +81,7 @@ public final class HierarchicalTargetRouteCache<K> {
         RouteState route = route(key, targetCount);
         route.everSuccessful[target] = true;
         route.successful[target] = true;
+        route.newTopologyTarget[target] = false;
         route.tiers[target] = AdaptiveProbeBackoff.HOT;
         route.tierMisses[target] = 0;
         route.retryAfter[target] = Long.MIN_VALUE;
@@ -79,6 +91,7 @@ public final class HierarchicalTargetRouteCache<K> {
         if (key == null || target < 0 || target >= targetCount) return;
         RouteState route = route(key, targetCount);
         route.successful[target] = false;
+        route.newTopologyTarget[target] = false;
         if (!route.everSuccessful[target]) {
             route.tiers[target] = AdaptiveProbeBackoff.FALLBACK;
             route.tierMisses[target] = 0;
@@ -105,9 +118,13 @@ public final class HierarchicalTargetRouteCache<K> {
                 if (oldTarget < 0 || oldTarget >= old.targetCount) continue;
                 remapped.successful[target] = old.successful[oldTarget];
                 remapped.everSuccessful[target] = old.everSuccessful[oldTarget];
+                remapped.newTopologyTarget[target] = old.newTopologyTarget[oldTarget];
                 remapped.tiers[target] = old.tiers[oldTarget];
                 remapped.tierMisses[target] = old.tierMisses[oldTarget];
                 remapped.retryAfter[target] = old.retryAfter[oldTarget];
+            }
+            for (int target = 0; target < oldIndexForNew.length; target++) {
+                if (oldIndexForNew[target] < 0) remapped.newTopologyTarget[target] = true;
             }
             remapped.hotCursor = remappedCursor(old, old.hotCursor, oldIndexForNew, true);
             remapped.discoveryCursor = remappedCursor(old, old.discoveryCursor, oldIndexForNew, false);
@@ -152,6 +169,7 @@ public final class HierarchicalTargetRouteCache<K> {
         private final int targetCount;
         private final boolean[] successful;
         private final boolean[] everSuccessful;
+        private final boolean[] newTopologyTarget;
         private final byte[] tiers;
         private final int[] tierMisses;
         private final long[] retryAfter;
@@ -162,6 +180,7 @@ public final class HierarchicalTargetRouteCache<K> {
             this.targetCount = targetCount;
             successful = new boolean[targetCount];
             everSuccessful = new boolean[targetCount];
+            newTopologyTarget = new boolean[targetCount];
             tiers = new byte[targetCount];
             Arrays.fill(tiers, AdaptiveProbeBackoff.FALLBACK);
             tierMisses = new int[targetCount];

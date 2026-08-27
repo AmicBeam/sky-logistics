@@ -89,6 +89,33 @@ class HierarchicalTargetRouteCacheTest {
         assertEquals(1, candidates(routes, "iron", 4, 0)[0]);
     }
 
+    @Test void topologyRemapProbesNewMachineBeforePreviouslyRejectedMachines() {
+        HierarchicalTargetRouteCache<String> routes = routes();
+        routes.recordSuccess("iron", 0, 2);
+        routes.recordMiss("iron", 1, 2, 0);
+
+        routes.remapTargets(new int[] {0, 1, -1});
+
+        assertArrayEquals(new int[] {0, 2, 1}, candidates(routes, "iron", 3, 40));
+    }
+
+    @Test void allNewMachinesStayAheadOfOldColdRoutesUntilIndividuallyProbed() {
+        HierarchicalTargetRouteCache<String> routes = routes();
+        routes.recordSuccess("iron", 0, 2);
+        routes.recordMiss("iron", 1, 2, 0);
+        routes.remapTargets(new int[] {0, -1, 1, -1});
+
+        int[] firstProbe = candidates(routes, "iron", 4, 40);
+        assertEquals(0, firstProbe[0]);
+        assertTrue(firstProbe[1] == 1 || firstProbe[1] == 3);
+        int remainingNewTarget = firstProbe[1] == 1 ? 3 : 1;
+        assertEquals(remainingNewTarget, firstProbe[2]);
+        assertEquals(2, firstProbe[3]);
+
+        routes.recordMiss("iron", firstProbe[1], 4, 40);
+        assertArrayEquals(new int[] {0, remainingNewTarget, 2}, candidates(routes, "iron", 4, 41));
+    }
+
     @Test void twentyKeysConvergeFromFourHundredColdCandidatesToTwentyHotCandidates() {
         HierarchicalTargetRouteCache<String> routes = new HierarchicalTargetRouteCache<>();
         routes.configure(64, 1, 5, 20, 40, 3);
