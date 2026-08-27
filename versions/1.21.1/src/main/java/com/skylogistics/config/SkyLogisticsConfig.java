@@ -1,6 +1,7 @@
 package com.skylogistics.config;
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.Config;
 import com.skylogistics.compat.astages.StageRateRules;
 import com.skylogistics.compat.astages.StageTransferRates;
 import com.skylogistics.compat.astages.TransferRates;
@@ -137,10 +138,18 @@ public final class SkyLogisticsConfig {
                 advancementRate("minecraft:end/elytra", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
     }
 
-    private static Map<String, Object> advancementRate(String advancement, Object items, Object fluids,
+    private static Config advancementRate(String advancement, Object items, Object fluids,
             Object chemicals, Object souls, Object energy, Object mana, Object source) {
-        return Map.of("advancement", advancement, "items", items, "fluids", fluids, "chemicals", chemicals,
-                "souls", souls, "energy", energy, "mana", mana, "source", source);
+        Config entry = Config.inMemory();
+        entry.set("advancement", advancement);
+        entry.set("items", items);
+        entry.set("fluids", fluids);
+        entry.set("chemicals", chemicals);
+        entry.set("souls", souls);
+        entry.set("energy", energy);
+        entry.set("mana", mana);
+        entry.set("source", source);
+        return entry;
     }
 
     public static boolean enableAdvancementTransferRates() {
@@ -178,21 +187,7 @@ public final class SkyLogisticsConfig {
         Map<String, ?> entry = advancementEntry(value);
         if (entry == null) return false;
         Object advancement = entry.get("advancement");
-        if (!(advancement instanceof String text) || text.isBlank()) return false;
-        for (String key : entry.keySet()) {
-            if ("advancement".equals(key)) continue;
-            TransferResource resource = null;
-            for (TransferResource candidate : TransferResource.values()) {
-                if (candidate.configKey().equals(key)) {
-                    resource = candidate;
-                    break;
-                }
-            }
-            if (resource == null) return false;
-            Object rate = entry.get(key);
-            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
-        }
-        return true;
+        return advancement instanceof String text && !text.isBlank();
     }
 
     @SuppressWarnings("unchecked")
