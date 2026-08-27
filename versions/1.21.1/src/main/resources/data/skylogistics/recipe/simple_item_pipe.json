@@ -1,1 +1,1 @@
-{"type":"minecraft:crafting_shaped","pattern":["GAG","LHL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/lapis"},"L":{"tag":"c:gems/lapis"},"H":{"tag":"c:chests/wooden"}},"result":{"id":"skylogistics:simple_item_pipe","count":8}}
+{"type":"minecraft:crafting_shaped","pattern":["GAG","LHL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/lapis"},"L":{"tag":"c:gems/lapis"},"H":{"tag":"c:chests/wooden"}},"result":{"id":"skylogistics:simple_item_pipe","count":2}}

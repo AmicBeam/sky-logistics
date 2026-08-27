@@ -15,17 +15,17 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_item_pipe",
-      "text": "物品管道以橙色线条标识，一次合成 8 个。"
+      "text": "物品管道以橙色线条标识，一次合成 2 个。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_fluid_pipe",
-      "text": "流体管道以深蓝色线条标识，一次合成 8 个。"
+      "text": "流体管道以深蓝色线条标识，一次合成 2 个。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_energy_pipe",
-      "text": "能量管道以红色线条标识，一次合成 8 个。"
+      "text": "能量管道以红色线条标识，一次合成 2 个。"
     },
     {
       "type": "patchouli:crafting",

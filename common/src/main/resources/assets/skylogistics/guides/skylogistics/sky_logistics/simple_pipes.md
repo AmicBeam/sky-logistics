@@ -42,7 +42,7 @@ One line contains at most 1024 pipe blocks by default. If a placement or reconne
 
 ## Recipes
 
-Each pipe recipe produces 8 pipes.
+Each pipe recipe produces 2 pipes.
 
 <RecipeFor id="simple_item_pipe" fallbackText="The simple item pipe recipe is unavailable." />
 <RecipeFor id="simple_fluid_pipe" fallbackText="The simple fluid pipe recipe is unavailable." />

@@ -1,1 +1,1 @@
-{"type":"minecraft:crafting_shaped","pattern":["GAG","LRL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/lapis"},"L":{"tag":"c:gems/lapis"},"R":{"tag":"c:storage_blocks/redstone"}},"result":{"id":"skylogistics:simple_energy_pipe","count":8}}
+{"type":"minecraft:crafting_shaped","pattern":["GAG","LRL","GAG"],"key":{"G":{"tag":"c:glass_blocks/colorless"},"A":{"tag":"c:gems/lapis"},"L":{"tag":"c:gems/lapis"},"R":{"tag":"c:storage_blocks/redstone"}},"result":{"id":"skylogistics:simple_energy_pipe","count":2}}

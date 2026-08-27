@@ -42,7 +42,7 @@ item_ids:
 
 ## 合成
 
-每种管道一次合成 8 个。
+每种管道一次合成 2 个。
 
 <RecipeFor id="simple_item_pipe" fallbackText="未找到简易物品管道配方。" />
 <RecipeFor id="simple_fluid_pipe" fallbackText="未找到简易流体管道配方。" />

@@ -7,5 +7,5 @@
     "L": {"tag": "forge:gems/lapis"},
     "B": {"item": "minecraft:bucket"}
   },
-  "result": {"item": "skylogistics:simple_fluid_pipe", "count": 8}
+  "result": {"item": "skylogistics:simple_fluid_pipe", "count": 2}
 }

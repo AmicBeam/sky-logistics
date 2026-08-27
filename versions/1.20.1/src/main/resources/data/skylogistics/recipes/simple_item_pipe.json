@@ -7,5 +7,5 @@
     "L": {"tag": "forge:gems/lapis"},
     "H": {"tag": "forge:chests/wooden"}
   },
-  "result": {"item": "skylogistics:simple_item_pipe", "count": 8}
+  "result": {"item": "skylogistics:simple_item_pipe", "count": 2}
 }
