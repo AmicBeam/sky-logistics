@@ -20,4 +20,4 @@ Item, fluid, and chemical routing follow the same hierarchy as a logistics line:
 
 Hold a Celestial Configurator and aim at the distributor to outline every target in its current cache in cyan. The client requests a snapshot immediately when the aimed distributor changes, then once every 20 ticks while aiming; rendering never scans containers every frame.
 
-Craft it with Prismarine in the four corners, Lapis Lazuli above and below, Amethyst Shards on both sides, and a Redstone Comparator in the center. No altar, Eulogia Crystal, or Celestial Stone is required.
+Craft it with Prismarine in the four corners, Lapis Lazuli on all four sides, and a Redstone Comparator in the center. No altar, Eulogia Crystal, or Celestial Stone is required.

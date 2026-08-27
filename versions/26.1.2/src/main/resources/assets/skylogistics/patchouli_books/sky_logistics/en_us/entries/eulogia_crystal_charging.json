@@ -11,11 +11,12 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:eulogia_crystal",
-      "text": "The Eulogia Crystal is built around a diamond core and does not consume an Ender Pearl. Newly crafted crystals start uncharged."
+      "recipe2": "skylogistics:eulogia_companion_stone",
+      "text": "The crystal uses a diamond core; the companion stone uses 3 Lapis Lazuli and 2 colorless glass blocks. Both start uncharged."
     },
     {
       "type": "patchouli:text",
-      "text": "Uncharged crystals charge in your inventory or on a Sky Offering Table. Ordinary containers do not charge them. Charging takes about 20 seconds by default."
+      "text": "Crystals and companion stones charge in your inventory or on a Sky Offering Table at the same minimum height. Crystals take about 20 seconds by default and companion stones about 10 seconds."
     },
     {
       "type": "patchouli:text",

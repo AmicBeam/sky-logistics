@@ -40,6 +40,9 @@ public final class ClientModEvents {
             ItemProperties.register(ModItems.EULOGIA_CRYSTAL.get(),
                     new ResourceLocation(SkyLogistics.MOD_ID, "charged"),
                     (stack, level, entity, seed) -> EulogiaCrystalItem.isCharged(stack) ? 1.0F : 0.0F);
+            ItemProperties.register(ModItems.EULOGIA_COMPANION_STONE.get(),
+                    new ResourceLocation(SkyLogistics.MOD_ID, "charged"),
+                    (stack, level, entity, seed) -> EulogiaCrystalItem.isCharged(stack) ? 1.0F : 0.0F);
         });
     }
 

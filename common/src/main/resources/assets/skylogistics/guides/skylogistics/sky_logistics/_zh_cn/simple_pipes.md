@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:simple_item_pipe
   - skylogistics:simple_fluid_pipe
   - skylogistics:simple_energy_pipe
+  - skylogistics:eulogia_companion_stone
   - skylogistics:sky_wrench
 ---
 
@@ -19,6 +20,7 @@ item_ids:
   <ItemIcon id="simple_item_pipe" />
   <ItemIcon id="simple_fluid_pipe" />
   <ItemIcon id="simple_energy_pipe" />
+  <ItemIcon id="eulogia_companion_stone" />
   <ItemIcon id="sky_wrench" />
 </ItemGrid>
 
@@ -42,7 +44,9 @@ item_ids:
 
 ## 合成
 
-每种管道一次合成 2 个。
+每种管道一次合成 2 个。三种配方都需要已充能的尤洛伽水晶配石；物品、流体和能量管道再分别使用木箱、桶和红石块区分。
+
+<RecipeFor id="eulogia_companion_stone" fallbackText="未找到尤洛伽水晶配石配方。" />
 
 <RecipeFor id="simple_item_pipe" fallbackText="未找到简易物品管道配方。" />
 <RecipeFor id="simple_fluid_pipe" fallbackText="未找到简易流体管道配方。" />

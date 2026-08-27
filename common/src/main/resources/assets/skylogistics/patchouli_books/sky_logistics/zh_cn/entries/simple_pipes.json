@@ -15,17 +15,17 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_item_pipe",
-      "text": "物品管道以橙色线条标识，一次合成 2 个。"
+      "text": "物品管道以橙色线条标识，一次合成 2 个。三种管道都需要已充能尤洛伽水晶配石；物品管道使用木箱作为区分材料。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_fluid_pipe",
-      "text": "流体管道以深蓝色线条标识，一次合成 2 个。"
+      "text": "流体管道以深蓝色线条标识，一次合成 2 个，使用桶作为区分材料。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_energy_pipe",
-      "text": "能量管道以红色线条标识，一次合成 2 个。"
+      "text": "能量管道以红色线条标识，一次合成 2 个，使用红石块作为区分材料。"
     },
     {
       "type": "patchouli:crafting",

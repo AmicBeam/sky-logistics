@@ -1,7 +1,7 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.config.SkyLogisticsConfig;
-import com.skylogistics.item.EulogiaCrystalItem;
+import com.skylogistics.item.SkyChargeableItem;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,10 +29,11 @@ public class OfferingTableBlockEntity extends SingleSlotDisplayBlockEntity {
             return;
         }
         ItemStack stack = table.getDisplayedItem();
-        if (stack.isEmpty() || !(stack.getItem() instanceof EulogiaCrystalItem) || EulogiaCrystalItem.isCharged(stack)) {
+        if (stack.isEmpty() || !(stack.getItem() instanceof SkyChargeableItem chargeable)
+                || chargeable.isStackCharged(stack)) {
             return;
         }
-        boolean completed = EulogiaCrystalItem.chargeOneSecond(stack);
+        boolean completed = chargeable.chargeStackOneSecond(stack);
         if (completed) {
             serverLevel.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.8F, 1.45F);
             serverLevel.sendParticles(ParticleTypes.END_ROD, pos.getX() + 0.5D, pos.getY() + 1.05D,

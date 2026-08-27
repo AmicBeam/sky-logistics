@@ -430,6 +430,10 @@ public final class SkyLogisticsConfig {
         return SERVER.eulogiaCrystalChargeSeconds.get();
     }
 
+    public static int eulogiaCompanionStoneChargeSeconds() {
+        return SERVER.eulogiaCompanionStoneChargeSeconds.get();
+    }
+
     public static boolean renderConfiguratorPlayerHeads() {
         return CLIENT.renderConfiguratorPlayerHeads.get();
     }
@@ -478,6 +482,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ModConfigSpec.IntValue skyRitualMinY;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
+        public final ModConfigSpec.IntValue eulogiaCompanionStoneChargeSeconds;
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ModConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
@@ -894,13 +899,17 @@ public final class SkyLogisticsConfig {
 
             builder.push("rituals");
             skyRitualMinY = builder
-                    .comment("Minimum block Y for Eulogia Crystals to charge and sky offering altars to work.",
-                            "尤洛伽水晶充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
+                    .comment("Minimum block Y for Eulogia chargeable items to charge and sky offering altars to work.",
+                            "尤洛伽水晶与配石充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
                     .defineInRange("skyRitualMinY", 128, -64, 320);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽水晶在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
                     .defineInRange("eulogiaCrystalChargeSeconds", 20, 1, 3600);
+            eulogiaCompanionStoneChargeSeconds = builder
+                    .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
+                            "未充能尤洛伽配石在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
+                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 10, 1, 3600);
             builder.pop();
         }
 

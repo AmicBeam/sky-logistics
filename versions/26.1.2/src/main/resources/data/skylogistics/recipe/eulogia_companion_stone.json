@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [" L ", "GLG", " L "],
+  "key": {
+    "L": "#c:gems/lapis",
+    "G": "#c:glass_blocks/colorless"
+  },
+  "result": {"id": "skylogistics:eulogia_companion_stone", "count": 1}
+}

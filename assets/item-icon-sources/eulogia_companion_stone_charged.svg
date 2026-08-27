@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Geometry matches the uncharged stone pixel-for-pixel. -->
+  <path fill="#164b5f" d="M5 3h6v1h2v1h1v7h-1v1h-2v1H5v-1H3v-1H2V5h1V4h2z"/>
+
+  <!-- Energized cyan-blue crystal body and shadow plane. -->
+  <path fill="#35a8be" d="M5 4h6v1h2v7h-2v1H5v-1H3V5h2z"/>
+  <path fill="#258b9f" d="M10 5h3v2h-1v4h-1v1H9V7h1z"/>
+  <path fill="#176272" d="M12 7h1v5h-1z"/>
+  <path fill="#60d8d8" d="M10 5h1v2h-1z"/>
+
+  <!-- Bright facets retain the Eulogia family palette. -->
+  <path fill="#56d3df" d="M5 4h6v1H9v1H5zM3 5h2v6H3z"/>
+  <path fill="#8cf0ef" d="M4 5h1v4H4z"/>
+
+  <!-- Warm charged core without detached sparkle pixels. -->
+  <path fill="#62d7d5" d="M6 5h4v7H9v1H6z"/>
+  <path fill="#f2f18b" d="M7 6h2v5H7z"/>
+  <path fill="#fff7b0" d="M7 6h2v2H7z"/>
+  <path fill="#d9eb70" d="M7 11h2v1H7z"/>
+</svg>
