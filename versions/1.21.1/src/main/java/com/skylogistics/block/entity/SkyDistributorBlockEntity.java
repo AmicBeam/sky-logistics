@@ -574,6 +574,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean scanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
+        }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
         @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
             return chemicalRoutingConfig();
@@ -629,6 +633,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean distributorBudgetExhausted() {
             prepareOperationBudget();
             return operationBudgetBlocked;
+        }
+
+        @Override public boolean distributorScanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
         }
 
         @Override public int nextFairExtractionSlot(long gameTime) {
@@ -897,6 +906,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private DistributedFluids(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean distributorScanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
+        }
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }

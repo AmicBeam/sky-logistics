@@ -389,6 +389,7 @@ public final class SkyNetworkTicker {
             skyNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
         }
         int slots = source.getSlots();
+        if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return 0;
         if (slots <= 0) {
             if (orderedPerItem) {
                 orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
@@ -589,25 +590,26 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean deferExhaustedDistributor(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
+        if (!distributorWorkPending(handler)) return false;
         endpoint.deferItemsUntil(gameTime + 1L);
         return true;
     }
 
     private static boolean deferExhaustedDistributorFluid(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
+        if (!distributorWorkPending(handler)) return false;
         endpoint.deferFluidsUntil(gameTime + 1L);
         return true;
     }
 
     private static boolean deferExhaustedDistributorChemical(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
+        if (!distributorWorkPending(handler)) return false;
         endpoint.deferChemicalsUntil(gameTime + 1L);
         return true;
     }
 
-    private static boolean distributorBudgetExhausted(Object handler) {
-        return handler instanceof BudgetedDistributorHandler budgeted && budgeted.distributorBudgetExhausted();
+    private static boolean distributorWorkPending(Object handler) {
+        return handler instanceof BudgetedDistributorHandler budgeted
+                && (budgeted.distributorBudgetExhausted() || budgeted.distributorScanPending());
     }
 
     private static boolean usesIndependentDistributorProbes(Object handler) {
@@ -1083,7 +1085,7 @@ public final class SkyNetworkTicker {
             int slot = scan.nextSlot++;
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
-            if (distributorBudgetExhausted(source)) {
+            if (distributorWorkPending(source)) {
                 scan.nextSlot--;
                 return new SlotLimitCheck(false, checks, false);
             }
@@ -1114,7 +1116,7 @@ public final class SkyNetworkTicker {
         while (scan.nextSlot < slots && checks < budget) {
             ItemStack stack = handler.getStackInSlot(scan.nextSlot++);
             checks++;
-            if (distributorBudgetExhausted(handler)) {
+            if (distributorWorkPending(handler)) {
                 scan.nextSlot--;
                 return new ExactItemScanResult(false, scan.total, checks);
             }
@@ -1916,6 +1918,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int tanks = source.getTanks();
+        if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return 0;
         if (tanks <= 0) {
             sourceEndpoint.recordFluidFailure(gameTime);
             return 0;
@@ -2595,6 +2598,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int tanks = source.getTanks();
+        if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return 0;
         if (tanks <= 0) {
             sourceEndpoint.recordChemicalFailure(gameTime);
             return 0;

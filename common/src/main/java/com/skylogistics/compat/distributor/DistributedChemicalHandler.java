@@ -26,6 +26,8 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge, 
 
     @Override public boolean distributorBudgetExhausted() { return lookup.budgetExhausted(); }
 
+    @Override public boolean distributorScanPending() { return lookup.scanPending(); }
+
     @Override public boolean usesIndependentExtractionProbes() { return config().enabled(); }
 
     @Override public int nextFairExtractionSlot(long gameTime) {

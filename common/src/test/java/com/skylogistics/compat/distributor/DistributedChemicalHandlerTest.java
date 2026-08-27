@@ -1,5 +1,6 @@
 package com.skylogistics.compat.distributor;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -8,6 +9,15 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 class DistributedChemicalHandlerTest {
+    @Test void exposesWhetherItsTargetIndexIsStillBeingBuilt() {
+        Lookup lookup = new Lookup(1);
+        DistributedChemicalHandler distributed = new DistributedChemicalHandler(lookup);
+
+        assertFalse(distributed.distributorScanPending());
+        lookup.scanPending = true;
+        assertTrue(distributed.distributorScanPending());
+    }
+
     @Test void twoUnitBatchesRemainFairAcrossFourAcceptingMachines() {
         Lookup lookup = new Lookup(4);
         DistributedChemicalHandler distributed = new DistributedChemicalHandler(lookup);
@@ -28,6 +38,7 @@ class DistributedChemicalHandlerTest {
     private static final class Lookup implements DistributedHandlerLookup<ChemicalHandlerBridge> {
         private final TargetHandler[] handlers;
         private long tick;
+        private boolean scanPending;
 
         private Lookup(int targets) {
             handlers = new TargetHandler[targets];
@@ -37,6 +48,7 @@ class DistributedChemicalHandlerTest {
         @Override public int size() { return handlers.length; }
         @Override public ChemicalHandlerBridge handler(int index) { return handlers[index]; }
         @Override public boolean takeOperation() { return true; }
+        @Override public boolean scanPending() { return scanPending; }
         @Override public long gameTime() { return tick; }
         @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
             return new AdaptiveRoutingConfig(true, 16, 1, 5, 20, 40, 3);
