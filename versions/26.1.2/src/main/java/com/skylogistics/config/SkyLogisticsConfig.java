@@ -194,8 +194,8 @@ public final class SkyLogisticsConfig {
         return true;
     }
 
-    private static boolean validAdvancementRateList(Object value) {
-        return value instanceof List<?>;
+    private static boolean validAdvancementRateValue(Object value) {
+        return true;
     }
 
     @SuppressWarnings("unchecked")
@@ -571,8 +571,8 @@ public final class SkyLogisticsConfig {
             advancementRates = builder
                     .comment("Vanilla advancement unlock entries. Resource rates accept positive integers or the string \"unlimited\".",
                             "原版进度解锁条目。资源速率可填写正整数或字符串 \"unlimited\"（无限制）。")
-                    .define("advancementRates", defaultAdvancementRates(),
-                            SkyLogisticsConfig::validAdvancementRateList);
+                    .defineListAllowEmpty("advancementRates", defaultAdvancementRates(),
+                            SkyLogisticsConfig::validAdvancementRateValue);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
                             "简易管道的启用开关、传输速率与连接上限。")
