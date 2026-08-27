@@ -4,6 +4,7 @@ import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -231,6 +232,25 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean supportsSourceEndpoint(Direction direction) {
         return hasSourceHandler(getTargetPos(direction), getAccessSide(direction));
+    }
+
+    @Override
+    public TransferResource firstEnabledTransferResource(Direction direction) {
+        if (level == null || direction == null || getFaceMode(direction) == NodeFaceMode.NONE
+                || !level.isLoaded(getTargetPos(direction))) return null;
+        BlockPos targetPos = getTargetPos(direction);
+        Direction accessSide = getAccessSide(direction);
+        BlockEntity target = level.getBlockEntity(targetPos);
+        if (isItemsEnabled(direction) && hasItemHandler(target, accessSide)) return TransferResource.ITEMS;
+        if (isFluidsEnabled(direction) && hasFluidHandler(target, accessSide)) return TransferResource.FLUIDS;
+        if (isFluidsEnabled(direction) && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                && hasChemicalHandler(targetPos, accessSide)) return TransferResource.CHEMICALS;
+        if (isEnergyEnabled(direction) && hasEnergyHandler(target, accessSide)) return TransferResource.ENERGY;
+        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergyManaTransfer()
+                && hasManaHandler(targetPos, accessSide)) return TransferResource.MANA;
+        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergySourceTransfer()
+                && hasSourceHandler(targetPos, accessSide)) return TransferResource.SOURCE;
+        return null;
     }
 
     public ItemStack getFilterList() {

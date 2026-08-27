@@ -4,6 +4,7 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.astages.AStagesTransferLimiter;
 import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.advancements.AdvancementTransferLimiter;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -142,6 +143,22 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         long limited = AStagesTransferLimiter.limit(ownerId, resource, amount, serverLevel.getGameTime());
         return AdvancementTransferLimiter.limit(serverLevel.getServer(), ownerId, resource, limited,
                 serverLevel.getGameTime());
+    }
+
+    public TransferResource firstEnabledTransferResource(Direction direction) {
+        return null;
+    }
+
+    public long getProgressionTransferLimit(TransferResource resource) {
+        return limitProgression(resource, Long.MAX_VALUE);
+    }
+
+    public long getConfiguredTransferLimit(TransferResource resource) {
+        return switch (resource) {
+            case ITEMS -> SkyLogisticsConfig.nodeItemTransferLimit();
+            case ENERGY, MANA, SOURCE -> SkyLogisticsConfig.nodeEnergyTransferLimit();
+            default -> Long.MAX_VALUE;
+        };
     }
 
     protected SkyDistributorBlockEntity distributor(Direction direction) {
