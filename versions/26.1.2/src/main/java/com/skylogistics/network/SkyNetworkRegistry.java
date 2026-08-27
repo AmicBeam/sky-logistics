@@ -80,6 +80,7 @@ public final class SkyNetworkRegistry {
     private static final int PREFERRED_CHEMICAL_TANK_MISS_LIMIT = 3;
     private static final int EMPTY_CHEMICAL_TANK_RETRY_TICKS = 20;
     private static final int MAX_TRANSFER_FAILURES = 8;
+    private static final int DISTRIBUTOR_ROUTE_RECOVERY_INTERVAL = 40;
     private static final int TARGET_CURSOR_REPROBE_SUCCESSES = 9;
     private static final byte TARGET_CURSOR_NEW = 0;
     private static final byte TARGET_CURSOR_PROBATION = 1;
@@ -209,7 +210,7 @@ public final class SkyNetworkRegistry {
 
     public static synchronized ReadyLines readyLines(MinecraftServer server, long gameTime) {
         boolean distributorFallbackDue = DISTRIBUTOR_FALLBACK.consume(gameTime,
-                Math.min(40, SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks()));
+                DISTRIBUTOR_ROUTE_RECOVERY_INTERVAL);
         if (distributorFallbackDue) scheduleDistributorNodeRecovery();
         rebuildDirty(server);
         if (runtimeCachesDirty) {
@@ -505,7 +506,10 @@ public final class SkyNetworkRegistry {
             for (Map.Entry<BlockPos, NetworkEndpointBlockEntity> entry : index.loadedEndpoints.entrySet()) {
                 NetworkEndpointBlockEntity node = entry.getValue();
                 if (node instanceof SimplePipeBlockEntity || !targetsDistributor(node)) continue;
-                markNodeTopologyDirty(index, entry.getKey());
+                LineIndex line = index.lineByNode.get(entry.getKey());
+                if (line == null || !line.hasEndpointAt(entry.getKey())) {
+                    markNodeTopologyDirty(index, entry.getKey());
+                }
             }
         }
     }
@@ -1325,6 +1329,16 @@ public final class SkyNetworkRegistry {
 
         public List<CachedEndpoint> inputs() {
             return inputs;
+        }
+
+        private boolean hasEndpointAt(BlockPos pos) {
+            for (CachedEndpoint endpoint : inputs) {
+                if (endpoint.node().getBlockPos().equals(pos)) return true;
+            }
+            for (CachedEndpoint endpoint : outputs) {
+                if (endpoint.node().getBlockPos().equals(pos)) return true;
+            }
+            return false;
         }
 
         public int inputCount() {
