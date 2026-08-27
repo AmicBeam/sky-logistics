@@ -920,6 +920,9 @@ public final class SkyNetworkTicker {
             return HandlerMoveResult.NONE;
         }
         SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated, slotCheckBudget);
+        if (deferExhaustedDistributor(targetEndpoint, target, gameTime)) {
+            return new HandlerMoveResult(false, slotLimitCheck.checks(), true);
+        }
         if (!slotLimitCheck.complete()) {
             return new HandlerMoveResult(false, slotLimitCheck.checks(), true);
         }
@@ -941,6 +944,10 @@ public final class SkyNetworkTicker {
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
         if (movable <= 0) {
+            if (deferExhaustedDistributor(targetEndpoint, target, gameTime)) {
+                return new HandlerMoveResult(false,
+                        slotLimitCheck.checks() + selection.checks(), true);
+            }
             if (orderedTargetSlot < 0 && selection.exhaustive()) {
                 if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                 targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
@@ -1351,6 +1358,13 @@ public final class SkyNetworkTicker {
                 SlotLimitCheck slotLimitCheck = checkInsertionSlotLimit(targetEndpoint, target, simulated,
                         Math.max(1, budget - operations + 1));
                 operations += slotLimitCheck.checks();
+                if (deferExhaustedDistributor(targetEndpoint, target, gameTime)) {
+                    if (!singleTarget) {
+                        sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    }
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
                 if (!slotLimitCheck.complete()) {
                     if (!singleTarget) {
                         sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
@@ -1362,6 +1376,13 @@ public final class SkyNetworkTicker {
                 ExactItemScanResult exactScan = scanExactItems(targetEndpoint, target,
                         Math.max(1, budget - operations + 1), TARGET_EXACT_ITEM_SCANS);
                 operations += Math.max(0, exactScan.checks() - 1);
+                if (deferExhaustedDistributor(targetEndpoint, target, gameTime)) {
+                    if (!singleTarget) {
+                        sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                    }
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
                 if (!exactScan.complete()) {
                     if (!singleTarget) {
                         sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
@@ -1388,6 +1409,13 @@ public final class SkyNetworkTicker {
                 TargetItemSlot targetSlot = selection.slot();
                 int movable = targetSlot.movable();
                 if (movable <= 0) {
+                    if (deferExhaustedDistributor(targetEndpoint, target, gameTime)) {
+                        if (!singleTarget) {
+                            sourceEndpoint.resumeItemTargetScan(simulatedKey, visitedTargetIndex, targetCount);
+                        }
+                        budgetExhausted = true;
+                        break targetLoop;
+                    }
                     if (orderedTargetSlot < 0 && selection.exhaustive()) {
                         if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                         targetEndpoint.recordItemAcceptReject(simulatedKey, gameTime);
