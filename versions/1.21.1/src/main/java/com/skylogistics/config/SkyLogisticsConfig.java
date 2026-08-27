@@ -19,6 +19,9 @@ public final class SkyLogisticsConfig {
     private static List<? extends Object> cachedAStagesEntries;
     private static TransferRates cachedAStagesInitial;
     private static StageRateRules cachedAStagesRules;
+    private static List<? extends Object> cachedAdvancementEntries;
+    private static TransferRates cachedAdvancementInitial;
+    private static StageRateRules cachedAdvancementRules;
 
     static {
         ModConfigSpec.Builder serverBuilder = new ModConfigSpec.Builder();
@@ -104,6 +107,57 @@ public final class SkyLogisticsConfig {
         if (!(stage instanceof String text) || text.isBlank()) return false;
         for (String key : entry.valueMap().keySet()) {
             if ("stage".equals(key)) continue;
+            TransferResource resource = null;
+            for (TransferResource candidate : TransferResource.values()) {
+                if (candidate.configKey().equals(key)) {
+                    resource = candidate;
+                    break;
+                }
+            }
+            if (resource == null) return false;
+            Object rate = entry.get(key);
+            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
+        }
+        return true;
+    }
+
+    public static boolean enableAdvancementTransferRates() {
+        return SERVER.enableAdvancementTransferRates.get();
+    }
+
+    public static synchronized StageRateRules advancementTransferRateRules() {
+        TransferRates initial = new TransferRates(SERVER.advancementInitialItems.get(),
+                SERVER.advancementInitialFluids.get(), SERVER.advancementInitialChemicals.get(),
+                SERVER.advancementInitialSouls.get(), SERVER.advancementInitialEnergy.get(),
+                SERVER.advancementInitialMana.get(), SERVER.advancementInitialSource.get());
+        List<? extends Object> entries = SERVER.advancementRates.get();
+        if (cachedAdvancementRules == null || cachedAdvancementEntries != entries
+                || !initial.equals(cachedAdvancementInitial)) {
+            Map<String, StageTransferRates> advancements = new HashMap<>();
+            for (Object value : entries) {
+                UnmodifiableConfig entry = (UnmodifiableConfig) value;
+                String advancement = entry.get("advancement");
+                EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+                for (TransferResource resource : TransferResource.values()) {
+                    Number rate = entry.get(resource.configKey());
+                    if (rate != null) rates.put(resource, rate.longValue());
+                }
+                StageTransferRates parsed = new StageTransferRates(rates);
+                advancements.merge(advancement, parsed, StageTransferRates::mergeMax);
+            }
+            cachedAdvancementEntries = entries;
+            cachedAdvancementInitial = initial;
+            cachedAdvancementRules = new StageRateRules(initial, advancements);
+        }
+        return cachedAdvancementRules;
+    }
+
+    private static boolean validAdvancementRateEntry(Object value) {
+        if (!(value instanceof UnmodifiableConfig entry)) return false;
+        Object advancement = entry.get("advancement");
+        if (!(advancement instanceof String text) || text.isBlank()) return false;
+        for (String key : entry.valueMap().keySet()) {
+            if ("advancement".equals(key)) continue;
             TransferResource resource = null;
             for (TransferResource candidate : TransferResource.values()) {
                 if (candidate.configKey().equals(key)) {
@@ -363,6 +417,15 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.LongValue aStagesInitialMana;
         public final ModConfigSpec.LongValue aStagesInitialSource;
         public final ModConfigSpec.ConfigValue<List<? extends Object>> aStagesStageRates;
+        public final ModConfigSpec.BooleanValue enableAdvancementTransferRates;
+        public final ModConfigSpec.LongValue advancementInitialItems;
+        public final ModConfigSpec.LongValue advancementInitialFluids;
+        public final ModConfigSpec.LongValue advancementInitialChemicals;
+        public final ModConfigSpec.LongValue advancementInitialSouls;
+        public final ModConfigSpec.LongValue advancementInitialEnergy;
+        public final ModConfigSpec.LongValue advancementInitialMana;
+        public final ModConfigSpec.LongValue advancementInitialSource;
+        public final ModConfigSpec.ConfigValue<List<? extends Object>> advancementRates;
         public final ModConfigSpec.IntValue serverOpsPerTick;
         public final ModConfigSpec.IntValue lineOpsPerTick;
         public final ModConfigSpec.IntValue endpointTargetAttempts;
@@ -479,6 +542,26 @@ public final class SkyLogisticsConfig {
                             "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、souls、energy、mana、source 中的任意字段。",
                             "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, souls = 20000 }]")
                     .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
+            builder.pop();
+            builder.push("advancements");
+            enableAdvancementTransferRates = builder
+                    .comment("Whether vanilla advancements completed by the line owner limit and unlock per-operation transfer amounts.",
+                            "是否由线路持有者完成的原版进度限制并解锁单次操作传输量。")
+                    .define("enabled", false);
+            builder.push("initialRates");
+            advancementInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
+            advancementInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
+            advancementInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
+            advancementInitialSouls = builder.defineInRange("souls", 10_000L, 1L, Long.MAX_VALUE);
+            advancementInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
+            advancementInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
+            advancementInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
+            builder.pop();
+            advancementRates = builder
+                    .comment("Vanilla advancement unlock entries. Each entry requires an advancement resource location and may define any resource rate.",
+                            "原版进度解锁条目。每项必须包含进度资源 ID，并可定义任意资源速率。",
+                            "Example / 示例: [{ advancement = \"minecraft:story/enter_the_nether\", items = 128, souls = 20000 }]")
+                    .defineListAllowEmpty("advancementRates", List.of(), SkyLogisticsConfig::validAdvancementRateEntry);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
                             "简易管道的启用开关、传输速率与连接上限。")

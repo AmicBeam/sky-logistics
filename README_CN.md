@@ -25,6 +25,7 @@
 - **模组联动**：与 Jade、JEI、Patchouli、Curios、Sophisticated Backpacks、Mekanism、植物魔法和新生魔艺等提供可选且可配置的兼容；在模组版本及 API 兼容时，专用接口可将天穹线路接入 AE2、Refined Storage 和 Beyond Dimensions 网络。
 - **扩展资源**：Mekanism 化学品与 1.21.1 的坚守者灵魂走流体面和流体管道，并拥有独立限速；植物魔法 mana 与新生魔艺 Source 走能量面和能量管道。扩展资源只在同类处理器之间搬运。
 - **AStages 进度联动**：Minecraft 1.20.1 与 1.21.1 可按线路持有者拥有的 stage 限制并逐步解锁单次搬运量；该联动需要 AStages 2.x，且默认关闭。
+- **原版进度联动**：所有版本都可按线路持有者完成的 Minecraft Advancement 逐步解锁各资源的单次搬运量；无需第三方模组，且默认关闭。
 
 ## 依赖
 

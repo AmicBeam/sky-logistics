@@ -26,6 +26,7 @@ Celestial-themed logistics for Minecraft. Sky Logistics moves items, fluids, ene
 - **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, GuideME, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
 - **Extended resources**: Mekanism chemicals and, on 1.21.1, Warden Souls use fluid-enabled faces and pipes with independent transfer limits. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes; extended resources move only between matching handlers.
 - **AStages progression**: on Minecraft 1.20.1 and 1.21.1, servers can optionally limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration requires AStages 2.x and is disabled by default.
+- **Vanilla advancement progression**: on every supported version, servers can optionally unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner. No third-party mod is required, and the feature is disabled by default.
 
 ## Requirements
 
