@@ -67,6 +67,7 @@ public class SkyLogistics {
         MinecraftForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
+        MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }

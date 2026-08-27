@@ -52,6 +52,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         data.putBoolean("Items", items);
         data.putBoolean("Fluids", fluids);
         data.putBoolean("Energy", energy);
+        data.put("ProgressionRates", JadeTransferRateTooltip.write(node, null));
         if (node.getLevel() != null) data.put("Filters", JadeFilterTooltip.write(node, node.getLevel().registryAccess()));
         return data;
     }
@@ -68,6 +69,7 @@ public final class SkyNodeJadeProvider extends BaseSkyLogisticsJadeProvider
         tooltip.add(Component.translatable("jade.skylogistics.status",
                 Component.translatable(data.getBooleanOr("Active", false)
                         ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
+        JadeTransferRateTooltip.append(tooltip, data.getCompoundOrEmpty("ProgressionRates"));
         CompoundTag filters = data.getCompoundOrEmpty("Filters");
         for (Direction direction : Direction.values()) JadeFilterTooltip.append(tooltip, filters, direction, player, registries);
     }

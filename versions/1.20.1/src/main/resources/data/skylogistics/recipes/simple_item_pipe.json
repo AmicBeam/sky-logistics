@@ -3,7 +3,7 @@
   "pattern": ["GAG", "LHL", "GAG"],
   "key": {
     "G": {"tag": "forge:glass/colorless"},
-    "A": {"tag": "forge:gems/diamond"},
+    "A": {"tag": "forge:gems/lapis"},
     "L": {"tag": "forge:gems/lapis"},
     "H": {"tag": "forge:chests/wooden"}
   },

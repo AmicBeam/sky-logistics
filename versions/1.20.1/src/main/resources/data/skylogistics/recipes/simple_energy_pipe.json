@@ -3,7 +3,7 @@
   "pattern": ["GAG", "LRL", "GAG"],
   "key": {
     "G": {"tag": "forge:glass/colorless"},
-    "A": {"tag": "forge:gems/diamond"},
+    "A": {"tag": "forge:gems/lapis"},
     "L": {"tag": "forge:gems/lapis"},
     "R": {"tag": "forge:storage_blocks/redstone"}
   },

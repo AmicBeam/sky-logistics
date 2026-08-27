@@ -1,0 +1,29 @@
+{
+  "display": {
+    "icon": {
+      "id": "skylogistics:simple_item_pipe",
+      "count": 1
+    },
+    "title": {
+      "translate": "advancements.skylogistics.transfer_rates.root.title"
+    },
+    "description": {
+      "translate": "advancements.skylogistics.transfer_rates.root.description"
+    },
+    "background": "minecraft:textures/gui/advancements/backgrounds/stone.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "unlocked": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "unlocked"
+    ]
+  ]
+}

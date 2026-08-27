@@ -3,6 +3,7 @@ package com.skylogistics.block.entity;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
@@ -333,6 +334,18 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     public long limitSourceTransfer(long amount) {
         return Math.min(super.limitSourceTransfer(amount), SkyLogisticsConfig.simpleSourcePipeTransferRate());
+    }
+
+    @Override
+    public long getConfiguredTransferLimit(TransferResource resource) {
+        return switch (resource) {
+            case ITEMS -> SkyLogisticsConfig.simpleItemPipeTransferRate();
+            case FLUIDS -> SkyLogisticsConfig.simpleFluidPipeTransferRate();
+            case CHEMICALS, SOULS -> SkyLogisticsConfig.simpleChemicalPipeTransferRate();
+            case ENERGY -> SkyLogisticsConfig.simpleEnergyPipeTransferRate();
+            case MANA -> SkyLogisticsConfig.simpleManaPipeTransferRate();
+            case SOURCE -> SkyLogisticsConfig.simpleSourcePipeTransferRate();
+        };
     }
 
     @Override

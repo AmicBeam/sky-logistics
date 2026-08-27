@@ -1,0 +1,28 @@
+{
+  "parent": "skylogistics:transfer_rates/root",
+  "display": {
+    "icon": {
+      "item": "minecraft:iron_pickaxe"
+    },
+    "title": {
+      "translate": "advancements.story.upgrade_tools.title"
+    },
+    "description": {
+      "translate": "advancements.skylogistics.transfer_rates.upgrade_tools.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "unlocked": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "unlocked"
+    ]
+  ]
+}

@@ -23,6 +23,7 @@ public final class SimplePipeJadeProvider extends BaseSkyLogisticsJadeProvider i
         boolean active = (pipeData.getIntOr("ActiveFaces", 0) & (1 << direction.ordinal())) != 0;
         tooltip.add(Component.translatable("jade.skylogistics.status", Component.translatable(active
                 ? "jade.skylogistics.status_active" : "jade.skylogistics.status_idle")));
+        JadeTransferRateTooltip.append(tooltip, pipeData.getCompoundOrEmpty("ProgressionRates"));
         JadeFilterTooltip.append(tooltip, pipeData, direction,
                 accessor.getPlayer(), accessor.getLevel().registryAccess());
     }
@@ -43,6 +44,7 @@ public final class SimplePipeJadeProvider extends BaseSkyLogisticsJadeProvider i
             if (pipe.hasRecentTransfer(direction)) activeFaces |= 1 << direction.ordinal();
         }
         data.putInt("ActiveFaces", activeFaces);
+        data.put("ProgressionRates", JadeTransferRateTooltip.write(pipe, pipe.pipeType()));
         return data;
     }
 }

@@ -87,8 +87,8 @@ public final class SkyLogisticsConfig {
                 String stage = entry.get("stage");
                 EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
                 for (TransferResource resource : TransferResource.values()) {
-                    Number rate = entry.get(resource.configKey());
-                    if (rate != null) rates.put(resource, rate.longValue());
+                    Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                    if (rate != null) rates.put(resource, rate);
                 }
                 StageTransferRates parsed = new StageTransferRates(rates);
                 stages.merge(stage, parsed, StageTransferRates::mergeMax);
@@ -114,10 +114,32 @@ public final class SkyLogisticsConfig {
                 }
             }
             if (resource == null) return false;
-            Object rate = entry.get(key);
-            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
+            if (configuredAdvancementRate(entry.get(key)) == null) return false;
         }
         return true;
+    }
+
+    private static Long configuredAdvancementRate(Object value) {
+        if (value instanceof Number number && number.longValue() >= 1L) return number.longValue();
+        if (value instanceof String text && "unlimited".equalsIgnoreCase(text.trim())) return Long.MAX_VALUE;
+        return null;
+    }
+
+    private static List<? extends Object> defaultAdvancementRates() {
+        return List.of(
+                advancementRate("minecraft:story/upgrade_tools", 16L, 2_500L, 2_500L, 25_000L, 25_000L, 25_000L),
+                advancementRate("minecraft:story/mine_diamond", 64L, 10_000L, 10_000L, 100_000L, 100_000L, 100_000L),
+                advancementRate("minecraft:story/enchant_item", 256L, 40_000L, 40_000L, 400_000L, 400_000L, 400_000L),
+                advancementRate("minecraft:adventure/trade_at_world_height", 1_024L, 160_000L, 160_000L, 1_600_000L, 1_600_000L, 1_600_000L),
+                advancementRate("minecraft:nether/create_beacon", 4_096L, 640_000L, 640_000L, 6_400_000L, 6_400_000L, 6_400_000L),
+                advancementRate("minecraft:nether/create_full_beacon", 16_384L, 2_560_000L, 2_560_000L, 25_600_000L, 25_600_000L, 25_600_000L),
+                advancementRate("minecraft:end/elytra", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
+    }
+
+    private static Map<String, Object> advancementRate(String advancement, Object items, Object fluids,
+            Object chemicals, Object energy, Object mana, Object source) {
+        return Map.of("advancement", advancement, "items", items, "fluids", fluids, "chemicals", chemicals,
+                "energy", energy, "mana", mana, "source", source);
     }
 
     public static boolean enableAdvancementTransferRates() {
@@ -134,12 +156,12 @@ public final class SkyLogisticsConfig {
                 || !initial.equals(cachedAdvancementInitial)) {
             Map<String, StageTransferRates> advancements = new HashMap<>();
             for (Object value : entries) {
-                UnmodifiableConfig entry = (UnmodifiableConfig) value;
-                String advancement = entry.get("advancement");
+                Map<String, ?> entry = advancementEntry(value);
+                String advancement = (String) entry.get("advancement");
                 EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
                 for (TransferResource resource : TransferResource.values()) {
-                    Number rate = entry.get(resource.configKey());
-                    if (rate != null) rates.put(resource, rate.longValue());
+                    Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                    if (rate != null) rates.put(resource, rate);
                 }
                 StageTransferRates parsed = new StageTransferRates(rates);
                 advancements.merge(advancement, parsed, StageTransferRates::mergeMax);
@@ -152,10 +174,11 @@ public final class SkyLogisticsConfig {
     }
 
     private static boolean validAdvancementRateEntry(Object value) {
-        if (!(value instanceof UnmodifiableConfig entry)) return false;
+        Map<String, ?> entry = advancementEntry(value);
+        if (entry == null) return false;
         Object advancement = entry.get("advancement");
         if (!(advancement instanceof String text) || text.isBlank()) return false;
-        for (String key : entry.valueMap().keySet()) {
+        for (String key : entry.keySet()) {
             if ("advancement".equals(key)) continue;
             TransferResource resource = null;
             for (TransferResource candidate : TransferResource.values()) {
@@ -169,6 +192,15 @@ public final class SkyLogisticsConfig {
             if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
         }
         return true;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, ?> advancementEntry(Object value) {
+        if (value instanceof UnmodifiableConfig config) return config.valueMap();
+        if (value instanceof Map<?, ?> map && map.keySet().stream().allMatch(String.class::isInstance)) {
+            return (Map<String, ?>) map;
+        }
+        return null;
     }
 
     public static boolean enableSimpleItemPipe() {
@@ -528,20 +560,20 @@ public final class SkyLogisticsConfig {
             enableAdvancementTransferRates = builder
                     .comment("Whether vanilla advancements completed by the line owner limit and unlock per-operation transfer amounts.",
                             "是否由线路持有者完成的原版进度限制并解锁单次操作传输量。")
-                    .define("enabled", false);
+                    .define("enabled", true);
             builder.push("initialRates");
-            advancementInitialItems = builder.defineInRange("items", 64L, 1L, Long.MAX_VALUE);
-            advancementInitialFluids = builder.defineInRange("fluids", 10_000L, 1L, Long.MAX_VALUE);
-            advancementInitialChemicals = builder.defineInRange("chemicals", 10_000L, 1L, Long.MAX_VALUE);
-            advancementInitialEnergy = builder.defineInRange("energy", 100_000L, 1L, Long.MAX_VALUE);
-            advancementInitialMana = builder.defineInRange("mana", 100_000L, 1L, Long.MAX_VALUE);
-            advancementInitialSource = builder.defineInRange("source", 100_000L, 1L, Long.MAX_VALUE);
+            advancementInitialItems = builder.defineInRange("items", 4L, 1L, Long.MAX_VALUE);
+            advancementInitialFluids = builder.defineInRange("fluids", 625L, 1L, Long.MAX_VALUE);
+            advancementInitialChemicals = builder.defineInRange("chemicals", 625L, 1L, Long.MAX_VALUE);
+            advancementInitialEnergy = builder.defineInRange("energy", 6_250L, 1L, Long.MAX_VALUE);
+            advancementInitialMana = builder.defineInRange("mana", 6_250L, 1L, Long.MAX_VALUE);
+            advancementInitialSource = builder.defineInRange("source", 6_250L, 1L, Long.MAX_VALUE);
             builder.pop();
             advancementRates = builder
-                    .comment("Vanilla advancement unlock entries. Each entry requires an advancement resource location and may define any resource rate.",
-                            "原版进度解锁条目。每项必须包含进度资源 ID，并可定义任意资源速率。",
-                            "Example / 示例: [{ advancement = \"minecraft:story/enter_the_nether\", items = 128, fluids = 20000 }]")
-                    .defineListAllowEmpty("advancementRates", List.of(), SkyLogisticsConfig::validAdvancementRateEntry);
+                    .comment("Vanilla advancement unlock entries. Resource rates accept positive integers or the string \"unlimited\".",
+                            "原版进度解锁条目。资源速率可填写正整数或字符串 \"unlimited\"（无限制）。")
+                    .defineListAllowEmpty("advancementRates", defaultAdvancementRates(),
+                            SkyLogisticsConfig::validAdvancementRateEntry);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
                             "简易管道的启用开关、传输速率与连接上限。")

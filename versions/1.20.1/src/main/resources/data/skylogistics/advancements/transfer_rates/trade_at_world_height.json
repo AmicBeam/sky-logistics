@@ -1,0 +1,28 @@
+{
+  "parent": "skylogistics:transfer_rates/enchant_item",
+  "display": {
+    "icon": {
+      "item": "minecraft:emerald"
+    },
+    "title": {
+      "translate": "advancements.adventure.trade_at_world_height.title"
+    },
+    "description": {
+      "translate": "advancements.skylogistics.transfer_rates.trade_at_world_height.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "unlocked": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "unlocked"
+    ]
+  ]
+}
