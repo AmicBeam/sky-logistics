@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const projectRoot = resolve(import.meta.dirname, "..");
-const sourcePath = resolve(projectRoot, "assets/gui-icon-sources/wiki/Invicon_Stone_Button.png");
+const sourcePath = resolve(projectRoot, "assets/gui-icon-sources/wiki/Observer_(front_texture)_JE3_BE3.png");
 const iconRoot = resolve(projectRoot, "common/src/main/resources/assets/skylogistics/textures/gui/configurator");
 const prototypeIconRoot = resolve(projectRoot, "prototypes/configurator-gui/public/art/icons");
 const pulsePath = resolve(iconRoot, "redstone_pulse.png");
@@ -62,7 +62,7 @@ await mkdir(iconRoot, { recursive: true });
 await mkdir(reviewRoot, { recursive: true });
 
 const source = await inspect(sourcePath);
-if (source.format !== "png" || source.width !== 32 || source.height !== 32 || !source.hasAlpha) {
+if (source.format !== "png" || source.width !== 16 || source.height !== 16) {
   throw new Error(`Unexpected Wiki source: ${JSON.stringify(source)}`);
 }
 
@@ -79,7 +79,6 @@ for (const name of ["high", "low"]) {
 }
 
 await sharp(sourcePath)
-  .resize(16, 16, { kernel: sharp.kernel.nearest })
   .ensureAlpha()
   .png({ palette: false, progressive: false })
   .toFile(pulsePath);
@@ -91,7 +90,7 @@ for (const name of iconNames) {
   if (inspection.format !== "png" || inspection.width !== 16 || inspection.height !== 16 || !inspection.hasAlpha) {
     throw new Error(`Invalid ${name} icon format: ${JSON.stringify(inspection)}`);
   }
-  if (inspection.alpha.edgeAlphaPixels !== 0) {
+  if (name !== "pulse" && inspection.alpha.edgeAlphaPixels !== 0) {
     throw new Error(`${name} icon touches its outer edge: ${JSON.stringify(inspection.alpha)}`);
   }
   icons[name] = inspection;
@@ -127,11 +126,11 @@ await sharp({
 
 const report = {
   source: {
-    file: "assets/gui-icon-sources/wiki/Invicon_Stone_Button.png",
-    url: "https://minecraft.wiki/w/File:Invicon_Stone_Button.png",
+    file: "assets/gui-icon-sources/wiki/Observer_(front_texture)_JE3_BE3.png",
+    url: "https://minecraft.wiki/w/File:Observer_(front_texture)_JE3_BE3.png",
     ...source,
   },
-  conversion: "32x32 to 16x16, nearest-neighbor, no redraw",
+  conversion: "16x16 2D texture copied to 16x16 RGBA, no resize or redraw; full-canvas edge contact is intentional",
   icons,
   preview: {
     file: "art_review_exports/gui/redstone-icons-acceptance.png",
