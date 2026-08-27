@@ -46,8 +46,7 @@ final class JadeTransferRateTooltip {
             case ITEMS, CHEMICALS, SOULS -> "/t";
             case FLUIDS -> " mB/t";
             case ENERGY -> " FE/t";
-            case MANA -> " mana/t";
-            case SOURCE -> " Source/t";
+            case MANA, SOURCE -> " / t";
         };
     }
 }

@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.event.ManualGiftHandler;
+import com.skylogistics.event.AdvancementDataPackHandler;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
@@ -68,6 +69,7 @@ public class SkyLogistics {
         MinecraftForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
+        MinecraftForge.EVENT_BUS.addListener(AdvancementDataPackHandler::onServerStarted);
         MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }

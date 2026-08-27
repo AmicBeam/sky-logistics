@@ -1,7 +1,7 @@
 {
   "display": {
     "icon": {
-      "item": "skylogistics:sky_distributor"
+      "item": "skylogistics:configurator"
     },
     "title": {
       "translate": "advancements.skylogistics.transfer_rates.root.title"

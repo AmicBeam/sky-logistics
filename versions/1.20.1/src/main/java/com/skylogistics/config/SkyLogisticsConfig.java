@@ -6,6 +6,7 @@ import com.skylogistics.compat.astages.StageRateRules;
 import com.skylogistics.compat.astages.StageTransferRates;
 import com.skylogistics.compat.astages.TransferRates;
 import com.skylogistics.compat.astages.TransferResource;
+import com.skylogistics.compat.advancements.AdvancementDisplayEntry;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -128,20 +129,33 @@ public final class SkyLogisticsConfig {
 
     private static List<? extends Object> defaultAdvancementRates() {
         return List.of(
-                advancementRate("minecraft:story/smelt_iron", 16L, 2_500L, 2_500L, 25_000L, 13L, 13L),
-                advancementRate("minecraft:story/mine_diamond", 64L, 10_000L, 10_000L, 100_000L, 50L, 50L),
-                advancementRate("minecraft:story/enchant_item", 1_024L, 40_000L, 40_000L, 400_000L, 200L, 200L),
-                advancementRate("minecraft:adventure/trade_at_world_height", 32_768L, 160_000L, 160_000L, 1_600_000L, 800L, 800L),
-                advancementRate("minecraft:nether/create_beacon", 1_048_576L, 640_000L, 640_000L, 6_400_000L, 3_200L, 3_200L),
-                advancementRate("minecraft:nether/create_full_beacon", 2_147_483_647L, 2_147_483_647L,
-                        2_560_000L, 2_147_483_647L, 12_800L, 12_800L),
-                advancementRate("minecraft:end/elytra", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
+                advancementRate("minecraft:story/smelt_iron", "minecraft:iron_ingot",
+                        "advancements.story.smelt_iron.title", "task", 16L, 2_500L, 2_500L, 25_000L, 13L, 13L),
+                advancementRate("minecraft:story/mine_diamond", "minecraft:diamond",
+                        "advancements.story.mine_diamond.title", "task", 64L, 10_000L, 10_000L, 100_000L, 50L, 50L),
+                advancementRate("minecraft:story/enchant_item", "minecraft:enchanting_table",
+                        "advancements.story.enchant_item.title", "task", 1_024L, 40_000L, 40_000L, 400_000L, 200L, 200L),
+                advancementRate("minecraft:adventure/trade_at_world_height", "minecraft:emerald",
+                        "advancements.adventure.trade_at_world_height.title", "task", 32_768L, 160_000L,
+                        160_000L, 1_600_000L, 800L, 800L),
+                advancementRate("minecraft:nether/create_beacon", "minecraft:beacon",
+                        "advancements.nether.create_beacon.title", "task", 1_048_576L, 640_000L, 640_000L,
+                        6_400_000L, 3_200L, 3_200L),
+                advancementRate("minecraft:nether/create_full_beacon", "minecraft:beacon",
+                        "advancements.nether.create_full_beacon.title", "goal", 2_147_483_647L,
+                        2_147_483_647L, 2_560_000L, 2_147_483_647L, 12_800L, 12_800L),
+                advancementRate("minecraft:end/elytra", "minecraft:elytra", "advancements.end.elytra.title",
+                        "goal", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
     }
 
-    private static Config advancementRate(String advancement, Object items, Object fluids,
+    private static Config advancementRate(String advancement, String icon, String title, String frame,
+            Object items, Object fluids,
             Object chemicals, Object energy, Object mana, Object source) {
         Config entry = Config.inMemory();
         entry.set("advancement", advancement);
+        entry.set("icon", icon);
+        entry.set("title", title);
+        entry.set("frame", frame);
         entry.set("items", items);
         entry.set("fluids", fluids);
         entry.set("chemicals", chemicals);
@@ -180,6 +194,30 @@ public final class SkyLogisticsConfig {
             cachedAdvancementRules = new StageRateRules(initial, advancements);
         }
         return cachedAdvancementRules;
+    }
+
+    public static List<AdvancementDisplayEntry> advancementDisplayEntries() {
+        TransferRates current = advancementTransferRateRules().initial();
+        List<AdvancementDisplayEntry> result = new java.util.ArrayList<>();
+        for (Object value : SERVER.advancementRates.get()) {
+            Map<String, ?> entry = advancementEntry(value);
+            if (entry == null || !(entry.get("advancement") instanceof String advancement)) continue;
+            EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+            for (TransferResource resource : TransferResource.values()) {
+                Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                if (rate != null) rates.put(resource, rate);
+            }
+            current = current.max(new StageTransferRates(rates));
+            result.add(new AdvancementDisplayEntry(advancement,
+                    stringValue(entry.get("icon"), "minecraft:knowledge_book"),
+                    stringValue(entry.get("title"), advancement),
+                    stringValue(entry.get("frame"), "task"), current));
+        }
+        return List.copyOf(result);
+    }
+
+    private static String stringValue(Object value, String fallback) {
+        return value instanceof String text && !text.isBlank() ? text : fallback;
     }
 
     private static boolean validAdvancementRateEntry(Object value) {

@@ -10,15 +10,6 @@ import net.minecraft.server.level.ServerPlayer;
 /** Mirrors the default configured vanilla milestones into the Sky Logistics advancement chain. */
 public final class AdvancementDisplaySync {
     private static final String ROOT = "skylogistics:transfer_rates/root";
-    private static final String[][] MILESTONES = {
-            {"minecraft:story/smelt_iron", "skylogistics:transfer_rates/smelt_iron"},
-            {"minecraft:story/mine_diamond", "skylogistics:transfer_rates/mine_diamond"},
-            {"minecraft:story/enchant_item", "skylogistics:transfer_rates/enchant_item"},
-            {"minecraft:adventure/trade_at_world_height", "skylogistics:transfer_rates/trade_at_world_height"},
-            {"minecraft:nether/create_beacon", "skylogistics:transfer_rates/create_beacon"},
-            {"minecraft:nether/create_full_beacon", "skylogistics:transfer_rates/create_full_beacon"},
-            {"minecraft:end/elytra", "skylogistics:transfer_rates/elytra"}
-    };
     private static final Set<UUID> SYNCING = new HashSet<>();
 
     private AdvancementDisplaySync() {
@@ -28,16 +19,18 @@ public final class AdvancementDisplaySync {
         if (player == null || !SYNCING.add(player.getUUID())) return;
         try {
             boolean enabled = SkyLogisticsConfig.enableAdvancementTransferRates();
-            Set<String> configured = SkyLogisticsConfig.advancementTransferRateRules().stages().keySet();
+            var configured = SkyLogisticsConfig.advancementDisplayEntries();
             Object manager = player.level().getServer().getAdvancements();
             Object playerAdvancements = player.getAdvancements();
             Method lookup = findLookup(manager.getClass());
             if (lookup == null) return;
             setAwarded(manager, playerAdvancements, lookup, ROOT, enabled && !configured.isEmpty());
-            for (String[] milestone : MILESTONES) {
-                boolean completed = enabled && configured.contains(milestone[0])
-                        && isCompleted(manager, playerAdvancements, lookup, milestone[0]);
-                setAwarded(manager, playerAdvancements, lookup, milestone[1], completed);
+            for (int index = 0; index < configured.size(); index++) {
+                AdvancementDisplayEntry milestone = configured.get(index);
+                boolean completed = enabled && isCompleted(manager, playerAdvancements, lookup,
+                        milestone.advancement());
+                setAwarded(manager, playerAdvancements, lookup,
+                        "skylogistics:transfer_rates/entry_" + index, completed);
             }
         } catch (ReflectiveOperationException | LinkageError ignored) {
         } finally {
