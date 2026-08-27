@@ -9,7 +9,6 @@ item_ids:
   - skylogistics:simple_fluid_pipe
   - skylogistics:simple_energy_pipe
   - skylogistics:eulogia_companion_stone
-  - skylogistics:sky_wrench
 ---
 
 # 简易管道
@@ -21,7 +20,6 @@ item_ids:
   <ItemIcon id="simple_fluid_pipe" />
   <ItemIcon id="simple_energy_pipe" />
   <ItemIcon id="eulogia_companion_stone" />
-  <ItemIcon id="sky_wrench" />
 </ItemGrid>
 
 ## 放置与端点
@@ -51,4 +49,3 @@ item_ids:
 <RecipeFor id="simple_item_pipe" fallbackText="未找到简易物品管道配方。" />
 <RecipeFor id="simple_fluid_pipe" fallbackText="未找到简易流体管道配方。" />
 <RecipeFor id="simple_energy_pipe" fallbackText="未找到简易能量管道配方。" />
-<RecipeFor id="sky_wrench" fallbackText="未找到天穹扳手配方。" />

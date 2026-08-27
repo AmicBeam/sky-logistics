@@ -9,7 +9,6 @@ item_ids:
   - skylogistics:simple_fluid_pipe
   - skylogistics:simple_energy_pipe
   - skylogistics:eulogia_companion_stone
-  - skylogistics:sky_wrench
 ---
 
 # Simple Pipes
@@ -21,7 +20,6 @@ Simple pipes provide a wired alternative to wireless logistics nodes. Item, flui
   <ItemIcon id="simple_fluid_pipe" />
   <ItemIcon id="simple_energy_pipe" />
   <ItemIcon id="eulogia_companion_stone" />
-  <ItemIcon id="sky_wrench" />
 </ItemGrid>
 
 ## Placement and Endpoints
@@ -51,4 +49,3 @@ Each pipe recipe produces 2 pipes and requires a charged Eulogia Companion Stone
 <RecipeFor id="simple_item_pipe" fallbackText="The simple item pipe recipe is unavailable." />
 <RecipeFor id="simple_fluid_pipe" fallbackText="The simple fluid pipe recipe is unavailable." />
 <RecipeFor id="simple_energy_pipe" fallbackText="The simple energy pipe recipe is unavailable." />
-<RecipeFor id="sky_wrench" fallbackText="The Sky Wrench recipe is unavailable." />
