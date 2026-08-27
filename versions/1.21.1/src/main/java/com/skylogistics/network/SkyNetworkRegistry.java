@@ -3,11 +3,13 @@ package com.skylogistics.network;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
+import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.distributor.DistributorFallbackSchedule;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -105,6 +107,7 @@ public final class SkyNetworkRegistry {
     private static boolean globalOutputsDirty = true;
     private static boolean activeLineSnapshotDirty = true;
     private static int activeLineCursor;
+    private static final DistributorFallbackSchedule DISTRIBUTOR_FALLBACK = new DistributorFallbackSchedule();
 
     private SkyNetworkRegistry() {
     }
@@ -204,10 +207,16 @@ public final class SkyNetworkRegistry {
     }
 
     public static synchronized ReadyLines readyLines(MinecraftServer server, long gameTime) {
+        boolean distributorFallbackDue = DISTRIBUTOR_FALLBACK.consume(gameTime,
+                Math.min(40, SkyLogisticsConfig.distributorItemTargetFallbackProbeTicks()));
+        if (distributorFallbackDue) scheduleDistributorNodeRecovery();
         rebuildDirty(server);
         if (runtimeCachesDirty) {
             rebuildRuntimeCaches(server);
             runtimeCachesDirty = false;
+            globalOutputsDirty = true;
+        }
+        if (distributorFallbackDue && recoverDistributorLines()) {
             globalOutputsDirty = true;
         }
         if (globalOutputsDirty) {
@@ -482,6 +491,40 @@ public final class SkyNetworkRegistry {
         globalOutputsDirty = true;
         activeLineSnapshotDirty = true;
         activeLineCursor = 0;
+        DISTRIBUTOR_FALLBACK.reset();
+    }
+
+    private static boolean recoverDistributorLines() {
+        boolean recovered = false;
+        for (DimensionIndex index : DIMENSIONS.values()) {
+            for (LineIndex line : index.lines.values()) {
+                if (!line.recoverDistributorRuntime()) continue;
+                wakeLine(line);
+                recovered = true;
+            }
+        }
+        return recovered;
+    }
+
+    private static void scheduleDistributorNodeRecovery() {
+        for (DimensionIndex index : DIMENSIONS.values()) {
+            for (Map.Entry<BlockPos, NetworkEndpointBlockEntity> entry : index.loadedEndpoints.entrySet()) {
+                NetworkEndpointBlockEntity node = entry.getValue();
+                if (node instanceof SimplePipeBlockEntity || !targetsDistributor(node)) continue;
+                markNodeTopologyDirty(index, entry.getKey());
+            }
+        }
+    }
+
+    private static boolean targetsDistributor(NetworkEndpointBlockEntity node) {
+        Level level = node.getLevel();
+        if (level == null) return false;
+        for (Direction direction : Direction.values()) {
+            BlockPos targetPos = node.getTargetPos(direction);
+            if (level.isLoaded(targetPos)
+                    && level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity) return true;
+        }
+        return false;
     }
 
     private static void markTopologyDirty(DimensionIndex index) {
@@ -1453,6 +1496,40 @@ public final class SkyNetworkRegistry {
             sortByPriority(prioritySourceOutputs);
         }
 
+        private boolean recoverDistributorRuntime() {
+            boolean found = false;
+            for (CachedEndpoint endpoint : inputs) found |= endpoint.recoverIfDistributor();
+            for (CachedEndpoint endpoint : outputs) found |= endpoint.recoverIfDistributor();
+            if (!found) return false;
+            itemInputs.clear();
+            fluidInputs.clear();
+            chemicalInputs.clear();
+            soulInputs.clear();
+            energyInputs.clear();
+            manaInputs.clear();
+            sourceInputs.clear();
+            priorityItemOutputs.clear();
+            priorityFluidOutputs.clear();
+            priorityChemicalOutputs.clear();
+            prioritySoulOutputs.clear();
+            priorityEnergyOutputs.clear();
+            priorityManaOutputs.clear();
+            prioritySourceOutputs.clear();
+            inputResourceMask = 0;
+            outputResourceMask = 0;
+            for (CachedEndpoint endpoint : inputs) {
+                inputResourceMask |= addResourceEndpoint(endpoint, itemInputs, fluidInputs, chemicalInputs, soulInputs,
+                        energyInputs, manaInputs, sourceInputs);
+            }
+            for (CachedEndpoint endpoint : outputs) {
+                outputResourceMask |= addResourceEndpoint(endpoint, priorityItemOutputs, priorityFluidOutputs,
+                        priorityChemicalOutputs, prioritySoulOutputs, priorityEnergyOutputs, priorityManaOutputs,
+                        prioritySourceOutputs);
+            }
+            rebuildPriorityOutputs();
+            return true;
+        }
+
         private void removeNodeEndpoints(BlockPos pos) {
             inputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
             outputs.removeIf(endpoint -> endpoint.node().getBlockPos().equals(pos));
@@ -1952,6 +2029,27 @@ public final class SkyNetworkRegistry {
             clearEnergyCache();
             clearManaCache();
             clearSourceCache();
+        }
+
+        private boolean recoverIfDistributor() {
+            if (!(targetBlockEntity() instanceof SkyDistributorBlockEntity)) return false;
+            invalidateCapabilityKnowledge();
+            itemFailures = 0;
+            fluidFailures = 0;
+            chemicalFailures = 0;
+            soulFailures = 0;
+            energyFailures = 0;
+            manaFailures = 0;
+            sourceFailures = 0;
+            itemRetryAfter = 0L;
+            fluidRetryAfter = 0L;
+            chemicalRetryAfter = 0L;
+            soulRetryAfter = 0L;
+            energyRetryAfter = 0L;
+            manaRetryAfter = 0L;
+            sourceRetryAfter = 0L;
+            itemSourceMisses = fluidSourceMisses = chemicalSourceMisses = 0;
+            return true;
         }
 
         public IItemHandler itemHandler(long gameTime) {
