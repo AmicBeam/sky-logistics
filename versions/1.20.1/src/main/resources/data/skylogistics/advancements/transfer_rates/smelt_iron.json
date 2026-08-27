@@ -5,10 +5,10 @@
       "item": "minecraft:iron_pickaxe"
     },
     "title": {
-      "translate": "advancements.story.upgrade_tools.title"
+      "translate": "advancements.story.smelt_iron.title"
     },
     "description": {
-      "translate": "advancements.skylogistics.transfer_rates.upgrade_tools.description"
+      "translate": "advancements.skylogistics.transfer_rates.smelt_iron.description"
     },
     "frame": "task",
     "show_toast": false,

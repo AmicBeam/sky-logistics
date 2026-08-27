@@ -1,5 +1,5 @@
 {
-  "parent": "skylogistics:transfer_rates/upgrade_tools",
+  "parent": "skylogistics:transfer_rates/smelt_iron",
   "display": {
     "icon": {
       "item": "minecraft:diamond"

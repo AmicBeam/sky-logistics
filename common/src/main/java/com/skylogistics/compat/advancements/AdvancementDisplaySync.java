@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 public final class AdvancementDisplaySync {
     private static final String ROOT = "skylogistics:transfer_rates/root";
     private static final String[][] MILESTONES = {
-            {"minecraft:story/upgrade_tools", "skylogistics:transfer_rates/upgrade_tools"},
+            {"minecraft:story/smelt_iron", "skylogistics:transfer_rates/smelt_iron"},
             {"minecraft:story/mine_diamond", "skylogistics:transfer_rates/mine_diamond"},
             {"minecraft:story/enchant_item", "skylogistics:transfer_rates/enchant_item"},
             {"minecraft:adventure/trade_at_world_height", "skylogistics:transfer_rates/trade_at_world_height"},

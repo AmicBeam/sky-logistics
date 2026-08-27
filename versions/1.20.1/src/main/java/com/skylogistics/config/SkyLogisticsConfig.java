@@ -128,12 +128,13 @@ public final class SkyLogisticsConfig {
 
     private static List<? extends Object> defaultAdvancementRates() {
         return List.of(
-                advancementRate("minecraft:story/upgrade_tools", 16L, 2_500L, 2_500L, 25_000L, 13L, 13L),
+                advancementRate("minecraft:story/smelt_iron", 16L, 2_500L, 2_500L, 25_000L, 13L, 13L),
                 advancementRate("minecraft:story/mine_diamond", 64L, 10_000L, 10_000L, 100_000L, 50L, 50L),
-                advancementRate("minecraft:story/enchant_item", 256L, 40_000L, 40_000L, 400_000L, 200L, 200L),
-                advancementRate("minecraft:adventure/trade_at_world_height", 1_024L, 160_000L, 160_000L, 1_600_000L, 800L, 800L),
-                advancementRate("minecraft:nether/create_beacon", 4_096L, 640_000L, 640_000L, 6_400_000L, 3_200L, 3_200L),
-                advancementRate("minecraft:nether/create_full_beacon", 16_384L, 2_560_000L, 2_560_000L, 25_600_000L, 12_800L, 12_800L),
+                advancementRate("minecraft:story/enchant_item", 1_024L, 40_000L, 40_000L, 400_000L, 200L, 200L),
+                advancementRate("minecraft:adventure/trade_at_world_height", 32_768L, 160_000L, 160_000L, 1_600_000L, 800L, 800L),
+                advancementRate("minecraft:nether/create_beacon", 1_048_576L, 640_000L, 640_000L, 6_400_000L, 3_200L, 3_200L),
+                advancementRate("minecraft:nether/create_full_beacon", 2_147_483_647L, 2_147_483_647L,
+                        2_560_000L, 2_147_483_647L, 12_800L, 12_800L),
                 advancementRate("minecraft:end/elytra", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
     }
 

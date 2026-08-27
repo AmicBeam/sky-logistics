@@ -1,7 +1,7 @@
 {
   "display": {
     "icon": {
-      "item": "skylogistics:simple_item_pipe"
+      "item": "skylogistics:sky_distributor"
     },
     "title": {
       "translate": "advancements.skylogistics.transfer_rates.root.title"
