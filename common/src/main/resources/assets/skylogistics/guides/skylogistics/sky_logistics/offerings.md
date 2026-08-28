@@ -29,7 +29,7 @@ Start here:
 - [Sky Offering Circle](sky_offering_circle.md)
 - [Chora Nectar Offering](chora_nectar_offering.md)
 
-Offerings require the altar to be high enough in the sky and inside a valid circle. The required height is Y=128 by default, though server settings may differ. Put the main ingredient on the altar, place the offerings on the four side tables in any order, then wait for the ritual to finish.
+Offerings require the altar to be high enough in the sky and inside a valid circle. The required height is Y=96 by default, though server settings may differ. Put the main ingredient on the altar, place the offerings on the four side tables in any order, then wait for the ritual to finish.
 
 <RecipeFor id="offering_altar" fallbackText="The offering altar recipe is unavailable." />
 <RecipeFor id="offering_table" fallbackText="The offering table recipe is unavailable." />

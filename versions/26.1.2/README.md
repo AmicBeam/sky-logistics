@@ -55,7 +55,7 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
 - `Sky Crystal` / `天穹水晶`
   - Crafted in a vanilla crafting table.
   - Starts uncharged.
-  - Charges at or above the configured sky ritual height while in a player inventory or in a Sky Offering Table. The default is `Y >= 128`.
+  - Charges at or above the configured sky ritual height while in a player inventory or in a Sky Offering Table. The default is `Y >= 96`.
   - Uses item damage state to switch to a charged model.
   - A charged crystal plus eight `#c:stones` items crafts Celestial Stone.
 
@@ -72,14 +72,14 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
   - Single-slot block entity with no GUI.
   - Players insert/extract items directly by right-clicking; item handlers allow pipe transport.
   - Displays the stored item on top.
-  - Requires the configured sky ritual height and a valid multiblock to work. The default is `Y >= 128`.
+  - Requires the configured sky ritual height and a valid multiblock to work. The default is `Y >= 96`.
   - Runs data-driven `skylogistics:sky_offering` recipes.
   - Starlit Nectar requires a tier 2 altar.
 
 - `Sky Offering Table` / `天穹供桌`
   - Single-slot block entity with no GUI.
   - Displays the stored item on top.
-  - Can charge Sky Crystals at or above the configured sky ritual height. The default is `Y >= 128`.
+  - Can charge Sky Crystals at or above the configured sky ritual height. The default is `Y >= 96`.
   - Four tables around an altar provide offering inputs.
 
 - `Sky Configurator` / `天穹配置器`

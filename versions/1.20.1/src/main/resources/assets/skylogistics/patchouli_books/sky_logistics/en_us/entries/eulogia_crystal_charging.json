@@ -6,7 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "A crafted Eulogia Crystal starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=128 by default."
+      "text": "A crafted Eulogia Crystal starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=96 by default."
     },
     {
       "type": "patchouli:crafting",

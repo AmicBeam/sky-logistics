@@ -13,7 +13,7 @@ item_ids:
 
 # Eulogia Crystal Charging
 
-A crafted <ItemLink id="eulogia_crystal" /> starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=128 by default, though server settings may change this height.
+A crafted <ItemLink id="eulogia_crystal" /> starts uncharged. Carry it high into the sky to let it absorb starlight. Charging begins at Y=96 by default, though server settings may change this height.
 
 <RecipeFor id="eulogia_crystal" fallbackText="The Eulogia Crystal recipe is unavailable." />
 

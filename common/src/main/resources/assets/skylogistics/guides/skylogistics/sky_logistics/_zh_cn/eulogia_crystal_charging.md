@@ -13,7 +13,7 @@ item_ids:
 
 # 尤洛伽水晶与充能
 
-<ItemLink id="eulogia_crystal" /> 刚合成出来时还没有充能。把它带到足够高的地方就会开始吸收星辉；默认高度是 Y=128，服务器设置可能有所不同。
+<ItemLink id="eulogia_crystal" /> 刚合成出来时还没有充能。把它带到足够高的地方就会开始吸收星辉；默认高度是 Y=96，服务器设置可能有所不同。
 
 <RecipeFor id="eulogia_crystal" fallbackText="未找到尤洛伽水晶配方。" />
 

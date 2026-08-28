@@ -899,7 +899,7 @@ public final class SkyLogisticsConfig {
             skyRitualMinY = builder
                     .comment("Minimum block Y for Eulogia chargeable items to charge and sky offering altars to work.",
                             "尤洛伽水晶与配石充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
-                    .defineInRange("skyRitualMinY", 128, -64, 320);
+                    .defineInRange("skyRitualMinY", 96, -64, 320);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽水晶在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")

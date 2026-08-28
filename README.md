@@ -76,7 +76,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 
 1. Craft Simple Item, Fluid, or Energy Pipes for an inexpensive early-game logistics network. Normal placement creates an insert endpoint on the clicked container, while sneak-placement creates an extract endpoint.
 2. Use the Sky Configurator to switch machine-facing pipe endpoints between insert and extract. Use the Celestial Wrench or another compatible tagged wrench to disconnect and reconnect pipe sides.
-3. Charge Eulogia Crystals above Y 200 by default, or at the configured ritual height, and use them to craft Celestial Stone and advanced Sky Logistics components.
+3. Charge Eulogia Crystals at Y 96 or above by default, or at the configured ritual height, and use them to craft Celestial Stone and advanced Sky Logistics components.
 4. Build a multiblock Sky Offering Altar with Offering Tables to produce Chora Nectar and other offering materials.
 5. Place Celestial Item Vaults or Celestial Fluid Vaults as aggregate storage endpoints.
 6. Place Sky Logistics Nodes against machines, vaults, distributors, or external storage interfaces. Normal placement creates insert mode, while sneak-placement creates extract mode.
