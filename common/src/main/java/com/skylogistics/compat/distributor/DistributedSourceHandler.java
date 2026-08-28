@@ -2,12 +2,15 @@ package com.skylogistics.compat.distributor;
 
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 
-public final class DistributedSourceHandler implements SourceHandlerBridge {
+public final class DistributedSourceHandler implements SourceHandlerBridge, BudgetedDistributorHandler {
     private final DistributedHandlerLookup<SourceHandlerBridge> lookup;
     private int insertCursor;
     private int extractCursor;
 
     public DistributedSourceHandler(DistributedHandlerLookup<SourceHandlerBridge> lookup) { this.lookup = lookup; }
+
+    @Override public boolean distributorBudgetExhausted() { return lookup.budgetExhausted(); }
+    @Override public boolean distributorScanPending() { return lookup.scanPending(); }
 
     @Override public int getCurrentSource() { return snapshot(true); }
     @Override public int getMaxSource() { return snapshot(false); }

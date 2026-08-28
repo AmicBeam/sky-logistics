@@ -259,6 +259,7 @@ public final class SkyLogisticsConfig {
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
+    public static int distributorIndexingRetryTicks() { return SERVER.distributorIndexingRetryTicks.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
     public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
     public static boolean enableDistributorAdaptiveFluidTargetProbes() { return SERVER.enableDistributorAdaptiveFluidTargetProbes.get(); }
@@ -530,6 +531,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue enableDistributorEnergy;
         public final ModConfigSpec.IntValue distributorMaxTargets;
         public final ModConfigSpec.IntValue distributorScanOpsPerTick;
+        public final ModConfigSpec.IntValue distributorIndexingRetryTicks;
         public final ModConfigSpec.IntValue distributorOpsPerTick;
         public final ModConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
         public final ModConfigSpec.BooleanValue enableDistributorAdaptiveFluidTargetProbes;
@@ -838,6 +840,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.",
                             "单个天穹分配器每个服务器 tick 最多检查的 BFS 位置数；该预算独立于传输操作。")
                     .defineInRange("scanOpsPerTick", 16, 1, 4096);
+            distributorIndexingRetryTicks = builder
+                    .comment("Ticks a logistics endpoint waits before retrying a distributor whose machine index is still rebuilding. This local defer does not count as a transfer failure.",
+                            "分配器机器索引仍在重建时，物流端点再次尝试前等待的 tick；该局部延后不计为传输失败。")
+                    .defineInRange("indexingRetryTicks", 20, 1, 1200);
             distributorOpsPerTick = builder
                     .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.",
                             "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
