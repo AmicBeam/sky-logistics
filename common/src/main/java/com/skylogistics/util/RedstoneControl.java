@@ -22,6 +22,14 @@ public enum RedstoneControl implements StringRepresentable {
         return values[(ordinal() + 1) % values.length];
     }
 
+    public RedstoneControl next(NodeFaceMode mode) {
+        return next().normalizedFor(mode);
+    }
+
+    public RedstoneControl normalizedFor(NodeFaceMode mode) {
+        return this == PULSE && mode != NodeFaceMode.INPUT ? IGNORE : this;
+    }
+
     public String translationKey() {
         return "tooltip.skylogistics.redstone." + getSerializedName();
     }

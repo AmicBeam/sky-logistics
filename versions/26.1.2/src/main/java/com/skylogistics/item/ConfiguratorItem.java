@@ -742,6 +742,7 @@ public class ConfiguratorItem extends Item {
             priority = Math.max(-99, Math.min(99, priority));
             slotLimit = SkyNodeBlockEntity.clampItemSlotLimit(slotLimit);
             filters = List.copyOf(copyFaceFilters(filters));
+            redstoneControl = redstoneControl.normalizedFor(mode);
         }
 
         private CompoundTag save() {
@@ -835,7 +836,7 @@ public class ConfiguratorItem extends Item {
         }
 
         public FaceConfig cycleRedstoneControl() {
-            return withRedstoneControl(redstoneControl.next());
+            return withRedstoneControl(redstoneControl.next(mode));
         }
 
         public FaceConfig adjustPriority(int delta) {
