@@ -316,7 +316,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
         graphics.drawString(font, lineNameLabel,
                 LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
-                LINE_NAME_LABEL_Y, ConfigPanel.MUTED, false);
+                LINE_NAME_LABEL_Y, ConfigPanel.TEXT, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount),
                 LINE_COUNT_CENTER_X, 28, ConfigPanel.TEXT);
 
