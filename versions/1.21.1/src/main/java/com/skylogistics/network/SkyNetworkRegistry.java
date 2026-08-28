@@ -1972,7 +1972,11 @@ public final class SkyNetworkRegistry {
                 recordItemFailure(gameTime);
                 return null;
             }
-            itemHandler = cache.getCapability();
+            // A BlockCapabilityCache also caches null. After a failed attempt, bypass that sticky null once the
+            // endpoint retry is due, matching the fresh-query behavior used by the 1.20.1 LazyOptional path.
+            itemHandler = itemFailures > 0
+                    ? level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide)
+                    : cache.getCapability();
             if (itemHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_ITEMS, gameTime);
                 recordItemFailure(gameTime);
@@ -2000,7 +2004,9 @@ public final class SkyNetworkRegistry {
                 recordFluidFailure(gameTime);
                 return null;
             }
-            fluidHandler = cache.getCapability();
+            fluidHandler = fluidFailures > 0
+                    ? level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide)
+                    : cache.getCapability();
             if (fluidHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_FLUIDS, gameTime);
                 recordFluidFailure(gameTime);
@@ -2097,7 +2103,9 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
                 return null;
             }
-            energyHandler = cache.getCapability();
+            energyHandler = energyFailures > 0
+                    ? level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide)
+                    : cache.getCapability();
             if (energyHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_ENERGY, gameTime);
                 recordEnergyFailure(gameTime);
