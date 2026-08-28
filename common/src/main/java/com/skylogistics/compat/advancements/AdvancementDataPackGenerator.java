@@ -15,29 +15,47 @@ public final class AdvancementDataPackGenerator {
     private AdvancementDataPackGenerator() {
     }
 
-    public static void generate(Path datapacksDirectory, int packFormat, boolean legacyIconFormat,
+    /** Returns whether the generated datapack contents changed. */
+    public static boolean generate(Path datapacksDirectory, int packFormat, boolean legacyIconFormat,
             List<AdvancementDisplayEntry> entries) throws IOException {
         Path pack = datapacksDirectory.resolve(PACK_DIRECTORY);
         Path nodes = pack.resolve("data/skylogistics/")
                 .resolve(legacyIconFormat ? "advancements" : "advancement")
                 .resolve("transfer_rates");
         Files.createDirectories(nodes);
+        boolean changed = false;
         try (var files = Files.list(nodes)) {
             for (Path file : files.filter(path -> path.getFileName().toString().startsWith("entry_")
                     && path.getFileName().toString().endsWith(".json")).toList()) {
-                Files.deleteIfExists(file);
+                String fileName = file.getFileName().toString();
+                int separator = fileName.indexOf('.');
+                try {
+                    int index = Integer.parseInt(fileName.substring("entry_".length(), separator));
+                    if (index >= entries.size()) changed |= Files.deleteIfExists(file);
+                } catch (NumberFormatException ignored) {
+                    changed |= Files.deleteIfExists(file);
+                }
             }
         }
         String metadata = "{\"pack\":{\"pack_format\":" + packFormat
                 + ",\"description\":\"Sky Logistics configured progression\"}}";
-        Files.writeString(pack.resolve("pack.mcmeta"), metadata, StandardCharsets.UTF_8);
+        changed |= writeIfChanged(pack.resolve("pack.mcmeta"), metadata);
         for (int index = 0; index < entries.size(); index++) {
             AdvancementDisplayEntry entry = entries.get(index);
             String parent = index == 0 ? "skylogistics:transfer_rates/root"
                     : "skylogistics:transfer_rates/entry_" + (index - 1);
-            Files.writeString(nodes.resolve("entry_" + index + ".json"),
-                    nodeJson(parent, entry, legacyIconFormat), StandardCharsets.UTF_8);
+            changed |= writeIfChanged(nodes.resolve("entry_" + index + ".json"),
+                    nodeJson(parent, entry, legacyIconFormat));
         }
+        return changed;
+    }
+
+    private static boolean writeIfChanged(Path path, String content) throws IOException {
+        if (Files.isRegularFile(path) && Files.readString(path, StandardCharsets.UTF_8).equals(content)) {
+            return false;
+        }
+        Files.writeString(path, content, StandardCharsets.UTF_8);
+        return true;
     }
 
     private static String nodeJson(String parent, AdvancementDisplayEntry entry, boolean legacyIconFormat) {

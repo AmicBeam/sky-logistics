@@ -11,12 +11,13 @@ public final class AdvancementDataPackRuntime {
     }
 
     public static void rebuild(MinecraftServer server, int packFormat, boolean legacyIconFormat) {
+        if (!SkyLogisticsConfig.enableAdvancementTransferRates()) return;
         try {
-            var entries = SkyLogisticsConfig.enableAdvancementTransferRates()
-                    ? SkyLogisticsConfig.advancementDisplayEntries() : java.util.List.<AdvancementDisplayEntry>of();
-            AdvancementDataPackGenerator.generate(server.getWorldPath(LevelResource.DATAPACK_DIR), packFormat,
-                    legacyIconFormat, entries);
+            var entries = SkyLogisticsConfig.advancementDisplayEntries();
+            boolean changed = AdvancementDataPackGenerator.generate(
+                    server.getWorldPath(LevelResource.DATAPACK_DIR), packFormat, legacyIconFormat, entries);
             var repository = server.getPackRepository();
+            if (!changed && repository.getSelectedIds().contains(AdvancementDataPackGenerator.PACK_ID)) return;
             repository.reload();
             var selected = new ArrayList<>(repository.getSelectedIds());
             if (!selected.contains(AdvancementDataPackGenerator.PACK_ID)) {
