@@ -32,6 +32,7 @@ public final class AdvancementDisplaySync {
                 setAwarded(manager, playerAdvancements, lookup,
                         "skylogistics:transfer_rates/entry_" + index, completed);
             }
+            flush(playerAdvancements, player);
         } catch (ReflectiveOperationException | LinkageError ignored) {
         } finally {
             SYNCING.remove(player.getUUID());
@@ -63,6 +64,11 @@ public final class AdvancementDisplaySync {
         Method method = findCompatibleMethod(playerAdvancements.getClass(), "getOrStartProgress",
                 advancement.getClass());
         return method == null ? null : method.invoke(playerAdvancements, advancement);
+    }
+
+    private static void flush(Object playerAdvancements, ServerPlayer player) throws ReflectiveOperationException {
+        Method method = findCompatibleMethod(playerAdvancements.getClass(), "flushDirty", player.getClass());
+        if (method != null) method.invoke(playerAdvancements, player);
     }
 
     private static Method findLookup(Class<?> owner) {
