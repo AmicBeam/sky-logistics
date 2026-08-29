@@ -2,10 +2,12 @@ package com.skylogistics.event;
 
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.ManualCompat;
+import com.skylogistics.compat.advancements.AdvancementDisplaySync;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class ManualGiftHandler {
     private static final Identifier EULOGIA_MANUAL_ADVANCEMENT =
@@ -15,8 +17,9 @@ public final class ManualGiftHandler {
     }
 
     public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)
-                || !EULOGIA_MANUAL_ADVANCEMENT.equals(event.getAdvancement().id())) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        AdvancementDisplaySync.sync(player);
+        if (!EULOGIA_MANUAL_ADVANCEMENT.equals(event.getAdvancement().id())) {
             return;
         }
 
@@ -26,5 +29,9 @@ public final class ManualGiftHandler {
                 player.drop(toGive, false);
             }
         });
+    }
+
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) AdvancementDisplaySync.sync(player);
     }
 }

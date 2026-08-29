@@ -29,7 +29,7 @@ item_ids:
 - [天穹供奉法阵](sky_offering_circle.md)
 - [柯拉甘露供奉](chora_nectar_offering.md)
 
-供奉要求祭坛位于足够高的位置并处在有效法阵内。默认需要达到 Y=128，服务器设置可能有所不同。把主材料放在祭坛上，把供品放在四侧供桌上，顺序不限，然后等待仪式完成。
+供奉要求祭坛位于足够高的位置并处在有效法阵内。默认需要达到 Y=96，服务器设置可能有所不同。把主材料放在祭坛上，把供品放在四侧供桌上，顺序不限，然后等待仪式完成。
 
 <RecipeFor id="offering_altar" fallbackText="未找到供奉祭坛配方。" />
 <RecipeFor id="offering_table" fallbackText="未找到供奉台配方。" />

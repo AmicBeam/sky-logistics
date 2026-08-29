@@ -1,1 +1,1 @@
-{"type":"minecraft:crafting_shaped","pattern":["GAG","LBL","GAG"],"key":{"G":"#c:glass_blocks/colorless","A":"#c:gems/diamond","L":"#c:gems/lapis","B":"minecraft:bucket"},"result":{"id":"skylogistics:simple_fluid_pipe","count":8}}
+{"type":"minecraft:crafting_shaped","pattern":[" L ","GSG"," B "],"key":{"G":"#c:glass_blocks/colorless","L":"#c:gems/lapis","S":{"items":"skylogistics:eulogia_companion_stone","components":{"minecraft:damage":1},"neoforge:ingredient_type":"neoforge:components"},"B":"minecraft:bucket"},"result":{"id":"skylogistics:simple_fluid_pipe","count":2}}

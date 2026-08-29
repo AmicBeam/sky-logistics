@@ -1,10 +1,12 @@
 package com.skylogistics.config;
 
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.Config;
 import com.skylogistics.compat.astages.StageRateRules;
 import com.skylogistics.compat.astages.StageTransferRates;
 import com.skylogistics.compat.astages.TransferRates;
 import com.skylogistics.compat.astages.TransferResource;
+import com.skylogistics.compat.advancements.AdvancementDisplayEntry;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +21,9 @@ public final class SkyLogisticsConfig {
     private static List<? extends Object> cachedAStagesEntries;
     private static TransferRates cachedAStagesInitial;
     private static StageRateRules cachedAStagesRules;
+    private static List<? extends Object> cachedAdvancementEntries;
+    private static TransferRates cachedAdvancementInitial;
+    private static StageRateRules cachedAdvancementRules;
 
     static {
         ForgeConfigSpec.Builder serverBuilder = new ForgeConfigSpec.Builder();
@@ -84,8 +89,8 @@ public final class SkyLogisticsConfig {
                 String stage = entry.get("stage");
                 EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
                 for (TransferResource resource : TransferResource.values()) {
-                    Number rate = entry.get(resource.configKey());
-                    if (rate != null) rates.put(resource, rate.longValue());
+                    Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                    if (rate != null) rates.put(resource, rate);
                 }
                 StageTransferRates parsed = new StageTransferRates(rates);
                 stages.merge(stage, parsed, StageTransferRates::mergeMax);
@@ -111,10 +116,126 @@ public final class SkyLogisticsConfig {
                 }
             }
             if (resource == null) return false;
-            Object rate = entry.get(key);
-            if (!(rate instanceof Number number) || number.longValue() < 1L) return false;
+            if (configuredAdvancementRate(entry.get(key)) == null) return false;
         }
         return true;
+    }
+
+    private static Long configuredAdvancementRate(Object value) {
+        if (value instanceof Number number && number.longValue() >= 1L) return number.longValue();
+        if (value instanceof String text && "unlimited".equalsIgnoreCase(text.trim())) return Long.MAX_VALUE;
+        return null;
+    }
+
+    private static List<? extends Object> defaultAdvancementRates() {
+        return List.of(
+                advancementRate("minecraft:story/smelt_iron", "minecraft:iron_ingot",
+                        "advancements.story.smelt_iron.title", "task", 16L, 2_500L, 2_500L, 25_000L, 13L, 13L),
+                advancementRate("minecraft:story/mine_diamond", "minecraft:diamond",
+                        "advancements.story.mine_diamond.title", "task", 64L, 10_000L, 10_000L, 100_000L, 50L, 50L),
+                advancementRate("minecraft:story/enchant_item", "minecraft:enchanting_table",
+                        "advancements.story.enchant_item.title", "task", 1_024L, 160_000L, 160_000L,
+                        1_600_000L, 800L, 800L),
+                advancementRate("minecraft:adventure/trade_at_world_height", "minecraft:emerald",
+                        "advancements.adventure.trade_at_world_height.title", "task", 32_768L, 5_120_000L,
+                        5_120_000L, 51_200_000L, 25_600L, 25_600L),
+                advancementRate("minecraft:nether/create_beacon", "minecraft:beacon",
+                        "advancements.nether.create_beacon.title", "task", 1_048_576L, 163_840_000L,
+                        163_840_000L, 1_638_400_000L, 819_200L, 819_200L),
+                advancementRate("minecraft:nether/create_full_beacon", "minecraft:beacon",
+                        "advancements.nether.create_full_beacon.title", "goal", 2_147_483_647L,
+                        2_147_483_647L, 2_147_483_647L, 2_147_483_647L, 2_147_483_647L,
+                        2_147_483_647L),
+                advancementRate("minecraft:end/elytra", "minecraft:elytra", "advancements.end.elytra.title",
+                        "goal", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited", "unlimited"));
+    }
+
+    private static Config advancementRate(String advancement, String icon, String title, String frame,
+            Object items, Object fluids,
+            Object chemicals, Object energy, Object mana, Object source) {
+        Config entry = Config.inMemory();
+        entry.set("advancement", advancement);
+        entry.set("icon", icon);
+        entry.set("title", title);
+        entry.set("frame", frame);
+        entry.set("items", items);
+        entry.set("fluids", fluids);
+        entry.set("chemicals", chemicals);
+        entry.set("energy", energy);
+        entry.set("mana", mana);
+        entry.set("source", source);
+        return entry;
+    }
+
+    public static boolean enableAdvancementTransferRates() {
+        return SERVER.enableAdvancementTransferRates.get();
+    }
+
+    public static synchronized StageRateRules advancementTransferRateRules() {
+        TransferRates initial = new TransferRates(SERVER.advancementInitialItems.get(),
+                SERVER.advancementInitialFluids.get(), SERVER.advancementInitialChemicals.get(),
+                SERVER.advancementInitialEnergy.get(), SERVER.advancementInitialMana.get(),
+                SERVER.advancementInitialSource.get());
+        List<? extends Object> entries = SERVER.advancementRates.get();
+        if (cachedAdvancementRules == null || cachedAdvancementEntries != entries
+                || !initial.equals(cachedAdvancementInitial)) {
+            Map<String, StageTransferRates> advancements = new HashMap<>();
+            for (Object value : entries) {
+                Map<String, ?> entry = advancementEntry(value);
+                String advancement = (String) entry.get("advancement");
+                EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+                for (TransferResource resource : TransferResource.values()) {
+                    Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                    if (rate != null) rates.put(resource, rate);
+                }
+                StageTransferRates parsed = new StageTransferRates(rates);
+                advancements.merge(advancement, parsed, StageTransferRates::mergeMax);
+            }
+            cachedAdvancementEntries = entries;
+            cachedAdvancementInitial = initial;
+            cachedAdvancementRules = new StageRateRules(initial, advancements);
+        }
+        return cachedAdvancementRules;
+    }
+
+    public static List<AdvancementDisplayEntry> advancementDisplayEntries() {
+        TransferRates current = advancementTransferRateRules().initial();
+        List<AdvancementDisplayEntry> result = new java.util.ArrayList<>();
+        for (Object value : SERVER.advancementRates.get()) {
+            Map<String, ?> entry = advancementEntry(value);
+            if (entry == null || !(entry.get("advancement") instanceof String advancement)) continue;
+            EnumMap<TransferResource, Long> rates = new EnumMap<>(TransferResource.class);
+            for (TransferResource resource : TransferResource.values()) {
+                Long rate = configuredAdvancementRate(entry.get(resource.configKey()));
+                if (rate != null) rates.put(resource, rate);
+            }
+            current = current.max(new StageTransferRates(rates));
+            result.add(new AdvancementDisplayEntry(advancement,
+                    stringValue(entry.get("icon"), "minecraft:knowledge_book"),
+                    stringValue(entry.get("title"), advancement),
+                    stringValue(entry.get("frame"), "task"), current));
+        }
+        return List.copyOf(result);
+    }
+
+    private static String stringValue(Object value, String fallback) {
+        return value instanceof String text && !text.isBlank() ? text : fallback;
+    }
+
+    private static boolean validAdvancementRateEntry(Object value) {
+        Map<String, ?> entry = advancementEntry(value);
+        if (entry == null) return false;
+        Object advancement = entry.get("advancement");
+        return advancement instanceof String text && !text.isBlank();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, ?> advancementEntry(Object value) {
+        if (value instanceof UnmodifiableConfig config) return config.valueMap();
+        if (value instanceof Map<?, ?> map && map.keySet().stream().allMatch(String.class::isInstance)) {
+            return (Map<String, ?>) map;
+        }
+        return null;
     }
 
     public static boolean enableSimpleItemPipe() {
@@ -134,6 +255,7 @@ public final class SkyLogisticsConfig {
     public static boolean enableDistributorEnergy() { return SERVER.enableDistributorEnergy.get(); }
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
+    public static int distributorIndexingRetryTicks() { return SERVER.distributorIndexingRetryTicks.get(); }
     public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
     public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
     public static boolean enableDistributorAdaptiveFluidTargetProbes() { return SERVER.enableDistributorAdaptiveFluidTargetProbes.get(); }
@@ -331,6 +453,10 @@ public final class SkyLogisticsConfig {
         return SERVER.eulogiaCrystalChargeSeconds.get();
     }
 
+    public static int eulogiaCompanionStoneChargeSeconds() {
+        return SERVER.eulogiaCompanionStoneChargeSeconds.get();
+    }
+
     public static boolean renderConfiguratorPlayerHeads() {
         return CLIENT.renderConfiguratorPlayerHeads.get();
     }
@@ -349,6 +475,14 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.LongValue aStagesInitialMana;
         public final ForgeConfigSpec.LongValue aStagesInitialSource;
         public final ForgeConfigSpec.ConfigValue<List<? extends Object>> aStagesStageRates;
+        public final ForgeConfigSpec.BooleanValue enableAdvancementTransferRates;
+        public final ForgeConfigSpec.LongValue advancementInitialItems;
+        public final ForgeConfigSpec.LongValue advancementInitialFluids;
+        public final ForgeConfigSpec.LongValue advancementInitialChemicals;
+        public final ForgeConfigSpec.LongValue advancementInitialEnergy;
+        public final ForgeConfigSpec.LongValue advancementInitialMana;
+        public final ForgeConfigSpec.LongValue advancementInitialSource;
+        public final ForgeConfigSpec.ConfigValue<List<? extends Object>> advancementRates;
         public final ForgeConfigSpec.IntValue serverOpsPerTick;
         public final ForgeConfigSpec.IntValue lineOpsPerTick;
         public final ForgeConfigSpec.IntValue endpointTargetAttempts;
@@ -369,6 +503,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ForgeConfigSpec.IntValue skyRitualMinY;
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
+        public final ForgeConfigSpec.IntValue eulogiaCompanionStoneChargeSeconds;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
@@ -397,6 +532,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.BooleanValue enableDistributorEnergy;
         public final ForgeConfigSpec.IntValue distributorMaxTargets;
         public final ForgeConfigSpec.IntValue distributorScanOpsPerTick;
+        public final ForgeConfigSpec.IntValue distributorIndexingRetryTicks;
         public final ForgeConfigSpec.IntValue distributorOpsPerTick;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveFluidTargetProbes;
@@ -461,6 +597,25 @@ public final class SkyLogisticsConfig {
                             "AStages 解锁条目。每项必须包含 stage，并可定义 items、fluids、chemicals、energy、mana、source 中的任意字段。",
                             "Example / 示例: [{ stage = \"logistics_tier_1\", items = 128, fluids = 20000 }]")
                     .defineListAllowEmpty("stageRates", List.of(), SkyLogisticsConfig::validAStagesStageRateEntry);
+            builder.pop();
+            builder.push("advancements");
+            enableAdvancementTransferRates = builder
+                    .comment("Whether vanilla advancements completed by the line owner limit and unlock per-operation transfer amounts.",
+                            "是否由线路持有者完成的原版进度限制并解锁单次操作传输量。")
+                    .define("enabled", true);
+            builder.push("initialRates");
+            advancementInitialItems = builder.defineInRange("items", 4L, 1L, Long.MAX_VALUE);
+            advancementInitialFluids = builder.defineInRange("fluids", 625L, 1L, Long.MAX_VALUE);
+            advancementInitialChemicals = builder.defineInRange("chemicals", 625L, 1L, Long.MAX_VALUE);
+            advancementInitialEnergy = builder.defineInRange("energy", 6_250L, 1L, Long.MAX_VALUE);
+            advancementInitialMana = builder.defineInRange("mana", 3L, 1L, Long.MAX_VALUE);
+            advancementInitialSource = builder.defineInRange("source", 3L, 1L, Long.MAX_VALUE);
+            builder.pop();
+            advancementRates = builder
+                    .comment("Vanilla advancement unlock entries. Resource rates accept positive integers or the string \"unlimited\".",
+                            "原版进度解锁条目。资源速率可填写正整数或字符串 \"unlimited\"（无限制）。")
+                    .defineListAllowEmpty("advancementRates", defaultAdvancementRates(),
+                            SkyLogisticsConfig::validAdvancementRateEntry);
             builder.pop();
             builder.comment("Simple pipe enable switches, transfer rates, and connection limits.",
                             "简易管道的启用开关、传输速率与连接上限。")
@@ -692,6 +847,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum BFS positions one Celestial Distributor may inspect per server tick. This budget is independent from transfer operations.",
                             "单个天穹分配器每个服务器 tick 最多检查的 BFS 位置数；该预算独立于传输操作。")
                     .defineInRange("scanOpsPerTick", 16, 1, 4096);
+            distributorIndexingRetryTicks = builder
+                    .comment("Ticks a logistics endpoint waits before retrying a distributor whose machine index is still rebuilding. This local defer does not count as a transfer failure.",
+                            "分配器机器索引仍在重建时，物流端点再次尝试前等待的 tick；该局部延后不计为传输失败。")
+                    .defineInRange("indexingRetryTicks", 20, 1, 1200);
             distributorOpsPerTick = builder
                     .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.",
                             "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
@@ -751,13 +910,17 @@ public final class SkyLogisticsConfig {
 
             builder.push("rituals");
             skyRitualMinY = builder
-                    .comment("Minimum block Y for Eulogia Crystals to charge and sky offering altars to work.",
-                            "尤洛伽水晶充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
-                    .defineInRange("skyRitualMinY", 128, -64, 320);
+                    .comment("Minimum block Y for Eulogia chargeable items to charge and sky offering altars to work.",
+                            "尤洛伽水晶与配石充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
+                    .defineInRange("skyRitualMinY", 96, -64, 320);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽水晶在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
                     .defineInRange("eulogiaCrystalChargeSeconds", 20, 1, 3600);
+            eulogiaCompanionStoneChargeSeconds = builder
+                    .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
+                            "未充能尤洛伽配石在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
+                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 10, 1, 3600);
             builder.pop();
         }
 

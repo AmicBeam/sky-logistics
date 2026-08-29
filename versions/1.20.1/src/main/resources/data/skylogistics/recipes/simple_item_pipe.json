@@ -1,11 +1,11 @@
 {
   "type": "minecraft:crafting_shaped",
-  "pattern": ["GAG", "LHL", "GAG"],
+  "pattern": [" L ", "GSG", " H "],
   "key": {
     "G": {"tag": "forge:glass/colorless"},
-    "A": {"tag": "forge:gems/diamond"},
     "L": {"tag": "forge:gems/lapis"},
+    "S": {"type": "forge:partial_nbt", "item": "skylogistics:eulogia_companion_stone", "nbt": "{Damage:1}"},
     "H": {"tag": "forge:chests/wooden"}
   },
-  "result": {"item": "skylogistics:simple_item_pipe", "count": 8}
+  "result": {"item": "skylogistics:simple_item_pipe", "count": 2}
 }

@@ -3,6 +3,7 @@ package com.skylogistics.block.entity;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
@@ -353,6 +354,58 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
     @Override
     public long limitSourceTransfer(long amount) {
         return Math.min(super.limitSourceTransfer(amount), SkyLogisticsConfig.simpleSourcePipeTransferRate());
+    }
+
+    @Override
+    public TransferResource firstEnabledTransferResource(Direction direction) {
+        if (!enabled() || level == null || direction == null || getFaceMode(direction) == NodeFaceMode.NONE
+                || !level.isLoaded(getTargetPos(direction))) return null;
+        BlockPos targetPos = getTargetPos(direction);
+        Direction accessSide = getAccessSide(direction);
+        return switch (pipeType()) {
+            case ITEM -> {
+                if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor)
+                    yield distributor.hasItemTargets(accessSide) ? TransferResource.ITEMS : null;
+                IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, accessSide);
+                yield handler != null && handler.getSlots() > 0 ? TransferResource.ITEMS : null;
+            }
+            case FLUID -> {
+                if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor
+                        && distributor.hasFluidTargets(accessSide)) yield TransferResource.FLUIDS;
+                IFluidHandler handler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, accessSide);
+                if (handler != null && handler.getTanks() > 0) yield TransferResource.FLUIDS;
+                if (SkyLogisticsConfig.allowFluidChemicalTransfer() && supportsChemicalEndpoint(direction))
+                    yield TransferResource.CHEMICALS;
+                if (SkyLogisticsConfig.allowFluidSoulTransfer() && supportsSoulEndpoint(direction))
+                    yield TransferResource.SOULS;
+                yield null;
+            }
+            case ENERGY -> {
+                if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor
+                        && distributor.hasEnergyTargets(accessSide)) yield TransferResource.ENERGY;
+                IEnergyStorage storage = level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, accessSide);
+                if (storage != null && (storage.getMaxEnergyStored() > 0 || storage.canExtract()
+                        || storage.canReceive())) yield TransferResource.ENERGY;
+                if (SkyLogisticsConfig.allowEnergyManaTransfer() && supportsManaEndpoint(direction))
+                    yield TransferResource.MANA;
+                if (SkyLogisticsConfig.allowEnergySourceTransfer() && supportsSourceEndpoint(direction))
+                    yield TransferResource.SOURCE;
+                yield null;
+            }
+        };
+    }
+
+    @Override
+    public long getConfiguredTransferLimit(TransferResource resource) {
+        return switch (resource) {
+            case ITEMS -> SkyLogisticsConfig.simpleItemPipeTransferRate();
+            case FLUIDS -> SkyLogisticsConfig.simpleFluidPipeTransferRate();
+            case CHEMICALS -> SkyLogisticsConfig.simpleChemicalPipeTransferRate();
+            case SOULS -> SkyLogisticsConfig.simpleSoulPipeTransferRate();
+            case ENERGY -> SkyLogisticsConfig.simpleEnergyPipeTransferRate();
+            case MANA -> SkyLogisticsConfig.simpleManaPipeTransferRate();
+            case SOURCE -> SkyLogisticsConfig.simpleSourcePipeTransferRate();
+        };
     }
 
     @Override

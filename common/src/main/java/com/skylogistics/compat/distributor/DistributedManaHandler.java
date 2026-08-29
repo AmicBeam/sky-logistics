@@ -2,12 +2,15 @@ package com.skylogistics.compat.distributor;
 
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 
-public final class DistributedManaHandler implements ManaHandlerBridge {
+public final class DistributedManaHandler implements ManaHandlerBridge, BudgetedDistributorHandler {
     private final DistributedHandlerLookup<ManaHandlerBridge> lookup;
     private int insertCursor;
     private int extractCursor;
 
     public DistributedManaHandler(DistributedHandlerLookup<ManaHandlerBridge> lookup) { this.lookup = lookup; }
+
+    @Override public boolean distributorBudgetExhausted() { return lookup.budgetExhausted(); }
+    @Override public boolean distributorScanPending() { return lookup.scanPending(); }
 
     @Override public int getCurrentMana() { return snapshot(true); }
     @Override public int getMaxMana() { return snapshot(false); }

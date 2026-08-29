@@ -16,7 +16,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The altar must be high enough in the sky and inside a valid offering circle. The required height is Y=128 by default. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter."
+      "text": "The altar must be high enough in the sky and inside a valid offering circle. The required height is Y=96 by default. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter."
     },
     {
       "type": "patchouli:text",

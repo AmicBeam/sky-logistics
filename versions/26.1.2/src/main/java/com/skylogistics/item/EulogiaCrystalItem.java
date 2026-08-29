@@ -5,6 +5,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.util.StackData;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -24,16 +25,25 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
-public class EulogiaCrystalItem extends Item {
+public class EulogiaCrystalItem extends Item implements SkyChargeableItem {
     private static final String CHARGE_SECONDS_TAG = "EulogiaChargeSeconds";
     private static final String DAMAGE_TAG = "Damage";
     private static final int TICKS_PER_SECOND = 20;
     private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
-    private static final Identifier CHARGED_ITEM_MODEL = SkyLogistics.id("eulogia_crystal_charged");
+    private final IntSupplier requiredChargeSeconds;
+    private final String translationKeyBase;
+    private final Identifier chargedItemModel;
 
     public EulogiaCrystalItem(Properties properties) {
+        this(properties, SkyLogisticsConfig::eulogiaCrystalChargeSeconds, "eulogia_crystal");
+    }
+
+    public EulogiaCrystalItem(Properties properties, IntSupplier requiredChargeSeconds, String translationKeyBase) {
         super(properties);
+        this.requiredChargeSeconds = requiredChargeSeconds;
+        this.translationKeyBase = translationKeyBase;
+        this.chargedItemModel = SkyLogistics.id(translationKeyBase + "_charged");
     }
 
     public static boolean isCharged(ItemStack stack) {
@@ -43,24 +53,36 @@ public class EulogiaCrystalItem extends Item {
 
     public static ItemStack chargedStack(Item item) {
         ItemStack stack = new ItemStack(item);
-        setCharged(stack, StackData.getOrEmpty(stack));
+        if (item instanceof EulogiaCrystalItem chargeable) {
+            chargeable.setCharged(stack, StackData.getOrEmpty(stack));
+        }
         return stack;
     }
 
     public static boolean chargeOneSecond(ItemStack stack) {
-        if (!(stack.getItem() instanceof EulogiaCrystalItem) || isCharged(stack)) {
+        if (!(stack.getItem() instanceof EulogiaCrystalItem chargeable) || isCharged(stack)) {
             return false;
         }
         CompoundTag tag = StackData.getOrEmpty(stack);
         int chargeSeconds = storedChargeSeconds(tag) + 1;
-        int requiredSeconds = SkyLogisticsConfig.eulogiaCrystalChargeSeconds();
+        int requiredSeconds = chargeable.requiredChargeSeconds.getAsInt();
         if (chargeSeconds >= requiredSeconds) {
-            setCharged(stack, tag);
+            chargeable.setCharged(stack, tag);
             return true;
         }
         tag.putInt(CHARGE_SECONDS_TAG, chargeSeconds);
         StackData.set(stack, tag);
         return false;
+    }
+
+    @Override
+    public boolean isStackCharged(ItemStack stack) {
+        return isCharged(stack);
+    }
+
+    @Override
+    public boolean chargeStackOneSecond(ItemStack stack) {
+        return chargeOneSecond(stack);
     }
 
     private static int storedChargeSeconds(ItemStack stack) {
@@ -79,7 +101,9 @@ public class EulogiaCrystalItem extends Item {
         if (isCharged(stack)) {
             return 1.0F;
         }
-        int requiredSeconds = Math.max(1, SkyLogisticsConfig.eulogiaCrystalChargeSeconds());
+        int requiredSeconds = stack.getItem() instanceof EulogiaCrystalItem chargeable
+                ? Math.max(1, chargeable.requiredChargeSeconds.getAsInt())
+                : 1;
         return Mth.clamp((float) storedChargeSeconds(stack) / (float) requiredSeconds, 0.0F, 1.0F);
     }
 
@@ -110,11 +134,11 @@ public class EulogiaCrystalItem extends Item {
         if (chargeOneSecond(stack) && player instanceof ServerPlayer) {
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS,
                     0.8F, 1.4F);
-            player.sendOverlayMessage(Component.translatable("message.skylogistics.eulogia_crystal.charged"));
+            player.sendOverlayMessage(Component.translatable("message.skylogistics." + translationKeyBase + ".charged"));
         }
     }
 
-    private static void setCharged(ItemStack stack, CompoundTag tag) {
+    private void setCharged(ItemStack stack, CompoundTag tag) {
         tag.remove(CHARGE_SECONDS_TAG);
         tag.remove(DAMAGE_TAG);
         stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
@@ -122,7 +146,7 @@ public class EulogiaCrystalItem extends Item {
         ensureChargedComponents(stack);
     }
 
-    private static void ensureChargedComponents(ItemStack stack) {
+    private void ensureChargedComponents(ItemStack stack) {
         Integer damage = stack.get(DataComponents.DAMAGE);
         if (damage == null || damage < CHARGED_DAMAGE_VALUE) {
             stack.set(DataComponents.DAMAGE, CHARGED_DAMAGE_VALUE);
@@ -130,9 +154,9 @@ public class EulogiaCrystalItem extends Item {
         ensureChargedModel(stack);
     }
 
-    private static void ensureChargedModel(ItemStack stack) {
-        if (!CHARGED_ITEM_MODEL.equals(stack.get(DataComponents.ITEM_MODEL))) {
-            stack.set(DataComponents.ITEM_MODEL, CHARGED_ITEM_MODEL);
+    private void ensureChargedModel(ItemStack stack) {
+        if (!chargedItemModel.equals(stack.get(DataComponents.ITEM_MODEL))) {
+            stack.set(DataComponents.ITEM_MODEL, chargedItemModel);
         }
     }
 
@@ -159,9 +183,9 @@ public class EulogiaCrystalItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
         if (isCharged(stack)) {
-            tooltip.accept(Component.translatable("tooltip.skylogistics.eulogia_crystal.charged").withStyle(ChatFormatting.AQUA));
+            tooltip.accept(Component.translatable("tooltip.skylogistics." + translationKeyBase + ".charged").withStyle(ChatFormatting.AQUA));
         } else {
-            tooltip.accept(Component.translatable("tooltip.skylogistics.eulogia_crystal.uncharged",
+            tooltip.accept(Component.translatable("tooltip.skylogistics." + translationKeyBase + ".uncharged",
                     SkyLogisticsConfig.skyRitualMinY()).withStyle(ChatFormatting.GRAY));
         }
     }

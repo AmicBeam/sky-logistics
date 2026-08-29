@@ -4,6 +4,7 @@ import com.skylogistics.block.entity.SingleSlotDisplayBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.event.ManualGiftHandler;
+import com.skylogistics.event.AdvancementDataPackHandler;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
@@ -70,6 +71,8 @@ public class SkyLogistics {
         NeoForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
+        NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(AdvancementDataPackHandler::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }

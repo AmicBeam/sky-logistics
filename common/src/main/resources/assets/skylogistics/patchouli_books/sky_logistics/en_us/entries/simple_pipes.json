@@ -15,17 +15,17 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_item_pipe",
-      "text": "Item pipes use an orange identification stripe and craft in batches of 8."
+      "text": "Item pipes use an orange stripe and craft in batches of 2. All pipe recipes require a charged Eulogia Companion Stone; item pipes use a wooden chest as their distinguishing material."
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_fluid_pipe",
-      "text": "Fluid pipes use a deep-blue identification stripe and craft in batches of 8."
+      "text": "Fluid pipes use a deep-blue stripe, craft in batches of 2, and use a bucket as their distinguishing material."
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_energy_pipe",
-      "text": "Energy pipes use a red identification stripe and craft in batches of 8."
+      "text": "Energy pipes use a red stripe, craft in batches of 2, and use a redstone block as their distinguishing material."
     },
     {
       "type": "patchouli:crafting",

@@ -1,6 +1,7 @@
 package com.skylogistics.registry;
 
 import com.skylogistics.SkyLogistics;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ChoraNectarItem;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
@@ -82,6 +83,9 @@ public final class ModItems {
                     "tooltip.skylogistics.ordered_matching_upgrade", true));
     public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_CRYSTAL = ITEMS.register("eulogia_crystal",
             () -> new EulogiaCrystalItem(itemProperties("eulogia_crystal").stacksTo(64)));
+    public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_COMPANION_STONE = ITEMS.register("eulogia_companion_stone",
+            () -> new EulogiaCrystalItem(itemProperties("eulogia_companion_stone").stacksTo(64),
+                    SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(itemProperties("chora_nectar")));
     public static final DeferredHolder<Item, SkyLogisticsManualItem> SKY_LOGISTICS_MANUAL = ITEMS.register(

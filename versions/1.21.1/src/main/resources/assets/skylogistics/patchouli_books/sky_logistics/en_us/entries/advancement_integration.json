@@ -1,0 +1,15 @@
+{
+  "name": "Vanilla Advancement Rates",
+  "icon": "skylogistics:speed_upgrade",
+  "category": "skylogistics:logistics",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Servers progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner and provide a Sky Logistics advancement tab by default. No extra mod is required; disable it at $(thing)transfers.advancements.enabled$()."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Each advancementRates entry contains a full advancement ID and optional resource limits. Completed configured advancements unlock the highest value per resource above initialRates; device and other enabled limits still apply. Offline or unknown owners use the initial rates."
+    }
+  ]
+}

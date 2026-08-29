@@ -12,7 +12,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.Items;
 
 final class ConfigPanel {
     static final int BG = 0xFFC6C6C6;
@@ -109,10 +108,6 @@ final class ConfigPanel {
     }
 
     static void drawRedstoneIcon(GuiGraphicsExtractor graphics, int x, int y, RedstoneControl control) {
-        if (control == RedstoneControl.PULSE) {
-            graphics.item(Items.STONE_BUTTON.getDefaultInstance(), x, y);
-            return;
-        }
         Identifier texture = Identifier.fromNamespaceAndPath("skylogistics",
                 "textures/gui/configurator/redstone_" + control.getSerializedName() + ".png");
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0, 0, 16, 16, 16, 16);

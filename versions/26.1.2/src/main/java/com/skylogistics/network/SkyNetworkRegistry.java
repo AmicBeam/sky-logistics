@@ -1888,7 +1888,11 @@ public final class SkyNetworkRegistry {
                 recordItemFailure(gameTime);
                 return null;
             }
-            itemHandler = TransferCompat.itemHandler(cache.getCapability());
+            // A BlockCapabilityCache also caches null. After a failed attempt, bypass that sticky null once the
+            // endpoint retry is due, matching the fresh-query behavior used by the 1.20.1 LazyOptional path.
+            itemHandler = TransferCompat.itemHandler(itemFailures > 0
+                    ? level.getCapability(Capabilities.Item.BLOCK, targetPos, accessSide)
+                    : cache.getCapability());
             if (itemHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_ITEMS, gameTime);
                 recordItemFailure(gameTime);
@@ -1916,7 +1920,9 @@ public final class SkyNetworkRegistry {
                 recordFluidFailure(gameTime);
                 return null;
             }
-            fluidHandler = TransferCompat.fluidHandler(cache.getCapability());
+            fluidHandler = TransferCompat.fluidHandler(fluidFailures > 0
+                    ? level.getCapability(Capabilities.Fluid.BLOCK, targetPos, accessSide)
+                    : cache.getCapability());
             if (fluidHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_FLUIDS, gameTime);
                 recordFluidFailure(gameTime);
@@ -1988,7 +1994,9 @@ public final class SkyNetworkRegistry {
                 recordEnergyFailure(gameTime);
                 return null;
             }
-            energyHandler = TransferCompat.energyStorage(cache.getCapability());
+            energyHandler = TransferCompat.energyStorage(energyFailures > 0
+                    ? level.getCapability(Capabilities.Energy.BLOCK, targetPos, accessSide)
+                    : cache.getCapability());
             if (energyHandler == null) {
                 recordCapabilityAbsent(CAPABILITY_ENERGY, gameTime);
                 recordEnergyFailure(gameTime);
@@ -2168,6 +2176,9 @@ public final class SkyNetworkRegistry {
 
         public void deferFluidsUntil(long gameTime) { fluidRetryAfter = Math.max(fluidRetryAfter, gameTime); }
         public void deferChemicalsUntil(long gameTime) { chemicalRetryAfter = Math.max(chemicalRetryAfter, gameTime); }
+        public void deferEnergyUntil(long gameTime) { energyRetryAfter = Math.max(energyRetryAfter, gameTime); }
+        public void deferManaUntil(long gameTime) { manaRetryAfter = Math.max(manaRetryAfter, gameTime); }
+        public void deferSourceUntil(long gameTime) { sourceRetryAfter = Math.max(sourceRetryAfter, gameTime); }
 
         public boolean isItemFilterRejected(ItemStack stack, long gameTime) {
             if (rejectedItems == null) return false;

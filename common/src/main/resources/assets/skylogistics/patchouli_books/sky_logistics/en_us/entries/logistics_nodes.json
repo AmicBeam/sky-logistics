@@ -18,7 +18,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint. Redstone has four states: ignore signals, work with a signal, work without a signal, or pulse. Pulse wakes on a rising edge and sleeps after one successful transfer."
+      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint. Extract faces have four redstone states: ignore signals, work with a signal, work without a signal, or pulse. Pulse wakes on a rising edge and sleeps after one successful transfer. Insert faces skip pulse, and an existing pulse setting changes to ignore."
     },
     {
       "type": "patchouli:text",

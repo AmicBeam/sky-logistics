@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- One continuous, wide stone silhouette. -->
+  <path fill="#164b5f" d="M5 3h6v1h2v1h1v7h-1v1h-2v1H5v-1H3v-1H2V5h1V4h2z"/>
+
+  <!-- Lapis-blue crystal body and shadow plane. -->
+  <path fill="#2b75ad" d="M5 4h6v1h2v7h-2v1H5v-1H3V5h2z"/>
+  <path fill="#246d91" d="M10 5h3v2h-1v4h-1v1H9V7h1z"/>
+  <path fill="#174b70" d="M12 7h1v5h-1z"/>
+  <path fill="#48b8c7" d="M10 5h1v2h-1z"/>
+
+  <!-- Eulogia-style cyan upper and left facets. -->
+  <path fill="#56d3df" d="M5 4h6v1H9v1H5zM3 5h2v6H3z"/>
+  <path fill="#7be3e7" d="M4 5h1v4H4z"/>
+
+  <!-- Cool dormant core, framed inside the single stone. -->
+  <path fill="#3aaebf" d="M6 5h4v7H9v1H6z"/>
+  <path fill="#b9f4f5" d="M7 6h2v5H7z"/>
+  <path fill="#e2fbf8" d="M7 6h2v2H7z"/>
+  <path fill="#77dfe5" d="M7 11h2v1H7z"/>
+</svg>

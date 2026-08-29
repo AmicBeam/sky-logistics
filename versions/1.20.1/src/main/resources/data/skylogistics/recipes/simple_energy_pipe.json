@@ -1,11 +1,11 @@
 {
   "type": "minecraft:crafting_shaped",
-  "pattern": ["GAG", "LRL", "GAG"],
+  "pattern": [" L ", "GSG", " R "],
   "key": {
     "G": {"tag": "forge:glass/colorless"},
-    "A": {"tag": "forge:gems/diamond"},
     "L": {"tag": "forge:gems/lapis"},
+    "S": {"type": "forge:partial_nbt", "item": "skylogistics:eulogia_companion_stone", "nbt": "{Damage:1}"},
     "R": {"tag": "forge:storage_blocks/redstone"}
   },
-  "result": {"item": "skylogistics:simple_energy_pipe", "count": 8}
+  "result": {"item": "skylogistics:simple_energy_pipe", "count": 2}
 }

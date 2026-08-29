@@ -26,6 +26,7 @@ Celestial-themed logistics for Minecraft. Sky Logistics moves items, fluids, ene
 - **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, GuideME, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
 - **Extended resources**: Mekanism chemicals and, on 1.21.1, Warden Souls use fluid-enabled faces and pipes with independent transfer limits. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes; extended resources move only between matching handlers.
 - **AStages progression**: on Minecraft 1.20.1 and 1.21.1, servers can optionally limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration requires AStages 2.x and is disabled by default.
+- **Vanilla advancement progression**: every supported version progressively unlocks per-operation transfer amounts according to Minecraft advancements completed by the line owner, with a serial Sky Logistics advancement tab. No third-party mod is required; servers can disable it in configuration.
 
 ## Requirements
 
@@ -75,7 +76,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 
 1. Craft Simple Item, Fluid, or Energy Pipes for an inexpensive early-game logistics network. Normal placement creates an insert endpoint on the clicked container, while sneak-placement creates an extract endpoint.
 2. Use the Sky Configurator to switch machine-facing pipe endpoints between insert and extract. Use the Celestial Wrench or another compatible tagged wrench to disconnect and reconnect pipe sides.
-3. Charge Eulogia Crystals above Y 200 by default, or at the configured ritual height, and use them to craft Celestial Stone and advanced Sky Logistics components.
+3. Charge Eulogia Crystals at Y 96 or above by default, or at the configured ritual height, and use them to craft Celestial Stone and advanced Sky Logistics components.
 4. Build a multiblock Sky Offering Altar with Offering Tables to produce Chora Nectar and other offering materials.
 5. Place Celestial Item Vaults or Celestial Fluid Vaults as aggregate storage endpoints.
 6. Place Sky Logistics Nodes against machines, vaults, distributors, or external storage interfaces. Normal placement creates insert mode, while sneak-placement creates extract mode.

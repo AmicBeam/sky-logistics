@@ -3,6 +3,8 @@ package com.skylogistics.block.entity;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.astages.AStagesTransferLimiter;
 import com.skylogistics.compat.astages.TransferResource;
+import com.skylogistics.compat.advancements.AdvancementTransferLimiter;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -125,20 +127,38 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return level instanceof ServerLevel serverLevel
                 ? SkyPlayerLines.ownerOf(serverLevel.getServer(), getLineId()) : null;
     }
-    public long limitItemTransfer(long amount) { return limitAStages(TransferResource.ITEMS, amount); }
-    public long limitFluidTransfer(long amount) { return limitAStages(TransferResource.FLUIDS, amount); }
-    public long limitEnergyTransfer(long amount) { return limitAStages(TransferResource.ENERGY, amount); }
-    public long limitChemicalTransfer(long amount) { return limitAStages(TransferResource.CHEMICALS, amount); }
-    public long limitManaTransfer(long amount) { return limitAStages(TransferResource.MANA, amount); }
-    public long limitSourceTransfer(long amount) { return limitAStages(TransferResource.SOURCE, amount); }
+    public long limitItemTransfer(long amount) { return limitProgression(TransferResource.ITEMS, amount); }
+    public long limitFluidTransfer(long amount) { return limitProgression(TransferResource.FLUIDS, amount); }
+    public long limitEnergyTransfer(long amount) { return limitProgression(TransferResource.ENERGY, amount); }
+    public long limitChemicalTransfer(long amount) { return limitProgression(TransferResource.CHEMICALS, amount); }
+    public long limitManaTransfer(long amount) { return limitProgression(TransferResource.MANA, amount); }
+    public long limitSourceTransfer(long amount) { return limitProgression(TransferResource.SOURCE, amount); }
     public boolean supportsChemicalEndpoint(Direction direction) { return false; }
     public boolean supportsManaEndpoint(Direction direction) { return false; }
     public boolean supportsSourceEndpoint(Direction direction) { return false; }
 
-    private long limitAStages(TransferResource resource, long amount) {
-        return level instanceof ServerLevel serverLevel
-                ? AStagesTransferLimiter.limit(getTransferOwnerId(), resource, amount, serverLevel.getGameTime())
-                : amount;
+    private long limitProgression(TransferResource resource, long amount) {
+        if (!(level instanceof ServerLevel serverLevel)) return amount;
+        UUID ownerId = getTransferOwnerId();
+        long limited = AStagesTransferLimiter.limit(ownerId, resource, amount, serverLevel.getGameTime());
+        return AdvancementTransferLimiter.limit(serverLevel.getServer(), ownerId, resource, limited,
+                serverLevel.getGameTime());
+    }
+
+    public TransferResource firstEnabledTransferResource(Direction direction) {
+        return null;
+    }
+
+    public long getProgressionTransferLimit(TransferResource resource) {
+        return limitProgression(resource, Long.MAX_VALUE);
+    }
+
+    public long getConfiguredTransferLimit(TransferResource resource) {
+        return switch (resource) {
+            case ITEMS -> SkyLogisticsConfig.nodeItemTransferLimit();
+            case ENERGY, MANA, SOURCE -> SkyLogisticsConfig.nodeEnergyTransferLimit();
+            default -> Long.MAX_VALUE;
+        };
     }
 
     protected SkyDistributorBlockEntity distributor(Direction direction) {

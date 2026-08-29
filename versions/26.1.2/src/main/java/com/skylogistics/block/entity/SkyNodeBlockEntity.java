@@ -4,6 +4,7 @@ import com.skylogistics.block.SkyNodeBlock;
 import com.skylogistics.client.ClientLineNames;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
+import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -247,6 +248,24 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public boolean supportsSourceEndpoint(Direction direction) {
         return hasSourceHandler(getTargetPos(direction), getAccessSide(direction));
+    }
+
+    @Override
+    public TransferResource firstEnabledTransferResource(Direction direction) {
+        if (level == null || direction == null || getFaceMode(direction) == NodeFaceMode.NONE
+                || !level.isLoaded(getTargetPos(direction))) return null;
+        BlockPos targetPos = getTargetPos(direction);
+        Direction accessSide = getAccessSide(direction);
+        if (isItemsEnabled(direction) && hasItemHandler(targetPos, accessSide)) return TransferResource.ITEMS;
+        if (isFluidsEnabled(direction) && hasFluidHandler(targetPos, accessSide)) return TransferResource.FLUIDS;
+        if (isFluidsEnabled(direction) && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                && hasChemicalHandler(targetPos, accessSide)) return TransferResource.CHEMICALS;
+        if (isEnergyEnabled(direction) && hasEnergyHandler(targetPos, accessSide)) return TransferResource.ENERGY;
+        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergyManaTransfer()
+                && hasManaHandler(targetPos, accessSide)) return TransferResource.MANA;
+        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergySourceTransfer()
+                && hasSourceHandler(targetPos, accessSide)) return TransferResource.SOURCE;
+        return null;
     }
 
     public ItemStack getFilterList() {
@@ -925,8 +944,11 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                 topologyChanged = true;
             }
         }
-        if (getRedstoneControl(direction) != face.redstoneControl()) {
-            setRedstoneControlValue(direction, face.redstoneControl());
+        NodeFaceMode appliedMode = includeMode ? face.mode()
+                : mode == NodeMode.INPUT ? NodeFaceMode.INPUT : NodeFaceMode.OUTPUT;
+        RedstoneControl appliedRedstone = face.redstoneControl().normalizedFor(appliedMode);
+        if (getRedstoneControl(direction) != appliedRedstone) {
+            setRedstoneControlValue(direction, appliedRedstone, appliedMode);
             runtimeChanged = true;
         }
         if (getPriority(direction) != face.priority()) {
@@ -1526,9 +1548,16 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     public void setFaceMode(Direction direction, NodeFaceMode faceMode) {
         if (getFaceMode(direction) == faceMode) {
+            if (faceMode != NodeFaceMode.INPUT && getRedstoneControl(direction) == RedstoneControl.PULSE) {
+                setRedstoneControlValue(direction, RedstoneControl.IGNORE);
+                markRuntimeChanged();
+            }
             return;
         }
         faceModes.put(direction, faceMode);
+        if (faceMode != NodeFaceMode.INPUT && getRedstoneControl(direction) == RedstoneControl.PULSE) {
+            setRedstoneControlValue(direction, RedstoneControl.IGNORE);
+        }
         if (faceMode == NodeFaceMode.INPUT) {
             mode = NodeMode.INPUT;
         } else if (faceMode == NodeFaceMode.OUTPUT) {
@@ -1539,12 +1568,16 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     }
 
     public void cycleRedstoneControl(Direction direction) {
-        setRedstoneControlValue(direction, getRedstoneControl(direction).next());
+        setRedstoneControlValue(direction, getRedstoneControl(direction).next(getFaceMode(direction)));
         markRuntimeChanged();
     }
 
     private void setRedstoneControlValue(Direction direction, RedstoneControl control) {
-        redstoneControls.put(direction, control);
+        setRedstoneControlValue(direction, control, getFaceMode(direction));
+    }
+
+    private void setRedstoneControlValue(Direction direction, RedstoneControl control, NodeFaceMode mode) {
+        redstoneControls.put(direction, control.normalizedFor(mode));
         redstonePulseLatches.get(direction).reset(isPoweredCached());
     }
 
@@ -1781,7 +1814,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
                     continue;
                 }
                 CompoundTag settings = faceSettings.getCompoundOrEmpty(direction.getSerializedName());
-                redstoneControls.put(direction, RedstoneControl.byName(settings.getStringOr("Redstone", "")));
+                redstoneControls.put(direction, RedstoneControl.byName(settings.getStringOr("Redstone", ""))
+                        .normalizedFor(faceModes.get(direction)));
                 redstonePulseLatches.get(direction).restoreArmed(settings.getBooleanOr("PulseArmed", false));
                 priorities.put(direction, Math.max(-99, Math.min(99, settings.getIntOr("Priority", 0))));
                 if (settings.contains("OrderedMatchingCursor")) {

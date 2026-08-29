@@ -1,8 +1,13 @@
 package com.skylogistics.compat.distributor;
 
-/** Marks a distributor proxy whose current tick budget stopped an otherwise incomplete scan. */
+/** Exposes transient distributor work that must be retried without recording a transfer failure. */
 public interface BudgetedDistributorHandler {
     boolean distributorBudgetExhausted();
+
+    /** Returns true while the proxy is still rebuilding its target index. */
+    default boolean distributorScanPending() {
+        return false;
+    }
 
     default boolean usesIndependentExtractionProbes() {
         return false;

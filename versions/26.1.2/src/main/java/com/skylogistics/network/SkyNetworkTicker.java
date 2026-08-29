@@ -17,6 +17,7 @@ import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -357,6 +358,7 @@ public final class SkyNetworkTicker {
             skyNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
         }
         int slots = source.getSlots();
+        if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return 0;
         if (slots <= 0) {
             if (orderedPerItem) {
                 orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
@@ -554,25 +556,53 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean deferExhaustedDistributor(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
-        endpoint.deferItemsUntil(gameTime + 1L);
+        int retryTicks = DistributorWorkDefer.retryTicks(handler,
+                SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferItemsUntil(gameTime + retryTicks);
         return true;
     }
 
     private static boolean deferExhaustedDistributorFluid(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
-        endpoint.deferFluidsUntil(gameTime + 1L);
+        int retryTicks = DistributorWorkDefer.retryTicks(handler,
+                SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferFluidsUntil(gameTime + retryTicks);
         return true;
     }
 
     private static boolean deferExhaustedDistributorChemical(CachedEndpoint endpoint, Object handler, long gameTime) {
-        if (!distributorBudgetExhausted(handler)) return false;
-        endpoint.deferChemicalsUntil(gameTime + 1L);
+        int retryTicks = DistributorWorkDefer.retryTicks(handler,
+                SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferChemicalsUntil(gameTime + retryTicks);
         return true;
     }
 
-    private static boolean distributorBudgetExhausted(Object handler) {
-        return handler instanceof BudgetedDistributorHandler budgeted && budgeted.distributorBudgetExhausted();
+    private static boolean deferExhaustedDistributorEnergy(CachedEndpoint endpoint, Object handler, long gameTime) {
+        int retryTicks = DistributorWorkDefer.retryTicks(handler, SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferEnergyUntil(gameTime + retryTicks);
+        return true;
+    }
+
+    private static boolean deferExhaustedDistributorMana(CachedEndpoint endpoint, Object handler, long gameTime) {
+        int retryTicks = DistributorWorkDefer.retryTicks(handler, SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferManaUntil(gameTime + retryTicks);
+        return true;
+    }
+
+    private static boolean deferExhaustedDistributorSource(CachedEndpoint endpoint, Object handler, long gameTime) {
+        int retryTicks = DistributorWorkDefer.retryTicks(handler, SkyLogisticsConfig.distributorIndexingRetryTicks());
+        if (retryTicks <= 0) return false;
+        endpoint.deferSourceUntil(gameTime + retryTicks);
+        return true;
+    }
+
+    private static boolean distributorWorkPending(Object handler) {
+        return handler instanceof BudgetedDistributorHandler budgeted
+                && (budgeted.distributorBudgetExhausted() || budgeted.distributorScanPending());
     }
 
     private static boolean usesIndependentDistributorProbes(Object handler) {
@@ -1048,7 +1078,7 @@ public final class SkyNetworkTicker {
             int slot = scan.nextSlot++;
             checks++;
             ItemStack stack = source.getStackInSlot(slot);
-            if (distributorBudgetExhausted(source)) {
+            if (distributorWorkPending(source)) {
                 scan.nextSlot--;
                 return new SlotLimitCheck(false, checks, false);
             }
@@ -1079,7 +1109,7 @@ public final class SkyNetworkTicker {
         while (scan.nextSlot < slots && checks < budget) {
             ItemStack stack = handler.getStackInSlot(scan.nextSlot++);
             checks++;
-            if (distributorBudgetExhausted(handler)) {
+            if (distributorWorkPending(handler)) {
                 scan.nextSlot--;
                 return new ExactItemScanResult(false, scan.total, checks);
             }
@@ -1855,6 +1885,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int tanks = source.getTanks();
+        if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return 0;
         if (tanks <= 0) {
             sourceEndpoint.recordFluidFailure(gameTime);
             return 0;
@@ -2533,6 +2564,7 @@ public final class SkyNetworkTicker {
             return 0;
         }
         int tanks = source.getTanks();
+        if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return 0;
         if (tanks <= 0) {
             sourceEndpoint.recordChemicalFailure(gameTime);
             return 0;
@@ -2739,6 +2771,7 @@ public final class SkyNetworkTicker {
         LongEnergyEndpoint sourceLongEndpoint = longEnergyEndpoint(sourceEndpoint);
         EnergyStorage source = sourceLongEndpoint == null ? sourceEndpoint.energyHandler(gameTime) : null;
         if (sourceLongEndpoint == null && source == null) return 0;
+        if (source != null && deferExhaustedDistributorEnergy(sourceEndpoint, source, gameTime)) return 0;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceEndpoint.node().limitEnergyTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
         int simulated = sourceLongEndpoint != null
@@ -2836,6 +2869,12 @@ public final class SkyNetworkTicker {
                 EnergyStorage target = targetEndpoint.energyHandler(gameTime);
                 if (target == null) {
                     continue;
+                }
+                if (deferExhaustedDistributorEnergy(targetEndpoint, target, gameTime)) {
+                    deferExhaustedDistributorEnergy(sourceEndpoint, target, gameTime);
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.ENERGY, visitedTargetIndex, targetCount);
+                    budgetExhausted = true;
+                    break targetLoop;
                 }
                 if (sourceLongEndpoint != null) {
                     long moved = moveLongEnergyToHandler(sourceEndpoint, sourceLongEndpoint, targetEndpoint, target,
@@ -3037,6 +3076,7 @@ public final class SkyNetworkTicker {
         if (source == null) {
             return 0;
         }
+        if (deferExhaustedDistributorMana(sourceEndpoint, source, gameTime)) return 0;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceEndpoint.node().limitManaTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
         int simulated = source.extractMana(transferLimit, true);
@@ -3096,6 +3136,12 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
+                if (deferExhaustedDistributorMana(targetEndpoint, target, gameTime)) {
+                    deferExhaustedDistributorMana(sourceEndpoint, target, gameTime);
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.MANA, visitedTargetIndex, targetCount);
+                    budgetExhausted = true;
+                    break targetLoop;
+                }
                 int accepted = target.insertMana(simulated, true);
                 if (accepted <= 0) {
                     targetEndpoint.recordManaFailure(gameTime);
@@ -3139,6 +3185,7 @@ public final class SkyNetworkTicker {
         if (source == null) {
             return 0;
         }
+        if (deferExhaustedDistributorSource(sourceEndpoint, source, gameTime)) return 0;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceEndpoint.node().limitSourceTransfer(SkyLogisticsConfig.nodeEnergyTransferLimit()));
         int simulated = source.extractSource(transferLimit, true);
@@ -3217,6 +3264,12 @@ public final class SkyNetworkTicker {
                 SourceHandlerBridge target = targetEndpoint.sourceHandler(gameTime);
                 if (target == null) {
                     continue;
+                }
+                if (deferExhaustedDistributorSource(targetEndpoint, target, gameTime)) {
+                    deferExhaustedDistributorSource(sourceEndpoint, target, gameTime);
+                    sourceEndpoint.resumeResourceTargetScan(TargetResource.SOURCE, visitedTargetIndex, targetCount);
+                    budgetExhausted = true;
+                    break targetLoop;
                 }
                 int accepted = target.insertSource(simulated, true);
                 if (accepted <= 0) {

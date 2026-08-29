@@ -8,7 +8,7 @@ item_ids:
   - skylogistics:simple_item_pipe
   - skylogistics:simple_fluid_pipe
   - skylogistics:simple_energy_pipe
-  - skylogistics:sky_wrench
+  - skylogistics:eulogia_companion_stone
 ---
 
 # Simple Pipes
@@ -19,7 +19,7 @@ Simple pipes provide a wired alternative to wireless logistics nodes. Item, flui
   <ItemIcon id="simple_item_pipe" />
   <ItemIcon id="simple_fluid_pipe" />
   <ItemIcon id="simple_energy_pipe" />
-  <ItemIcon id="sky_wrench" />
+  <ItemIcon id="eulogia_companion_stone" />
 </ItemGrid>
 
 ## Placement and Endpoints
@@ -42,9 +42,10 @@ One line contains at most 1024 pipe blocks by default. If a placement or reconne
 
 ## Recipes
 
-Each pipe recipe produces 8 pipes.
+Each pipe recipe produces 2 pipes and requires a charged Eulogia Companion Stone. A wooden chest, bucket, or redstone block distinguishes the item, fluid, and energy variants.
+
+<RecipeFor id="eulogia_companion_stone" fallbackText="The Eulogia Companion Stone recipe is unavailable." />
 
 <RecipeFor id="simple_item_pipe" fallbackText="The simple item pipe recipe is unavailable." />
 <RecipeFor id="simple_fluid_pipe" fallbackText="The simple fluid pipe recipe is unavailable." />
 <RecipeFor id="simple_energy_pipe" fallbackText="The simple energy pipe recipe is unavailable." />
-<RecipeFor id="sky_wrench" fallbackText="The Sky Wrench recipe is unavailable." />

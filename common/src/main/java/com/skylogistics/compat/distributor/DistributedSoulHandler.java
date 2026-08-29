@@ -2,7 +2,7 @@ package com.skylogistics.compat.distributor;
 
 import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 
-public final class DistributedSoulHandler implements SoulHandlerBridge {
+public final class DistributedSoulHandler implements SoulHandlerBridge, BudgetedDistributorHandler {
     private final DistributedHandlerLookup<SoulHandlerBridge> lookup;
     private int insertCursor;
     private int extractCursor;
@@ -10,6 +10,9 @@ public final class DistributedSoulHandler implements SoulHandlerBridge {
     public DistributedSoulHandler(DistributedHandlerLookup<SoulHandlerBridge> lookup) {
         this.lookup = lookup;
     }
+
+    @Override public boolean distributorBudgetExhausted() { return lookup.budgetExhausted(); }
+    @Override public boolean distributorScanPending() { return lookup.scanPending(); }
 
     @Override
     public int getSoulTanks() {

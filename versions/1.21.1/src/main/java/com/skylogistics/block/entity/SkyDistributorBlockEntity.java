@@ -574,6 +574,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean scanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
+        }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
         @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
             return chemicalRoutingConfig();
@@ -590,6 +594,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
+        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
     }
 
     private final class ManaLookup implements DistributedHandlerLookup<ManaHandlerBridge> {
@@ -602,6 +608,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
+        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
     }
 
     private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
@@ -614,6 +622,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
+        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
     }
 
     private final class DistributedItems implements IItemHandler, BudgetedDistributorHandler {
@@ -629,6 +639,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean distributorBudgetExhausted() {
             prepareOperationBudget();
             return operationBudgetBlocked;
+        }
+
+        @Override public boolean distributorScanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
         }
 
         @Override public int nextFairExtractionSlot(long gameTime) {
@@ -897,6 +912,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private DistributedFluids(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean distributorScanPending() {
+            int index = side.ordinal();
+            return targetsDirty[index] || targetDiscoveries[index] != null;
+        }
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
@@ -1091,10 +1110,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private void remapAdaptiveState(int[] oldIndexForNew) { insertionRoutes.remapTargets(oldIndexForNew); extractionProbes.remapTargets(oldIndexForNew, gameTime()); observedDrainTarget = remappedTarget(observedDrainTarget, oldIndexForNew); fluidInsertPlan = null; fluidDrainPlan = null; }
     }
 
-    private final class DistributedEnergy implements IEnergyStorage {
+    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler {
         private final Direction side;
 
         private DistributedEnergy(Direction side) { this.side = side; }
+
+        @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean distributorScanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
 
         @Override public int receiveEnergy(int maxReceive, boolean simulate) {
             EnergyPlan plan = energyReceivePlan;

@@ -6,16 +6,17 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "尤洛伽水晶刚合成出来时还没有充能。把它带到足够高的地方就会开始吸收星辉；默认高度是 Y=128。"
+      "text": "尤洛伽水晶刚合成出来时还没有充能。把它带到足够高的地方就会开始吸收星辉；默认高度是 Y=96。"
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:eulogia_crystal",
-      "text": "尤洛伽水晶以钻石为核心，不消耗末影珍珠。刚合成出的水晶尚未充能。"
+      "recipe2": "skylogistics:eulogia_companion_stone",
+      "text": "尤洛伽水晶以钻石为核心；配石使用 3 个青金石和 2 个无色玻璃。两者刚合成时都未充能。"
     },
     {
       "type": "patchouli:text",
-      "text": "未充能水晶放在背包里就能充能，也可以放在天穹供桌上等待充能。普通箱子不会充能水晶。默认约 20 秒完成。"
+      "text": "未充能水晶或配石放在背包里就能充能，也可以放在天穹供桌上等待。两者复用最低高度；水晶默认约 20 秒，配石默认约 10 秒。"
     },
     {
       "type": "patchouli:text",
