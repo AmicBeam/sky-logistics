@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Limits transfer amounts according to vanilla advancements completed by the line owner. */
 public final class AdvancementTransferLimiter {
+    // Forge 1.20.1 production uses SRG names; Mojmap names are used in dev and newer NeoForge versions.
     private static final Map<UUID, CachedRates> PLAYER_RATES = new HashMap<>();
     private static StageRateRules cachedRules;
     private static long rulesGameTime = Long.MIN_VALUE;
@@ -57,18 +58,19 @@ public final class AdvancementTransferLimiter {
         try {
             Object manager = server.getAdvancements();
             Object playerAdvancements = player.getAdvancements();
-            Method lookup = findMethod(manager.getClass(), "get", "getAdvancement");
+            Method lookup = findMethod(manager.getClass(), "get", "getAdvancement", "m_136041_");
             if (lookup == null) return Set.of();
             for (String configuredId : cachedRules.stages().keySet()) {
                 Object id = parseResourceId(lookup.getParameterTypes()[0], configuredId);
                 if (id == null) continue;
                 Object advancement = lookup.invoke(manager, id);
                 if (advancement == null) continue;
-                Method progressMethod = findCompatibleMethod(playerAdvancements.getClass(), "getOrStartProgress",
-                        advancement.getClass());
+                Method progressMethod = findCompatibleMethod(playerAdvancements.getClass(), advancement.getClass(),
+                        "getOrStartProgress", "m_135996_");
                 if (progressMethod == null) continue;
                 Object progress = progressMethod.invoke(playerAdvancements, advancement);
-                Method isDone = progress.getClass().getMethod("isDone");
+                Method isDone = findNoArgMethod(progress.getClass(), "isDone", "m_8193_");
+                if (isDone == null) continue;
                 if (Boolean.TRUE.equals(isDone.invoke(progress))) completed.add(configuredId);
             }
         } catch (ReflectiveOperationException | LinkageError ignored) {
@@ -109,11 +111,23 @@ public final class AdvancementTransferLimiter {
         }
     }
 
-    private static Method findCompatibleMethod(Class<?> owner, String name, Class<?> argument) {
-        for (Method method : owner.getMethods()) {
-            if (method.getName().equals(name) && method.getParameterCount() == 1
-                    && method.getParameterTypes()[0].isAssignableFrom(argument)) {
-                return method;
+    private static Method findCompatibleMethod(Class<?> owner, Class<?> argument, String... names) {
+        for (String name : names) {
+            for (Method method : owner.getMethods()) {
+                if (method.getName().equals(name) && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0].isAssignableFrom(argument)) {
+                    return method;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Method findNoArgMethod(Class<?> owner, String... names) {
+        for (String name : names) {
+            try {
+                return owner.getMethod(name);
+            } catch (NoSuchMethodException ignored) {
             }
         }
         return null;
