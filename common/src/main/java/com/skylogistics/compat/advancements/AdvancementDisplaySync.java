@@ -9,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Mirrors the default configured vanilla milestones into the Sky Logistics advancement chain. */
 public final class AdvancementDisplaySync {
-    // Forge 1.20.1 production uses SRG names; Mojmap names are used in dev and newer NeoForge versions.
     private static final String ROOT = "skylogistics:transfer_rates/root";
     private static final Set<UUID> SYNCING = new HashSet<>();
 
@@ -23,7 +22,7 @@ public final class AdvancementDisplaySync {
             var configured = SkyLogisticsConfig.advancementDisplayEntries();
             Object manager = player.level().getServer().getAdvancements();
             Object playerAdvancements = player.getAdvancements();
-            Method lookup = findLookup(manager.getClass());
+            Method lookup = AdvancementAccess.findLookup(manager);
             if (lookup == null) return;
             setAwarded(manager, playerAdvancements, lookup, ROOT, enabled && !configured.isEmpty());
             for (int index = 0; index < configured.size(); index++) {
@@ -33,7 +32,7 @@ public final class AdvancementDisplaySync {
                 setAwarded(manager, playerAdvancements, lookup,
                         "skylogistics:transfer_rates/entry_" + index, completed);
             }
-            flush(playerAdvancements, player);
+            AdvancementAccess.flush(playerAdvancements, player);
         } catch (ReflectiveOperationException | LinkageError ignored) {
         } finally {
             SYNCING.remove(player.getUUID());
@@ -42,95 +41,15 @@ public final class AdvancementDisplaySync {
 
     private static boolean isCompleted(Object manager, Object playerAdvancements, Method lookup, String id)
             throws ReflectiveOperationException {
-        Object advancement = lookup.invoke(manager, parseResourceId(lookup.getParameterTypes()[0], id));
-        if (advancement == null) return false;
-        Object progress = progress(playerAdvancements, advancement);
-        Method isDone = findNoArgMethod(progress == null ? null : progress.getClass(), "isDone", "m_8193_");
-        return isDone != null && Boolean.TRUE.equals(isDone.invoke(progress));
+        Object advancement = AdvancementAccess.findAdvancement(manager, lookup, id);
+        return advancement != null && AdvancementAccess.isDone(AdvancementAccess.progress(playerAdvancements,
+                advancement));
     }
 
     private static void setAwarded(Object manager, Object playerAdvancements, Method lookup, String id,
             boolean awarded) throws ReflectiveOperationException {
-        Object advancement = lookup.invoke(manager, parseResourceId(lookup.getParameterTypes()[0], id));
+        Object advancement = AdvancementAccess.findAdvancement(manager, lookup, id);
         if (advancement == null) return;
-        Object progress = progress(playerAdvancements, advancement);
-        if (progress == null) return;
-        Method isDone = findNoArgMethod(progress.getClass(), "isDone", "m_8193_");
-        if (isDone == null) return;
-        boolean done = Boolean.TRUE.equals(isDone.invoke(progress));
-        if (done == awarded) return;
-        Method update = findCompatibleMethod(playerAdvancements.getClass(),
-                awarded ? new String[] {"award", "m_135988_"} : new String[] {"revoke", "m_135998_"},
-                advancement.getClass(), String.class);
-        if (update != null) update.invoke(playerAdvancements, advancement, "unlocked");
-    }
-
-    private static Object progress(Object playerAdvancements, Object advancement) throws ReflectiveOperationException {
-        Method method = findCompatibleMethod(playerAdvancements.getClass(),
-                new String[] {"getOrStartProgress", "m_135996_"},
-                advancement.getClass());
-        return method == null ? null : method.invoke(playerAdvancements, advancement);
-    }
-
-    private static void flush(Object playerAdvancements, ServerPlayer player) throws ReflectiveOperationException {
-        Method method = findCompatibleMethod(playerAdvancements.getClass(),
-                new String[] {"flushDirty", "m_135992_"}, player.getClass());
-        if (method != null) method.invoke(playerAdvancements, player);
-    }
-
-    private static Method findLookup(Class<?> owner) {
-        for (String name : new String[] {"get", "getAdvancement", "m_136041_"}) {
-            for (Method method : owner.getMethods()) {
-                if (method.getName().equals(name) && method.getParameterCount() == 1) {
-                    String parameter = method.getParameterTypes()[0].getSimpleName();
-                    if (parameter.equals("ResourceLocation") || parameter.equals("Identifier")) return method;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Object parseResourceId(Class<?> type, String value) throws ReflectiveOperationException {
-        for (String methodName : new String[] {"tryParse", "parse"}) {
-            try {
-                return type.getMethod(methodName, String.class).invoke(null, value);
-            } catch (NoSuchMethodException ignored) {
-            }
-        }
-        try {
-            return type.getConstructor(String.class).newInstance(value);
-        } catch (NoSuchMethodException ignored) {
-            int separator = value.indexOf(':');
-            String namespace = separator < 0 ? "minecraft" : value.substring(0, separator);
-            String path = separator < 0 ? value : value.substring(separator + 1);
-            return type.getMethod("fromNamespaceAndPath", String.class, String.class)
-                    .invoke(null, namespace, path);
-        }
-    }
-
-    private static Method findCompatibleMethod(Class<?> owner, String[] names, Class<?>... arguments) {
-        for (String name : names) {
-            for (Method method : owner.getMethods()) {
-                if (!method.getName().equals(name) || method.getParameterCount() != arguments.length) continue;
-                Class<?>[] parameters = method.getParameterTypes();
-                boolean compatible = true;
-                for (int i = 0; i < parameters.length; i++) {
-                    compatible &= parameters[i].isAssignableFrom(arguments[i]);
-                }
-                if (compatible) return method;
-            }
-        }
-        return null;
-    }
-
-    private static Method findNoArgMethod(Class<?> owner, String... names) {
-        if (owner == null) return null;
-        for (String name : names) {
-            try {
-                return owner.getMethod(name);
-            } catch (NoSuchMethodException ignored) {
-            }
-        }
-        return null;
+        AdvancementAccess.setAwarded(playerAdvancements, advancement, awarded);
     }
 }
