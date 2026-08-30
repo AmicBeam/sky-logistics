@@ -5,6 +5,7 @@ import com.skylogistics.client.ClientOfferingRecipes;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModItems;
@@ -113,6 +114,9 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
         }
         if (!BeyondDimensionsCompat.isLoaded()) {
             hidden.add(ModItems.SKY_DIMENSION_INTERFACE.get().getDefaultInstance());
+        }
+        if (!SkyLogisticsConfig.forceExtractionUpgradeAvailable()) {
+            hidden.add(ModItems.FORCE_EXTRACTION_UPGRADE.get().getDefaultInstance());
         }
         if (!hidden.isEmpty()) {
             ingredientManager.removeIngredientsAtRuntime(VanillaTypes.ITEM_STACK, hidden);

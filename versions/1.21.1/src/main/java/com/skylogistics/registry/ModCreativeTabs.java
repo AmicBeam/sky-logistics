@@ -5,6 +5,7 @@ import com.skylogistics.compat.ManualCompat;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.EulogiaCrystalItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -33,7 +34,9 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
-                        ModItems.FORCE_EXTRACTION_UPGRADE.ifPresent(upgrade -> output.accept(upgrade.get()));
+                        if (SkyLogisticsConfig.forceExtractionUpgradeAvailable()) {
+                            output.accept(ModItems.FORCE_EXTRACTION_UPGRADE.get());
+                        }
                         output.accept(ModItems.ORDERED_MATCHING_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));

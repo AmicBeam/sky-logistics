@@ -75,8 +75,9 @@ public final class ModItems {
     public static final DeferredHolder<Item, UpgradeCardItem> DIMENSION_UPGRADE = ITEMS.register("dimension_upgrade",
             () -> new UpgradeCardItem(itemProperties("dimension_upgrade").stacksTo(64),
                     "tooltip.skylogistics.dimension_upgrade"));
-    public static final Optional<DeferredHolder<Item, UpgradeCardItem>> FORCE_EXTRACTION_UPGRADE =
-            registerForceExtractionUpgrade();
+    public static final DeferredHolder<Item, UpgradeCardItem> FORCE_EXTRACTION_UPGRADE = ITEMS.register("force_extraction_upgrade",
+            () -> new UpgradeCardItem(itemProperties("force_extraction_upgrade").stacksTo(64),
+                    "tooltip.skylogistics.force_extraction_upgrade"));
     public static final DeferredHolder<Item, UpgradeCardItem> ORDERED_MATCHING_UPGRADE = ITEMS.register("ordered_matching_upgrade",
             () -> new UpgradeCardItem(itemProperties("ordered_matching_upgrade").stacksTo(64),
                     "tooltip.skylogistics.ordered_matching_upgrade", true));
@@ -104,16 +105,6 @@ public final class ModItems {
         }
         return Optional.of(ITEMS.register("sky_wrench",
                 () -> new Item(itemProperties("sky_wrench").stacksTo(1))));
-    }
-
-    private static Optional<DeferredHolder<Item, UpgradeCardItem>> registerForceExtractionUpgrade() {
-        if (SkyLogisticsConfig.FORCE_EXTRACTION_INTEGRATION_MOD_IDS.stream()
-                .noneMatch(ModList.get()::isLoaded)) {
-            return Optional.empty();
-        }
-        return Optional.of(ITEMS.register("force_extraction_upgrade",
-                () -> new UpgradeCardItem(itemProperties("force_extraction_upgrade").stacksTo(64),
-                        "tooltip.skylogistics.force_extraction_upgrade")));
     }
 
     private static Item.Properties itemProperties(String name) {

@@ -7,14 +7,15 @@ import com.skylogistics.compat.astages.StageTransferRates;
 import com.skylogistics.compat.astages.TransferRates;
 import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.advancements.AdvancementDisplayEntry;
+import com.skylogistics.util.ModIdAvailability;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
-    public static final List<String> FORCE_EXTRACTION_INTEGRATION_MOD_IDS = List.of("mekanism_extras");
     public static final ModConfigSpec SERVER_SPEC;
     public static final Server SERVER;
     public static final ModConfigSpec CLIENT_SPEC;
@@ -344,6 +345,11 @@ public final class SkyLogisticsConfig {
 
     public static boolean forceExtractionDeviceModAllowed(String modId) {
         return SERVER.forceExtractionDeviceModIdWhitelist.get().contains(modId);
+    }
+
+    public static boolean forceExtractionUpgradeAvailable() {
+        return SERVER_SPEC.isLoaded() && ModIdAvailability.anyLoaded(
+                SERVER.forceExtractionDeviceModIdWhitelist.get(), ModList.get()::isLoaded);
     }
 
     private static boolean validModId(Object value) {
@@ -716,7 +722,7 @@ public final class SkyLogisticsConfig {
             forceExtractionDeviceModIdWhitelist = builder
                     .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
                             "允许强制抽取的设备方块 modID 列表。列表为空时禁用该升级；仅匹配列表中模组的设备会启用其功能。")
-                    .defineListAllowEmpty("deviceModIdWhitelist", FORCE_EXTRACTION_INTEGRATION_MOD_IDS,
+                    .defineListAllowEmpty("deviceModIdWhitelist", List.of("mekanism_extras"),
                             SkyLogisticsConfig::validModId);
             builder.pop();
             allowAe2FluidTransfer = builder

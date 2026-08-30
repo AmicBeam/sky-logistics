@@ -3,6 +3,7 @@ package com.skylogistics.recipe;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModRecipes;
@@ -62,8 +63,13 @@ public class OfferingRecipe implements Recipe<OfferingRecipe.Input> {
         return requiredTier;
     }
 
+    public boolean isEnabled() {
+        return !result().is(ModItems.FORCE_EXTRACTION_UPGRADE.get())
+                || SkyLogisticsConfig.forceExtractionUpgradeAvailable();
+    }
+
     public boolean matches(ItemStack mainStack, List<ItemStack> offeringStacks) {
-        if (!main.matches(mainStack)) {
+        if (!isEnabled() || !main.matches(mainStack)) {
             return false;
         }
         boolean[] used = new boolean[offeringStacks.size()];
