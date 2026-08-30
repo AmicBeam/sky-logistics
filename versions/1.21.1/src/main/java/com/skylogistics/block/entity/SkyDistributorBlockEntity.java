@@ -1,5 +1,6 @@
 package com.skylogistics.block.entity;
 
+import com.skylogistics.block.SkyDistributorBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
@@ -35,6 +36,7 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.storage.FluidStackKey;
+import com.skylogistics.util.DistributorPushDirection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -220,10 +222,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private TargetCache discoverTargets(Direction inheritedSide) {
         int maxTargets = SkyLogisticsConfig.distributorMaxTargets();
         int index = inheritedSide.ordinal();
+        DistributorPushDirection pushDirection = pushDirection();
         DiscoveryState scan = targetDiscoveries[index];
-        if (scan == null || scan.maxTargets != maxTargets) {
-            scan = new DiscoveryState(maxTargets);
-            for (Direction direction : Direction.values()) scan.queue.add(worldPosition.relative(direction));
+        if (scan == null || scan.maxTargets != maxTargets || scan.pushDirection != pushDirection) {
+            scan = new DiscoveryState(maxTargets, pushDirection);
+            scan.visited.add(worldPosition);
+            for (Direction direction : pushDirection.initialScanDirections()) {
+                scan.queue.add(worldPosition.relative(direction));
+            }
             targetDiscoveries[index] = scan;
         }
         while (!scan.queue.isEmpty() && scan.found < maxTargets) {
@@ -231,7 +237,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             BlockPos pos = scan.queue.removeFirst();
             if (!scan.visited.add(pos) || scan.discovered.contains(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity == null || blockEntity instanceof SkyDistributorBlockEntity) continue;
+            if (blockEntity == null) continue;
+            if (blockEntity instanceof SkyDistributorBlockEntity) {
+                if (!scan.pushDirection.directional()) continue;
+                scan.discovered.add(pos);
+                scan.found++;
+                for (Direction direction : Direction.values()) scan.queue.addLast(pos.relative(direction));
+                continue;
+            }
             Target target = inspect(pos, inheritedSide);
             if (!target.usable()) continue;
             scan.discovered.add(pos);
@@ -252,6 +265,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 List.copyOf(scan.fluidTargets),
                 List.copyOf(scan.chemicalTargets), List.copyOf(scan.soulTargets), List.copyOf(scan.energyTargets),
                 List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets), scan.found);
+    }
+
+    private DistributorPushDirection pushDirection() {
+        BlockState state = getBlockState();
+        return state.hasProperty(SkyDistributorBlock.PUSH_DIRECTION)
+                ? state.getValue(SkyDistributorBlock.PUSH_DIRECTION)
+                : DistributorPushDirection.ALL;
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
@@ -584,6 +604,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private static final class DiscoveryState {
         private final int maxTargets;
+        private final DistributorPushDirection pushDirection;
         private final List<Target> itemTargets;
         private final List<Target> fluidTargets;
         private final List<Target> chemicalTargets;
@@ -596,8 +617,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private final Set<BlockPos> discovered = new HashSet<>();
         private int found;
 
-        private DiscoveryState(int maxTargets) {
+        private DiscoveryState(int maxTargets, DistributorPushDirection pushDirection) {
             this.maxTargets = maxTargets;
+            this.pushDirection = pushDirection;
             itemTargets = new ArrayList<>(maxTargets);
             fluidTargets = new ArrayList<>(maxTargets);
             chemicalTargets = new ArrayList<>(maxTargets);

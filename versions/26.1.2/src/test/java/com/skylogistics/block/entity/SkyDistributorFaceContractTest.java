@@ -1,13 +1,26 @@
 package com.skylogistics.block.entity;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.skylogistics.util.DistributorPushDirection;
 import net.minecraft.core.Direction;
 import org.junit.jupiter.api.Test;
 
 class SkyDistributorFaceContractTest {
+    @Test void wrenchDirectionSequenceMatchesMePatternProvider() {
+        assertEquals(DistributorPushDirection.SOUTH,
+                DistributorPushDirection.ALL.afterWrenchClick(Direction.NORTH));
+        assertEquals(DistributorPushDirection.NORTH,
+                DistributorPushDirection.SOUTH.afterWrenchClick(Direction.NORTH));
+        assertEquals(DistributorPushDirection.ALL,
+                DistributorPushDirection.NORTH.afterWrenchClick(Direction.NORTH));
+        assertEquals(DistributorPushDirection.SOUTH,
+                DistributorPushDirection.EAST.afterWrenchClick(Direction.UP));
+    }
+
     @Test void transferCursorsAreStoredPerAccessFace() throws Exception {
         assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("itemInsertCursors").getType());
         assertSame(int[].class, SkyDistributorBlockEntity.class.getDeclaredField("fluidInsertCursors").getType());
