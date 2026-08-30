@@ -42,7 +42,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "默认设备白名单为 mekanism_extras；设为空列表会禁用功能。$(br2)二阶供奉配方：祭坛放速度升级，供桌放 4 根烈焰棒、4 个岩浆膏、4 个哭泣黑曜石和 1 个下界合金碎片。"
+      "text": "仅安装 Mekanism Extras 时才会提供升级物品及供奉配方。默认设备白名单为 mekanism_extras；设为空列表会禁用功能。$(br2)二阶供奉配方：祭坛放速度升级，供桌放 4 根烈焰棒、4 个岩浆膏、4 个哭泣黑曜石和 1 个下界合金碎片。"
     },
     {
       "type": "patchouli:crafting",

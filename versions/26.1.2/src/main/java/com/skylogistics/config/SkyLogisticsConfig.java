@@ -14,6 +14,7 @@ import java.util.Map;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
+    public static final List<String> FORCE_EXTRACTION_INTEGRATION_MOD_IDS = List.of("mekanism_extras");
     public static final ModConfigSpec SERVER_SPEC;
     public static final Server SERVER;
     public static final ModConfigSpec CLIENT_SPEC;
@@ -715,7 +716,7 @@ public final class SkyLogisticsConfig {
             forceExtractionDeviceModIdWhitelist = builder
                     .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
                             "允许强制抽取的设备方块 modID 列表。列表为空时禁用该升级；仅匹配列表中模组的设备会启用其功能。")
-                    .defineListAllowEmpty("deviceModIdWhitelist", List.of("mekanism_extras"),
+                    .defineListAllowEmpty("deviceModIdWhitelist", FORCE_EXTRACTION_INTEGRATION_MOD_IDS,
                             SkyLogisticsConfig::validModId);
             builder.pop();
             allowAe2FluidTransfer = builder

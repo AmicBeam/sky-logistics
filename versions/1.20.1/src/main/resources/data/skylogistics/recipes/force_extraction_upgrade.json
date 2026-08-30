@@ -1,4 +1,10 @@
 {
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism_extras"
+    }
+  ],
   "type": "skylogistics:sky_offering",
   "duration": 240,
   "altar_tier": 2,

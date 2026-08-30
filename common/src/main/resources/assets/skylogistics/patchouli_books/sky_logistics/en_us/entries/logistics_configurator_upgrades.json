@@ -42,7 +42,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The device whitelist defaults to mekanism_extras; an empty list disables this feature.$(br2)Tier 2 offering: put a Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
+      "text": "The upgrade item and offering are available only when Mekanism Extras is installed. The device whitelist defaults to mekanism_extras; an empty list disables this feature.$(br2)Tier 2 offering: put a Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
     },
     {
       "type": "patchouli:crafting",
