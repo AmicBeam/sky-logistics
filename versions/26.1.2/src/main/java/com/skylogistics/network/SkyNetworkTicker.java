@@ -546,7 +546,7 @@ public final class SkyNetworkTicker {
             if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
             if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
             sourceEndpoint.recordItemSourceMiss(sourceSlotsExhausted ? slots : operations, slots, gameTime);
-            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedItemHotSlotPolling() && hasMaintainedItemDemand(targets, gameTime);
+            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedItemHotSlotPolling() && hasConfiguredMaintainedTarget(targets);
             sourceEndpoint.shortenItemRetryForMaintainedDemand(gameTime, maintainedDemand);
             if (source instanceof BudgetedDistributorHandler distributor) distributor.setMaintainedExtractionPollTicks(maintainedDemand ? SkyLogisticsConfig.maintainedItemHotSlotPollTicks() : 0);
         }
@@ -1994,7 +1994,7 @@ public final class SkyNetworkTicker {
         if (!foundCandidate) {
             if (deferExhaustedDistributorFluid(sourceEndpoint, source, gameTime)) return operations;
             sourceEndpoint.recordFluidSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
-            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedFluidPolling() && hasMaintainedFluidDemand(targets, gameTime);
+            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedFluidPolling() && hasConfiguredMaintainedTarget(targets);
             sourceEndpoint.shortenFluidRetryForMaintainedDemand(gameTime, maintainedDemand);
             if (source instanceof BudgetedDistributorHandler distributor) distributor.setMaintainedExtractionPollTicks(maintainedDemand ? SkyLogisticsConfig.maintainedItemHotSlotPollTicks() : 0);
         }
@@ -2673,7 +2673,7 @@ public final class SkyNetworkTicker {
         if (!foundCandidate) {
             if (deferExhaustedDistributorChemical(sourceEndpoint, source, gameTime)) return operations;
             sourceEndpoint.recordChemicalSourceMiss(sourceTanksExhausted ? tanks : operations, tanks, gameTime);
-            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedChemicalPolling() && hasMaintainedChemicalDemand(targets, gameTime);
+            boolean maintainedDemand = SkyLogisticsConfig.enableMaintainedChemicalPolling() && hasConfiguredMaintainedTarget(targets);
             sourceEndpoint.shortenChemicalRetryForMaintainedDemand(gameTime, maintainedDemand);
             if (source instanceof BudgetedDistributorHandler distributor) distributor.setMaintainedExtractionPollTicks(maintainedDemand ? SkyLogisticsConfig.maintainedItemHotSlotPollTicks() : 0);
         }
@@ -2835,7 +2835,7 @@ public final class SkyNetworkTicker {
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordEnergyFailure(gameTime);
-            sourceEndpoint.shortenEnergyRetryForMaintainedDemand(gameTime, hasMaintainedEnergyDemand(targets, gameTime));
+            sourceEndpoint.shortenEnergyRetryForMaintainedDemand(gameTime, hasConfiguredMaintainedTarget(targets));
             return operations;
         }
         MoveResult result = tryMoveEnergy(sourceEndpoint, source, sourceLongEndpoint, simulated, targets,
@@ -3139,7 +3139,7 @@ public final class SkyNetworkTicker {
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordManaFailure(gameTime);
-            sourceEndpoint.shortenManaRetryForMaintainedDemand(gameTime, hasMaintainedManaDemand(targets, gameTime));
+            sourceEndpoint.shortenManaRetryForMaintainedDemand(gameTime, hasConfiguredMaintainedTarget(targets));
             return operations;
         }
         MoveResult result = tryMoveMana(sourceEndpoint, source, simulated, targets, budget - operations, gameTime);
@@ -3249,7 +3249,7 @@ public final class SkyNetworkTicker {
         int operations = 1;
         if (simulated <= 0) {
             sourceEndpoint.recordSourceFailure(gameTime);
-            sourceEndpoint.shortenSourceRetryForMaintainedDemand(gameTime, hasMaintainedSourceDemand(targets, gameTime));
+            sourceEndpoint.shortenSourceRetryForMaintainedDemand(gameTime, hasConfiguredMaintainedTarget(targets));
             return operations;
         }
         MoveResult result = tryMoveSource(sourceEndpoint, source, simulated, targets, budget - operations, gameTime);
@@ -3604,34 +3604,11 @@ public final class SkyNetworkTicker {
         return copy;
     }
 
-    private static boolean maintainedTargetWantsMore(CachedEndpoint e, long stored, int occupied, long refill) {
-        NetworkEndpointBlockEntity n = e.node();
-        return MaintainedResourcePolicy.wantsMore(n.isMaintainByAmount(e.direction()), stored, occupied,
-                n.getMaintainAmount(e.direction()), SkyLogisticsConfig.fillMaintainedItemSlots(), refill > 0L,
-                refill > 0L);
-    }
+    private static boolean hasConfiguredMaintainedTarget(List<CachedEndpoint> targets) { for (CachedEndpoint e : targets) if (e.node().getMaintainAmount(e.direction()) > 0) return true; return false; }
     private static long maintainedAllowance(CachedEndpoint e, long requested, long stored, int occupied, long existingRefill) { NetworkEndpointBlockEntity n = e.node(); return MaintainedResourcePolicy.insertionAllowance(n.isMaintainByAmount(e.direction()), requested, stored, occupied, n.getMaintainAmount(e.direction()), SkyLogisticsConfig.fillMaintainedItemSlots(), existingRefill); }
     private static long maintainedFluidAllowance(CachedEndpoint e, FluidHandler h, long requested) { if (!SkyLogisticsConfig.enableMaintainedFluidPolling() || e.node().getMaintainAmount(e.direction()) <= 0) return requested; long stored = 0, refill = 0; int occupied = 0; for (int i = 0; i < h.getTanks(); i++) { FluidStack s = h.getFluidInTank(i); if (s.isEmpty() || !e.node().allowsFluid(e.direction(), s)) continue; stored += s.getAmount(); occupied++; refill += Math.max(0, h.getTankCapacity(i) - s.getAmount()); } return maintainedAllowance(e, requested, stored, occupied, refill); }
     private static long maintainedChemicalAllowance(CachedEndpoint e, ChemicalHandlerBridge h, long requested) { if (!SkyLogisticsConfig.enableMaintainedChemicalPolling() || e.node().getMaintainAmount(e.direction()) <= 0) return requested; long stored = 0; int occupied = 0; for (int i = 0; i < h.getTanks(); i++) { ChemicalStackView s = h.getChemicalInTank(i); if (s.isEmpty()) continue; stored += s.getAmount(); occupied++; } return maintainedAllowance(e, requested, stored, occupied, occupied > 0 ? requested : 0); }
     private static long maintainedEnergyAllowance(CachedEndpoint e, EnergyStorage h, long requested) { if (!SkyLogisticsConfig.enableMaintainedEnergyPolling() || e.node().getMaintainAmount(e.direction()) <= 0) return requested; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getEnergyStored(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : stored > 0 ? Math.max(0, h.getMaxEnergyStored() - stored) : 0; return maintainedAllowance(e, requested, stored, occupied, refill); }
     private static long maintainedManaAllowance(CachedEndpoint e, ManaHandlerBridge h, long requested) { if (!SkyLogisticsConfig.enableMaintainedManaPolling() || e.node().getMaintainAmount(e.direction()) <= 0) return requested; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getCurrentMana(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : stored > 0 ? Math.max(0, h.getMaxMana() - stored) : 0; return maintainedAllowance(e, requested, stored, occupied, refill); }
     private static long maintainedSourceAllowance(CachedEndpoint e, SourceHandlerBridge h, long requested) { if (!SkyLogisticsConfig.enableMaintainedSourcePolling() || e.node().getMaintainAmount(e.direction()) <= 0) return requested; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getCurrentSource(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : stored > 0 ? Math.max(0, h.getMaxSource() - stored) : 0; return maintainedAllowance(e, requested, stored, occupied, refill); }
-    private static boolean hasMaintainedItemDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; ItemHandler h = e.itemHandler(time); if (h == null) continue; long stored = 0, refill = 0; int occupied = 0; for (int i = 0; i < h.getSlots(); i++) { ItemStack s = h.getStackInSlot(i); if (s.isEmpty()) { refill += Math.max(0, h.getSlotLimit(i)); continue; } if (!e.node().allowsItem(e.direction(), s)) continue; stored += s.getCount(); occupied++; refill += Math.max(0, Math.min(h.getSlotLimit(i), s.getMaxStackSize()) - s.getCount()); } if (maintainedTargetWantsMore(e, stored, occupied, refill)) return true; } return false;
-    }
-    private static boolean hasMaintainedFluidDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; FluidHandler h = e.fluidHandler(time); if (h == null) continue; long stored = 0, refill = 0; int occupied = 0; for (int i = 0; i < h.getTanks(); i++) { FluidStack s = h.getFluidInTank(i); if (s.isEmpty()) { refill += Math.max(0, h.getTankCapacity(i)); continue; } if (!e.node().allowsFluid(e.direction(), s)) continue; stored += s.getAmount(); occupied++; refill += Math.max(0, h.getTankCapacity(i) - s.getAmount()); } if (maintainedTargetWantsMore(e, stored, occupied, refill)) return true; } return false;
-    }
-    private static boolean hasMaintainedChemicalDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; ChemicalHandlerBridge h = e.chemicalHandler(time); if (h == null) continue; long stored = 0; int occupied = 0; for (int i = 0; i < h.getTanks(); i++) { ChemicalStackView s = h.getChemicalInTank(i); if (s.isEmpty()) continue; stored += s.getAmount(); occupied++; } if (maintainedTargetWantsMore(e, stored, occupied, h.getTanks() > 0 ? 1 : 0)) return true; } return false;
-    }
-    private static boolean hasMaintainedEnergyDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; EnergyStorage h = e.energyHandler(time); if (h == null) continue; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getEnergyStored(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : Math.max(0, h.getMaxEnergyStored() - stored); if (maintainedTargetWantsMore(e, stored, occupied, refill)) return true; } return false;
-    }
-    private static boolean hasMaintainedManaDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; ManaHandlerBridge h = e.manaHandler(time); if (h == null) continue; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getCurrentMana(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : Math.max(0, h.getMaxMana() - stored); if (maintainedTargetWantsMore(e, stored, occupied, refill)) return true; } return false;
-    }
-    private static boolean hasMaintainedSourceDemand(List<CachedEndpoint> targets, long time) {
-        for (CachedEndpoint e : targets) { if (e.node().getMaintainAmount(e.direction()) <= 0) continue; SourceHandlerBridge h = e.sourceHandler(time); if (h == null) continue; long stored = h instanceof MaintainedStorageView v ? v.maintainedStoredAmount() : h.getCurrentSource(); int occupied = h instanceof MaintainedStorageView v ? v.maintainedOccupiedStorageUnits() : stored > 0 ? 1 : 0; long refill = h instanceof MaintainedStorageView v ? v.maintainedExistingUnitRefillCapacity() : Math.max(0, h.getMaxSource() - stored); if (maintainedTargetWantsMore(e, stored, occupied, refill)) return true; } return false;
-    }
 }

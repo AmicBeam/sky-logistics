@@ -17,6 +17,16 @@ class AdaptiveTargetProbeSchedulerTest {
         assertEquals(0, probes.nextDueTarget(1, 40));
     }
 
+    @Test void maintainedDemandAlsoCapsInitialStaggerWindow() {
+        AdaptiveTargetProbeScheduler probes = new AdaptiveTargetProbeScheduler();
+        probes.configure(1, 5, 20, 40, 1);
+        probes.dueProbeCount(4, 0);
+        probes.setMaximumInterval(5, 0);
+
+        assertEquals(1, probes.dueProbeCount(4, 0));
+        assertEquals(4, probes.dueProbeCount(4, 4));
+    }
+
     @Test void topologyRemapPreservesTierAndNextFairMachine() {
         AdaptiveTargetProbeScheduler probes = new AdaptiveTargetProbeScheduler();
         probes.configure(1, 5, 20, 40, 3);

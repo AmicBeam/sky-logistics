@@ -15,6 +15,7 @@ import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorRescanPolicy;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
@@ -22,6 +23,7 @@ import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.storage.FluidStackKey;
@@ -36,6 +38,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -119,6 +122,20 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             chemicals[index] = new DistributedChemicalHandler(new ChemicalLookup(direction));
             mana[index] = new DistributedManaHandler(new ManaLookup(direction));
             source[index] = new DistributedSourceHandler(new SourceLookup(direction));
+        }
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        invalidateTargets();
+        for (Direction direction : DIRECTIONS) {
+            BlockPos neighbor = worldPosition.relative(direction);
+            if (serverLevel.getBlockEntity(neighbor) instanceof NetworkEndpointBlockEntity) {
+                activeTargetSides[direction.ordinal()] = true;
+                SkyNetworkRegistry.register(serverLevel, neighbor);
+            }
         }
     }
 
@@ -451,10 +468,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private void continueDiscovery() {
+        long now = gameTime();
         for (int offset = 0; offset < DIRECTIONS.length; offset++) {
             int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
-            if (!activeTargetSides[index]
-                    || (targetDiscoveries[index] == null && !targetsDirty[index])) continue;
+            if (!DistributorRescanPolicy.shouldScan(activeTargetSides[index], targetsDirty[index],
+                    targetDiscoveries[index] != null, now, nextRescan[index])) continue;
             discoveryCursor = (index + 1) % DIRECTIONS.length;
             refreshTargets(DIRECTIONS[index]);
             return;
@@ -682,7 +700,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
         }
 
-        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); }
 
         @Override public boolean usesIndependentExtractionProbes() {
             return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
@@ -1129,7 +1147,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
-        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); }
 
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;
