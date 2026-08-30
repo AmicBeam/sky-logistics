@@ -1020,13 +1020,13 @@ public final class SkyLogisticsConfig {
                             "逐槽模式是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
                     .define("wrapTargets", true);
             continueAfterTargetFailure = builder
-                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when queue capacity is available.",
-                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在队列有容量时扣押被跳过的分配。")
+                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when detention is enabled.",
+                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在启用扣押时保留被跳过的分配。")
                     .define("continueAfterTargetFailure", true);
             perItemDetentionQueueLength = builder
-                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. Zero disables detention and prevents passing a failed target.",
-                            "逐个模式每个抽取面最多保留的单物品失败分配数。0 表示禁用扣押，并阻止越过失败目标。")
-                    .defineInRange("perItemDetentionQueueLength", 1, 0, 1024);
+                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. A full queue discards its oldest assignment before retaining the new failure. Zero disables detention and prevents passing a failed target.",
+                            "逐个模式每个抽取面最多保留的单物品失败分配数。队列满时先丢弃最早的扣押项，再保留新的失败分配。0 表示禁用扣押，并阻止越过失败目标。")
+                    .defineInRange("perItemDetentionQueueLength", 4, 0, 1024);
             builder.pop();
         }
     }

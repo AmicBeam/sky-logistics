@@ -679,6 +679,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         List<OrderedMatchingDetention> queue = orderedMatchingDetentions.get(direction);
         if (queue == null || stack.isEmpty()
                 || !com.skylogistics.util.OrderedMatchingPolicy.canEnqueueDetention(queue.size(), capacity)) return false;
+        int evictions = com.skylogistics.util.OrderedMatchingPolicy.detentionEvictionsForEnqueue(queue.size(), capacity);
+        for (int i = 0; i < evictions; i++) queue.remove(0);
         queue.add(new OrderedMatchingDetention(sourceSlot, Math.max(0, targetIndex), ItemStackKey.of(stack)));
         setChanged();
         return true;
