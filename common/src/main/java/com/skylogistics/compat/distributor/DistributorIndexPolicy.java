@@ -7,6 +7,6 @@ public final class DistributorIndexPolicy {
 
     public static boolean transferBlocked(boolean completeIndexPublished, boolean dirty,
             boolean discoveryPending) {
-        return !completeIndexPublished || dirty || discoveryPending;
+        return !completeIndexPublished;
     }
 }

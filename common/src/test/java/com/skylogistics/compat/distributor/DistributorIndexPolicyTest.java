@@ -11,9 +11,9 @@ class DistributorIndexPolicyTest {
         assertTrue(DistributorIndexPolicy.transferBlocked(false, false, true));
     }
 
-    @Test void onlyACompleteCleanPublishedIndexCanTransfer() {
+    @Test void rescanKeepsServingThePreviousCompleteSnapshot() {
         assertFalse(DistributorIndexPolicy.transferBlocked(true, false, false));
-        assertTrue(DistributorIndexPolicy.transferBlocked(true, true, false));
-        assertTrue(DistributorIndexPolicy.transferBlocked(true, false, true));
+        assertFalse(DistributorIndexPolicy.transferBlocked(true, true, false));
+        assertFalse(DistributorIndexPolicy.transferBlocked(true, false, true));
     }
 }

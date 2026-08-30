@@ -179,6 +179,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
         highlightSnapshot = createTargetSnapshot(cache);
+        wakeAdjacentEndpoint(side);
         if (resetScan) {
             clearSelectedSideCaches();
         }
@@ -199,6 +200,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         int index = side.ordinal();
         return DistributorIndexPolicy.transferBlocked(completeTargetIndexes[index], targetsDirty[index],
                 targetDiscoveries[index] != null);
+    }
+
+    private void wakeAdjacentEndpoint(Direction side) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        BlockPos neighbor = worldPosition.relative(side);
+        if (serverLevel.getBlockEntity(neighbor) instanceof NetworkEndpointBlockEntity) {
+            SkyNetworkRegistry.markRuntimeDirty(serverLevel, neighbor);
+        }
     }
 
     private TargetCache discoverTargets(Direction inheritedSide) {
