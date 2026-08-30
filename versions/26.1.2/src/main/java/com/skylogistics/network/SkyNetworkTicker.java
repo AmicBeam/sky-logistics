@@ -17,6 +17,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.distributor.MaintainedStorageView;
@@ -2914,7 +2915,7 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordEnergyFailure(gameTime);
                     continue;
                 }
-                int accepted = target.receiveEnergy((int) maintainedEnergyAllowance(targetEndpoint, target, simulated), true);
+                int accepted = planMaintainedEnergyInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0) {
                     targetEndpoint.recordEnergyFailure(gameTime);
                     continue;
@@ -2961,7 +2962,7 @@ public final class SkyNetworkTicker {
 
     private static long moveLongEnergyToHandler(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceLongEndpoint,
             CachedEndpoint targetEndpoint, EnergyStorage target, int requested) {
-        int accepted = target.receiveEnergy((int) maintainedEnergyAllowance(targetEndpoint, target, requested), true);
+        int accepted = planMaintainedEnergyInsertion(targetEndpoint, target, requested);
         if (accepted <= 0) return 0L;
         long extracted = sourceLongEndpoint.extractEnergy(accepted, false);
         if (extracted <= 0L) return -1L;
@@ -2999,6 +3000,17 @@ public final class SkyNetworkTicker {
             }
         }
         return inserted;
+    }
+
+    private static int planMaintainedEnergyInsertion(CachedEndpoint endpoint, EnergyStorage target, int requested) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorEnergyHandler distributor
+                && SkyLogisticsConfig.enableMaintainedEnergyPolling() && maintainTarget > 0L) {
+            return distributor.planMaintainedEnergyInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        return target.receiveEnergy((int)maintainedEnergyAllowance(endpoint, target, requested), true);
     }
 
     private static long moveLongEnergy(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceEndpointLong,

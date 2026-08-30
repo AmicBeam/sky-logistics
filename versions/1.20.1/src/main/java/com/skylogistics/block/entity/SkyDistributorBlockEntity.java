@@ -14,6 +14,8 @@ import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
+import com.skylogistics.compat.distributor.DistributorEnergyMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorRescanPolicy;
@@ -1363,7 +1365,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private void remapAdaptiveState(int[] oldIndexForNew) { insertionRoutes.remapTargets(oldIndexForNew); extractionProbes.remapTargets(oldIndexForNew, gameTime()); observedDrainTarget = remappedTarget(observedDrainTarget, oldIndexForNew); fluidInsertPlan = null; fluidDrainPlan = null; }
     }
 
-    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler, MaintainedStorageView {
+    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler, MaintainedStorageView,
+            ConstrainedDistributorEnergyHandler {
         private final Direction side;
 
         private DistributedEnergy(Direction side) { this.side = side; }
@@ -1394,6 +1397,48 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public long maintainedStoredAmount() { return getEnergyStored(); }
         @Override public int maintainedOccupiedStorageUnits() { refreshEnergySnapshot(); return energyOccupiedSnapshot; }
         @Override public long maintainedExistingUnitRefillCapacity() { refreshEnergySnapshot(); return energyExistingRefillSnapshot; }
+
+        @Override
+        public int planMaintainedEnergyInsertion(int amount, boolean maintainByAmount, long maintainTarget,
+                boolean fillMaintainedUnits) {
+            EnergyPlan plan = buildMaintainedEnergyPlan(amount, maintainByAmount, maintainTarget,
+                    fillMaintainedUnits);
+            energyReceivePlan = plan;
+            return plan.accepted;
+        }
+
+        private EnergyPlan buildMaintainedEnergyPlan(int amount, boolean maintainByAmount, long maintainTarget,
+                boolean fillMaintainedUnits) {
+            List<Target> all = targets(side).energy;
+            if (all.isEmpty() || amount <= 0) return new EnergyPlan(gameTime(), amount, List.of(), 0);
+            int cursorIndex = side.ordinal();
+            int start = Math.floorMod(energyReceiveCursors[cursorIndex], all.size());
+            int[] targetIndices = new int[all.size()];
+            int[] stored = new int[all.size()];
+            int[] capacities = new int[all.size()];
+            for (int offset = 0; offset < all.size(); offset++) {
+                if (!takeOperation()) return new EnergyPlan(gameTime(), amount, List.of(), 0);
+                int target = (start + offset) % all.size();
+                targetIndices[offset] = target;
+                IEnergyStorage handler = energy(all.get(target));
+                if (handler == null) continue;
+                stored[offset] = Math.max(0, handler.getEnergyStored());
+                capacities[offset] = Math.max(0, handler.receiveEnergy(amount, true));
+            }
+            int[] assignments = DistributorEnergyMaintenancePolicy.assignments(amount, stored, capacities,
+                    maintainByAmount, maintainTarget, fillMaintainedUnits, sequentialInsertion());
+            List<FluidMove> moves = new ArrayList<>();
+            int accepted = 0;
+            int lastAssignedTarget = -1;
+            for (int offset = 0; offset < assignments.length; offset++) {
+                if (assignments[offset] <= 0) continue;
+                moves.add(new FluidMove(targetIndices[offset], assignments[offset]));
+                accepted += assignments[offset];
+                lastAssignedTarget = targetIndices[offset];
+            }
+            energyReceiveCursors[cursorIndex] = lastAssignedTarget >= 0 ? lastAssignedTarget + 1 : start + 1;
+            return new EnergyPlan(gameTime(), amount, List.copyOf(moves), accepted);
+        }
 
         private EnergyPlan buildEnergyPlan(int amount, boolean receive) {
             List<Target> all = targets(side).energy;

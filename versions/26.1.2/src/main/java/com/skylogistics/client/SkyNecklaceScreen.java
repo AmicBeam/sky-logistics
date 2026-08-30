@@ -235,6 +235,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
         if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
                 && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
+            commitMaintainAmount();
             maintainAmountEdit.setFocused(false);
             setFocused(null);
             return true;
@@ -253,6 +254,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
         }
         if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
                 && !maintainAmountEdit.isMouseOver(mouseX, mouseY)) {
+            commitMaintainAmount();
             maintainAmountEdit.setFocused(false);
             setFocused(null);
         }
@@ -261,6 +263,7 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
     @Override
     public void removed() {
+        commitMaintainAmount();
         commitLineNameEdit();
         super.removed();
     }
@@ -345,6 +348,14 @@ public class SkyNecklaceScreen extends net.minecraft.client.gui.screens.inventor
 
     private void centerEditText(EditBox editBox) {
         editBox.setCentered(true);
+    }
+
+    private void commitMaintainAmount() {
+        if (maintainAmountEdit == null || !maintainAmountEdit.getValue().isEmpty()) return;
+        refreshingMaintainAmount = true;
+        maintainAmountEdit.setValue("0");
+        refreshingMaintainAmount = false;
+        ModNetworking.sendExactQuantity(0);
     }
 
     private void maintainAmountChanged(String value) {

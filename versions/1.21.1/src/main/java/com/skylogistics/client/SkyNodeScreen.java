@@ -370,6 +370,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            commitMaintainAmount();
             maintainAmountEdit.setFocused(false);
             setFocused(null);
             return true;
@@ -386,6 +387,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
         if (maintainAmountEdit != null && maintainAmountEdit.isFocused()
                 && !maintainAmountEdit.isMouseOver(mouseX, mouseY)) {
+            commitMaintainAmount();
             maintainAmountEdit.setFocused(false);
             setFocused(null);
         }
@@ -395,6 +397,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     @Override
     public void removed() {
+        commitMaintainAmount();
         commitLineNameEdit();
         super.removed();
     }
@@ -437,6 +440,14 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
                 refreshingMaintainAmount = false;
             }
         }
+    }
+
+    private void commitMaintainAmount() {
+        if (maintainAmountEdit == null || !maintainAmountEdit.getValue().isEmpty()) return;
+        refreshingMaintainAmount = true;
+        maintainAmountEdit.setValue("0");
+        refreshingMaintainAmount = false;
+        ModNetworking.sendExactQuantity(0);
     }
 
     private void maintainAmountChanged(String value) {

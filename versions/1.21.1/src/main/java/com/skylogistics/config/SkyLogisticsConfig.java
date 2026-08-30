@@ -750,9 +750,9 @@ public final class SkyLogisticsConfig {
                     .defineInRange("sourceSearchAttemptsPerEndpoint", 64, 1, 1_000_000);
             builder.pop();
             maxItemSlotLimit = builder
-                    .comment("Maximum item slot keep limit configurable on a logistics face. Face value 0 still means unlimited.",
-                            "物流面的物品留槽限制可配置的最大值；面配置值 0 仍表示无限制。")
-                    .defineInRange("maxItemSlotLimit", 36, 1, 999);
+                    .comment("Maximum maintained storage-unit count configurable on a logistics face. Face value 0 still means unlimited.",
+                            "物流面可配置的维持存储单元数上限；面配置值 0 仍表示无限制。")
+                    .defineInRange("maxItemSlotLimit", 256, 1, 999);
             fillMaintainedItemSlots = builder
                     .comment("Whether slot-count maintenance keeps filling occupied storage units after the configured unit count has been reached. Native amount maintenance is unaffected.",
                             "按槽数维持任意资源时，达到配置存储单元数后是否继续填满已有匹配单元。按原生数量维持不受影响。")

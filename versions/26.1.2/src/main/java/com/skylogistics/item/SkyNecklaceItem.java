@@ -1,5 +1,6 @@
 package com.skylogistics.item;
 
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.menu.SkyNecklaceMenu;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.StackData;
@@ -25,7 +26,7 @@ import net.minecraft.world.level.Level;
 
 public class SkyNecklaceItem extends Item {
     public static final int MIN_INSERT_SLOTS = 0;
-    public static final int MAX_INSERT_SLOTS = 36;
+    public static final int MAX_INSERT_SLOTS = 256;
     public static final int MIN_PRIORITY = -99;
     public static final int MAX_PRIORITY = 99;
     private static final String MODE = "SkyNecklaceMode";
@@ -266,7 +267,7 @@ public class SkyNecklaceItem extends Item {
     }
 
     private static int clampInsertSlots(int slots) {
-        return Math.max(MIN_INSERT_SLOTS, Math.min(MAX_INSERT_SLOTS, slots));
+        return Math.max(MIN_INSERT_SLOTS, Math.min(SkyLogisticsConfig.maxItemSlotLimit(), slots));
     }
 
     private static int clampPriority(int priority) {
