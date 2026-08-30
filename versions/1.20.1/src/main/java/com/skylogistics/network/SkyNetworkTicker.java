@@ -31,6 +31,7 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.MaintainedSlotPolicy;
 import com.skylogistics.util.OrderedMatchingPolicy;
 import com.skylogistics.util.OrderedMatchingMode;
 import java.util.ArrayList;
@@ -1151,6 +1152,7 @@ public final class SkyNetworkTicker {
         int checks = 0;
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
+        boolean fillMaintainedSlots = SkyLogisticsConfig.fillMaintainedItemSlots();
         int slots = target.getSlots();
         ItemStackKey candidateKey = ItemStackKey.of(candidate);
         SlotLimitScan scan = TARGET_SLOT_LIMIT_SCANS.get(endpoint);
@@ -1158,6 +1160,7 @@ public final class SkyNetworkTicker {
             scan = new SlotLimitScan(slots, limit, candidateKey);
             TARGET_SLOT_LIMIT_SCANS.put(endpoint, scan);
         }
+        if (!fillMaintainedSlots) scan.canRefill = false;
         while (scan.nextSlot < slots && checks < checkBudget) {
             int slot = scan.nextSlot++;
             checks++;
@@ -1166,7 +1169,9 @@ public final class SkyNetworkTicker {
                 continue;
             }
             scan.matchingSlots++;
-            if (!scan.canRefill && !probe.isEmpty() && ItemStack.isSameItemSameTags(existing, candidate)
+            if (MaintainedSlotPolicy.tracksRefillCandidate(fillMaintainedSlots)
+                    && !scan.canRefill && !probe.isEmpty()
+                    && ItemStack.isSameItemSameTags(existing, candidate)
                     && target.insertItem(slot, probe, true).getCount() < probe.getCount()) {
                 scan.canRefill = true;
             }

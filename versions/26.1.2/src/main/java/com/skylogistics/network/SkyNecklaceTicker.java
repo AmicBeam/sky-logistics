@@ -11,6 +11,7 @@ import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
 import com.skylogistics.util.ItemHandler;
+import com.skylogistics.util.MaintainedSlotPolicy;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.TransferCompat;
 import java.util.ArrayList;
@@ -340,7 +341,8 @@ public final class SkyNecklaceTicker {
         int remainingBudget = budget - count.checks();
         if (remainingBudget <= 0) return;
         int current = exact ? count.items() : count.slots();
-        if (current < configured) {
+        if (MaintainedSlotPolicy.shouldInsert(exact, current, configured,
+                SkyLogisticsConfig.fillMaintainedItemSlots())) {
             tryInsert(player, necklace, lineId, itemWhitelist, gameTime, exact ? configured : 0, remainingBudget);
         } else if (current > configured) {
             tryExtract(player, necklace, lineId, itemWhitelist, gameTime, true,
@@ -760,7 +762,9 @@ public final class SkyNecklaceTicker {
                 exactRemaining = exactItemLimit - matchingWhitelistItems;
                 if (exactRemaining <= 0) return stack;
             }
-            if (isInsertLimited() && matchingWhitelistSlots >= insertSlotLimit) {
+            if (isInsertLimited() && MaintainedSlotPolicy.blocksInsertionAtSlotLimit(
+                    SkyLogisticsConfig.fillMaintainedItemSlots(), matchingWhitelistSlots,
+                    insertSlotLimit, existing.isEmpty())) {
                 return stack;
             }
             if (existing.isEmpty()) {

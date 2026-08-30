@@ -424,6 +424,10 @@ public final class SkyLogisticsConfig {
         return SERVER.targetItemInsertionCursorCount.get();
     }
 
+    public static boolean fillMaintainedItemSlots() {
+        return SERVER.fillMaintainedItemSlots.get();
+    }
+
     public static int rejectedAcceptCacheSize() {
         return SERVER.rejectedAcceptCacheSize.get();
     }
@@ -496,6 +500,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
+        public final ModConfigSpec.BooleanValue fillMaintainedItemSlots;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ModConfigSpec.IntValue targetItemInsertionCursorCount;
         public final ModConfigSpec.IntValue rejectedAcceptCacheSize;
@@ -707,6 +712,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum item slot keep limit configurable on a logistics face. Face value 0 still means unlimited.",
                             "物流面的物品留槽限制可配置的最大值；面配置值 0 仍表示无限制。")
                     .defineInRange("maxItemSlotLimit", 36, 1, 999);
+            fillMaintainedItemSlots = builder
+                    .comment("Whether slot-count item maintenance keeps filling matching occupied slots after the configured slot count has been reached. Exact item-count maintenance is unaffected.",
+                            "按槽数维持物品时，达到配置槽数后是否继续填满已有的匹配槽。按物品数量维持不受影响。")
+                    .define("fillMaintainedItemSlots", true);
             builder.comment("Third-party storage and resource transfer integrations.",
                             "第三方存储与资源传输联动。")
                     .push("integrations");

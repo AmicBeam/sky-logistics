@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The necklace upgrade slots accept a Dimension Upgrade for access to same-line endpoints in other loaded dimensions. The maintain target is entered directly; its button switches between item and slot counts, with slots as the default."
+      "text": "The necklace upgrade slots accept a Dimension Upgrade for access to same-line endpoints in other loaded dimensions. The maintain target is entered directly; its button switches between item and slot counts, with slots as the default. Slot-count maintenance fills existing matching slots by default without opening slots beyond the target; servers can disable this with transfers.fillMaintainedItemSlots."
     },
     {
       "type": "patchouli:text",
