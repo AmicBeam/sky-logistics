@@ -10,6 +10,16 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class DistributedTargetProbeSchedulerTest {
+    @Test void maintainedDemandCapsFallbackMachineInterval() {
+        DistributedSlotMap<String> slots = slots(Map.of("machine", 1));
+        DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
+        scheduler.configure(1, 5, 20, 40, 1);
+        scheduler.recordProbe(slots, 0, 0, false);
+        scheduler.setMaximumInterval(5);
+        assertEquals(-1, scheduler.nextDueSlot(slots, 4));
+        assertEquals(0, scheduler.nextDueSlot(slots, 5));
+    }
+
     @Test void coldTargetsAreStaggeredAcrossTheFallbackWindowWithoutTierLimits() {
         DistributedSlotMap<String> slots = slots(Map.of("a", 1, "b", 1, "c", 1, "d", 1));
         DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();

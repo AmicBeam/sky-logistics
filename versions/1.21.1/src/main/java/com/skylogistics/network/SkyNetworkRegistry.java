@@ -17,6 +17,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.BudgetedScanCursors;
+import com.skylogistics.util.MaintainedResourcePolicy;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.SimplePipeType;
@@ -2218,11 +2219,10 @@ public final class SkyNetworkRegistry {
 
         public void recordItemFailure(long gameTime, boolean maintainedProbeAvailable) {
             recordItemFailure(gameTime);
-            if (maintainedProbeAvailable && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
-                itemRetryAfter = Math.min(itemRetryAfter,
-                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
-            }
+            shortenItemRetryForMaintainedDemand(gameTime, maintainedProbeAvailable);
         }
+
+        public void shortenItemRetryForMaintainedDemand(long gameTime, boolean demand) { itemRetryAfter = MaintainedResourcePolicy.shortenedRetry(itemRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedItemHotSlotPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public boolean canRecordMaintainedItemProbe() {
             return SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()
@@ -2609,6 +2609,7 @@ public final class SkyNetworkRegistry {
             fluidFailures = Math.min(fluidFailures + 1, MAX_TRANSFER_FAILURES);
             fluidRetryAfter = gameTime + delay(fluidFailures);
         }
+        public void shortenFluidRetryForMaintainedDemand(long gameTime, boolean demand) { fluidRetryAfter = MaintainedResourcePolicy.shortenedRetry(fluidRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedFluidPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public boolean isFluidAcceptRejected(FluidStackKey key, long gameTime) {
             if (rejectedFluidAccepts == null) return false;
@@ -2791,6 +2792,7 @@ public final class SkyNetworkRegistry {
             chemicalFailures = Math.min(chemicalFailures + 1, MAX_TRANSFER_FAILURES);
             chemicalRetryAfter = gameTime + delay(chemicalFailures);
         }
+        public void shortenChemicalRetryForMaintainedDemand(long gameTime, boolean demand) { chemicalRetryAfter = MaintainedResourcePolicy.shortenedRetry(chemicalRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedChemicalPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public boolean isChemicalAcceptRejected(ChemicalStackView key, long gameTime) {
             if (rejectedChemicalAccepts == null) return false;
@@ -2969,11 +2971,13 @@ public final class SkyNetworkRegistry {
             soulFailures = Math.min(soulFailures + 1, MAX_TRANSFER_FAILURES);
             soulRetryAfter = gameTime + delay(soulFailures);
         }
+        public void shortenSoulRetryForMaintainedDemand(long gameTime, boolean demand) { soulRetryAfter = MaintainedResourcePolicy.shortenedRetry(soulRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedSoulPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public void recordEnergyFailure(long gameTime) {
             energyFailures = Math.min(energyFailures + 1, MAX_TRANSFER_FAILURES);
             energyRetryAfter = gameTime + delay(energyFailures);
         }
+        public void shortenEnergyRetryForMaintainedDemand(long gameTime, boolean demand) { energyRetryAfter = MaintainedResourcePolicy.shortenedRetry(energyRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedEnergyPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public void recordManaSuccess() {
             node.recordRecentTransfer(direction);
@@ -2986,6 +2990,7 @@ public final class SkyNetworkRegistry {
             manaFailures = Math.min(manaFailures + 1, MAX_TRANSFER_FAILURES);
             manaRetryAfter = gameTime + delay(manaFailures);
         }
+        public void shortenManaRetryForMaintainedDemand(long gameTime, boolean demand) { manaRetryAfter = MaintainedResourcePolicy.shortenedRetry(manaRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedManaPolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         public void recordSourceSuccess() {
             node.recordRecentTransfer(direction);
@@ -2998,6 +3003,7 @@ public final class SkyNetworkRegistry {
             sourceFailures = Math.min(sourceFailures + 1, MAX_TRANSFER_FAILURES);
             sourceRetryAfter = gameTime + delay(sourceFailures);
         }
+        public void shortenSourceRetryForMaintainedDemand(long gameTime, boolean demand) { sourceRetryAfter = MaintainedResourcePolicy.shortenedRetry(sourceRetryAfter, gameTime, SkyLogisticsConfig.enableMaintainedSourcePolling(), demand, SkyLogisticsConfig.maintainedItemHotSlotPollTicks()); }
 
         private BlockCapabilityCache<IItemHandler, Direction> itemCapabilityCache(Level level) {
             if (!(level instanceof ServerLevel serverLevel)) {

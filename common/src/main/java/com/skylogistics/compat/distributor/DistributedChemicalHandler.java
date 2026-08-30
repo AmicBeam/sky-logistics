@@ -40,6 +40,10 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge, 
         return extractionProbes.dueProbeCount(lookup.size(), gameTime);
     }
 
+    @Override public void setMaintainedExtractionPollTicks(int pollTicks) {
+        extractionProbes.setMaximumInterval(pollTicks);
+    }
+
     @Override
     public ChemicalStackView getChemicalInTank(int tank) {
         ChemicalHandlerBridge handler = handler(tank);

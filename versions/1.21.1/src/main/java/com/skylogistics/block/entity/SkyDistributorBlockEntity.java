@@ -19,6 +19,7 @@ import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
+import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.compat.industrialforegoingsouls.IndustrialForegoingSoulsCompat;
@@ -75,6 +76,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private int energySnapshotScanned;
     private long energyStoredAccumulator;
     private long energyCapacityAccumulator;
+    private int energyOccupiedAccumulator;
+    private long energyExistingRefillAccumulator;
     private boolean energyCanExtractAccumulator;
     private boolean energyCanReceiveAccumulator;
     private final int[] fluidExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
@@ -101,6 +104,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private EnergyPlan energyExtractPlan;
     private long energySnapshotTick = Long.MIN_VALUE;
     private int energyStoredSnapshot;
+    private int energyOccupiedSnapshot;
+    private long energyExistingRefillSnapshot;
     private int energyCapacitySnapshot;
     private boolean energyCanExtractSnapshot;
     private boolean energyCanReceiveSnapshot;
@@ -414,6 +419,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energySnapshotScanned = 0;
         energyStoredAccumulator = 0L;
         energyCapacityAccumulator = 0L;
+        energyOccupiedAccumulator = 0;
+        energyExistingRefillAccumulator = 0L;
         energyCanExtractAccumulator = false;
         energyCanReceiveAccumulator = false;
     }
@@ -641,6 +648,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
         @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
     private final class ManaLookup implements DistributedHandlerLookup<ManaHandlerBridge> {
@@ -655,6 +663,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
         @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
     private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
@@ -703,6 +712,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             configureExtractionProbes();
             return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
         }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks); }
 
         @Override public boolean usesIndependentExtractionProbes() {
             return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
@@ -1147,6 +1157,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks); }
 
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;
@@ -1338,7 +1349,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private void remapAdaptiveState(int[] oldIndexForNew) { insertionRoutes.remapTargets(oldIndexForNew); extractionProbes.remapTargets(oldIndexForNew, gameTime()); observedDrainTarget = remappedTarget(observedDrainTarget, oldIndexForNew); fluidInsertPlan = null; fluidDrainPlan = null; }
     }
 
-    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler {
+    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler, MaintainedStorageView {
         private final Direction side;
 
         private DistributedEnergy(Direction side) { this.side = side; }
@@ -1366,6 +1377,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public int getMaxEnergyStored() { refreshEnergySnapshot(); return energyCapacitySnapshot; }
         @Override public boolean canExtract() { refreshEnergySnapshot(); return energyCanExtractSnapshot; }
         @Override public boolean canReceive() { refreshEnergySnapshot(); return energyCanReceiveSnapshot; }
+        @Override public long maintainedStoredAmount() { return getEnergyStored(); }
+        @Override public int maintainedOccupiedStorageUnits() { refreshEnergySnapshot(); return energyOccupiedSnapshot; }
+        @Override public long maintainedExistingUnitRefillCapacity() { refreshEnergySnapshot(); return energyExistingRefillSnapshot; }
 
         private EnergyPlan buildEnergyPlan(int amount, boolean receive) {
             List<Target> all = targets(side).energy;
@@ -1419,14 +1433,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 energySnapshotScanned++;
                 IEnergyStorage handler = energy(target);
                 if (handler == null) continue;
-                energyStoredAccumulator += handler.getEnergyStored();
-                energyCapacityAccumulator += handler.getMaxEnergyStored();
+                int stored = handler.getEnergyStored(); int capacity = handler.getMaxEnergyStored(); energyStoredAccumulator += stored; energyCapacityAccumulator += capacity; if (stored > 0) { energyOccupiedAccumulator++; energyExistingRefillAccumulator += Math.max(0, capacity - stored); }
                 energyCanExtractAccumulator |= handler.canExtract();
                 energyCanReceiveAccumulator |= handler.canReceive();
             }
             if (energySnapshotScanned >= all.size()) {
                 energyStoredSnapshot = (int)Math.min(Integer.MAX_VALUE, energyStoredAccumulator);
                 energyCapacitySnapshot = (int)Math.min(Integer.MAX_VALUE, energyCapacityAccumulator);
+                energyOccupiedSnapshot = energyOccupiedAccumulator;
+                energyExistingRefillSnapshot = energyExistingRefillAccumulator;
                 energyCanExtractSnapshot = energyCanExtractAccumulator;
                 energyCanReceiveSnapshot = energyCanReceiveAccumulator;
                 resetEnergySnapshotScan();
@@ -1439,6 +1454,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             energySnapshotScanned = 0;
             energyStoredAccumulator = 0L;
             energyCapacityAccumulator = 0L;
+            energyOccupiedAccumulator = 0;
+            energyExistingRefillAccumulator = 0L;
             energyCanExtractAccumulator = false;
             energyCanReceiveAccumulator = false;
         }

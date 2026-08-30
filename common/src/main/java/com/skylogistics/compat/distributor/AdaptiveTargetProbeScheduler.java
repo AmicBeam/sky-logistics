@@ -10,6 +10,11 @@ public final class AdaptiveTargetProbeScheduler {
     private byte[] tiers = new byte[0];
     private int[] tierMisses = new int[0];
     private int targetCursor;
+    private int maximumInterval;
+
+    public void setMaximumInterval(int ticks) {
+        maximumInterval = Math.max(0, ticks);
+    }
 
     public void configure(int hotTicks, int warmTicks, int coolTicks, int fallbackTicks,
             int configuredMissesPerDemotion) {
@@ -96,7 +101,12 @@ public final class AdaptiveTargetProbeScheduler {
         long lastProbe = lastProbeTicks[target];
         return lastProbe == Long.MIN_VALUE
                 ? gameTime >= initialProbeTicks[target]
-                : gameTime - lastProbe >= backoff.interval(tiers[target]);
+                : gameTime - lastProbe >= interval(tiers[target]);
+    }
+
+    private int interval(byte tier) {
+        int interval = backoff.interval(tier);
+        return maximumInterval > 0 ? Math.min(interval, maximumInterval) : interval;
     }
 
     private void refresh(int targetCount, long gameTime) {

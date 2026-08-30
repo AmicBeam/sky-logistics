@@ -2,10 +2,15 @@ package com.skylogistics.compat.distributor;
 
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 
-public final class DistributedManaHandler implements ManaHandlerBridge, BudgetedDistributorHandler {
+public final class DistributedManaHandler implements ManaHandlerBridge, BudgetedDistributorHandler,
+        MaintainedStorageView {
     private final DistributedHandlerLookup<ManaHandlerBridge> lookup;
     private int insertCursor;
     private int extractCursor;
+    private long maintainedSnapshotTick = Long.MIN_VALUE;
+    private long maintainedStored;
+    private int maintainedOccupied;
+    private long maintainedRefill;
 
     public DistributedManaHandler(DistributedHandlerLookup<ManaHandlerBridge> lookup) { this.lookup = lookup; }
 
@@ -18,6 +23,30 @@ public final class DistributedManaHandler implements ManaHandlerBridge, Budgeted
     @Override public boolean canReceive() { return firstCapable(true) >= 0; }
     @Override public int extractMana(int amount, boolean simulate) { return move(amount, simulate, false); }
     @Override public int insertMana(int amount, boolean simulate) { return move(amount, simulate, true); }
+    @Override public long maintainedStoredAmount() { refreshMaintainedSnapshot(); return maintainedStored; }
+    @Override public int maintainedOccupiedStorageUnits() { refreshMaintainedSnapshot(); return maintainedOccupied; }
+    @Override public long maintainedExistingUnitRefillCapacity() { refreshMaintainedSnapshot(); return maintainedRefill; }
+
+    private void refreshMaintainedSnapshot() {
+        long tick = lookup.gameTime();
+        if (tick != Long.MIN_VALUE && maintainedSnapshotTick == tick) return;
+        long stored = 0L;
+        int occupied = 0;
+        long refill = 0L;
+        for (int i = 0; i < lookup.size(); i++) {
+            if (!lookup.takeOperation()) break;
+            ManaHandlerBridge handler = lookup.handler(i);
+            if (handler != null) {
+                int current = handler.getCurrentMana();
+                stored += current;
+                if (current > 0) { occupied++; refill += Math.max(0, handler.getMaxMana() - current); }
+            }
+        }
+        maintainedStored = stored;
+        maintainedOccupied = occupied;
+        maintainedRefill = refill;
+        maintainedSnapshotTick = tick;
+    }
 
     private int snapshot(boolean stored) {
         long total = 0L;

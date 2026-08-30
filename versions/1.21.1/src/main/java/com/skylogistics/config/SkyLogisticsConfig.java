@@ -456,6 +456,13 @@ public final class SkyLogisticsConfig {
         return SERVER.enableMaintainedItemHotSlotPolling.get();
     }
 
+    public static boolean enableMaintainedFluidPolling() { return SERVER.enableMaintainedFluidPolling.get(); }
+    public static boolean enableMaintainedChemicalPolling() { return SERVER.enableMaintainedChemicalPolling.get(); }
+    public static boolean enableMaintainedEnergyPolling() { return SERVER.enableMaintainedEnergyPolling.get(); }
+    public static boolean enableMaintainedManaPolling() { return SERVER.enableMaintainedManaPolling.get(); }
+    public static boolean enableMaintainedSourcePolling() { return SERVER.enableMaintainedSourcePolling.get(); }
+    public static boolean enableMaintainedSoulPolling() { return SERVER.enableMaintainedSoulPolling.get(); }
+
     public static int maintainedItemHotSlotPollTicks() {
         return SERVER.maintainedItemHotSlotPollTicks.get();
     }
@@ -527,6 +534,12 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue transferRetryThirdTicks;
         public final ModConfigSpec.IntValue transferRetryMaxTicks;
         public final ModConfigSpec.BooleanValue enableMaintainedItemHotSlotPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedFluidPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedChemicalPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedEnergyPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedManaPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedSourcePolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedSoulPolling;
         public final ModConfigSpec.IntValue maintainedItemHotSlotPollTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
@@ -741,8 +754,8 @@ public final class SkyLogisticsConfig {
                             "物流面的物品留槽限制可配置的最大值；面配置值 0 仍表示无限制。")
                     .defineInRange("maxItemSlotLimit", 36, 1, 999);
             fillMaintainedItemSlots = builder
-                    .comment("Whether slot-count item maintenance keeps filling matching occupied slots after the configured slot count has been reached. Exact item-count maintenance is unaffected.",
-                            "按槽数维持物品时，达到配置槽数后是否继续填满已有的匹配槽。按物品数量维持不受影响。")
+                    .comment("Whether slot-count maintenance keeps filling occupied storage units after the configured unit count has been reached. Native amount maintenance is unaffected.",
+                            "按槽数维持任意资源时，达到配置存储单元数后是否继续填满已有匹配单元。按原生数量维持不受影响。")
                     .define("fillMaintainedItemSlots", true);
             builder.comment("Third-party storage and resource transfer integrations.",
                             "第三方存储与资源传输联动。")
@@ -870,9 +883,15 @@ public final class SkyLogisticsConfig {
                     .comment("Whether item faces with a non-zero maintain limit probe their last successful transfer slot between full retry scans.",
                             "物品面维持值非 0 时，是否在完整退避扫描之间探测上次成功传输的槽位。")
                     .define("enableMaintainedItemHotSlotPolling", true);
+            enableMaintainedFluidPolling = builder.comment("Enable maintained fluid source recovery polling.", "启用流体维持缺口的来源恢复探测。").define("enableMaintainedFluidPolling", true);
+            enableMaintainedChemicalPolling = builder.comment("Enable maintained chemical source recovery polling.", "启用化学品维持缺口的来源恢复探测。").define("enableMaintainedChemicalPolling", true);
+            enableMaintainedEnergyPolling = builder.comment("Enable maintained FE source recovery polling.", "启用 FE 维持缺口的来源恢复探测。").define("enableMaintainedEnergyPolling", true);
+            enableMaintainedManaPolling = builder.comment("Enable maintained Mana source recovery polling.", "启用 Mana 维持缺口的来源恢复探测。").define("enableMaintainedManaPolling", true);
+            enableMaintainedSourcePolling = builder.comment("Enable maintained Source recovery polling.", "启用魔源维持缺口的来源恢复探测。").define("enableMaintainedSourcePolling", true);
+            enableMaintainedSoulPolling = builder.comment("Enable maintained Souls source recovery polling.", "启用 Souls 维持缺口的来源恢复探测。").define("enableMaintainedSoulPolling", true);
             maintainedItemHotSlotPollTicks = builder
-                    .comment("Ticks between low-cost probes of the last successful slot for maintained item input and output faces. The normal transfer retry remains the full-scan fallback.",
-                            "物品输入与输出维持面低成本探测上次成功槽位的间隔 tick；普通传输退避仍作为完整扫描兜底。")
+                    .comment("Ticks between low-cost maintained resource probes. The legacy key name is retained for compatibility.",
+                            "全资源维持缺口低成本探测的间隔 tick；字段名为兼容旧配置保留。")
                     .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();

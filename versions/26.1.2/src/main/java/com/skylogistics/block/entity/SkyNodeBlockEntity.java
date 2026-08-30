@@ -869,6 +869,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         return itemLimitByItems.getOrDefault(direction, false);
     }
 
+    @Override public boolean isMaintainByAmount(Direction direction) { return isItemLimitByItems(direction); }
+
     public boolean isFaceRedstoneAllowed(Direction direction) {
         RedstoneControl control = getRedstoneControl(direction);
         if (control == RedstoneControl.IGNORE) {

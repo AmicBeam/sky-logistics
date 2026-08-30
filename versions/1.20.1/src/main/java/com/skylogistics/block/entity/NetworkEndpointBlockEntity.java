@@ -185,6 +185,9 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
         return ITEM_SLOT_LIMIT_UNLIMITED;
     }
 
+    public long getMaintainAmount(Direction direction) { return getItemSlotLimit(direction); }
+    public boolean isMaintainByAmount(Direction direction) { return false; }
+
     public int getOperationRate() {
         return 1;
     }
