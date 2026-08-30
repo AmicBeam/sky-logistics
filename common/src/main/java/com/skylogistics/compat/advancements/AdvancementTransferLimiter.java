@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Limits transfer amounts according to vanilla advancements completed by the line owner. */
 public final class AdvancementTransferLimiter {
+    private static final long FALLBACK_REFRESH_INTERVAL_TICKS = 5L * 20L;
     private static final Map<UUID, CachedRates> PLAYER_RATES = new HashMap<>();
     private static StageRateRules cachedRules;
     private static MinecraftServer cachedServer;
@@ -37,7 +38,7 @@ public final class AdvancementTransferLimiter {
             return initialLimit(resource, amount);
         }
         CachedRates cached = PLAYER_RATES.get(ownerId);
-        if (cached == null || cached.gameTime() != gameTime) {
+        if (cached == null || cacheExpired(cached.gameTime(), gameTime)) {
             ServerPlayer player = server.getPlayerList().getPlayer(ownerId);
             Set<String> completed;
             if (player == null) {
@@ -50,6 +51,10 @@ public final class AdvancementTransferLimiter {
             PLAYER_RATES.put(ownerId, cached);
         }
         return Math.min(amount, cached.rates().get(resource));
+    }
+
+    static boolean cacheExpired(long cachedAt, long gameTime) {
+        return gameTime < cachedAt || gameTime - cachedAt >= FALLBACK_REFRESH_INTERVAL_TICKS;
     }
 
     /** Refreshes the persisted snapshot while the player is known to be online. */
