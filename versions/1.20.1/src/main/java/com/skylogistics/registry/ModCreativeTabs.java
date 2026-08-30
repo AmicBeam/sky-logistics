@@ -28,7 +28,9 @@ public final class ModCreativeTabs {
                             output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
                         }
                         output.accept(ModItems.CONFIGURATOR.get());
-                        ModItems.SKY_WRENCH.ifPresent(wrench -> output.accept(wrench.get()));
+                        if (SkyLogisticsConfig.skyWrenchAvailable()) {
+                            output.accept(ModItems.SKY_WRENCH.get());
+                        }
                         output.accept(ModItems.FILTER_LIST.get());
                         output.accept(ModItems.TAG_FILTER_LIST.get());
                         output.accept(ModItems.SKY_NECKLACE.get());

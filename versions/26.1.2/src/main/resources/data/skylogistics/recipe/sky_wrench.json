@@ -1,1 +1,12 @@
-{"neoforge:conditions":[{"type":"neoforge:not","value":{"type":"neoforge:mod_loaded","modid":"ae2"}},{"type":"neoforge:not","value":{"type":"neoforge:mod_loaded","modid":"refinedstorage"}}],"type":"minecraft:crafting_shaped","pattern":["L L"," G "," G "],"key":{"G":"#c:glass_blocks/colorless","L":"#c:gems/lapis"},"result":{"id":"skylogistics:sky_wrench"}}
+{
+  "neoforge:conditions": [
+    {"type": "skylogistics:sky_wrench_available"}
+  ],
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["L L", " G ", " G "],
+  "key": {
+    "G": "#c:glass_blocks/colorless",
+    "L": "#c:gems/lapis"
+  },
+  "result": {"id": "skylogistics:sky_wrench"}
+}

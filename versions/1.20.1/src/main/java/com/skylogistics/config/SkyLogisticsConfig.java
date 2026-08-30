@@ -339,6 +339,11 @@ public final class SkyLogisticsConfig {
         return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
     }
 
+    public static boolean skyWrenchAvailable() {
+        return SERVER_SPEC.isLoaded() && (!SERVER.hideSkyWrenchWhenAe2OrRefinedStorageLoaded.get()
+                || (!ModList.get().isLoaded("ae2") && !ModList.get().isLoaded("refinedstorage")));
+    }
+
     public static boolean forceExtractionDeviceModAllowed(String modId) {
         return SERVER.forceExtractionDeviceModIdWhitelist.get().contains(modId);
     }
@@ -532,6 +537,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
+        public final ForgeConfigSpec.BooleanValue hideSkyWrenchWhenAe2OrRefinedStorageLoaded;
         public final ForgeConfigSpec.ConfigValue<List<? extends Object>> forceExtractionDeviceModIdWhitelist;
         public final ForgeConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ForgeConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
@@ -741,6 +747,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether transfers treat a Sophisticated Storage stack-upgraded slot as one transportable slot.",
                             "传输时是否将 Sophisticated Storage 堆叠升级后的槽位视为一个可搬运槽位。")
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
+            hideSkyWrenchWhenAe2OrRefinedStorageLoaded = builder
+                    .comment("Whether the Celestial Wrench is hidden when AE2 or Refined Storage is installed. The item remains registered for world compatibility.",
+                            "安装 AE2 或精致存储时是否隐藏天穹扳手。物品会保持注册，以兼容已有世界。")
+                    .define("hideSkyWrenchWhenAe2OrRefinedStorageLoaded", true);
             builder.push("forceExtractionUpgrade");
             forceExtractionDeviceModIdWhitelist = builder
                     .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
