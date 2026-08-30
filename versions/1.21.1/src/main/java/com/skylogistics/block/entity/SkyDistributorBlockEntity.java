@@ -16,6 +16,7 @@ import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
@@ -689,7 +690,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         @Override public boolean distributorScanPending() {
             int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            boolean scanPending = targetsDirty[index] || targetDiscoveries[index] != null;
+            // Machine block-state updates can invalidate and restart discovery repeatedly. Keep
+            // serving the previous item index while the replacement is built; handler() validates
+            // each cached target before it is accessed, so removed machines remain safe to skip.
+            return DistributorWorkDefer.indexUnavailable(scanPending,
+                    targetCaches[index].itemSlots.size());
         }
 
         @Override public int nextFairExtractionSlot(long gameTime) {
