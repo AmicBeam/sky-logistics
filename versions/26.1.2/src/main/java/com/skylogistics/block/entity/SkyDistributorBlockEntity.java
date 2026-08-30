@@ -151,6 +151,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         clearTransientCaches();
     }
 
+    public void abandonTargets() {
+        Arrays.fill(targetCaches, TargetCache.EMPTY);
+        Arrays.fill(completeTargetIndexes, false);
+        highlightSnapshot = List.of();
+        invalidateTargets();
+        for (Direction direction : DIRECTIONS) {
+            if (activeTargetSides[direction.ordinal()]) wakeAdjacentEndpoint(direction);
+        }
+    }
+
     public void refreshTargets() {
         if (level == null) return;
         invalidateTargets();
@@ -222,7 +232,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         if (scan == null || scan.maxTargets != maxTargets || scan.pushDirection != pushDirection) {
             scan = new DiscoveryState(maxTargets, pushDirection);
             scan.visited.add(worldPosition);
-            for (Direction direction : pushDirection.initialScanDirections()) {
+            for (Direction direction : pushDirection.scanDirections()) {
                 scan.queue.add(worldPosition.relative(direction));
             }
             targetDiscoveries[index] = scan;
@@ -237,7 +247,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 if (!scan.pushDirection.directional()) continue;
                 scan.discovered.add(pos);
                 scan.found++;
-                for (Direction direction : Direction.values()) scan.queue.addLast(pos.relative(direction));
+                for (Direction direction : scan.pushDirection.scanDirections()) {
+                    scan.queue.addLast(pos.relative(direction));
+                }
                 continue;
             }
             Target target = inspect(pos, inheritedSide);
@@ -250,7 +262,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             if (target.energy) scan.energyTargets.add(target);
             if (target.mana) scan.manaTargets.add(target);
             if (target.source) scan.sourceTargets.add(target);
-            for (Direction direction : Direction.values())
+            for (Direction direction : scan.pushDirection.scanDirections())
                 scan.queue.addLast(pos.relative(direction));
         }
         targetDiscoveries[index] = null;

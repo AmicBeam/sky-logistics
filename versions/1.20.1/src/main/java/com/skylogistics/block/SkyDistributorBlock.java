@@ -76,6 +76,7 @@ public class SkyDistributorBlock extends BaseEntityBlock {
         DistributorPushDirection next = current.afterWrenchClick(clickedFace);
         level.setBlockAndUpdate(pos, currentState.setValue(PUSH_DIRECTION, next));
         if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) {
+            distributor.abandonTargets();
             distributor.refreshTargets();
         }
     }

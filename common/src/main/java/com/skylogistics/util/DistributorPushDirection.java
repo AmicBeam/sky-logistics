@@ -27,7 +27,7 @@ public enum DistributorPushDirection implements StringRepresentable {
         return direction != null;
     }
 
-    public Direction[] initialScanDirections() {
+    public Direction[] scanDirections() {
         return direction == null ? Direction.values() : new Direction[] {direction};
     }
 

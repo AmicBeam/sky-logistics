@@ -64,7 +64,10 @@ public class SkyDistributorBlock extends BaseEntityBlock {
         DistributorPushDirection current = currentState.getValue(PUSH_DIRECTION);
         DistributorPushDirection next = current.afterWrenchClick(clickedFace);
         level.setBlockAndUpdate(pos, currentState.setValue(PUSH_DIRECTION, next));
-        if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) distributor.refreshTargets();
+        if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) {
+            distributor.abandonTargets();
+            distributor.refreshTargets();
+        }
     }
     @Override public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
