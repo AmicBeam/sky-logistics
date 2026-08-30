@@ -6,6 +6,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 final class ReflectiveSourceHandlerBridge implements SourceHandlerBridge {
+    private static final ClassValue<Accessors> ACCESSORS = new ClassValue<>() {
+        @Override
+        protected Accessors computeValue(Class<?> type) {
+            return Accessors.resolve(type);
+        }
+    };
+
     private final Object handler;
     private final Method getSource;
     private final Method getMaxSource;
@@ -50,26 +57,7 @@ final class ReflectiveSourceHandlerBridge implements SourceHandlerBridge {
         if (handler == null) {
             return null;
         }
-        Class<?> type = handler.getClass();
-        Method getSource = findMethod(type, "getSource");
-        Method getMaxSource = findMethod(type, "getMaxSource");
-        Method getSourceCapacity = findMethod(type, "getSourceCapacity");
-        Method receiveSource = findMethod(type, "receiveSource", int.class, boolean.class);
-        Method extractSource = findMethod(type, "extractSource", int.class, boolean.class);
-        Method addSourceSimulated = findMethod(type, "addSource", int.class, boolean.class);
-        Method addSource = findMethod(type, "addSource", int.class);
-        Method removeSourceSimulated = findMethod(type, "removeSource", int.class, boolean.class);
-        Method removeSource = findMethod(type, "removeSource", int.class);
-        if (getSource == null || (getMaxSource == null && getSourceCapacity == null)
-                || (receiveSource == null && addSourceSimulated == null && addSource == null)
-                || (extractSource == null && removeSourceSimulated == null && removeSource == null)) {
-            return null;
-        }
-        return new ReflectiveSourceHandlerBridge(handler, getSource, getMaxSource, getSourceCapacity,
-                findMethod(type, "canAcceptSource"), findMethod(type, "canAcceptSource", int.class),
-                findMethod(type, "canProvideSource"), findMethod(type, "canProvideSource", int.class),
-                findMethod(type, "canReceive"), findMethod(type, "canExtract"), receiveSource, extractSource,
-                addSourceSimulated, addSource, removeSourceSimulated, removeSource);
+        return ACCESSORS.get(handler.getClass()).bind(handler);
     }
 
     @Override
@@ -214,6 +202,36 @@ final class ReflectiveSourceHandlerBridge implements SourceHandlerBridge {
             return result instanceof Boolean value ? value : fallback;
         } catch (IllegalAccessException | InvocationTargetException | RuntimeException ignored) {
             return fallback;
+        }
+    }
+
+    private record Accessors(Method getSource, Method getMaxSource, Method getSourceCapacity,
+            Method canAcceptSource, Method canAcceptSourceAmount, Method canProvideSource,
+            Method canProvideSourceAmount, Method canReceive, Method canExtract, Method receiveSource,
+            Method extractSource, Method addSourceSimulated, Method addSource, Method removeSourceSimulated,
+            Method removeSource) {
+        private static Accessors resolve(Class<?> type) {
+            return new Accessors(findMethod(type, "getSource"), findMethod(type, "getMaxSource"),
+                    findMethod(type, "getSourceCapacity"), findMethod(type, "canAcceptSource"),
+                    findMethod(type, "canAcceptSource", int.class), findMethod(type, "canProvideSource"),
+                    findMethod(type, "canProvideSource", int.class), findMethod(type, "canReceive"),
+                    findMethod(type, "canExtract"), findMethod(type, "receiveSource", int.class, boolean.class),
+                    findMethod(type, "extractSource", int.class, boolean.class),
+                    findMethod(type, "addSource", int.class, boolean.class), findMethod(type, "addSource", int.class),
+                    findMethod(type, "removeSource", int.class, boolean.class),
+                    findMethod(type, "removeSource", int.class));
+        }
+
+        private SourceHandlerBridge bind(Object handler) {
+            if (getSource == null || (getMaxSource == null && getSourceCapacity == null)
+                    || (receiveSource == null && addSourceSimulated == null && addSource == null)
+                    || (extractSource == null && removeSourceSimulated == null && removeSource == null)) {
+                return null;
+            }
+            return new ReflectiveSourceHandlerBridge(handler, getSource, getMaxSource, getSourceCapacity,
+                    canAcceptSource, canAcceptSourceAmount, canProvideSource, canProvideSourceAmount, canReceive,
+                    canExtract, receiveSource, extractSource, addSourceSimulated, addSource, removeSourceSimulated,
+                    removeSource);
         }
     }
 
