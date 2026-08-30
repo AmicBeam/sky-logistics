@@ -9,6 +9,7 @@ import com.skylogistics.compat.distributor.AdaptiveRoutingConfig;
 import com.skylogistics.compat.distributor.AdaptiveTargetProbeScheduler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributorInsertMode;
+import com.skylogistics.compat.distributor.DistributorIndexPolicy;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
@@ -61,6 +62,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedManaHandler[] mana = new DistributedManaHandler[DIRECTIONS.length];
     private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
+    private final boolean[] completeTargetIndexes = new boolean[DIRECTIONS.length];
     private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
     private final boolean[] activeTargetSides = new boolean[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
@@ -173,6 +175,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             chemicals[index].remapAdaptiveState(targetRemap(previous.chemicals, cache.chemicals));
         }
         targetCaches[index] = cache;
+        completeTargetIndexes[index] = true;
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
         highlightSnapshot = createTargetSnapshot(cache);
@@ -190,6 +193,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             refreshTargets(side);
         }
         return targetCaches[index];
+    }
+
+    private boolean targetIndexUnavailable(Direction side) {
+        int index = side.ordinal();
+        return DistributorIndexPolicy.transferBlocked(completeTargetIndexes[index], targetsDirty[index],
+                targetDiscoveries[index] != null);
     }
 
     private TargetCache discoverTargets(Direction inheritedSide) {
@@ -628,8 +637,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
         @Override public boolean scanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
         @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
@@ -648,7 +656,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
-        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean scanPending() { return targetIndexUnavailable(side); }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
@@ -663,7 +671,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
-        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean scanPending() { return targetIndexUnavailable(side); }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
@@ -684,8 +692,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
 
         @Override public boolean distributorScanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
 
         @Override public int nextFairExtractionSlot(long gameTime) {
@@ -1141,8 +1148,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
         @Override public boolean distributorScanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
@@ -1354,7 +1360,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private DistributedEnergy(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
-        @Override public boolean distributorScanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean distributorScanPending() { return targetIndexUnavailable(side); }
 
         @Override public int receiveEnergy(int maxReceive, boolean simulate) {
             EnergyPlan plan = energyReceivePlan;
