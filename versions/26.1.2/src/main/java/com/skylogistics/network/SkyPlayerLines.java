@@ -3,8 +3,10 @@ package com.skylogistics.network;
 import com.skylogistics.item.ConfiguratorItem;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -32,9 +34,13 @@ public final class SkyPlayerLines extends SavedData {
     private static final String ASSIGNED_NAME = "AssignedName";
     private static final String LINE_OWNERS = "LineOwners";
     private static final String OWNER_ID = "OwnerId";
+    private static final String ADVANCEMENT_SNAPSHOTS = "AdvancementSnapshots";
+    private static final String COMPLETED_ADVANCEMENTS = "CompletedAdvancements";
+    private static final String ADVANCEMENT_ID = "AdvancementId";
 
     private final Map<UUID, PlayerLines> players = new HashMap<>();
     private final Map<UUID, UUID> lineOwners = new HashMap<>();
+    private final Map<UUID, Set<String>> advancementSnapshots = new HashMap<>();
 
     public static SkyPlayerLines get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(TYPE);
@@ -46,6 +52,18 @@ public final class SkyPlayerLines extends SavedData {
 
     public static void claimOwner(MinecraftServer server, UUID lineId, Player player) {
         if (server != null && lineId != null && player != null) get(server).claimOwner(lineId, player.getUUID());
+    }
+
+    public static Set<String> advancementSnapshot(MinecraftServer server, UUID playerId) {
+        if (server == null || playerId == null) return Set.of();
+        return get(server).advancementSnapshots.getOrDefault(playerId, Set.of());
+    }
+
+    public static void recordAdvancementSnapshot(MinecraftServer server, UUID playerId, Set<String> completed) {
+        if (server == null || playerId == null || completed == null) return;
+        SkyPlayerLines data = get(server);
+        Set<String> snapshot = Set.copyOf(completed);
+        if (!snapshot.equals(data.advancementSnapshots.put(playerId, snapshot))) data.setDirty();
     }
 
     public static LineSelection selection(MinecraftServer server, Player player, UUID currentLineId,
@@ -204,6 +222,20 @@ public final class SkyPlayerLines extends SavedData {
             ownerTags.add(ownerTag);
         }
         tag.put(LINE_OWNERS, ownerTags);
+        ListTag snapshotTags = new ListTag();
+        for (Map.Entry<UUID, Set<String>> snapshot : advancementSnapshots.entrySet()) {
+            CompoundTag snapshotTag = new CompoundTag();
+            com.skylogistics.util.NbtCompat.putUuid(snapshotTag, PLAYER_ID, snapshot.getKey());
+            ListTag advancementTags = new ListTag();
+            for (String advancement : snapshot.getValue()) {
+                CompoundTag advancementTag = new CompoundTag();
+                advancementTag.putString(ADVANCEMENT_ID, advancement);
+                advancementTags.add(advancementTag);
+            }
+            snapshotTag.put(COMPLETED_ADVANCEMENTS, advancementTags);
+            snapshotTags.add(snapshotTag);
+        }
+        tag.put(ADVANCEMENT_SNAPSHOTS, snapshotTags);
         return tag;
     }
 
@@ -246,6 +278,23 @@ public final class SkyPlayerLines extends SavedData {
                     data.lineOwners.put(com.skylogistics.util.NbtCompat.getUuid(ownerTag, LINE_ID),
                             com.skylogistics.util.NbtCompat.getUuid(ownerTag, OWNER_ID));
                 }
+            }
+        }
+        if (tag.contains(ADVANCEMENT_SNAPSHOTS)) {
+            ListTag snapshotTags = tag.getListOrEmpty(ADVANCEMENT_SNAPSHOTS);
+            for (int i = 0; i < snapshotTags.size(); i++) {
+                CompoundTag snapshotTag = snapshotTags.getCompoundOrEmpty(i);
+                if (!com.skylogistics.util.NbtCompat.hasUuid(snapshotTag, PLAYER_ID)
+                        || !snapshotTag.contains(COMPLETED_ADVANCEMENTS)) continue;
+                Set<String> completed = new HashSet<>();
+                ListTag advancementTags = snapshotTag.getListOrEmpty(COMPLETED_ADVANCEMENTS);
+                for (int advancementIndex = 0; advancementIndex < advancementTags.size(); advancementIndex++) {
+                    CompoundTag advancementTag = advancementTags.getCompoundOrEmpty(advancementIndex);
+                    String advancement = advancementTag.getStringOr(ADVANCEMENT_ID, "");
+                    if (!advancement.isBlank()) completed.add(advancement);
+                }
+                data.advancementSnapshots.put(
+                        com.skylogistics.util.NbtCompat.getUuid(snapshotTag, PLAYER_ID), Set.copyOf(completed));
             }
         }
         return data;

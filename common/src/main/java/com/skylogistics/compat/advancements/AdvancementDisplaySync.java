@@ -18,6 +18,7 @@ public final class AdvancementDisplaySync {
     public static void sync(ServerPlayer player) {
         if (player == null || !SYNCING.add(player.getUUID())) return;
         try {
+            AdvancementTransferLimiter.refresh(player);
             boolean enabled = SkyLogisticsConfig.enableAdvancementTransferRates();
             var configured = SkyLogisticsConfig.advancementDisplayEntries();
             Object manager = player.level().getServer().getAdvancements();
