@@ -7,10 +7,68 @@ import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class DistributedResourceHandlersTest {
+    @Test void balancedMaintainedManaUsesEachDeviceTargetAndReusesPlan() {
+        ScalarMana full = new ScalarMana(1000, 1200);
+        ScalarMana low = new ScalarMana(500, 1200);
+        DistributedManaHandler handler = new DistributedManaHandler(lookup(List.of(full, low), false));
+        assertEquals(100, handler.planMaintainedInsertion(100, true, 1000, true));
+        assertEquals(100, handler.insertMana(100, false));
+        assertEquals(1000, full.stored);
+        assertEquals(600, low.stored);
+    }
+
+    @Test void maintainedManaExecutionDoesNotRescanDevices() {
+        CountingLookup<ManaHandlerBridge> lookup = new CountingLookup<>(List.of(
+                new ScalarMana(0, 100), new ScalarMana(0, 100)), false);
+        DistributedManaHandler handler = new DistributedManaHandler(lookup);
+        assertEquals(80, handler.planMaintainedInsertion(80, true, 100, true));
+        assertEquals(2, lookup.operations);
+        assertEquals(80, handler.insertMana(80, false));
+        assertEquals(2, lookup.operations);
+    }
+
+    @Test void sequentialMaintainedManaUsesAggregateTarget() {
+        ScalarMana first = new ScalarMana(600, 1200);
+        ScalarMana second = new ScalarMana(500, 1200);
+        DistributedManaHandler handler = new DistributedManaHandler(lookup(List.of(first, second), true));
+        assertEquals(0, handler.planMaintainedInsertion(100, true, 1000, true));
+    }
+
+    @Test void balancedMaintainedSourceUsesEachDeviceTarget() {
+        ScalarSource full = new ScalarSource(1000, 1200);
+        ScalarSource low = new ScalarSource(500, 1200);
+        DistributedSourceHandler handler = new DistributedSourceHandler(lookup(List.of(full, low), false));
+        assertEquals(100, handler.planMaintainedInsertion(100, true, 1000, true));
+        assertEquals(100, handler.insertSource(100, false));
+        assertEquals(1000, full.stored);
+        assertEquals(600, low.stored);
+    }
+
+    @Test void balancedMaintainedChemicalUsesEachDeviceTarget() {
+        ChemicalTank full = new ChemicalTank(1000, 1200);
+        ChemicalTank low = new ChemicalTank(500, 1200);
+        DistributedChemicalHandler handler = new DistributedChemicalHandler(lookup(List.of(full, low), false));
+        assertEquals(100, handler.planMaintainedChemicalInsertion(new TestChemical(100), true, 1000, true));
+        assertEquals(100, handler.insertChemical(new TestChemical(100), false));
+        assertEquals(1000, full.stored);
+        assertEquals(600, low.stored);
+    }
+
+    @Test void balancedMaintainedSoulsUseEachDeviceTarget() {
+        SoulTank full = new SoulTank(1000, 1200);
+        SoulTank low = new SoulTank(500, 1200);
+        DistributedSoulHandler handler = new DistributedSoulHandler(lookup(List.of(full, low), false));
+        assertEquals(100, handler.planMaintainedInsertion(100, true, 1000, true));
+        assertEquals(100, handler.fill(100, false));
+        assertEquals(1000, full.stored);
+        assertEquals(600, low.stored);
+    }
+
     @Test void redstoneModeSwitchesManaFromBalancedToSequentialInsertion() {
         ScalarMana balancedFirst = new ScalarMana(0, 100);
         ScalarMana balancedSecond = new ScalarMana(0, 100);
@@ -95,6 +153,20 @@ class DistributedResourceHandlersTest {
         };
     }
 
+    private static final class CountingLookup<T> implements DistributedHandlerLookup<T> {
+        private final List<T> handlers;
+        private final boolean sequential;
+        private int operations;
+        private CountingLookup(List<T> handlers, boolean sequential) {
+            this.handlers = handlers;
+            this.sequential = sequential;
+        }
+        @Override public int size() { return handlers.size(); }
+        @Override public T handler(int index) { return handlers.get(index); }
+        @Override public boolean takeOperation() { operations++; return true; }
+        @Override public boolean sequentialInsertion() { return sequential; }
+    }
+
     private static final class ScalarMana implements ManaHandlerBridge {
         private int stored;
         private final int capacity;
@@ -156,6 +228,25 @@ class DistributedResourceHandlersTest {
         @Override public long insertChemical(ChemicalStackView stack, boolean simulate) {
             long moved = Math.min(stack.getAmount(), capacity - stored);
             if (!simulate) stored += moved;
+            return moved;
+        }
+    }
+
+    private static final class SoulTank implements SoulHandlerBridge {
+        private int stored;
+        private final int capacity;
+        private SoulTank(int stored, int capacity) { this.stored = stored; this.capacity = capacity; }
+        @Override public int getSoulTanks() { return 1; }
+        @Override public int getSoulInTank(int tank) { return stored; }
+        @Override public int getTankCapacity(int tank) { return capacity; }
+        @Override public int fill(int amount, boolean simulate) {
+            int moved = Math.min(amount, capacity - stored);
+            if (!simulate) stored += moved;
+            return moved;
+        }
+        @Override public int drain(int amount, boolean simulate) {
+            int moved = Math.min(amount, stored);
+            if (!simulate) stored -= moved;
             return moved;
         }
     }

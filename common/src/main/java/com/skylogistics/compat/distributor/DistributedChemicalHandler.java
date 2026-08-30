@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public final class DistributedChemicalHandler implements ChemicalHandlerBridge, BudgetedDistributorHandler {
+public final class DistributedChemicalHandler implements ChemicalHandlerBridge, BudgetedDistributorHandler,
+        ConstrainedDistributorChemicalHandler {
     private static final int MAX_TARGETS = 64;
     private final DistributedHandlerLookup<ChemicalHandlerBridge> lookup;
     private final int[] visibleTanks = new int[MAX_TARGETS];
@@ -110,6 +111,57 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge, 
         long inserted = executeInsertPlan(plan, stack);
         insertPlan = null;
         return inserted;
+    }
+
+    @Override
+    public long planMaintainedChemicalInsertion(ChemicalStackView stack, boolean maintainByAmount,
+            long maintainTarget, boolean fillMaintainedUnits) {
+        if (stack == null || stack.isEmpty()) return 0L;
+        insertPlan = buildMaintainedInsertPlan(stack, maintainByAmount, maintainTarget, fillMaintainedUnits);
+        insertPlanAwaitingExecution = true;
+        return insertPlan.accepted;
+    }
+
+    private ChemicalInsertPlan buildMaintainedInsertPlan(ChemicalStackView stack, boolean maintainByAmount,
+            long maintainTarget, boolean fillMaintainedUnits) {
+        int targets = lookup.size();
+        if (targets <= 0) return new ChemicalInsertPlan(lookup.gameTime(), stack.chemicalKey(),
+                stack.getAmount(), List.of(), 0L);
+        int start = Math.floorMod(legacyInsertCursor, targets);
+        int[] targetIndices = new int[targets];
+        long[] stored = new long[targets], capacities = new long[targets], refill = new long[targets];
+        int[] occupied = new int[targets];
+        for (int offset = 0; offset < targets; offset++) {
+            if (!lookup.takeOperation()) return new ChemicalInsertPlan(lookup.gameTime(), stack.chemicalKey(),
+                    stack.getAmount(), List.of(), 0L);
+            int target = (start + offset) % targets;
+            targetIndices[offset] = target;
+            ChemicalHandlerBridge handler = lookup.handler(target);
+            if (handler == null) continue;
+            for (int tank = 0; tank < handler.getTanks(); tank++) {
+                ChemicalStackView existing = handler.getChemicalInTank(tank);
+                if (existing == null || existing.isEmpty() || !existing.isSameChemical(stack)) continue;
+                stored[offset] = saturatedAdd(stored[offset], existing.getAmount());
+                occupied[offset]++;
+            }
+            capacities[offset] = Math.max(0L, handler.insertChemical(stack, true));
+            refill[offset] = occupied[offset] > 0 ? capacities[offset] : 0L;
+        }
+        long[] assignments = DistributorResourceMaintenancePolicy.assignments(stack.getAmount(), stored,
+                capacities, occupied, refill, maintainByAmount, maintainTarget, fillMaintainedUnits,
+                lookup.sequentialInsertion());
+        List<ChemicalMove> moves = new ArrayList<>();
+        long accepted = 0L;
+        int last = -1;
+        for (int offset = 0; offset < assignments.length; offset++) {
+            if (assignments[offset] <= 0L) continue;
+            moves.add(new ChemicalMove(targetIndices[offset], assignments[offset]));
+            accepted = saturatedAdd(accepted, assignments[offset]);
+            last = targetIndices[offset];
+        }
+        legacyInsertCursor = last >= 0 ? last + 1 : start + 1;
+        return new ChemicalInsertPlan(lookup.gameTime(), stack.chemicalKey(), stack.getAmount(),
+                List.copyOf(moves), Math.min(stack.getAmount(), accepted));
     }
 
     public void clearAdaptiveState() {
@@ -258,6 +310,11 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge, 
         long amount = 0L;
         for (ChemicalMove move : moves) amount = Math.min(Long.MAX_VALUE, amount + move.amount);
         return amount;
+    }
+
+    private static long saturatedAdd(long left, long right) {
+        right = Math.max(0L, right);
+        return Long.MAX_VALUE - left < right ? Long.MAX_VALUE : left + right;
     }
 
     private record ChemicalMove(int target, long amount) {}

@@ -18,6 +18,9 @@ import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorChemicalHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorAmountHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.distributor.MaintainedStorageView;
@@ -2166,8 +2169,7 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                FluidStack maintainedOffer = copyWithAmount(simulated, (int) maintainedFluidAllowance(targetEndpoint, target, simulated.getAmount()));
-                int accepted = target.fill(maintainedOffer, FluidHandler.FluidAction.SIMULATE);
+                int accepted = planMaintainedFluidInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0) {
                     if (deferExhaustedDistributorFluid(targetEndpoint, target, gameTime)) {
                         sourceEndpoint.resumeFluidTargetScan(simulatedKey, visitedTargetIndex, targetCount);
@@ -2299,8 +2301,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         FluidStack offer = copyWithAmount(simulated, requested);
-        offer.setAmount((int) maintainedFluidAllowance(targetEndpoint, target, offer.getAmount()));
-        int accepted = target.fill(offer.copy(), FluidHandler.FluidAction.SIMULATE);
+        int accepted = planMaintainedFluidInsertion(targetEndpoint, target, offer);
         if (accepted <= 0) {
             if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
             targetEndpoint.recordFluidAcceptReject(simulatedKey, gameTime);
@@ -2743,7 +2744,7 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                long accepted = target.insertChemical(simulated.copyWithAmount(maintainedChemicalAllowance(targetEndpoint, target, simulated.getAmount())), true);
+                long accepted = planMaintainedChemicalInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0L) {
                     if (deferExhaustedDistributorChemical(targetEndpoint, target, gameTime)) {
                         sourceEndpoint.resumeChemicalTargetScan(simulated, visitedTargetIndex, targetCount);
@@ -3013,6 +3014,56 @@ public final class SkyNetworkTicker {
         return target.receiveEnergy((int)maintainedEnergyAllowance(endpoint, target, requested), true);
     }
 
+    @SuppressWarnings("unchecked")
+    private static int planMaintainedFluidInsertion(CachedEndpoint endpoint, FluidHandler target,
+            FluidStack resource) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorFluidHandler<?> raw
+                && SkyLogisticsConfig.enableMaintainedFluidPolling() && maintainTarget > 0L) {
+            ConstrainedDistributorFluidHandler<FluidStack> distributor =
+                    (ConstrainedDistributorFluidHandler<FluidStack>)raw;
+            return distributor.planMaintainedFluidInsertion(resource,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        FluidStack offer = copyWithAmount(resource,
+                (int)maintainedFluidAllowance(endpoint, target, resource.getAmount()));
+        return target.fill(offer, FluidHandler.FluidAction.SIMULATE);
+    }
+
+    private static long planMaintainedChemicalInsertion(CachedEndpoint endpoint,
+            ChemicalHandlerBridge target, ChemicalStackView stack) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorChemicalHandler distributor
+                && SkyLogisticsConfig.enableMaintainedChemicalPolling() && maintainTarget > 0L) {
+            return distributor.planMaintainedChemicalInsertion(stack,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        return target.insertChemical(stack.copyWithAmount(
+                maintainedChemicalAllowance(endpoint, target, stack.getAmount())), true);
+    }
+
+    private static int planMaintainedScalarInsertion(CachedEndpoint endpoint, ManaHandlerBridge target,
+            int requested, boolean enabled) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorAmountHandler distributor && enabled && maintainTarget > 0L)
+            return (int)distributor.planMaintainedInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        return target.insertMana((int)maintainedManaAllowance(endpoint, target, requested), true);
+    }
+
+    private static int planMaintainedScalarInsertion(CachedEndpoint endpoint, SourceHandlerBridge target,
+            int requested, boolean enabled) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorAmountHandler distributor && enabled && maintainTarget > 0L)
+            return (int)distributor.planMaintainedInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        return target.insertSource((int)maintainedSourceAllowance(endpoint, target, requested), true);
+    }
+
     private static long moveLongEnergy(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceEndpointLong,
             CachedEndpoint targetEndpoint, LongEnergyEndpoint targetEndpointLong, long maxAmount) {
         if (sourceEndpointLong.sameStorage(targetEndpointLong)) {
@@ -3177,7 +3228,8 @@ public final class SkyNetworkTicker {
                     budgetExhausted = true;
                     break targetLoop;
                 }
-                int accepted = target.insertMana((int) maintainedManaAllowance(targetEndpoint, target, simulated), true);
+                int accepted = planMaintainedScalarInsertion(targetEndpoint, target, simulated,
+                        SkyLogisticsConfig.enableMaintainedManaPolling());
                 if (accepted <= 0) {
                     targetEndpoint.recordManaFailure(gameTime);
                     continue;
@@ -3307,7 +3359,8 @@ public final class SkyNetworkTicker {
                     budgetExhausted = true;
                     break targetLoop;
                 }
-                int accepted = target.insertSource((int) maintainedSourceAllowance(targetEndpoint, target, simulated), true);
+                int accepted = planMaintainedScalarInsertion(targetEndpoint, target, simulated,
+                        SkyLogisticsConfig.enableMaintainedSourcePolling());
                 if (accepted <= 0) {
                     targetEndpoint.recordSourceFailure(gameTime);
                     continue;

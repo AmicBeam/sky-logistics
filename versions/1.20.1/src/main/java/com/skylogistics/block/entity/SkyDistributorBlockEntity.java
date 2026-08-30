@@ -15,7 +15,9 @@ import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
 import com.skylogistics.compat.distributor.DistributorEnergyMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorResourceMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorRescanPolicy;
@@ -1146,7 +1148,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
     }
 
-    private final class DistributedFluids implements IFluidHandler, BudgetedDistributorHandler {
+    private final class DistributedFluids implements IFluidHandler, BudgetedDistributorHandler,
+            ConstrainedDistributorFluidHandler<FluidStack> {
         private final Direction side;
         private final AdaptiveTargetProbeScheduler extractionProbes = new AdaptiveTargetProbeScheduler();
         private final HierarchicalTargetRouteCache<FluidStackKey> insertionRoutes = new HierarchicalTargetRouteCache<>();
@@ -1198,6 +1201,58 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public int getTankCapacity(int tank) { IFluidHandler h = handler(tank); return h == null ? 0 : Integer.MAX_VALUE; }
         @Override public boolean isFluidValid(int tank, FluidStack stack) { return true; }
+        @Override
+        public int planMaintainedFluidInsertion(FluidStack resource, boolean maintainByAmount,
+                long maintainTarget, boolean fillMaintainedUnits) {
+            fluidInsertPlan = buildMaintainedFluidInsertPlan(resource, maintainByAmount, maintainTarget,
+                    fillMaintainedUnits);
+            fluidInsertPlanAwaitingExecution = true;
+            return fluidInsertPlan.accepted;
+        }
+
+        private FluidInsertPlan buildMaintainedFluidInsertPlan(FluidStack resource, boolean maintainByAmount,
+                long maintainTarget, boolean fillMaintainedUnits) {
+            List<Target> all = targets(side).fluids;
+            if (resource.isEmpty() || all.isEmpty()) return new FluidInsertPlan(gameTime(), resource.copy(), List.of(), 0);
+            int cursorIndex = side.ordinal();
+            int start = Math.floorMod(fluidInsertCursors[cursorIndex], all.size());
+            int[] targetIndices = new int[all.size()];
+            long[] stored = new long[all.size()], capacities = new long[all.size()], refill = new long[all.size()];
+            int[] occupied = new int[all.size()];
+            for (int offset = 0; offset < all.size(); offset++) {
+                if (!takeOperation()) return new FluidInsertPlan(gameTime(), resource.copy(), List.of(), 0);
+                int target = (start + offset) % all.size();
+                targetIndices[offset] = target;
+                IFluidHandler handler = fluid(all.get(target));
+                if (handler == null) continue;
+                for (int tank = 0; tank < handler.getTanks(); tank++) {
+                    FluidStack existing = handler.getFluidInTank(tank);
+                    if (existing.isEmpty() || !sameFluidType(existing, resource)) continue;
+                    stored[offset] += existing.getAmount();
+                    occupied[offset]++;
+                    refill[offset] += Math.max(0, handler.getTankCapacity(tank) - existing.getAmount());
+                }
+                FluidStack offer = resource.copy();
+                capacities[offset] = Math.max(0, handler.fill(offer, FluidAction.SIMULATE));
+            }
+            long[] assignments = DistributorResourceMaintenancePolicy.assignments(resource.getAmount(), stored,
+                    capacities, occupied, refill, maintainByAmount, maintainTarget, fillMaintainedUnits,
+                    sequentialInsertion());
+            List<FluidMove> moves = new ArrayList<>();
+            int accepted = 0;
+            int last = -1;
+            for (int offset = 0; offset < assignments.length; offset++) {
+                int assigned = (int)Math.min(Integer.MAX_VALUE, assignments[offset]);
+                if (assigned <= 0) continue;
+                moves.add(new FluidMove(targetIndices[offset], assigned));
+                accepted += assigned;
+                last = targetIndices[offset];
+            }
+            fluidInsertCursors[cursorIndex] = last >= 0 ? last + 1 : start + 1;
+            return new FluidInsertPlan(gameTime(), resource.copy(), List.copyOf(moves),
+                    Math.min(resource.getAmount(), accepted));
+        }
+
         @Override public int fill(FluidStack resource, FluidAction action) {
             if (resource.isEmpty()) return 0;
             FluidInsertPlan plan = fluidInsertPlan;
