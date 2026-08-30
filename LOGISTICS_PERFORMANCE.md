@@ -65,6 +65,7 @@
 - `distributor.enableAdaptiveFluidTargetProbes = true` 与 `enableAdaptiveChemicalTargetProbes = true`：流体和化学品使用相同的“精确资源 key → 内部机器”二级路由、均分游标和按机器抽取退避；三种资源各自拥有独立路由库和开关。
 - 均分模式使用该 `ItemStackKey` 已确认可接收的热机器数计算精确份额，并从上批最后实际收到物品的机器之后继续；因此 20 台设备中只有 4 台接收某种原料、每批只产出 2 个时，会交替形成 `1/1/0/0` 和 `0/0/1/1`，而不是长期只喂前两台。冷启动发现新机器后，下一次插入即纳入均分。
 - 分配器仍每 100 tick 做能力保底重扫。结果完全相同时不清理任何路由、热度或均分游标；结果变化时按“方块位置 + 接入面”迁移仍存在机器的状态，只初始化新增机器并丢弃已移除机器。
+- 节点向分配器存入物品时会随模拟请求传递维持单位/数值与逐槽匹配位置。分配器在自身机器索引和操作预算内生成一次可接受量与物理槽移动计划；执行阶段复用该计划，不再由节点扫描扁平虚拟槽后放行整批物品。均分模式的维持额度按机器独立计算，红石顺序模式按全部机器累计计算。
 - `distributor.itemRouteCacheSize = 64`：每种资源在每个分配器接入面最多保留的精确路由 key 数；字段名为兼容旧配置保留。物品 key 在 1.20.1 包含 NBT，在新版本包含全部 data components；流体与化学品使用各自的精确类型 key。
 - `distributor.itemTargetHotProbeTicks = 1`、`itemTargetWarmProbeTicks = 5`、`itemTargetCoolProbeTicks = 20`、`itemTargetFallbackProbeTicks = 40`：三种资源的抽取机器与插入 `key × 机器` 共用的四级退避间隔；运行时会自动按非递减顺序归一化。传输预算耗尽只延后 1 tick；机器索引未完成则按 `distributor.indexingRetryTicks = 20` 局部延后对应端点和资源。两者都不计作空槽或拒收，也不触发全局线路恢复扫描。
 - `distributor.itemTargetMissesPerDemotion = 3`：曾成功机器连续失败多少次后降低一级；任意成功都会立即升至热等级，首次完整拒绝的未知机器直接进入兜底等级。

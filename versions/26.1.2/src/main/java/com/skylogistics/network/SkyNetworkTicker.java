@@ -4,7 +4,6 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
-import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity.ExternalWhitelistCandidates;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
@@ -17,6 +16,8 @@ import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
@@ -929,13 +930,13 @@ public final class SkyNetworkTicker {
             return HandlerMoveResult.NONE;
         }
         ItemStack offer = simulated.copyWithCount(requested);
-        int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+        int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target);
         if (orderedTargetSlot == -2) {
             return new HandlerMoveResult(false, slotLimitCheck.checks(), false);
         }
         TargetItemSelection selection = orderedTargetSlot >= 0
                 ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
-                : selectTargetItemSlot(targetEndpoint, target, offer,
+                : selectTargetItemSlot(sourceEndpoint, targetEndpoint, target, offer,
                         Math.max(1, slotCheckBudget - slotLimitCheck.checks()));
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
@@ -1095,6 +1096,10 @@ public final class SkyNetworkTicker {
 
     private static ExactItemScanResult scanExactItems(CachedEndpoint endpoint, ItemHandler handler, int budget,
             Map<CachedEndpoint, ExactItemScan> scans) {
+        if (handler instanceof ConstrainedDistributorItemHandler) {
+            scans.remove(endpoint);
+            return ExactItemScanResult.NOT_CONFIGURED;
+        }
         if (!(endpoint.node() instanceof SkyNodeBlockEntity node)
                 || !node.isItemLimitByItems(endpoint.direction())) {
             scans.remove(endpoint);
@@ -1124,6 +1129,7 @@ public final class SkyNetworkTicker {
         if (target == null) {
             return SlotLimitCheck.ALLOWED;
         }
+        if (target instanceof ConstrainedDistributorItemHandler) return SlotLimitCheck.ALLOWED;
         NetworkEndpointBlockEntity node = endpoint.node();
         net.minecraft.core.Direction direction = endpoint.direction();
         if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(direction)) return SlotLimitCheck.ALLOWED;
@@ -1396,11 +1402,11 @@ public final class SkyNetworkTicker {
                 if (exactRemaining == 0) continue;
                 ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
                         ? simulated.copyWithCount(exactRemaining) : simulated;
-                int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+                int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target);
                 if (orderedTargetSlot == -2) continue;
                 TargetItemSelection selection = orderedTargetSlot >= 0
                         ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
-                        : selectTargetItemSlot(targetEndpoint, target, offer,
+                        : selectTargetItemSlot(sourceEndpoint, targetEndpoint, target, offer,
                                 Math.max(1, budget - operations + 1));
                 operations += Math.max(0, selection.checks() - 1);
                 TargetItemSlot targetSlot = selection.slot();
@@ -1452,11 +1458,17 @@ public final class SkyNetworkTicker {
         return false;
     }
 
-    private static TargetItemSelection selectTargetItemSlot(CachedEndpoint endpoint, ItemHandler target,
-            ItemStack stack, int checkBudget) {
-        if (endpoint.targetBlockEntity() instanceof SkyDistributorBlockEntity) {
+    private static TargetItemSelection selectTargetItemSlot(CachedEndpoint sourceEndpoint,
+            CachedEndpoint endpoint, ItemHandler target, ItemStack stack, int checkBudget) {
+        if (target instanceof ConstrainedDistributorItemHandler distributor) {
             endpoint.clearTargetItemCursor();
-            return new TargetItemSelection(simulateSingleTargetItemSlot(target, stack), 1, true);
+            int movable = distributor.planItemInsertion(stack,
+                    distributorItemInsertContext(sourceEndpoint, endpoint),
+                    candidate -> endpoint.node().allowsItem(endpoint.direction(), candidate));
+            TargetItemSlot slot = movable <= 0 ? TargetItemSlot.NONE
+                    : new TargetItemSlot(-1, 0, movable, 0, Integer.MAX_VALUE,
+                            movable < stack.getCount(), false);
+            return new TargetItemSelection(slot, 1, true);
         }
         int slots = target.getSlots();
         if (slots == 1) {
@@ -1508,7 +1520,9 @@ public final class SkyNetworkTicker {
     }
 
     private static int orderedMatchingTargetSlot(CachedEndpoint sourceEndpoint, CachedEndpoint targetEndpoint,
-            int targetSlots) {
+            ItemHandler target) {
+        if (target instanceof ConstrainedDistributorItemHandler) return -1;
+        int targetSlots = target.getSlots();
         SkyNodeBlockEntity targetNode = orderedMatchingTargetNode(targetEndpoint);
         if (targetNode == null || targetSlots <= 0) return -1;
         int sourcePriorityIndex = itemSourcePriorityIndex(sourceEndpoint);
@@ -1516,6 +1530,26 @@ public final class SkyNetworkTicker {
         int slot = OrderedMatchingPolicy.offsetPosition(sourcePriorityIndex,
                 targetNode.getOrderedMatchingOffset(), targetSlots);
         return slot < 0 ? -2 : slot;
+    }
+
+    private static DistributorItemInsertContext distributorItemInsertContext(CachedEndpoint sourceEndpoint,
+            CachedEndpoint targetEndpoint) {
+        NetworkEndpointBlockEntity endpointNode = targetEndpoint.node();
+        DistributorItemInsertContext.MaintainUnit unit = DistributorItemInsertContext.MaintainUnit.NONE;
+        int amount = 0;
+        if (endpointNode instanceof SkyNodeBlockEntity node) {
+            amount = node.getItemSlotLimit(targetEndpoint.direction());
+            if (amount > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) {
+                unit = node.isItemLimitByItems(targetEndpoint.direction())
+                        ? DistributorItemInsertContext.MaintainUnit.ITEMS
+                        : DistributorItemInsertContext.MaintainUnit.SLOTS;
+            }
+        }
+        SkyNodeBlockEntity orderedNode = orderedMatchingTargetNode(targetEndpoint);
+        boolean ordered = orderedNode != null;
+        return new DistributorItemInsertContext(unit, amount, SkyLogisticsConfig.fillMaintainedItemSlots(),
+                ordered, ordered ? itemSourcePriorityIndex(sourceEndpoint) : -1,
+                ordered ? orderedNode.getOrderedMatchingOffset() : 0);
     }
 
     private static int itemSourcePriorityIndex(CachedEndpoint sourceEndpoint) {

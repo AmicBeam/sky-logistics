@@ -12,6 +12,9 @@ import com.skylogistics.compat.distributor.DistributorInsertMode;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.DistributorItemInsertContext;
+import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
@@ -27,7 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -456,6 +462,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         Arrays.fill(rejectedItemUntil, 0L);
         Arrays.fill(rejectedFluids, null);
         Arrays.fill(rejectedFluidUntil, 0L);
+        for (DistributedItems handler : items) if (handler != null) handler.constrainedItemScans.clear();
     }
 
     private static boolean sameItem(ItemStack first, ItemStack second) {
@@ -527,7 +534,45 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
     }
 
-    private record ItemMove(int target, int slot, int amount) {}
+    private record ItemMove(int target, int slot, int amount, boolean opensMaintainedSlot) {
+        private ItemMove(int target, int slot, int amount) {
+            this(target, slot, amount, false);
+        }
+    }
+
+    private record ItemTargetPlan(int target, List<ItemMove> moves, int matchingSlots, int matchingItems) {}
+    private static final class ConstrainedItemScan {
+        private final List<ItemTargetPlan> plans = new ArrayList<>();
+        private int nextTargetOffset;
+        private int currentTarget = -1;
+        private int currentSlots;
+        private int nextSlot;
+        private int fixedSlot;
+        private int matchingSlots;
+        private int matchingItems;
+        private final List<ItemMove> matchingMoves = new ArrayList<>();
+        private final List<ItemMove> otherMoves = new ArrayList<>();
+
+        private void beginTarget(int target, int slots, int fixedSlot) {
+            currentTarget = target;
+            currentSlots = slots;
+            nextSlot = 0;
+            this.fixedSlot = fixedSlot;
+            matchingSlots = 0;
+            matchingItems = 0;
+            matchingMoves.clear();
+            otherMoves.clear();
+        }
+
+        private void finishTarget() {
+            matchingMoves.addAll(otherMoves);
+            plans.add(new ItemTargetPlan(currentTarget, List.copyOf(matchingMoves), matchingSlots, matchingItems));
+            currentTarget = -1;
+            nextTargetOffset++;
+        }
+    }
+    private record ConstrainedItemScanKey(ItemStackKey item, int count,
+            DistributorItemInsertContext context, int targetCount, int start) {}
     private record ItemInsertPlan(long tick, ItemStack request, List<ItemMove> moves, int accepted) {}
     private record ItemExtractPlan(long tick, int virtualSlot, int amount, int physicalSlot) {}
     private record FluidMove(int target, int amount) {}
@@ -584,13 +629,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
     }
 
-    private final class DistributedItems implements ItemHandler, BudgetedDistributorHandler {
+    private final class DistributedItems implements ItemHandler, ConstrainedDistributorItemHandler {
         private final Direction side;
         private final DistributedTargetProbeScheduler<Target> extractionProbes =
                 new DistributedTargetProbeScheduler<>();
         private final HierarchicalTargetRouteCache<ItemStackKey> insertionRoutes =
                 new HierarchicalTargetRouteCache<>();
         private final int[] insertionRouteCandidates = new int[MAX_CONFIGURABLE_TARGETS];
+        private final Map<ConstrainedItemScanKey, ConstrainedItemScan> constrainedItemScans = new LinkedHashMap<>();
 
         private DistributedItems(Direction side) { this.side = side; }
 
@@ -647,6 +693,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             remaining.shrink(inserted);
             itemInsertPlan = null;
             return remaining;
+        }
+
+        @Override public int planItemInsertion(ItemStack stack, DistributorItemInsertContext context,
+                Predicate<ItemStack> maintainedMatcher) {
+            if (stack.isEmpty()) return 0;
+            ItemInsertPlan plan = buildConstrainedItemInsertPlan(stack,
+                    context == null ? DistributorItemInsertContext.unrestricted() : context,
+                    maintainedMatcher == null ? ignored -> true : maintainedMatcher);
+            itemInsertPlanAwaitingExecution = true;
+            return plan.accepted;
         }
         @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
             DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
@@ -794,6 +850,173 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 }
             }
             int accepted = (int)Math.min(stack.getCount(), moves.stream().mapToLong(ItemMove::amount).sum());
+            itemInsertPlan = new ItemInsertPlan(gameTime(), stack.copy(), List.copyOf(moves), accepted);
+            return itemInsertPlan;
+        }
+
+        private ItemInsertPlan buildConstrainedItemInsertPlan(ItemStack stack,
+                DistributorItemInsertContext context, Predicate<ItemStack> maintainedMatcher) {
+            if (!context.maintained() && !context.orderedMatching()) return buildItemInsertPlan(stack);
+            List<Target> all = targets(side).items;
+            int start = all.isEmpty() ? 0 : Math.floorMod(itemInsertCursors[side.ordinal()], all.size());
+            int orderedDevice = sequentialInsertion() && context.orderedMatching()
+                    ? context.orderedPosition(all.size()) : -1;
+            if (sequentialInsertion() && context.orderedMatching() && orderedDevice < 0) {
+                return rememberItemInsertPlan(stack, List.of());
+            }
+            ConstrainedItemScanKey scanKey = new ConstrainedItemScanKey(
+                    ItemStackKey.of(stack), stack.getCount(), context, all.size(), start);
+            ConstrainedItemScan scan = constrainedItemScans.get(scanKey);
+            if (scan == null) {
+                scan = new ConstrainedItemScan();
+                constrainedItemScans.put(scanKey, scan);
+                trimConstrainedItemScans();
+            }
+            while (scan.nextTargetOffset < all.size()) {
+                int target = (start + scan.nextTargetOffset) % all.size();
+                ItemHandler handler = item(all.get(target));
+                if (handler == null || handler.getSlots() <= 0) {
+                    scan.nextTargetOffset++;
+                    scan.currentTarget = -1;
+                    continue;
+                }
+                int fixedSlot = !sequentialInsertion() && context.orderedMatching()
+                        ? context.orderedPosition(handler.getSlots()) : -1;
+                boolean insertionEnabled = (!sequentialInsertion() || !context.orderedMatching()
+                        || target == orderedDevice)
+                        && (!context.orderedMatching() || sequentialInsertion() || fixedSlot >= 0);
+                int plannedSlot = insertionEnabled ? fixedSlot : Integer.MIN_VALUE;
+                if (scan.currentTarget != target) {
+                    scan.beginTarget(target, handler.getSlots(), plannedSlot);
+                } else if (scan.currentSlots != handler.getSlots() || scan.fixedSlot != plannedSlot) {
+                    constrainedItemScans.remove(scanKey);
+                    return rememberItemInsertPlan(stack, List.of());
+                }
+                while (scan.nextSlot < handler.getSlots()) {
+                    if (!takeOperation()) return rememberItemInsertPlan(stack, List.of());
+                    int slot = scan.nextSlot++;
+                    ItemStack existing = handler.getStackInSlot(slot);
+                    boolean maintained = !existing.isEmpty() && maintainedMatcher.test(existing);
+                    if (maintained) {
+                        scan.matchingSlots++;
+                        scan.matchingItems = (int)Math.min(Integer.MAX_VALUE,
+                                (long)scan.matchingItems + existing.getCount());
+                    }
+                    if (scan.fixedSlot == Integer.MIN_VALUE
+                            || scan.fixedSlot >= 0 && slot != scan.fixedSlot) continue;
+                    ItemStack rejected = handler.insertItem(slot, stack.copy(), true);
+                    int accepted = stack.getCount() - rejected.getCount();
+                    if (accepted <= 0) continue;
+                    boolean opensSlot = existing.isEmpty() && maintainedMatcher.test(stack);
+                    ItemMove move = new ItemMove(target, slot, accepted, opensSlot);
+                    if (!existing.isEmpty() && sameItemType(existing, stack)) scan.matchingMoves.add(move);
+                    else scan.otherMoves.add(move);
+                }
+                scan.finishTarget();
+            }
+            List<ItemMove> moves = sequentialInsertion()
+                    ? sequentialConstrainedMoves(scan.plans, stack.getCount(), context)
+                    : balancedConstrainedMoves(scan.plans, stack.getCount(), context);
+            constrainedItemScans.remove(scanKey);
+            return rememberItemInsertPlan(stack, moves);
+        }
+
+        private void trimConstrainedItemScans() {
+            int maximum = Math.max(1, SkyLogisticsConfig.distributorItemRouteCacheSize());
+            while (constrainedItemScans.size() > maximum) {
+                ConstrainedItemScanKey eldest = constrainedItemScans.keySet().iterator().next();
+                constrainedItemScans.remove(eldest);
+            }
+        }
+
+        private List<ItemMove> balancedConstrainedMoves(List<ItemTargetPlan> targets, int requested,
+                DistributorItemInsertContext context) {
+            List<List<ItemMove>> available = new ArrayList<>();
+            for (ItemTargetPlan target : targets) {
+                List<ItemMove> limited = limitedTargetMoves(target, context);
+                if (!limited.isEmpty()) available.add(limited);
+            }
+            int[] capacities = available.stream()
+                    .mapToInt(moves -> moves.stream().mapToInt(ItemMove::amount).sum()).toArray();
+            int[] assigned = DistributorInsertMode.balancedAssignments(requested, capacities);
+            List<ItemMove> result = new ArrayList<>();
+            for (int index = 0; index < available.size(); index++)
+                appendMoves(result, available.get(index), assigned[index]);
+            return result;
+        }
+
+        private List<ItemMove> sequentialConstrainedMoves(List<ItemTargetPlan> targets, int requested,
+                DistributorItemInsertContext context) {
+            int totalSlots = targets.stream().mapToInt(ItemTargetPlan::matchingSlots).sum();
+            long totalItems = targets.stream().mapToLong(ItemTargetPlan::matchingItems).sum();
+            int remainingItems = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS
+                    ? DistributorMaintenancePolicy.remainingItems(totalItems, context.maintainAmount())
+                    : requested;
+            int newSlotBudget = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.SLOTS
+                    ? DistributorMaintenancePolicy.remainingSlots(totalSlots, context.maintainAmount())
+                    : Integer.MAX_VALUE;
+            boolean slotsBlocked = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.SLOTS
+                    && DistributorMaintenancePolicy.blocksSlotInsertion(totalSlots,
+                            context.maintainAmount(), context.fillMaintainedSlots());
+            if (context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS && remainingItems <= 0
+                    || slotsBlocked) return List.of();
+            List<ItemMove> result = new ArrayList<>();
+            int remaining = Math.min(requested, remainingItems);
+            for (ItemTargetPlan target : targets) {
+                for (ItemMove move : target.moves()) {
+                    if (remaining <= 0) break;
+                    if (move.opensMaintainedSlot() && newSlotBudget <= 0) continue;
+                    int amount = Math.min(move.amount(), remaining);
+                    if (amount <= 0) continue;
+                    result.add(new ItemMove(move.target(), move.slot(), amount, move.opensMaintainedSlot()));
+                    remaining -= amount;
+                    if (move.opensMaintainedSlot()) newSlotBudget--;
+                }
+            }
+            return result;
+        }
+
+        private List<ItemMove> limitedTargetMoves(ItemTargetPlan target,
+                DistributorItemInsertContext context) {
+            if (!context.maintained()) return target.moves();
+            if (context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS) {
+                int remaining = DistributorMaintenancePolicy.remainingItems(
+                        target.matchingItems(), context.maintainAmount());
+                if (remaining <= 0) return List.of();
+                List<ItemMove> result = new ArrayList<>();
+                appendMoves(result, target.moves(), remaining);
+                return result;
+            }
+            if (DistributorMaintenancePolicy.blocksSlotInsertion(target.matchingSlots(),
+                    context.maintainAmount(), context.fillMaintainedSlots())) {
+                return List.of();
+            }
+            int newSlots = DistributorMaintenancePolicy.remainingSlots(
+                    target.matchingSlots(), context.maintainAmount());
+            List<ItemMove> result = new ArrayList<>();
+            for (ItemMove move : target.moves()) {
+                if (move.opensMaintainedSlot() && newSlots <= 0) continue;
+                result.add(move);
+                if (move.opensMaintainedSlot()) newSlots--;
+            }
+            return result;
+        }
+
+        private int appendMoves(List<ItemMove> result, List<ItemMove> source, int maximum) {
+            int appended = 0;
+            for (ItemMove move : source) {
+                if (appended >= maximum) break;
+                int amount = Math.min(move.amount(), maximum - appended);
+                if (amount <= 0) continue;
+                result.add(new ItemMove(move.target(), move.slot(), amount, move.opensMaintainedSlot()));
+                appended += amount;
+            }
+            return appended;
+        }
+
+        private ItemInsertPlan rememberItemInsertPlan(ItemStack stack, List<ItemMove> moves) {
+            int accepted = (int)Math.min(stack.getCount(), moves.stream().mapToLong(ItemMove::amount).sum());
+            if (!moves.isEmpty()) itemInsertCursors[side.ordinal()] = moves.get(moves.size() - 1).target() + 1;
             itemInsertPlan = new ItemInsertPlan(gameTime(), stack.copy(), List.copyOf(moves), accepted);
             return itemInsertPlan;
         }
