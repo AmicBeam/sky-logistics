@@ -20,4 +20,4 @@ In the node screen, each face can be disconnected, extract, or insert. Only conn
 
 Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. Redstone cycles between ignore signals, work with a signal, work without a signal, and pulse. Pulse wakes on a rising edge and sleeps again after one successful transfer. A blocked face is paused and is not treated as a failing endpoint.
 
-The More page configures redstone, priority, item maintenance, and filters. Filters define the matching set first; the slot or item target counts that set together, not once per matching item type. A value of 0 means unlimited. Red text at the bottom explains invalid combinations, such as external item extraction without a concrete item whitelist.
+The More page configures redstone, priority, item slots, and filters. A slot value of 0 means unlimited. Red text at the bottom explains invalid combinations, such as external item extraction without a concrete item whitelist.
