@@ -692,7 +692,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             IItemHandler handler = handler(mapped);
             if (handler == null || !takeOperation()) return ItemStack.EMPTY;
             ItemStack stack = handler.getStackInSlot(mapped.localSlot());
-            recordExtractionProbe(slot, stack);
+            recordExtractionProbe(slot, stack, true);
             return stack;
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
@@ -732,7 +732,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 itemExtractPlan = plan;
             }
             ItemStack extracted = handler.extractItem(plan.physicalSlot, amount, simulate);
-            recordExtractionProbe(slot, extracted);
+            recordExtractionProbe(slot, extracted, simulate);
             if (!simulate) {
                 itemExtractPlan = null;
             }
@@ -757,10 +757,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return handler;
         }
 
-        private void recordExtractionProbe(int slot, ItemStack stack) {
+        private void recordExtractionProbe(int slot, ItemStack stack, boolean simulated) {
             if (!SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes()) return;
             configureExtractionProbes();
-            extractionProbes.recordProbe(targets(side).itemSlots, slot, gameTime(), !stack.isEmpty());
+            DistributedSlotMap<Target> current = targets(side).itemSlots;
+            if (simulated) {
+                extractionProbes.recordSimulatedProbe(current, slot, gameTime(), !stack.isEmpty());
+            } else {
+                extractionProbes.recordProbe(current, slot, gameTime(), !stack.isEmpty());
+            }
         }
 
         private void configureExtractionProbes() {

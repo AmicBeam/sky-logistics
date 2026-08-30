@@ -39,6 +39,16 @@ public final class DistributedTargetProbeScheduler<T> {
         return -1;
     }
 
+    /**
+     * Records a non-definitive inventory observation or simulated extraction. A simulated item is
+     * only a candidate: some handlers expose input contents during simulation but reject the real
+     * extraction. Empty simulations are definitive enough to advance the local-slot search.
+     */
+    public void recordSimulatedProbe(DistributedSlotMap<T> current, int virtualSlot, long gameTime,
+            boolean available) {
+        if (!available) recordProbe(current, virtualSlot, gameTime, false);
+    }
+
     public void recordProbe(DistributedSlotMap<T> current, int virtualSlot, long gameTime, boolean available) {
         refreshMap(current, gameTime);
         int target = current.targetIndex(virtualSlot);

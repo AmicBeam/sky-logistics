@@ -1473,7 +1473,9 @@ public final class SkyNetworkTicker {
                 ItemSlotTransfer transfer = transferItemSlot(sourceEndpoint, source, slot, targetEndpoint, target,
                         targetSlot.slot(), movable, forceExtractionSupported);
                 if (!transfer.extracted()) {
-                    sourceEndpoint.recordItemFailure(gameTime);
+                    if (DistributorWorkDefer.shouldBackoffItemExtractionFailure(source)) {
+                        sourceEndpoint.recordItemFailure(gameTime);
+                    }
                     return new MoveResult(false, operations);
                 }
                 int inserted = transfer.inserted();

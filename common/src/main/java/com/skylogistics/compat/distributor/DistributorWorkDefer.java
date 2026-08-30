@@ -18,4 +18,10 @@ public final class DistributorWorkDefer {
     public static boolean indexUnavailable(boolean scanPending, int cachedEntries) {
         return scanPending && cachedEntries <= 0;
     }
+
+    /** Independent distributor probes already advance away from a failed virtual source slot. */
+    public static boolean shouldBackoffItemExtractionFailure(Object handler) {
+        return !(handler instanceof BudgetedDistributorHandler distributor)
+                || !distributor.usesIndependentExtractionProbes();
+    }
 }

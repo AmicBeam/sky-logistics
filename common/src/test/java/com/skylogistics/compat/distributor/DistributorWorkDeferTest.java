@@ -23,10 +23,23 @@ class DistributorWorkDeferTest {
         assertFalse(DistributorWorkDefer.indexUnavailable(false, 0));
     }
 
+    @Test void independentItemProbeMissDoesNotBackoffTheWholeEndpoint() {
+        assertFalse(DistributorWorkDefer.shouldBackoffItemExtractionFailure(independentProbeHandler()));
+        assertTrue(DistributorWorkDefer.shouldBackoffItemExtractionFailure(handler(false, false)));
+        assertTrue(DistributorWorkDefer.shouldBackoffItemExtractionFailure(new Object()));
+    }
+
     private static BudgetedDistributorHandler handler(boolean indexing, boolean exhausted) {
         return new BudgetedDistributorHandler() {
             @Override public boolean distributorBudgetExhausted() { return exhausted; }
             @Override public boolean distributorScanPending() { return indexing; }
+        };
+    }
+
+    private static BudgetedDistributorHandler independentProbeHandler() {
+        return new BudgetedDistributorHandler() {
+            @Override public boolean distributorBudgetExhausted() { return false; }
+            @Override public boolean usesIndependentExtractionProbes() { return true; }
         };
     }
 }
