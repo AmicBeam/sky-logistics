@@ -12,6 +12,11 @@ public final class HierarchicalTargetRouteCache<K> {
     private final AdaptiveProbeBackoff backoff = new AdaptiveProbeBackoff();
     private final LinkedHashMap<K, RouteState> routes = new LinkedHashMap<>(16, 0.75F, true);
     private int maxRoutes = 64;
+    private int maximumInterval;
+
+    public void setMaximumInterval(int ticks) {
+        maximumInterval = Math.max(0, ticks);
+    }
 
     public void configure(int configuredMaxRoutes, int hotTicks, int warmTicks, int coolTicks,
             int fallbackTicks, int configuredMissesPerDemotion) {
@@ -99,7 +104,9 @@ public final class HierarchicalTargetRouteCache<K> {
             route.tiers[target] = backoff.demote(route.tiers[target]);
             route.tierMisses[target] = 0;
         }
-        route.retryAfter[target] = gameTime + backoff.interval(route.tiers[target]);
+        int interval = backoff.interval(route.tiers[target]);
+        route.retryAfter[target] = gameTime
+                + (maximumInterval > 0 ? Math.min(interval, maximumInterval) : interval);
         route.discoveryCursor = (target + 1) % targetCount;
     }
 

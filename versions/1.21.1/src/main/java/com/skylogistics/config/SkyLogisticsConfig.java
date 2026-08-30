@@ -880,18 +880,18 @@ public final class SkyLogisticsConfig {
                             "连续第四次及后续传输尝试失败后的等待 tick 数。")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
             enableMaintainedItemHotSlotPolling = builder
-                    .comment("Whether item faces with a non-zero maintain limit probe their last successful transfer slot between full retry scans.",
-                            "物品面维持值非 0 时，是否在完整退避扫描之间探测上次成功传输的槽位。")
+                    .comment("Whether maintained item paths cap every related retry to the configured maintained backoff interval. The legacy key name is retained for compatibility.",
+                            "物品路径经过非零维持值时，是否把相关退避限制到配置的维持退避时长；字段名为兼容旧配置保留。")
                     .define("enableMaintainedItemHotSlotPolling", true);
-            enableMaintainedFluidPolling = builder.comment("Enable maintained fluid source recovery polling.", "启用流体维持缺口的来源恢复探测。").define("enableMaintainedFluidPolling", true);
-            enableMaintainedChemicalPolling = builder.comment("Enable maintained chemical source recovery polling.", "启用化学品维持缺口的来源恢复探测。").define("enableMaintainedChemicalPolling", true);
-            enableMaintainedEnergyPolling = builder.comment("Enable maintained FE source recovery polling.", "启用 FE 维持缺口的来源恢复探测。").define("enableMaintainedEnergyPolling", true);
-            enableMaintainedManaPolling = builder.comment("Enable maintained Mana source recovery polling.", "启用 Mana 维持缺口的来源恢复探测。").define("enableMaintainedManaPolling", true);
-            enableMaintainedSourcePolling = builder.comment("Enable maintained Source recovery polling.", "启用魔源维持缺口的来源恢复探测。").define("enableMaintainedSourcePolling", true);
-            enableMaintainedSoulPolling = builder.comment("Enable maintained Souls source recovery polling.", "启用 Souls 维持缺口的来源恢复探测。").define("enableMaintainedSoulPolling", true);
+            enableMaintainedFluidPolling = builder.comment("Enable the maintained fluid retry cap.", "启用流体维持路径退避上限。").define("enableMaintainedFluidPolling", true);
+            enableMaintainedChemicalPolling = builder.comment("Enable the maintained chemical retry cap.", "启用化学品维持路径退避上限。").define("enableMaintainedChemicalPolling", true);
+            enableMaintainedEnergyPolling = builder.comment("Enable the maintained FE retry cap.", "启用 FE 维持路径退避上限。").define("enableMaintainedEnergyPolling", true);
+            enableMaintainedManaPolling = builder.comment("Enable the maintained Mana retry cap.", "启用 Mana 维持路径退避上限。").define("enableMaintainedManaPolling", true);
+            enableMaintainedSourcePolling = builder.comment("Enable the maintained Source retry cap.", "启用魔源维持路径退避上限。").define("enableMaintainedSourcePolling", true);
+            enableMaintainedSoulPolling = builder.comment("Enable the maintained Souls retry cap.", "启用 Souls 维持路径退避上限。").define("enableMaintainedSoulPolling", true);
             maintainedItemHotSlotPollTicks = builder
-                    .comment("Ticks between low-cost maintained resource probes. The legacy key name is retained for compatibility.",
-                            "全资源维持缺口低成本探测的间隔 tick；字段名为兼容旧配置保留。")
+                    .comment("Maximum retry interval for maintained resource paths. Every related backoff uses min(original, this value). The legacy key name is retained for compatibility.",
+                            "全资源维持路径的最大退避 tick；所有相关退避使用 min(原值, 本值)，字段名为兼容旧配置保留。")
                     .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();

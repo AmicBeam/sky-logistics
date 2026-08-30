@@ -707,7 +707,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
         }
 
-        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); insertionRoutes.setMaximumInterval(pollTicks); }
 
         @Override public boolean usesIndependentExtractionProbes() {
             return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
@@ -1153,7 +1153,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
-        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); insertionRoutes.setMaximumInterval(pollTicks); }
 
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;

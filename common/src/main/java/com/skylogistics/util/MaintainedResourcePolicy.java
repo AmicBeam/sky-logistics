@@ -13,12 +13,9 @@ public final class MaintainedResourcePolicy {
         return Math.max(0L, target - Math.max(0L, stored));
     }
 
-    public static boolean wantsMore(boolean byAmount, long stored, int occupiedUnits, long target,
-            boolean fillMaintainedUnits, boolean hasCapacity, boolean hasExistingUnitRefillCapacity) {
-        if (!configured(target)) return false;
-        if (byAmount) return stored < target && hasCapacity;
-        return occupiedUnits < target && hasCapacity
-                || fillMaintainedUnits && occupiedUnits == target && hasExistingUnitRefillCapacity;
+    public static boolean pathUsesMaintainedBackoff(boolean enabled, long sourceMaintain,
+            boolean anyTargetMaintained) {
+        return enabled && (sourceMaintain > 0L || anyTargetMaintained);
     }
 
     public static long insertionAllowance(boolean byAmount, long requested, long stored, int occupiedUnits,

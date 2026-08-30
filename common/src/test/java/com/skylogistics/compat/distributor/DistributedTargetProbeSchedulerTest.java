@@ -20,24 +20,13 @@ class DistributedTargetProbeSchedulerTest {
         assertEquals(0, scheduler.nextDueSlot(slots, 5));
     }
 
-    @Test void maintainedDemandCapsInitialStaggerAndKeepsSuccessfulLocalSlotHot() {
+    @Test void maintainedBackoffCapsInitialStagger() {
         DistributedSlotMap<String> staggered = slots(Map.of("a", 1, "b", 1, "c", 1, "d", 1));
         DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
         scheduler.configure(1, 5, 20, 40, 1);
         scheduler.dueProbeCount(staggered, 0);
         scheduler.setMaximumInterval(5, 0);
         assertEquals(4, scheduler.dueProbeCount(staggered, 4));
-
-        DistributedSlotMap<String> localSlots = slots(Map.of("machine", 3));
-        scheduler = new DistributedTargetProbeScheduler<>();
-        scheduler.configure(1, 5, 20, 40, 1);
-        scheduler.recordProbe(localSlots, 2, 0, true);
-        scheduler.setMaximumInterval(5, 0);
-        assertEquals(2, scheduler.nextDueSlot(localSlots, 5));
-        scheduler.recordProbe(localSlots, 2, 5, false);
-        assertEquals(2, scheduler.nextDueSlot(localSlots, 5));
-        scheduler.recordProbe(localSlots, 2, 5, false);
-        assertEquals(2, scheduler.nextDueSlot(localSlots, 10));
     }
 
     @Test void coldTargetsAreStaggeredAcrossTheFallbackWindowWithoutTierLimits() {

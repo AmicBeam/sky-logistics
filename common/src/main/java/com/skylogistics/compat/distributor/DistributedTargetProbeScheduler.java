@@ -13,8 +13,6 @@ public final class DistributedTargetProbeScheduler<T> {
     private int[] tierMisses = new int[0];
     private int[] cycleChecks = new int[0];
     private int[] nextLocalSlots = new int[0];
-    private int[] successfulLocalSlots = new int[0];
-    private long[] lastMaintenanceProbeTicks = new long[0];
     private int targetCursor;
     private int maximumInterval;
     private long maximumIntervalStartedAt = Long.MIN_VALUE;
@@ -42,7 +40,6 @@ public final class DistributedTargetProbeScheduler<T> {
         refreshMap(current, gameTime);
         int due = 0;
         for (int target = 0; target < current.targetCount(); target++) {
-            if (isMaintenanceDue(target, gameTime)) due++;
             if (isAdaptiveDue(target, gameTime)) due++;
         }
         return due;
@@ -51,12 +48,6 @@ public final class DistributedTargetProbeScheduler<T> {
     public int nextDueSlot(DistributedSlotMap<T> current, long gameTime) {
         refreshMap(current, gameTime);
         int targets = current.targetCount();
-        for (int offset = 0; offset < targets; offset++) {
-            int target = Math.floorMod(targetCursor + offset, targets);
-            if (isMaintenanceDue(target, gameTime)) {
-                return current.firstSlot(target) + successfulLocalSlots[target];
-            }
-        }
         for (int offset = 0; offset < targets; offset++) {
             int target = Math.floorMod(targetCursor + offset, targets);
             if (isAdaptiveDue(target, gameTime)) return current.firstSlot(target) + nextLocalSlots[target];
@@ -91,19 +82,13 @@ public final class DistributedTargetProbeScheduler<T> {
         if (target < 0) return;
         int localSlot = virtualSlot - current.firstSlot(target);
         targetCursor = (target + 1) % current.targetCount();
-        if (isMaintenanceDue(target, gameTime) && successfulLocalSlots[target] == localSlot) {
-            lastMaintenanceProbeTicks[target] = gameTime;
-            if (!available) return;
-        }
         if (available) {
             lastAvailableProbeTicks[target] = gameTime;
-            lastMaintenanceProbeTicks[target] = gameTime;
             lastProbeTicks[target] = gameTime;
             tiers[target] = AdaptiveProbeBackoff.HOT;
             tierMisses[target] = 0;
             cycleChecks[target] = 0;
             nextLocalSlots[target] = localSlot;
-            successfulLocalSlots[target] = localSlot;
         } else if (lastAvailableProbeTicks[target] != gameTime) {
             nextLocalSlots[target] = (localSlot + 1) % current.slotCount(target);
             if (++cycleChecks[target] >= current.slotCount(target)) {
@@ -135,8 +120,6 @@ public final class DistributedTargetProbeScheduler<T> {
         int[] oldMisses = tierMisses;
         int[] oldCycleChecks = cycleChecks;
         int[] oldLocalSlots = nextLocalSlots;
-        int[] oldSuccessfulSlots = successfulLocalSlots;
-        long[] oldMaintenanceTicks = lastMaintenanceProbeTicks;
         int oldCursor = targetCursor;
         slotMap = current;
         int targets = current.targetCount();
@@ -150,10 +133,6 @@ public final class DistributedTargetProbeScheduler<T> {
         tierMisses = new int[targets];
         cycleChecks = new int[targets];
         nextLocalSlots = new int[targets];
-        successfulLocalSlots = new int[targets];
-        Arrays.fill(successfulLocalSlots, -1);
-        lastMaintenanceProbeTicks = new long[targets];
-        Arrays.fill(lastMaintenanceProbeTicks, Long.MIN_VALUE);
         targetCursor = 0;
         for (int target = 0; target < targets; target++) {
             int oldTarget = oldIndexForNew != null && target < oldIndexForNew.length
@@ -166,9 +145,6 @@ public final class DistributedTargetProbeScheduler<T> {
                 tierMisses[target] = oldMisses[oldTarget];
                 cycleChecks[target] = Math.min(oldCycleChecks[oldTarget], current.slotCount(target) - 1);
                 nextLocalSlots[target] = Math.floorMod(oldLocalSlots[oldTarget], current.slotCount(target));
-                successfulLocalSlots[target] = oldSuccessfulSlots[oldTarget] < 0 ? -1
-                        : Math.floorMod(oldSuccessfulSlots[oldTarget], current.slotCount(target));
-                lastMaintenanceProbeTicks[target] = oldMaintenanceTicks[oldTarget];
                 if (oldTarget == oldCursor) targetCursor = target;
             } else {
                 initialProbeTicks[target] = gameTime
@@ -182,11 +158,6 @@ public final class DistributedTargetProbeScheduler<T> {
             if (java.util.Objects.equals(map.target(index), target)) return index;
         }
         return -1;
-    }
-
-    private boolean isMaintenanceDue(int target, long gameTime) {
-        return maximumInterval > 0 && successfulLocalSlots[target] >= 0
-                && gameTime - lastMaintenanceProbeTicks[target] >= maximumInterval;
     }
 
     private boolean isAdaptiveDue(int target, long gameTime) {
@@ -223,10 +194,6 @@ public final class DistributedTargetProbeScheduler<T> {
         tierMisses = new int[targets];
         cycleChecks = new int[targets];
         nextLocalSlots = new int[targets];
-        successfulLocalSlots = new int[targets];
-        Arrays.fill(successfulLocalSlots, -1);
-        lastMaintenanceProbeTicks = new long[targets];
-        Arrays.fill(lastMaintenanceProbeTicks, Long.MIN_VALUE);
         for (int target = 0; target < targets; target++) {
             initialProbeTicks[target] = gameTime
                     + (long)target * backoff.interval(AdaptiveProbeBackoff.FALLBACK) / Math.max(1, targets);

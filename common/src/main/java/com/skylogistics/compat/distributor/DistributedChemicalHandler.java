@@ -42,6 +42,7 @@ public final class DistributedChemicalHandler implements ChemicalHandlerBridge, 
 
     @Override public void setMaintainedExtractionPollTicks(int pollTicks) {
         extractionProbes.setMaximumInterval(pollTicks, lookup.gameTime());
+        insertionRoutes.setMaximumInterval(pollTicks);
     }
 
     @Override
