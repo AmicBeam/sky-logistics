@@ -73,17 +73,22 @@ class DistributedTargetProbeSchedulerTest {
         assertEquals(2, scheduler.nextDueSlot(slots, 1));
     }
 
-    @Test void simulatedAvailabilityDoesNotHideSameTickExecutionFailure() {
+    @Test void simulatedCandidateRejectedByTheTargetDoesNotPinTheSourceSlot() {
         DistributedSlotMap<String> slots = slots(Map.of("machine", 4));
         DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
 
         assertEquals(0, scheduler.nextDueSlot(slots, 0));
         scheduler.recordSimulatedProbe(slots, 0, 0, true);
+        assertEquals(1, scheduler.nextDueSlot(slots, 0));
         scheduler.recordProbe(slots, 0, 0, false);
         assertEquals(1, scheduler.nextDueSlot(slots, 0));
 
         scheduler.recordSimulatedProbe(slots, 1, 0, false);
         assertEquals(2, scheduler.nextDueSlot(slots, 0));
+
+        scheduler.recordSimulatedProbe(slots, 2, 0, true);
+        scheduler.recordProbe(slots, 2, 0, true);
+        assertEquals(2, scheduler.nextDueSlot(slots, 1));
     }
 
     @Test void policyIntervalsAreNormalizedAndCanChangeAtRuntime() {
