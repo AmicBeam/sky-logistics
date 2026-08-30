@@ -1,7 +1,4 @@
 {
-  "neoforge:conditions": [
-    {"type": "skylogistics:sky_wrench_available"}
-  ],
   "type": "minecraft:crafting_shaped",
   "pattern": ["L L", " G ", " G "],
   "key": {
