@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Rates only limit how much one successful operation may commit. They do not change node operations per tick, Speed Upgrades, server or line operation budgets, or necklace intervals. A simple pipe's own configured limit still caps the result."
+      "text": "Rates only limit how much one successful operation may commit. They do not change node operations per tick, Slot Parallel Upgrades, server or line operation budgets, or necklace intervals. A simple pipe's own configured limit still caps the result."
     },
     {
       "type": "patchouli:text",

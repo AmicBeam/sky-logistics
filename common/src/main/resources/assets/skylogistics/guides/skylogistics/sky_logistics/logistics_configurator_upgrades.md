@@ -19,7 +19,7 @@ Sneak-right-click a node with the configurator to copy that node and enter paste
 
 Speed upgrades stack in one node upgrade slot. Each card adds one slot check per tick. By default, up to 8 cards raise the base rate from 1 to 9 slots/t; the server can configure this limit. They do not increase line capacity.
 
-<RecipeFor id="speed_upgrade" fallbackText="The speed upgrade recipe is unavailable." />
+<RecipeFor id="speed_upgrade" fallbackText="The slot parallel upgrade recipe is unavailable." />
 
 Per Slot Ordered Matching works on item extract or insert nodes, while Per Item affects extract nodes only; on an insert node Per Item falls back to normal insertion. Right-click air while holding one to switch between Per Slot and Per Item; Per Slot is the default and the tooltip shows the saved mode. Switching to Per Item clears the order offset, so switching back to Per Slot starts at 0. Extraction still selects the lowest extractable source slot allowed by the filter.
 

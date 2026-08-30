@@ -705,8 +705,8 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             builder.pop();
             maxSpeedUpgradesPerNode = builder
-                    .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
-                            "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
+                    .comment("Maximum Slot Parallel Upgrades that stack in one node upgrade slot. Each upgrade adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
+                            "单个节点升级槽内可堆叠的槽位并行升级上限；基础速率为每 tick 1 槽，每个升级额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
                     .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
