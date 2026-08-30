@@ -35,6 +35,9 @@ public final class AdvancementTransferLimiter {
             }
             rulesGameTime = gameTime;
         }
+        if (!cachedRules.hasUnlocks()) {
+            return amount;
+        }
         if (ownerId == null || server == null) {
             return initialLimit(resource, amount);
         }

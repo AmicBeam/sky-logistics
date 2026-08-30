@@ -30,6 +30,9 @@ public final class AStagesTransferLimiter {
             }
             rulesGameTime = gameTime;
         }
+        if (!cachedRules.hasUnlocks()) {
+            return amount;
+        }
         Api resolvedApi = api();
         if (ownerId == null || resolvedApi == null) {
             return Math.min(amount, cachedRules.initial().get(resource));

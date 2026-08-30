@@ -76,6 +76,8 @@ source = 100000
 
 所有数值都必须至少为 `1`。stage 配置低于初始值时不会降低初始上限，因为解锁过程始终取最高值。
 
+若 `stageRates` 为空，表示没有实装任何 stage 解锁条目；此时即使 `enabled = true` 且配置了 `initialRates`，进度限速也不生效。
+
 ## 安装与故障安全
 
 - 需要 AStages 2.x；1.20.1 Forge 和 1.21.1 NeoForge 的模组元数据将它声明为可选依赖。

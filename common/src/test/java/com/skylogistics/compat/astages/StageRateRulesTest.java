@@ -1,6 +1,8 @@
 package com.skylogistics.compat.astages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -8,6 +10,15 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class StageRateRulesTest {
+    @Test
+    void requiresAtLeastOneUnlockForProgressionLimiting() {
+        TransferRates initial = new TransferRates(64, 10_000, 10_000, 100_000, 100_000, 100_000);
+
+        assertFalse(new StageRateRules(initial, Map.of()).hasUnlocks());
+        assertTrue(new StageRateRules(initial,
+                Map.of("first", stageRates(Map.of(TransferResource.ITEMS, 128L)))).hasUnlocks());
+    }
+
     @Test
     void independentlyUnlocksEachResourceAndTakesHighestOwnedStage() {
         TransferRates initial = new TransferRates(64, 10_000, 10_000, 8_000, 100_000, 100_000, 100_000);
