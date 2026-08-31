@@ -20,6 +20,12 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
         if (!gui.canAcceptGhostFilters()) {
             return List.of();
         }
+        if (MekanismCompat.isLoaded()) {
+            List<Target<I>> chemicalTargets = MekanismJeiGhostIngredientSupport.getTargetsTyped(gui, ingredient);
+            if (!chemicalTargets.isEmpty()) {
+                return chemicalTargets;
+            }
+        }
         Optional<ItemStack> item = ingredient.getItemStack();
         if (item.isPresent() && !item.get().isEmpty()) {
             return itemTargets(gui);
@@ -27,9 +33,6 @@ public class SkyFilterGhostIngredientHandler implements IGhostIngredientHandler<
         Optional<FluidStack> fluid = ingredient.getIngredient(NeoForgeTypes.FLUID_STACK);
         if (fluid.isPresent() && !fluid.get().isEmpty()) {
             return fluidTargets(gui);
-        }
-        if (MekanismCompat.isLoaded()) {
-            return MekanismJeiGhostIngredientSupport.getTargetsTyped(gui, ingredient);
         }
         return List.of();
     }
