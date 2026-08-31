@@ -255,7 +255,7 @@ public class FilterListItem extends Item {
         }
         ItemStack fluid = fluidDisplayStack(getFluidFilter(stack, slot, registries));
         if (!fluid.isEmpty()) return fluid;
-        return getChemicalFilter(stack, slot).isEmpty() ? ItemStack.EMPTY : Items.GLASS_BOTTLE.getDefaultInstance();
+        return ItemStack.EMPTY;
     }
 
     public static void clearFilters(ItemStack stack) {
