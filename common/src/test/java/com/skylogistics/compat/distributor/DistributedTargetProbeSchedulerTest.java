@@ -10,6 +10,25 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class DistributedTargetProbeSchedulerTest {
+    @Test void maintainedDemandCapsFallbackMachineInterval() {
+        DistributedSlotMap<String> slots = slots(Map.of("machine", 1));
+        DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
+        scheduler.configure(1, 5, 20, 40, 1);
+        scheduler.recordProbe(slots, 0, 0, false);
+        scheduler.setMaximumInterval(5);
+        assertEquals(-1, scheduler.nextDueSlot(slots, 4));
+        assertEquals(0, scheduler.nextDueSlot(slots, 5));
+    }
+
+    @Test void maintainedBackoffCapsInitialStagger() {
+        DistributedSlotMap<String> staggered = slots(Map.of("a", 1, "b", 1, "c", 1, "d", 1));
+        DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
+        scheduler.configure(1, 5, 20, 40, 1);
+        scheduler.dueProbeCount(staggered, 0);
+        scheduler.setMaximumInterval(5, 0);
+        assertEquals(4, scheduler.dueProbeCount(staggered, 4));
+    }
+
     @Test void coldTargetsAreStaggeredAcrossTheFallbackWindowWithoutTierLimits() {
         DistributedSlotMap<String> slots = slots(Map.of("a", 1, "b", 1, "c", 1, "d", 1));
         DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
@@ -70,6 +89,24 @@ class DistributedTargetProbeSchedulerTest {
         assertEquals(2, scheduler.nextDueSlot(slots, 0));
         scheduler.recordProbe(slots, 2, 0, true);
         scheduler.recordProbe(slots, 2, 0, false);
+        assertEquals(2, scheduler.nextDueSlot(slots, 1));
+    }
+
+    @Test void simulatedCandidateRejectedByTheTargetDoesNotPinTheSourceSlot() {
+        DistributedSlotMap<String> slots = slots(Map.of("machine", 4));
+        DistributedTargetProbeScheduler<String> scheduler = new DistributedTargetProbeScheduler<>();
+
+        assertEquals(0, scheduler.nextDueSlot(slots, 0));
+        scheduler.recordSimulatedProbe(slots, 0, 0, true);
+        assertEquals(1, scheduler.nextDueSlot(slots, 0));
+        scheduler.recordProbe(slots, 0, 0, false);
+        assertEquals(1, scheduler.nextDueSlot(slots, 0));
+
+        scheduler.recordSimulatedProbe(slots, 1, 0, false);
+        assertEquals(2, scheduler.nextDueSlot(slots, 0));
+
+        scheduler.recordSimulatedProbe(slots, 2, 0, true);
+        scheduler.recordProbe(slots, 2, 0, true);
         assertEquals(2, scheduler.nextDueSlot(slots, 1));
     }
 

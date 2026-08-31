@@ -8,6 +8,10 @@ public record StageRateRules(TransferRates initial, Map<String, StageTransferRat
         stages = Map.copyOf(stages);
     }
 
+    public boolean hasUnlocks() {
+        return !stages.isEmpty();
+    }
+
     public TransferRates ratesFor(Set<String> ownedStages) {
         TransferRates result = initial;
         for (String stage : ownedStages) {

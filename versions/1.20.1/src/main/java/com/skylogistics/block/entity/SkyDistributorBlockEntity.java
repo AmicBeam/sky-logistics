@@ -1,5 +1,6 @@
 package com.skylogistics.block.entity;
 
+import com.skylogistics.block.SkyDistributorBlock;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
@@ -9,26 +10,42 @@ import com.skylogistics.compat.distributor.AdaptiveRoutingConfig;
 import com.skylogistics.compat.distributor.AdaptiveTargetProbeScheduler;
 import com.skylogistics.compat.distributor.DistributedHandlerLookup;
 import com.skylogistics.compat.distributor.DistributorInsertMode;
+import com.skylogistics.compat.distributor.DistributorIndexPolicy;
 import com.skylogistics.compat.distributor.DistributedManaHandler;
 import com.skylogistics.compat.distributor.DistributedSourceHandler;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
+import com.skylogistics.compat.distributor.DistributorEnergyMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorResourceMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorItemInsertContext;
+import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorRescanPolicy;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
 import com.skylogistics.compat.distributor.HierarchicalTargetRouteCache;
+import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.storage.FluidStackKey;
+import com.skylogistics.util.DistributorPushDirection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -51,6 +68,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final DistributedManaHandler[] mana = new DistributedManaHandler[DIRECTIONS.length];
     private final DistributedSourceHandler[] source = new DistributedSourceHandler[DIRECTIONS.length];
     private final TargetCache[] targetCaches = new TargetCache[DIRECTIONS.length];
+    private final boolean[] completeTargetIndexes = new boolean[DIRECTIONS.length];
     private final DiscoveryState[] targetDiscoveries = new DiscoveryState[DIRECTIONS.length];
     private final boolean[] activeTargetSides = new boolean[DIRECTIONS.length];
     private List<TargetSnapshot> highlightSnapshot = List.of();
@@ -66,6 +84,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private int energySnapshotScanned;
     private long energyStoredAccumulator;
     private long energyCapacityAccumulator;
+    private int energyOccupiedAccumulator;
+    private long energyExistingRefillAccumulator;
     private boolean energyCanExtractAccumulator;
     private boolean energyCanReceiveAccumulator;
     private final int[] fluidExtractCursors = new int[MAX_CONFIGURABLE_TARGETS];
@@ -92,6 +112,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private EnergyPlan energyExtractPlan;
     private long energySnapshotTick = Long.MIN_VALUE;
     private int energyStoredSnapshot;
+    private int energyOccupiedSnapshot;
+    private long energyExistingRefillSnapshot;
     private int energyCapacitySnapshot;
     private boolean energyCanExtractSnapshot;
     private boolean energyCanReceiveSnapshot;
@@ -111,10 +133,34 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
     }
 
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        invalidateTargets();
+        for (Direction direction : DIRECTIONS) {
+            BlockPos neighbor = worldPosition.relative(direction);
+            if (serverLevel.getBlockEntity(neighbor) instanceof NetworkEndpointBlockEntity) {
+                activeTargetSides[direction.ordinal()] = true;
+                SkyNetworkRegistry.register(serverLevel, neighbor);
+            }
+        }
+    }
+
     public void invalidateTargets() {
         Arrays.fill(targetsDirty, true);
         Arrays.fill(targetDiscoveries, null);
         clearTransientCaches();
+    }
+
+    public void abandonTargets() {
+        Arrays.fill(targetCaches, TargetCache.EMPTY);
+        Arrays.fill(completeTargetIndexes, false);
+        highlightSnapshot = List.of();
+        invalidateTargets();
+        for (Direction direction : DIRECTIONS) {
+            if (activeTargetSides[direction.ordinal()]) wakeAdjacentEndpoint(direction);
+        }
     }
 
     public void refreshTargets() {
@@ -145,9 +191,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             chemicals[index].remapAdaptiveState(targetRemap(previous.chemicals, cache.chemicals));
         }
         targetCaches[index] = cache;
+        completeTargetIndexes[index] = true;
         targetsDirty[index] = false;
         nextRescan[index] = level.getGameTime() + RESCAN_INTERVAL;
         highlightSnapshot = createTargetSnapshot(cache);
+        wakeAdjacentEndpoint(side);
         if (resetScan) {
             clearSelectedSideCaches();
         }
@@ -164,13 +212,31 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         return targetCaches[index];
     }
 
+    private boolean targetIndexUnavailable(Direction side) {
+        int index = side.ordinal();
+        return DistributorIndexPolicy.transferBlocked(completeTargetIndexes[index], targetsDirty[index],
+                targetDiscoveries[index] != null);
+    }
+
+    private void wakeAdjacentEndpoint(Direction side) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        BlockPos neighbor = worldPosition.relative(side);
+        if (serverLevel.getBlockEntity(neighbor) instanceof NetworkEndpointBlockEntity) {
+            SkyNetworkRegistry.markRuntimeDirty(serverLevel, neighbor);
+        }
+    }
+
     private TargetCache discoverTargets(Direction inheritedSide) {
         int maxTargets = SkyLogisticsConfig.distributorMaxTargets();
         int index = inheritedSide.ordinal();
+        DistributorPushDirection pushDirection = pushDirection();
         DiscoveryState scan = targetDiscoveries[index];
-        if (scan == null || scan.maxTargets != maxTargets) {
-            scan = new DiscoveryState(maxTargets);
-            for (Direction direction : Direction.values()) scan.queue.add(worldPosition.relative(direction));
+        if (scan == null || scan.maxTargets != maxTargets || scan.pushDirection != pushDirection) {
+            scan = new DiscoveryState(maxTargets, pushDirection);
+            scan.visited.add(worldPosition);
+            for (Direction direction : pushDirection.scanDirections()) {
+                scan.queue.add(worldPosition.relative(direction));
+            }
             targetDiscoveries[index] = scan;
         }
         while (!scan.queue.isEmpty() && scan.found < maxTargets) {
@@ -178,7 +244,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             BlockPos pos = scan.queue.removeFirst();
             if (!scan.visited.add(pos) || scan.discovered.contains(pos) || !level.hasChunkAt(pos)) continue;
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity == null || blockEntity instanceof SkyDistributorBlockEntity) continue;
+            if (blockEntity == null) continue;
+            if (blockEntity instanceof SkyDistributorBlockEntity) {
+                if (!scan.pushDirection.directional()) continue;
+                scan.discovered.add(pos);
+                scan.found++;
+                for (Direction direction : scan.pushDirection.scanDirections()) {
+                    scan.queue.addLast(pos.relative(direction));
+                }
+                continue;
+            }
             Target target = inspect(pos, inheritedSide);
             if (!target.usable()) continue;
             scan.discovered.add(pos);
@@ -189,7 +264,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             if (target.energy) scan.energyTargets.add(target);
             if (target.mana) scan.manaTargets.add(target);
             if (target.source) scan.sourceTargets.add(target);
-            for (Direction direction : Direction.values())
+            for (Direction direction : scan.pushDirection.scanDirections())
                 scan.queue.addLast(pos.relative(direction));
         }
         targetDiscoveries[index] = null;
@@ -198,6 +273,13 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 List.copyOf(scan.fluidTargets),
                 List.copyOf(scan.chemicalTargets), List.copyOf(scan.energyTargets),
                 List.copyOf(scan.manaTargets), List.copyOf(scan.sourceTargets), scan.found);
+    }
+
+    private DistributorPushDirection pushDirection() {
+        BlockState state = getBlockState();
+        return state.hasProperty(SkyDistributorBlock.PUSH_DIRECTION)
+                ? state.getValue(SkyDistributorBlock.PUSH_DIRECTION)
+                : DistributorPushDirection.ALL;
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
@@ -389,6 +471,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energySnapshotScanned = 0;
         energyStoredAccumulator = 0L;
         energyCapacityAccumulator = 0L;
+        energyOccupiedAccumulator = 0;
+        energyExistingRefillAccumulator = 0L;
         energyCanExtractAccumulator = false;
         energyCanReceiveAccumulator = false;
     }
@@ -438,10 +522,11 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private void continueDiscovery() {
+        long now = gameTime();
         for (int offset = 0; offset < DIRECTIONS.length; offset++) {
             int index = Math.floorMod(discoveryCursor + offset, DIRECTIONS.length);
-            if (!activeTargetSides[index]
-                    || (targetDiscoveries[index] == null && !targetsDirty[index])) continue;
+            if (!DistributorRescanPolicy.shouldScan(activeTargetSides[index], targetsDirty[index],
+                    targetDiscoveries[index] != null, now, nextRescan[index])) continue;
             discoveryCursor = (index + 1) % DIRECTIONS.length;
             refreshTargets(DIRECTIONS[index]);
             return;
@@ -462,6 +547,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         Arrays.fill(rejectedItemUntil, 0L);
         Arrays.fill(rejectedFluids, null);
         Arrays.fill(rejectedFluidUntil, 0L);
+        for (DistributedItems handler : items) if (handler != null) handler.constrainedItemScans.clear();
     }
 
     private static boolean sameItem(ItemStack first, ItemStack second) {
@@ -516,6 +602,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
     private static final class DiscoveryState {
         private final int maxTargets;
+        private final DistributorPushDirection pushDirection;
         private final List<Target> itemTargets;
         private final List<Target> fluidTargets;
         private final List<Target> chemicalTargets;
@@ -527,8 +614,9 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private final Set<BlockPos> discovered = new HashSet<>();
         private int found;
 
-        private DiscoveryState(int maxTargets) {
+        private DiscoveryState(int maxTargets, DistributorPushDirection pushDirection) {
             this.maxTargets = maxTargets;
+            this.pushDirection = pushDirection;
             itemTargets = new ArrayList<>(maxTargets);
             fluidTargets = new ArrayList<>(maxTargets);
             chemicalTargets = new ArrayList<>(maxTargets);
@@ -538,7 +626,45 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
     }
 
-    private record ItemMove(int target, int slot, int amount) {}
+    private record ItemMove(int target, int slot, int amount, boolean opensMaintainedSlot) {
+        private ItemMove(int target, int slot, int amount) {
+            this(target, slot, amount, false);
+        }
+    }
+
+    private record ItemTargetPlan(int target, List<ItemMove> moves, int matchingSlots, int matchingItems) {}
+    private static final class ConstrainedItemScan {
+        private final List<ItemTargetPlan> plans = new ArrayList<>();
+        private int nextTargetOffset;
+        private int currentTarget = -1;
+        private int currentSlots;
+        private int nextSlot;
+        private int fixedSlot;
+        private int matchingSlots;
+        private int matchingItems;
+        private final List<ItemMove> matchingMoves = new ArrayList<>();
+        private final List<ItemMove> otherMoves = new ArrayList<>();
+
+        private void beginTarget(int target, int slots, int fixedSlot) {
+            currentTarget = target;
+            currentSlots = slots;
+            nextSlot = 0;
+            this.fixedSlot = fixedSlot;
+            matchingSlots = 0;
+            matchingItems = 0;
+            matchingMoves.clear();
+            otherMoves.clear();
+        }
+
+        private void finishTarget() {
+            matchingMoves.addAll(otherMoves);
+            plans.add(new ItemTargetPlan(currentTarget, List.copyOf(matchingMoves), matchingSlots, matchingItems));
+            currentTarget = -1;
+            nextTargetOffset++;
+        }
+    }
+    private record ConstrainedItemScanKey(ItemStackKey item, int count,
+            DistributorItemInsertContext context, int targetCount, int start) {}
     private record ItemInsertPlan(long tick, ItemStack request, List<ItemMove> moves, int accepted) {}
     private record ItemExtractPlan(long tick, int virtualSlot, int amount, int physicalSlot) {}
     private record FluidMove(int target, int amount) {}
@@ -558,8 +684,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
         @Override public boolean scanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
         @Override public AdaptiveRoutingConfig adaptiveRoutingConfig() {
@@ -578,7 +703,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
-        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean scanPending() { return targetIndexUnavailable(side); }
+        @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
     private final class SourceLookup implements DistributedHandlerLookup<SourceHandlerBridge> {
@@ -592,16 +718,18 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
         @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
-        @Override public boolean scanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean scanPending() { return targetIndexUnavailable(side); }
+        @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
 
-    private final class DistributedItems implements IItemHandler, BudgetedDistributorHandler {
+    private final class DistributedItems implements IItemHandler, ConstrainedDistributorItemHandler {
         private final Direction side;
         private final DistributedTargetProbeScheduler<Target> extractionProbes =
                 new DistributedTargetProbeScheduler<>();
         private final HierarchicalTargetRouteCache<ItemStackKey> insertionRoutes =
                 new HierarchicalTargetRouteCache<>();
         private final int[] insertionRouteCandidates = new int[MAX_CONFIGURABLE_TARGETS];
+        private final Map<ConstrainedItemScanKey, ConstrainedItemScan> constrainedItemScans = new LinkedHashMap<>();
 
         private DistributedItems(Direction side) { this.side = side; }
 
@@ -611,8 +739,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
 
         @Override public boolean distributorScanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
 
         @Override public int nextFairExtractionSlot(long gameTime) {
@@ -627,6 +754,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return extractionProbes.dueProbeCount(targets(side).itemSlots, gameTime);
         }
 
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); insertionRoutes.setMaximumInterval(pollTicks); }
+
         @Override public boolean usesIndependentExtractionProbes() {
             return SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes();
         }
@@ -640,7 +769,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             IItemHandler handler = handler(mapped);
             if (handler == null || !takeOperation()) return ItemStack.EMPTY;
             ItemStack stack = handler.getStackInSlot(mapped.localSlot());
-            recordExtractionProbe(slot, stack);
+            recordExtractionProbe(slot, stack, true);
             return stack;
         }
         @Override public ItemStack insertItem(int ignored, ItemStack stack, boolean simulate) {
@@ -659,6 +788,16 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             itemInsertPlan = null;
             return remaining;
         }
+
+        @Override public int planItemInsertion(ItemStack stack, DistributorItemInsertContext context,
+                Predicate<ItemStack> maintainedMatcher) {
+            if (stack.isEmpty()) return 0;
+            ItemInsertPlan plan = buildConstrainedItemInsertPlan(stack,
+                    context == null ? DistributorItemInsertContext.unrestricted() : context,
+                    maintainedMatcher == null ? ignored -> true : maintainedMatcher);
+            itemInsertPlanAwaitingExecution = true;
+            return plan.accepted;
+        }
         @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
             DistributedSlotMap.Slot<Target> mapped = mappedSlot(slot);
             IItemHandler handler = handler(mapped);
@@ -670,7 +809,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 itemExtractPlan = plan;
             }
             ItemStack extracted = handler.extractItem(plan.physicalSlot, amount, simulate);
-            recordExtractionProbe(slot, extracted);
+            recordExtractionProbe(slot, extracted, simulate);
             if (!simulate) {
                 itemExtractPlan = null;
             }
@@ -695,10 +834,15 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return handler;
         }
 
-        private void recordExtractionProbe(int slot, ItemStack stack) {
+        private void recordExtractionProbe(int slot, ItemStack stack, boolean simulated) {
             if (!SkyLogisticsConfig.enableDistributorAdaptiveItemTargetProbes()) return;
             configureExtractionProbes();
-            extractionProbes.recordProbe(targets(side).itemSlots, slot, gameTime(), !stack.isEmpty());
+            DistributedSlotMap<Target> current = targets(side).itemSlots;
+            if (simulated) {
+                extractionProbes.recordSimulatedProbe(current, slot, gameTime(), !stack.isEmpty());
+            } else {
+                extractionProbes.recordProbe(current, slot, gameTime(), !stack.isEmpty());
+            }
         }
 
         private void configureExtractionProbes() {
@@ -809,6 +953,173 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             return itemInsertPlan;
         }
 
+        private ItemInsertPlan buildConstrainedItemInsertPlan(ItemStack stack,
+                DistributorItemInsertContext context, Predicate<ItemStack> maintainedMatcher) {
+            if (!context.maintained() && !context.orderedMatching()) return buildItemInsertPlan(stack);
+            List<Target> all = targets(side).items;
+            int start = all.isEmpty() ? 0 : Math.floorMod(itemInsertCursors[side.ordinal()], all.size());
+            int orderedDevice = sequentialInsertion() && context.orderedMatching()
+                    ? context.orderedPosition(all.size()) : -1;
+            if (sequentialInsertion() && context.orderedMatching() && orderedDevice < 0) {
+                return rememberItemInsertPlan(stack, List.of());
+            }
+            ConstrainedItemScanKey scanKey = new ConstrainedItemScanKey(
+                    ItemStackKey.of(stack), stack.getCount(), context, all.size(), start);
+            ConstrainedItemScan scan = constrainedItemScans.get(scanKey);
+            if (scan == null) {
+                scan = new ConstrainedItemScan();
+                constrainedItemScans.put(scanKey, scan);
+                trimConstrainedItemScans();
+            }
+            while (scan.nextTargetOffset < all.size()) {
+                int target = (start + scan.nextTargetOffset) % all.size();
+                IItemHandler handler = item(all.get(target));
+                if (handler == null || handler.getSlots() <= 0) {
+                    scan.nextTargetOffset++;
+                    scan.currentTarget = -1;
+                    continue;
+                }
+                int fixedSlot = !sequentialInsertion() && context.orderedMatching()
+                        ? context.orderedPosition(handler.getSlots()) : -1;
+                boolean insertionEnabled = (!sequentialInsertion() || !context.orderedMatching()
+                        || target == orderedDevice)
+                        && (!context.orderedMatching() || sequentialInsertion() || fixedSlot >= 0);
+                int plannedSlot = insertionEnabled ? fixedSlot : Integer.MIN_VALUE;
+                if (scan.currentTarget != target) {
+                    scan.beginTarget(target, handler.getSlots(), plannedSlot);
+                } else if (scan.currentSlots != handler.getSlots() || scan.fixedSlot != plannedSlot) {
+                    constrainedItemScans.remove(scanKey);
+                    return rememberItemInsertPlan(stack, List.of());
+                }
+                while (scan.nextSlot < handler.getSlots()) {
+                    if (!takeOperation()) return rememberItemInsertPlan(stack, List.of());
+                    int slot = scan.nextSlot++;
+                    ItemStack existing = handler.getStackInSlot(slot);
+                    boolean maintained = !existing.isEmpty() && maintainedMatcher.test(existing);
+                    if (maintained) {
+                        scan.matchingSlots++;
+                        scan.matchingItems = (int)Math.min(Integer.MAX_VALUE,
+                                (long)scan.matchingItems + existing.getCount());
+                    }
+                    if (scan.fixedSlot == Integer.MIN_VALUE
+                            || scan.fixedSlot >= 0 && slot != scan.fixedSlot) continue;
+                    ItemStack rejected = handler.insertItem(slot, stack.copy(), true);
+                    int accepted = stack.getCount() - rejected.getCount();
+                    if (accepted <= 0) continue;
+                    boolean opensSlot = existing.isEmpty() && maintainedMatcher.test(stack);
+                    ItemMove move = new ItemMove(target, slot, accepted, opensSlot);
+                    if (!existing.isEmpty() && sameItemType(existing, stack)) scan.matchingMoves.add(move);
+                    else scan.otherMoves.add(move);
+                }
+                scan.finishTarget();
+            }
+            List<ItemMove> moves = sequentialInsertion()
+                    ? sequentialConstrainedMoves(scan.plans, stack.getCount(), context)
+                    : balancedConstrainedMoves(scan.plans, stack.getCount(), context);
+            constrainedItemScans.remove(scanKey);
+            return rememberItemInsertPlan(stack, moves);
+        }
+
+        private void trimConstrainedItemScans() {
+            int maximum = Math.max(1, SkyLogisticsConfig.distributorItemRouteCacheSize());
+            while (constrainedItemScans.size() > maximum) {
+                ConstrainedItemScanKey eldest = constrainedItemScans.keySet().iterator().next();
+                constrainedItemScans.remove(eldest);
+            }
+        }
+
+        private List<ItemMove> balancedConstrainedMoves(List<ItemTargetPlan> targets, int requested,
+                DistributorItemInsertContext context) {
+            List<List<ItemMove>> available = new ArrayList<>();
+            for (ItemTargetPlan target : targets) {
+                List<ItemMove> limited = limitedTargetMoves(target, context);
+                if (!limited.isEmpty()) available.add(limited);
+            }
+            int[] capacities = available.stream()
+                    .mapToInt(moves -> moves.stream().mapToInt(ItemMove::amount).sum()).toArray();
+            int[] assigned = DistributorInsertMode.balancedAssignments(requested, capacities);
+            List<ItemMove> result = new ArrayList<>();
+            for (int index = 0; index < available.size(); index++)
+                appendMoves(result, available.get(index), assigned[index]);
+            return result;
+        }
+
+        private List<ItemMove> sequentialConstrainedMoves(List<ItemTargetPlan> targets, int requested,
+                DistributorItemInsertContext context) {
+            int totalSlots = targets.stream().mapToInt(ItemTargetPlan::matchingSlots).sum();
+            long totalItems = targets.stream().mapToLong(ItemTargetPlan::matchingItems).sum();
+            int remainingItems = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS
+                    ? DistributorMaintenancePolicy.remainingItems(totalItems, context.maintainAmount())
+                    : requested;
+            int newSlotBudget = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.SLOTS
+                    ? DistributorMaintenancePolicy.remainingSlots(totalSlots, context.maintainAmount())
+                    : Integer.MAX_VALUE;
+            boolean slotsBlocked = context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.SLOTS
+                    && DistributorMaintenancePolicy.blocksSlotInsertion(totalSlots,
+                            context.maintainAmount(), context.fillMaintainedSlots());
+            if (context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS && remainingItems <= 0
+                    || slotsBlocked) return List.of();
+            List<ItemMove> result = new ArrayList<>();
+            int remaining = Math.min(requested, remainingItems);
+            for (ItemTargetPlan target : targets) {
+                for (ItemMove move : target.moves()) {
+                    if (remaining <= 0) break;
+                    if (move.opensMaintainedSlot() && newSlotBudget <= 0) continue;
+                    int amount = Math.min(move.amount(), remaining);
+                    if (amount <= 0) continue;
+                    result.add(new ItemMove(move.target(), move.slot(), amount, move.opensMaintainedSlot()));
+                    remaining -= amount;
+                    if (move.opensMaintainedSlot()) newSlotBudget--;
+                }
+            }
+            return result;
+        }
+
+        private List<ItemMove> limitedTargetMoves(ItemTargetPlan target,
+                DistributorItemInsertContext context) {
+            if (!context.maintained()) return target.moves();
+            if (context.maintainUnit() == DistributorItemInsertContext.MaintainUnit.ITEMS) {
+                int remaining = DistributorMaintenancePolicy.remainingItems(
+                        target.matchingItems(), context.maintainAmount());
+                if (remaining <= 0) return List.of();
+                List<ItemMove> result = new ArrayList<>();
+                appendMoves(result, target.moves(), remaining);
+                return result;
+            }
+            if (DistributorMaintenancePolicy.blocksSlotInsertion(target.matchingSlots(),
+                    context.maintainAmount(), context.fillMaintainedSlots())) {
+                return List.of();
+            }
+            int newSlots = DistributorMaintenancePolicy.remainingSlots(
+                    target.matchingSlots(), context.maintainAmount());
+            List<ItemMove> result = new ArrayList<>();
+            for (ItemMove move : target.moves()) {
+                if (move.opensMaintainedSlot() && newSlots <= 0) continue;
+                result.add(move);
+                if (move.opensMaintainedSlot()) newSlots--;
+            }
+            return result;
+        }
+
+        private int appendMoves(List<ItemMove> result, List<ItemMove> source, int maximum) {
+            int appended = 0;
+            for (ItemMove move : source) {
+                if (appended >= maximum) break;
+                int amount = Math.min(move.amount(), maximum - appended);
+                if (amount <= 0) continue;
+                result.add(new ItemMove(move.target(), move.slot(), amount, move.opensMaintainedSlot()));
+                appended += amount;
+            }
+            return appended;
+        }
+
+        private ItemInsertPlan rememberItemInsertPlan(ItemStack stack, List<ItemMove> moves) {
+            int accepted = (int)Math.min(stack.getCount(), moves.stream().mapToLong(ItemMove::amount).sum());
+            if (!moves.isEmpty()) itemInsertCursors[side.ordinal()] = moves.get(moves.size() - 1).target() + 1;
+            itemInsertPlan = new ItemInsertPlan(gameTime(), stack.copy(), List.copyOf(moves), accepted);
+            return itemInsertPlan;
+        }
+
         private boolean isRejected(int target, ItemStack stack) {
             ItemStack rejected = rejectedItems[target];
             return rejected != null && gameTime() < rejectedItemUntil[target]
@@ -871,7 +1182,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
     }
 
-    private final class DistributedFluids implements IFluidHandler, BudgetedDistributorHandler {
+    private final class DistributedFluids implements IFluidHandler, BudgetedDistributorHandler,
+            ConstrainedDistributorFluidHandler<FluidStack> {
         private final Direction side;
         private final AdaptiveTargetProbeScheduler extractionProbes = new AdaptiveTargetProbeScheduler();
         private final HierarchicalTargetRouteCache<FluidStackKey> insertionRoutes = new HierarchicalTargetRouteCache<>();
@@ -884,12 +1196,12 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
         @Override public boolean distributorScanPending() {
-            int index = side.ordinal();
-            return targetsDirty[index] || targetDiscoveries[index] != null;
+            return targetIndexUnavailable(side);
         }
         @Override public boolean usesIndependentExtractionProbes() { return fluidRoutingConfig().enabled(); }
         @Override public int nextFairExtractionSlot(long time) { configureExtractionProbes(); return extractionProbes.nextDueTarget(targets(side).fluids.size(), time); }
         @Override public int fairExtractionProbesDue(long time) { configureExtractionProbes(); return extractionProbes.dueProbeCount(targets(side).fluids.size(), time); }
+        @Override public void setMaintainedExtractionPollTicks(int pollTicks) { extractionProbes.setMaximumInterval(pollTicks, gameTime()); insertionRoutes.setMaximumInterval(pollTicks); }
 
         @Override public int getTanks() {
             if (!SkyLogisticsConfig.enableDistributorFluids()) return 0;
@@ -923,6 +1235,58 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public int getTankCapacity(int tank) { IFluidHandler h = handler(tank); return h == null ? 0 : Integer.MAX_VALUE; }
         @Override public boolean isFluidValid(int tank, FluidStack stack) { return true; }
+        @Override
+        public int planMaintainedFluidInsertion(FluidStack resource, boolean maintainByAmount,
+                long maintainTarget, boolean fillMaintainedUnits) {
+            fluidInsertPlan = buildMaintainedFluidInsertPlan(resource, maintainByAmount, maintainTarget,
+                    fillMaintainedUnits);
+            fluidInsertPlanAwaitingExecution = true;
+            return fluidInsertPlan.accepted;
+        }
+
+        private FluidInsertPlan buildMaintainedFluidInsertPlan(FluidStack resource, boolean maintainByAmount,
+                long maintainTarget, boolean fillMaintainedUnits) {
+            List<Target> all = targets(side).fluids;
+            if (resource.isEmpty() || all.isEmpty()) return new FluidInsertPlan(gameTime(), resource.copy(), List.of(), 0);
+            int cursorIndex = side.ordinal();
+            int start = Math.floorMod(fluidInsertCursors[cursorIndex], all.size());
+            int[] targetIndices = new int[all.size()];
+            long[] stored = new long[all.size()], capacities = new long[all.size()], refill = new long[all.size()];
+            int[] occupied = new int[all.size()];
+            for (int offset = 0; offset < all.size(); offset++) {
+                if (!takeOperation()) return new FluidInsertPlan(gameTime(), resource.copy(), List.of(), 0);
+                int target = (start + offset) % all.size();
+                targetIndices[offset] = target;
+                IFluidHandler handler = fluid(all.get(target));
+                if (handler == null) continue;
+                for (int tank = 0; tank < handler.getTanks(); tank++) {
+                    FluidStack existing = handler.getFluidInTank(tank);
+                    if (existing.isEmpty() || !sameFluidType(existing, resource)) continue;
+                    stored[offset] += existing.getAmount();
+                    occupied[offset]++;
+                    refill[offset] += Math.max(0, handler.getTankCapacity(tank) - existing.getAmount());
+                }
+                FluidStack offer = resource.copy();
+                capacities[offset] = Math.max(0, handler.fill(offer, FluidAction.SIMULATE));
+            }
+            long[] assignments = DistributorResourceMaintenancePolicy.assignments(resource.getAmount(), stored,
+                    capacities, occupied, refill, maintainByAmount, maintainTarget, fillMaintainedUnits,
+                    sequentialInsertion());
+            List<FluidMove> moves = new ArrayList<>();
+            int accepted = 0;
+            int last = -1;
+            for (int offset = 0; offset < assignments.length; offset++) {
+                int assigned = (int)Math.min(Integer.MAX_VALUE, assignments[offset]);
+                if (assigned <= 0) continue;
+                moves.add(new FluidMove(targetIndices[offset], assigned));
+                accepted += assigned;
+                last = targetIndices[offset];
+            }
+            fluidInsertCursors[cursorIndex] = last >= 0 ? last + 1 : start + 1;
+            return new FluidInsertPlan(gameTime(), resource.copy(), List.copyOf(moves),
+                    Math.min(resource.getAmount(), accepted));
+        }
+
         @Override public int fill(FluidStack resource, FluidAction action) {
             if (resource.isEmpty()) return 0;
             FluidInsertPlan plan = fluidInsertPlan;
@@ -1090,13 +1454,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private void remapAdaptiveState(int[] oldIndexForNew) { insertionRoutes.remapTargets(oldIndexForNew); extractionProbes.remapTargets(oldIndexForNew, gameTime()); observedDrainTarget = remappedTarget(observedDrainTarget, oldIndexForNew); fluidInsertPlan = null; fluidDrainPlan = null; }
     }
 
-    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler {
+    private final class DistributedEnergy implements IEnergyStorage, BudgetedDistributorHandler, MaintainedStorageView,
+            ConstrainedDistributorEnergyHandler {
         private final Direction side;
 
         private DistributedEnergy(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
-        @Override public boolean distributorScanPending() { int index = side.ordinal(); return targetsDirty[index] || targetDiscoveries[index] != null; }
+        @Override public boolean distributorScanPending() { return targetIndexUnavailable(side); }
 
         @Override public int receiveEnergy(int maxReceive, boolean simulate) {
             EnergyPlan plan = energyReceivePlan;
@@ -1118,6 +1483,51 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public int getMaxEnergyStored() { refreshEnergySnapshot(); return energyCapacitySnapshot; }
         @Override public boolean canExtract() { refreshEnergySnapshot(); return energyCanExtractSnapshot; }
         @Override public boolean canReceive() { refreshEnergySnapshot(); return energyCanReceiveSnapshot; }
+        @Override public long maintainedStoredAmount() { return getEnergyStored(); }
+        @Override public int maintainedOccupiedStorageUnits() { refreshEnergySnapshot(); return energyOccupiedSnapshot; }
+        @Override public long maintainedExistingUnitRefillCapacity() { refreshEnergySnapshot(); return energyExistingRefillSnapshot; }
+
+        @Override
+        public int planMaintainedEnergyInsertion(int amount, boolean maintainByAmount, long maintainTarget,
+                boolean fillMaintainedUnits) {
+            EnergyPlan plan = buildMaintainedEnergyPlan(amount, maintainByAmount, maintainTarget,
+                    fillMaintainedUnits);
+            energyReceivePlan = plan;
+            return plan.accepted;
+        }
+
+        private EnergyPlan buildMaintainedEnergyPlan(int amount, boolean maintainByAmount, long maintainTarget,
+                boolean fillMaintainedUnits) {
+            List<Target> all = targets(side).energy;
+            if (all.isEmpty() || amount <= 0) return new EnergyPlan(gameTime(), amount, List.of(), 0);
+            int cursorIndex = side.ordinal();
+            int start = Math.floorMod(energyReceiveCursors[cursorIndex], all.size());
+            int[] targetIndices = new int[all.size()];
+            int[] stored = new int[all.size()];
+            int[] capacities = new int[all.size()];
+            for (int offset = 0; offset < all.size(); offset++) {
+                if (!takeOperation()) return new EnergyPlan(gameTime(), amount, List.of(), 0);
+                int target = (start + offset) % all.size();
+                targetIndices[offset] = target;
+                IEnergyStorage handler = energy(all.get(target));
+                if (handler == null) continue;
+                stored[offset] = Math.max(0, handler.getEnergyStored());
+                capacities[offset] = Math.max(0, handler.receiveEnergy(amount, true));
+            }
+            int[] assignments = DistributorEnergyMaintenancePolicy.assignments(amount, stored, capacities,
+                    maintainByAmount, maintainTarget, fillMaintainedUnits, sequentialInsertion());
+            List<FluidMove> moves = new ArrayList<>();
+            int accepted = 0;
+            int lastAssignedTarget = -1;
+            for (int offset = 0; offset < assignments.length; offset++) {
+                if (assignments[offset] <= 0) continue;
+                moves.add(new FluidMove(targetIndices[offset], assignments[offset]));
+                accepted += assignments[offset];
+                lastAssignedTarget = targetIndices[offset];
+            }
+            energyReceiveCursors[cursorIndex] = lastAssignedTarget >= 0 ? lastAssignedTarget + 1 : start + 1;
+            return new EnergyPlan(gameTime(), amount, List.copyOf(moves), accepted);
+        }
 
         private EnergyPlan buildEnergyPlan(int amount, boolean receive) {
             List<Target> all = targets(side).energy;
@@ -1171,14 +1581,19 @@ public class SkyDistributorBlockEntity extends BlockEntity {
                 energySnapshotScanned++;
                 IEnergyStorage handler = energy(target);
                 if (handler == null) continue;
-                energyStoredAccumulator += handler.getEnergyStored();
-                energyCapacityAccumulator += handler.getMaxEnergyStored();
+                int stored = handler.getEnergyStored();
+                int capacity = handler.getMaxEnergyStored();
+                energyStoredAccumulator += stored;
+                energyCapacityAccumulator += capacity;
+                if (stored > 0) { energyOccupiedAccumulator++; energyExistingRefillAccumulator += Math.max(0, capacity - stored); }
                 energyCanExtractAccumulator |= handler.canExtract();
                 energyCanReceiveAccumulator |= handler.canReceive();
             }
             if (energySnapshotScanned >= all.size()) {
                 energyStoredSnapshot = (int)Math.min(Integer.MAX_VALUE, energyStoredAccumulator);
                 energyCapacitySnapshot = (int)Math.min(Integer.MAX_VALUE, energyCapacityAccumulator);
+                energyOccupiedSnapshot = energyOccupiedAccumulator;
+                energyExistingRefillSnapshot = energyExistingRefillAccumulator;
                 energyCanExtractSnapshot = energyCanExtractAccumulator;
                 energyCanReceiveSnapshot = energyCanReceiveAccumulator;
                 resetEnergySnapshotScan();
@@ -1191,6 +1606,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
             energySnapshotScanned = 0;
             energyStoredAccumulator = 0L;
             energyCapacityAccumulator = 0L;
+            energyOccupiedAccumulator = 0;
+            energyExistingRefillAccumulator = 0L;
             energyCanExtractAccumulator = false;
             energyCanReceiveAccumulator = false;
         }

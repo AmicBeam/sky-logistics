@@ -4,7 +4,6 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.entity.FluidVaultBlockEntity;
 import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
-import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity.ExternalWhitelistCandidates;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
@@ -17,7 +16,14 @@ import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorItemHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorEnergyHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorChemicalHandler;
+import com.skylogistics.compat.distributor.ConstrainedDistributorAmountHandler;
+import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
+import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.ForceExtractionCompat;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
@@ -31,12 +37,15 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
+import com.skylogistics.util.MaintainedSlotPolicy;
+import com.skylogistics.util.MaintainedResourcePolicy;
 import com.skylogistics.util.OrderedMatchingPolicy;
 import com.skylogistics.util.OrderedMatchingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.BiConsumer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
@@ -145,12 +154,6 @@ public final class SkyNetworkTicker {
                 boolean manaRoute = localManaRoute || dimensionUpgrade;
                 boolean sourceRoute = localSourceRoute || dimensionUpgrade;
                 int remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
-                if (itemRoute && node.isItemsEnabled(input.direction()) && !input.canTryItems(gameTime)
-                        && input.isMaintainedItemProbeDue(gameTime) && remainingLineBudget > 0) {
-                    operations++;
-                    input.probeMaintainedItemChanged(gameTime);
-                    remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
-                }
                 if (itemRoute && node.isItemsEnabled(input.direction()) && input.canTryItems(gameTime)
                         && remainingLineBudget > 0) {
                     if (dimensionUpgrade && globalItemOutputs == null) {
@@ -340,6 +343,8 @@ public final class SkyNetworkTicker {
 
     private static int transferItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets,
+                SkyLogisticsConfig.enableMaintainedItemHotSlotPolling(), CachedEndpoint::setItemMaintainedBackoff);
         if (isExternalNetworkItemEndpoint(sourceEndpoint)) {
             return transferExternalNetworkItems(sourceEndpoint, targets, budget, gameTime);
         }
@@ -512,11 +517,6 @@ public final class SkyNetworkTicker {
                     : new MoveResult(orderedResult.moved(), orderedResult.operations());
             operations += result.operations();
             if (result.moved()) {
-                if (!independentDistributorProbes && sourceEndpoint.canRecordMaintainedItemProbe()) {
-                    ItemStack observed = source.getStackInSlot(slot);
-                    sourceEndpoint.recordMaintainedItemProbe(slot, simulated,
-                            ItemStack.isSameItemSameTags(observed, simulated) ? observed.getCount() : 0, gameTime);
-                }
                 if (!independentDistributorProbes) {
                     sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
                 }
@@ -860,10 +860,8 @@ public final class SkyNetworkTicker {
                 if (!orderedMatchingTarget && targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
-                        if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
-                            targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
-                            continue;
-                        }
+                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                        continue;
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
@@ -915,7 +913,7 @@ public final class SkyNetworkTicker {
         }
         if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
-            sourceEndpoint.recordItemFailure(gameTime, hasMaintainedItemProbe(targets));
+            sourceEndpoint.recordItemFailure(gameTime);
         }
         return targetMoveResult(false, operations, targetVisits);
     }
@@ -943,13 +941,13 @@ public final class SkyNetworkTicker {
             return HandlerMoveResult.NONE;
         }
         ItemStack offer = simulated.copyWithCount(requested);
-        int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+        int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target);
         if (orderedTargetSlot == -2) {
             return new HandlerMoveResult(false, slotLimitCheck.checks(), false);
         }
         TargetItemSelection selection = orderedTargetSlot >= 0
                 ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
-                : selectTargetItemSlot(targetEndpoint, target, offer,
+                : selectTargetItemSlot(sourceEndpoint, targetEndpoint, target, offer,
                         Math.max(1, slotCheckBudget - slotLimitCheck.checks()));
         TargetItemSlot targetSlot = selection.slot();
         int movable = targetSlot.movable();
@@ -973,8 +971,6 @@ public final class SkyNetworkTicker {
         ItemStack leftover = target.insertItem(targetSlot.slot(), extracted, false);
         int inserted = extracted.getCount() - leftover.getCount();
         if (inserted > 0) {
-            targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), extracted,
-                    targetSlot.existingCount() + inserted, gameTime);
             targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
                     targetSlot.filledAfter(inserted, !leftover.isEmpty()), targetSlot.usedHot(), target.getSlots());
         } else {
@@ -1112,6 +1108,10 @@ public final class SkyNetworkTicker {
 
     private static ExactItemScanResult scanExactItems(CachedEndpoint endpoint, IItemHandler handler, int budget,
             Map<CachedEndpoint, ExactItemScan> scans) {
+        if (handler instanceof ConstrainedDistributorItemHandler) {
+            scans.remove(endpoint);
+            return ExactItemScanResult.NOT_CONFIGURED;
+        }
         if (!(endpoint.node() instanceof SkyNodeBlockEntity node)
                 || !node.isItemLimitByItems(endpoint.direction())) {
             scans.remove(endpoint);
@@ -1141,6 +1141,7 @@ public final class SkyNetworkTicker {
         if (target == null) {
             return SlotLimitCheck.ALLOWED;
         }
+        if (target instanceof ConstrainedDistributorItemHandler) return SlotLimitCheck.ALLOWED;
         NetworkEndpointBlockEntity node = endpoint.node();
         net.minecraft.core.Direction direction = endpoint.direction();
         if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(direction)) return SlotLimitCheck.ALLOWED;
@@ -1151,6 +1152,7 @@ public final class SkyNetworkTicker {
         int checks = 0;
         ItemStack probe = candidate.copy();
         probe.setCount(candidate.isEmpty() ? 0 : 1);
+        boolean fillMaintainedSlots = SkyLogisticsConfig.fillMaintainedItemSlots();
         int slots = target.getSlots();
         ItemStackKey candidateKey = ItemStackKey.of(candidate);
         SlotLimitScan scan = TARGET_SLOT_LIMIT_SCANS.get(endpoint);
@@ -1158,6 +1160,7 @@ public final class SkyNetworkTicker {
             scan = new SlotLimitScan(slots, limit, candidateKey);
             TARGET_SLOT_LIMIT_SCANS.put(endpoint, scan);
         }
+        if (!fillMaintainedSlots) scan.canRefill = false;
         while (scan.nextSlot < slots && checks < checkBudget) {
             int slot = scan.nextSlot++;
             checks++;
@@ -1166,7 +1169,9 @@ public final class SkyNetworkTicker {
                 continue;
             }
             scan.matchingSlots++;
-            if (!scan.canRefill && !probe.isEmpty() && ItemStack.isSameItemSameTags(existing, candidate)
+            if (MaintainedSlotPolicy.tracksRefillCandidate(fillMaintainedSlots)
+                    && !scan.canRefill && !probe.isEmpty()
+                    && ItemStack.isSameItemSameTags(existing, candidate)
                     && target.insertItem(slot, probe, true).getCount() < probe.getCount()) {
                 scan.canRefill = true;
             }
@@ -1321,10 +1326,8 @@ public final class SkyNetworkTicker {
                 if (!orderedMatchingTarget && targetEndpoint.hasActiveItemAcceptRejects(gameTime)) {
                     if (simulatedKey == null) simulatedKey = ItemStackKey.of(simulated);
                     if (targetEndpoint.isItemAcceptRejected(simulatedKey, gameTime)) {
-                        if (!targetEndpoint.probeMaintainedItemChanged(gameTime)) {
-                            targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
-                            continue;
-                        }
+                        targetIndex = advanceItemTargetScan(sourceEndpoint, simulatedKey, targetIndex, targetCount);
+                        continue;
                     }
                 }
                 if (targetAttempts >= targetAttemptBudget) {
@@ -1421,11 +1424,11 @@ public final class SkyNetworkTicker {
                 if (exactRemaining == 0) continue;
                 ItemStack offer = exactRemaining > 0 && simulated.getCount() > exactRemaining
                         ? simulated.copyWithCount(exactRemaining) : simulated;
-                int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target.getSlots());
+                int orderedTargetSlot = orderedMatchingTargetSlot(sourceEndpoint, targetEndpoint, target);
                 if (orderedTargetSlot == -2) continue;
                 TargetItemSelection selection = orderedTargetSlot >= 0
                         ? fixedTargetItemSelection(targetEndpoint, target, offer, orderedTargetSlot)
-                        : selectTargetItemSlot(targetEndpoint, target, offer,
+                        : selectTargetItemSlot(sourceEndpoint, targetEndpoint, target, offer,
                                 Math.max(1, budget - Math.max(operations, targetVisits) + 1));
                 targetVisits += Math.max(0, selection.checks() - 1);
                 TargetItemSlot targetSlot = selection.slot();
@@ -1452,8 +1455,6 @@ public final class SkyNetworkTicker {
                 }
                 int inserted = transfer.inserted();
                 if (inserted > 0) {
-                    targetEndpoint.recordMaintainedItemProbe(targetSlot.slot(), simulated,
-                            targetSlot.existingCount() + inserted, gameTime);
                     targetEndpoint.recordTargetItemSlotSuccess(targetSlot.lane(), targetSlot.slot(),
                             targetSlot.filledAfter(inserted, transfer.hadLeftover()), targetSlot.usedHot(), target.getSlots());
                 } else {
@@ -1465,23 +1466,22 @@ public final class SkyNetworkTicker {
         }
         if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
         if (!redstoneBlocked && !budgetExhausted) {
-            sourceEndpoint.recordItemFailure(gameTime, hasMaintainedItemProbe(targets));
+            sourceEndpoint.recordItemFailure(gameTime);
         }
         return targetMoveResult(false, operations, targetVisits);
     }
 
-    private static boolean hasMaintainedItemProbe(List<CachedEndpoint> endpoints) {
-        for (CachedEndpoint endpoint : endpoints) {
-            if (endpoint.hasMaintainedItemProbe()) return true;
-        }
-        return false;
-    }
-
-    private static TargetItemSelection selectTargetItemSlot(CachedEndpoint endpoint, IItemHandler target,
-            ItemStack stack, int checkBudget) {
-        if (endpoint.targetBlockEntity() instanceof SkyDistributorBlockEntity) {
+    private static TargetItemSelection selectTargetItemSlot(CachedEndpoint sourceEndpoint,
+            CachedEndpoint endpoint, IItemHandler target, ItemStack stack, int checkBudget) {
+        if (target instanceof ConstrainedDistributorItemHandler distributor) {
             endpoint.clearTargetItemCursor();
-            return new TargetItemSelection(simulateSingleTargetItemSlot(target, stack), 1, true);
+            int movable = distributor.planItemInsertion(stack,
+                    distributorItemInsertContext(sourceEndpoint, endpoint),
+                    candidate -> endpoint.node().allowsItem(endpoint.direction(), candidate));
+            TargetItemSlot slot = movable <= 0 ? TargetItemSlot.NONE
+                    : new TargetItemSlot(-1, 0, movable, 0, Integer.MAX_VALUE,
+                            movable < stack.getCount(), false);
+            return new TargetItemSelection(slot, 1, true);
         }
         int slots = target.getSlots();
         if (slots == 1) {
@@ -1533,7 +1533,9 @@ public final class SkyNetworkTicker {
     }
 
     private static int orderedMatchingTargetSlot(CachedEndpoint sourceEndpoint, CachedEndpoint targetEndpoint,
-            int targetSlots) {
+            IItemHandler target) {
+        if (target instanceof ConstrainedDistributorItemHandler) return -1;
+        int targetSlots = target.getSlots();
         SkyNodeBlockEntity targetNode = orderedMatchingTargetNode(targetEndpoint);
         if (targetNode == null || targetSlots <= 0) return -1;
         int sourcePriorityIndex = itemSourcePriorityIndex(sourceEndpoint);
@@ -1541,6 +1543,26 @@ public final class SkyNetworkTicker {
         int slot = OrderedMatchingPolicy.offsetPosition(sourcePriorityIndex,
                 targetNode.getOrderedMatchingOffset(), targetSlots);
         return slot < 0 ? -2 : slot;
+    }
+
+    private static DistributorItemInsertContext distributorItemInsertContext(CachedEndpoint sourceEndpoint,
+            CachedEndpoint targetEndpoint) {
+        NetworkEndpointBlockEntity endpointNode = targetEndpoint.node();
+        DistributorItemInsertContext.MaintainUnit unit = DistributorItemInsertContext.MaintainUnit.NONE;
+        int amount = 0;
+        if (endpointNode instanceof SkyNodeBlockEntity node) {
+            amount = node.getItemSlotLimit(targetEndpoint.direction());
+            if (amount > SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED) {
+                unit = node.isItemLimitByItems(targetEndpoint.direction())
+                        ? DistributorItemInsertContext.MaintainUnit.ITEMS
+                        : DistributorItemInsertContext.MaintainUnit.SLOTS;
+            }
+        }
+        SkyNodeBlockEntity orderedNode = orderedMatchingTargetNode(targetEndpoint);
+        boolean ordered = orderedNode != null;
+        return new DistributorItemInsertContext(unit, amount, SkyLogisticsConfig.fillMaintainedItemSlots(),
+                ordered, ordered ? itemSourcePriorityIndex(sourceEndpoint) : -1,
+                ordered ? orderedNode.getOrderedMatchingOffset() : 0);
     }
 
     private static int itemSourcePriorityIndex(CachedEndpoint sourceEndpoint) {
@@ -1929,6 +1951,8 @@ public final class SkyNetworkTicker {
 
     private static int transferFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets,
+                SkyLogisticsConfig.enableMaintainedFluidPolling(), CachedEndpoint::setFluidMaintainedBackoff);
         if (isExternalNetworkFluidEndpoint(sourceEndpoint)) {
             return transferExternalNetworkFluids(sourceEndpoint, targets, budget, gameTime);
         }
@@ -2203,7 +2227,7 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                int accepted = target.fill(simulated.copy(), IFluidHandler.FluidAction.SIMULATE);
+                int accepted = planMaintainedFluidInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0) {
                     if (deferExhaustedDistributorFluid(targetEndpoint, target, gameTime)) {
                         sourceEndpoint.resumeFluidTargetScan(simulatedKey, visitedTargetIndex, targetCount);
@@ -2335,7 +2359,7 @@ public final class SkyNetworkTicker {
             return false;
         }
         FluidStack offer = copyWithAmount(simulated, requested);
-        int accepted = target.fill(offer.copy(), IFluidHandler.FluidAction.SIMULATE);
+        int accepted = planMaintainedFluidInsertion(targetEndpoint, target, offer);
         if (accepted <= 0) {
             if (deferExhaustedDistributorFluid(targetEndpoint, target, gameTime)) return false;
             if (simulatedKey == null) simulatedKey = FluidStackKey.of(simulated);
@@ -2612,6 +2636,8 @@ public final class SkyNetworkTicker {
 
     private static int transferChemicals(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets,
+                SkyLogisticsConfig.enableMaintainedChemicalPolling(), CachedEndpoint::setChemicalMaintainedBackoff);
         if (!SkyLogisticsConfig.allowFluidChemicalTransfer()) {
             return 0;
         }
@@ -2783,7 +2809,7 @@ public final class SkyNetworkTicker {
                 if (target == null) {
                     continue;
                 }
-                long accepted = target.insertChemical(simulated, true);
+                long accepted = planMaintainedChemicalInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0L) {
                     if (deferExhaustedDistributorChemical(targetEndpoint, target, gameTime)) {
                         sourceEndpoint.resumeChemicalTargetScan(simulated, visitedTargetIndex, targetCount);
@@ -2826,6 +2852,8 @@ public final class SkyNetworkTicker {
 
     private static int transferEnergy(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets, SkyLogisticsConfig.enableMaintainedEnergyPolling(),
+                CachedEndpoint::setEnergyMaintainedBackoff);
         if (budget <= 0) {
             return 0;
         }
@@ -2954,7 +2982,7 @@ public final class SkyNetworkTicker {
                     targetEndpoint.recordEnergyFailure(gameTime);
                     continue;
                 }
-                int accepted = target.receiveEnergy(simulated, true);
+                int accepted = planMaintainedEnergyInsertion(targetEndpoint, target, simulated);
                 if (accepted <= 0) {
                     targetEndpoint.recordEnergyFailure(gameTime);
                     continue;
@@ -3001,7 +3029,7 @@ public final class SkyNetworkTicker {
 
     private static long moveLongEnergyToHandler(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceLongEndpoint,
             CachedEndpoint targetEndpoint, IEnergyStorage target, int requested) {
-        int accepted = target.receiveEnergy(requested, true);
+        int accepted = planMaintainedEnergyInsertion(targetEndpoint, target, requested);
         if (accepted <= 0) return 0L;
         long extracted = sourceLongEndpoint.extractEnergy(accepted, false);
         if (extracted <= 0L) return -1L;
@@ -3039,6 +3067,67 @@ public final class SkyNetworkTicker {
             }
         }
         return inserted;
+    }
+
+    private static int planMaintainedEnergyInsertion(CachedEndpoint endpoint, IEnergyStorage target, int requested) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorEnergyHandler distributor
+                && SkyLogisticsConfig.enableMaintainedEnergyPolling() && maintainTarget > 0L) {
+            return distributor.planMaintainedEnergyInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        return target.receiveEnergy((int)maintainedEnergyAllowance(endpoint, target, requested), true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static int planMaintainedFluidInsertion(CachedEndpoint endpoint, IFluidHandler target,
+            FluidStack resource) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorFluidHandler<?> raw
+                && SkyLogisticsConfig.enableMaintainedFluidPolling() && maintainTarget > 0L) {
+            ConstrainedDistributorFluidHandler<FluidStack> distributor =
+                    (ConstrainedDistributorFluidHandler<FluidStack>)raw;
+            return distributor.planMaintainedFluidInsertion(resource,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        FluidStack offer = copyWithAmount(resource,
+                (int)maintainedFluidAllowance(endpoint, target, resource.getAmount()));
+        return target.fill(offer, IFluidHandler.FluidAction.SIMULATE);
+    }
+
+    private static long planMaintainedChemicalInsertion(CachedEndpoint endpoint,
+            ChemicalHandlerBridge target, ChemicalStackView stack) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorChemicalHandler distributor
+                && SkyLogisticsConfig.enableMaintainedChemicalPolling() && maintainTarget > 0L) {
+            return distributor.planMaintainedChemicalInsertion(stack,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        }
+        return target.insertChemical(stack.copyWithAmount(
+                maintainedChemicalAllowance(endpoint, target, stack.getAmount())), true);
+    }
+
+    private static int planMaintainedScalarInsertion(CachedEndpoint endpoint, ManaHandlerBridge target,
+            int requested, boolean enabled) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorAmountHandler distributor && enabled && maintainTarget > 0L)
+            return (int)distributor.planMaintainedInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        return target.insertMana((int)maintainedManaAllowance(endpoint, target, requested), true);
+    }
+
+    private static int planMaintainedScalarInsertion(CachedEndpoint endpoint, SourceHandlerBridge target,
+            int requested, boolean enabled) {
+        long maintainTarget = endpoint.node().getMaintainAmount(endpoint.direction());
+        if (target instanceof ConstrainedDistributorAmountHandler distributor && enabled && maintainTarget > 0L)
+            return (int)distributor.planMaintainedInsertion(requested,
+                    endpoint.node().isMaintainByAmount(endpoint.direction()), maintainTarget,
+                    SkyLogisticsConfig.fillMaintainedItemSlots());
+        return target.insertSource((int)maintainedSourceAllowance(endpoint, target, requested), true);
     }
 
     private static long moveLongEnergy(CachedEndpoint sourceEndpoint, LongEnergyEndpoint sourceEndpointLong,
@@ -3132,6 +3221,8 @@ public final class SkyNetworkTicker {
 
     private static int transferMana(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets, SkyLogisticsConfig.enableMaintainedManaPolling(),
+                CachedEndpoint::setManaMaintainedBackoff);
         if (!canTransferMana() || budget <= 0
                 || !sourceEndpoint.node().allowsMana(sourceEndpoint.direction())) {
             return 0;
@@ -3226,7 +3317,8 @@ public final class SkyNetworkTicker {
                     budgetExhausted = true;
                     break targetLoop;
                 }
-                int accepted = target.insertMana(simulated, true);
+                int accepted = planMaintainedScalarInsertion(targetEndpoint, target, simulated,
+                        SkyLogisticsConfig.enableMaintainedManaPolling());
                 if (accepted <= 0) {
                     targetEndpoint.recordManaFailure(gameTime);
                     continue;
@@ -3335,6 +3427,8 @@ public final class SkyNetworkTicker {
 
     private static int transferSource(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets, int budget,
             long gameTime) {
+        configureMaintainedBackoff(sourceEndpoint, targets, SkyLogisticsConfig.enableMaintainedSourcePolling(),
+                CachedEndpoint::setSourceMaintainedBackoff);
         if (!canTransferSource() || budget <= 0
                 || !sourceEndpoint.node().allowsSource(sourceEndpoint.direction())) {
             return 0;
@@ -3429,7 +3523,8 @@ public final class SkyNetworkTicker {
                     budgetExhausted = true;
                     break targetLoop;
                 }
-                int accepted = target.insertSource(simulated, true);
+                int accepted = planMaintainedScalarInsertion(targetEndpoint, target, simulated,
+                        SkyLogisticsConfig.enableMaintainedSourcePolling());
                 if (accepted <= 0) {
                     targetEndpoint.recordSourceFailure(gameTime);
                     continue;
@@ -3716,4 +3811,61 @@ public final class SkyNetworkTicker {
         copy.setAmount(amount);
         return copy;
     }
+
+    private static void configureMaintainedBackoff(CachedEndpoint source, List<CachedEndpoint> targets,
+            boolean enabled, BiConsumer<CachedEndpoint, Boolean> setter) {
+        boolean active = MaintainedResourcePolicy.pathUsesMaintainedBackoff(enabled,
+                source.node().getMaintainAmount(source.direction()), targets.stream().anyMatch(endpoint ->
+                        endpoint.node().getMaintainAmount(endpoint.direction()) > 0L));
+        setter.accept(source, active);
+        targets.forEach(endpoint -> setter.accept(endpoint, active));
+    }
+
+
+    private static long maintainedAllowance(CachedEndpoint endpoint, long requested, long stored, int occupied,
+            long existingRefillCapacity) {
+        NetworkEndpointBlockEntity node = endpoint.node();
+        long target = node.getMaintainAmount(endpoint.direction());
+        return MaintainedResourcePolicy.insertionAllowance(node.isMaintainByAmount(endpoint.direction()),
+                requested, stored, occupied, target, SkyLogisticsConfig.fillMaintainedItemSlots(),
+                existingRefillCapacity);
+    }
+
+    private static long maintainedFluidAllowance(CachedEndpoint endpoint, IFluidHandler handler, long requested) {
+        if (!SkyLogisticsConfig.enableMaintainedFluidPolling() || endpoint.node().getMaintainAmount(endpoint.direction()) <= 0L) return requested;
+        long stored = 0L, refill = 0L; int occupied = 0;
+        for (int tank = 0; tank < handler.getTanks(); tank++) { FluidStack stack = handler.getFluidInTank(tank); if (stack.isEmpty() || !endpoint.node().allowsFluid(endpoint.direction(), stack)) continue; stored += stack.getAmount(); occupied++; refill += Math.max(0, handler.getTankCapacity(tank) - stack.getAmount()); }
+        return maintainedAllowance(endpoint, requested, stored, occupied, refill);
+    }
+
+    private static long maintainedChemicalAllowance(CachedEndpoint endpoint, ChemicalHandlerBridge handler, long requested) {
+        if (!SkyLogisticsConfig.enableMaintainedChemicalPolling() || endpoint.node().getMaintainAmount(endpoint.direction()) <= 0L) return requested;
+        long stored = 0L; int occupied = 0; for (int tank = 0; tank < handler.getTanks(); tank++) { ChemicalStackView stack = handler.getChemicalInTank(tank); if (stack.isEmpty() || !endpoint.node().allowsChemical(endpoint.direction(), stack)) continue; stored += stack.getAmount(); occupied++; }
+        return maintainedAllowance(endpoint, requested, stored, occupied, occupied > 0 ? requested : 0L);
+    }
+
+    private static long maintainedEnergyAllowance(CachedEndpoint endpoint, IEnergyStorage handler, long requested) {
+        if (!SkyLogisticsConfig.enableMaintainedEnergyPolling() || endpoint.node().getMaintainAmount(endpoint.direction()) <= 0L) return requested;
+        long stored = handler instanceof MaintainedStorageView view ? view.maintainedStoredAmount() : handler.getEnergyStored();
+        int occupied = handler instanceof MaintainedStorageView view ? view.maintainedOccupiedStorageUnits() : stored > 0L ? 1 : 0;
+        long refill = handler instanceof MaintainedStorageView view ? view.maintainedExistingUnitRefillCapacity() : stored > 0L ? Math.max(0L, handler.getMaxEnergyStored() - stored) : 0L;
+        return maintainedAllowance(endpoint, requested, stored, occupied, refill);
+    }
+
+    private static long maintainedManaAllowance(CachedEndpoint endpoint, ManaHandlerBridge handler, long requested) {
+        if (!SkyLogisticsConfig.enableMaintainedManaPolling() || endpoint.node().getMaintainAmount(endpoint.direction()) <= 0L) return requested;
+        long stored = handler instanceof MaintainedStorageView view ? view.maintainedStoredAmount() : handler.getCurrentMana();
+        int occupied = handler instanceof MaintainedStorageView view ? view.maintainedOccupiedStorageUnits() : stored > 0L ? 1 : 0;
+        long refill = handler instanceof MaintainedStorageView view ? view.maintainedExistingUnitRefillCapacity() : stored > 0L ? Math.max(0L, handler.getMaxMana() - stored) : 0L;
+        return maintainedAllowance(endpoint, requested, stored, occupied, refill);
+    }
+
+    private static long maintainedSourceAllowance(CachedEndpoint endpoint, SourceHandlerBridge handler, long requested) {
+        if (!SkyLogisticsConfig.enableMaintainedSourcePolling() || endpoint.node().getMaintainAmount(endpoint.direction()) <= 0L) return requested;
+        long stored = handler instanceof MaintainedStorageView view ? view.maintainedStoredAmount() : handler.getCurrentSource();
+        int occupied = handler instanceof MaintainedStorageView view ? view.maintainedOccupiedStorageUnits() : stored > 0L ? 1 : 0;
+        long refill = handler instanceof MaintainedStorageView view ? view.maintainedExistingUnitRefillCapacity() : stored > 0L ? Math.max(0L, handler.getMaxSource() - stored) : 0L;
+        return maintainedAllowance(endpoint, requested, stored, occupied, refill);
+    }
+
 }

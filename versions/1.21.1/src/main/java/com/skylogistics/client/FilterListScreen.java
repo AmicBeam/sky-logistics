@@ -101,8 +101,26 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderChemicalFilters(graphics);
         renderControlIcons(graphics);
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderChemicalFilters(GuiGraphics graphics) {
+        for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
+            String chemical = menu.getChemicalFilter(slot);
+            if (chemical.isEmpty()) {
+                continue;
+            }
+            int x = leftPos + filterSlotX(slot);
+            int y = topPos + filterSlotY(slot);
+            if (!ChemicalFilterClientCompat.render(graphics, chemical, x, y)) {
+                graphics.drawString(font, "?", x + 5, y + 4, 0xFFE7A6FF, true);
+            }
+            if (hoveredSlot != null && hoveredSlot.index == slot) {
+                renderSlotHighlight(graphics, x, y, 0);
+            }
+        }
     }
 
     @Override
@@ -129,6 +147,10 @@ public class FilterListScreen extends AbstractContainerScreen<FilterListMenu> {
     @Override
     protected void renderTooltip(GuiGraphics graphics, int x, int y) {
         int slot = hoveredFilterSlot(x, y);
+        if (slot >= 0 && menu.isChemicalFilter(slot)) {
+            graphics.renderTooltip(font, ChemicalFilterClientCompat.displayName(menu.getChemicalFilter(slot)), x, y);
+            return;
+        }
         if (slot >= 0 && menu.isFluidFilter(slot)) {
             FluidStack fluid = menu.getFluidFilter(slot);
             if (!fluid.isEmpty()) {

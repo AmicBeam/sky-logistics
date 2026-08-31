@@ -10,7 +10,7 @@
     "description": {
       "translate": "advancements.skylogistics.transfer_rates.root.description"
     },
-    "background": "minecraft:textures/gui/advancements/backgrounds/stone.png",
+    "background": "minecraft:gui/advancements/backgrounds/stone",
     "frame": "task",
     "show_toast": false,
     "announce_to_chat": false,

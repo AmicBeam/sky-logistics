@@ -70,7 +70,9 @@ public record SkyOfferingRecipesPacket(List<RecipeHolder<OfferingRecipe>> recipe
     }
 
     private static List<RecipeHolder<OfferingRecipe>> skyOfferingRecipes(RecipeManager recipeManager) {
-        return List.copyOf(recipeManager.recipeMap().byType(ModRecipes.SKY_OFFERING_TYPE.get()));
+        return recipeManager.recipeMap().byType(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
+                .filter(recipe -> recipe.value().isEnabled())
+                .toList();
     }
 
     @Override

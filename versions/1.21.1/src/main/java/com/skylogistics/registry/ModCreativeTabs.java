@@ -5,6 +5,7 @@ import com.skylogistics.compat.ManualCompat;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.EulogiaCrystalItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -27,13 +28,17 @@ public final class ModCreativeTabs {
                             output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
                         }
                         output.accept(ModItems.CONFIGURATOR.get());
-                        ModItems.SKY_WRENCH.ifPresent(wrench -> output.accept(wrench.get()));
+                        if (SkyLogisticsConfig.skyWrenchAvailable()) {
+                            output.accept(ModItems.SKY_WRENCH.get());
+                        }
                         output.accept(ModItems.FILTER_LIST.get());
                         output.accept(ModItems.TAG_FILTER_LIST.get());
                         output.accept(ModItems.SKY_NECKLACE.get());
                         output.accept(ModItems.SPEED_UPGRADE.get());
                         output.accept(ModItems.DIMENSION_UPGRADE.get());
-                        output.accept(ModItems.FORCE_EXTRACTION_UPGRADE.get());
+                        if (SkyLogisticsConfig.forceExtractionUpgradeAvailable()) {
+                            output.accept(ModItems.FORCE_EXTRACTION_UPGRADE.get());
+                        }
                         output.accept(ModItems.ORDERED_MATCHING_UPGRADE.get());
                         output.accept(ModItems.EULOGIA_CRYSTAL.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_CRYSTAL.get()));

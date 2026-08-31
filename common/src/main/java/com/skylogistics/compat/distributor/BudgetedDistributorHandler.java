@@ -22,4 +22,8 @@ public interface BudgetedDistributorHandler {
     default int fairExtractionProbesDue(long gameTime) {
         return 0;
     }
+
+    /** Caps adaptive source backoff while a maintained receiver still has demand. */
+    default void setMaintainedExtractionPollTicks(int pollTicks) {
+    }
 }

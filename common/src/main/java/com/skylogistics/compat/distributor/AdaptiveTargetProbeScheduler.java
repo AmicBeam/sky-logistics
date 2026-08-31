@@ -10,6 +10,22 @@ public final class AdaptiveTargetProbeScheduler {
     private byte[] tiers = new byte[0];
     private int[] tierMisses = new int[0];
     private int targetCursor;
+    private int maximumInterval;
+    private long maximumIntervalStartedAt = Long.MIN_VALUE;
+
+    public void setMaximumInterval(int ticks) {
+        setMaximumInterval(ticks, Long.MIN_VALUE);
+    }
+
+    public void setMaximumInterval(int ticks, long gameTime) {
+        int normalized = Math.max(0, ticks);
+        if (normalized > 0 && (maximumInterval <= 0 || maximumInterval != normalized)) {
+            maximumIntervalStartedAt = gameTime;
+        } else if (normalized <= 0) {
+            maximumIntervalStartedAt = Long.MIN_VALUE;
+        }
+        maximumInterval = normalized;
+    }
 
     public void configure(int hotTicks, int warmTicks, int coolTicks, int fallbackTicks,
             int configuredMissesPerDemotion) {
@@ -94,9 +110,18 @@ public final class AdaptiveTargetProbeScheduler {
 
     private boolean isDue(int target, long gameTime) {
         long lastProbe = lastProbeTicks[target];
-        return lastProbe == Long.MIN_VALUE
-                ? gameTime >= initialProbeTicks[target]
-                : gameTime - lastProbe >= backoff.interval(tiers[target]);
+        if (lastProbe != Long.MIN_VALUE) return gameTime - lastProbe >= interval(tiers[target]);
+        long due = initialProbeTicks[target];
+        if (maximumInterval > 0 && maximumIntervalStartedAt != Long.MIN_VALUE) {
+            due = Math.min(due, maximumIntervalStartedAt
+                    + (long)target * maximumInterval / Math.max(1, lastProbeTicks.length));
+        }
+        return gameTime >= due;
+    }
+
+    private int interval(byte tier) {
+        int interval = backoff.interval(tier);
+        return maximumInterval > 0 ? Math.min(interval, maximumInterval) : interval;
     }
 
     private void refresh(int targetCount, long gameTime) {

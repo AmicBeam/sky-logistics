@@ -20,7 +20,7 @@ The <ItemLink id="sky_necklace" /> connects player-side inventory to a selected 
 
 ## Upgrades
 
-The necklace upgrade slots accept a Dimension Upgrade for access to same-line endpoints in other loaded dimensions, but it does not load chunks. The maintain target is entered directly; its button switches between item and slot counts, with slots as the default.
+The necklace upgrade slots accept a Dimension Upgrade for access to same-line endpoints in other loaded dimensions, but it does not load chunks. The maintain target is entered directly; its button switches between item and slot counts, with slots as the default. Slot-count maintenance fills existing matching slots by default without opening slots beyond the target; servers can disable this with `transfers.fillMaintainedItemSlots`.
 
 By default it works every 10 ticks and tries 1 line endpoint per cycle. The server can tune the interval, scanned slots, and endpoint attempts.
 

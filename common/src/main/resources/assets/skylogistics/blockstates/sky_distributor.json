@@ -1,1 +1,11 @@
-{"variants":{"":{"model":"skylogistics:block/sky_distributor"}}}
+{
+  "variants": {
+    "push_direction=all": {"model": "skylogistics:block/sky_distributor"},
+    "push_direction=down": {"model": "skylogistics:block/sky_distributor_oriented", "x": 180},
+    "push_direction=east": {"model": "skylogistics:block/sky_distributor_oriented", "x": 90, "y": 90},
+    "push_direction=north": {"model": "skylogistics:block/sky_distributor_oriented", "x": 90},
+    "push_direction=south": {"model": "skylogistics:block/sky_distributor_oriented", "x": 90, "y": 180},
+    "push_direction=up": {"model": "skylogistics:block/sky_distributor_oriented"},
+    "push_direction=west": {"model": "skylogistics:block/sky_distributor_oriented", "x": 90, "y": 270}
+  }
+}

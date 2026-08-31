@@ -13,7 +13,7 @@ Sky Logistics 的 **1.20.1 Forge 与 1.21.1 NeoForge** 版本可以按线路持�
 这里的“速率”只表示一次成功搬运最多提交多少资源，不改变：
 
 - 节点每 tick 的工作次数；
-- 速度升级提供的操作频率；
+- 槽位并行升级提供的操作频率；
 - `serverOpsPerTick`、`lineOpsPerTick` 等操作预算；
 - 项链工作间隔或一次工作尝试的目标数。
 
@@ -75,6 +75,8 @@ source = 100000
 | `source` | Ars Nouveau Source | 100,000 |
 
 所有数值都必须至少为 `1`。stage 配置低于初始值时不会降低初始上限，因为解锁过程始终取最高值。
+
+若 `stageRates` 为空，表示没有实装任何 stage 解锁条目；此时即使 `enabled = true` 且配置了 `initialRates`，进度限速也不生效。
 
 ## 安装与故障安全
 

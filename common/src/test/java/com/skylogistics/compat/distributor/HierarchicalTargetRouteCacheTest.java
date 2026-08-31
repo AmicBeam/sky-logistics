@@ -29,6 +29,15 @@ class HierarchicalTargetRouteCacheTest {
         assertArrayEquals(new int[] {0, 1}, sorted(candidates(routes, "iron", 2, 40)));
     }
 
+    @Test void maintainedPathCapsTheOriginalInsertionRouteBackoff() {
+        HierarchicalTargetRouteCache<String> routes = routes();
+        routes.setMaximumInterval(5);
+        routes.recordMiss("iron", 0, 1, 0);
+
+        assertEquals(0, candidates(routes, "iron", 1, 4).length);
+        assertEquals(0, candidates(routes, "iron", 1, 5)[0]);
+    }
+
     @Test void formerlySuccessfulMachineDemotesThroughTheSameProbeTiers() {
         HierarchicalTargetRouteCache<String> routes = routes();
         routes.configure(8, 1, 5, 20, 40, 2);

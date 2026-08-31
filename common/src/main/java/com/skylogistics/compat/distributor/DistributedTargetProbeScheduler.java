@@ -14,6 +14,22 @@ public final class DistributedTargetProbeScheduler<T> {
     private int[] cycleChecks = new int[0];
     private int[] nextLocalSlots = new int[0];
     private int targetCursor;
+    private int maximumInterval;
+    private long maximumIntervalStartedAt = Long.MIN_VALUE;
+
+    public void setMaximumInterval(int ticks) {
+        setMaximumInterval(ticks, Long.MIN_VALUE);
+    }
+
+    public void setMaximumInterval(int ticks, long gameTime) {
+        int normalized = Math.max(0, ticks);
+        if (normalized > 0 && (maximumInterval <= 0 || maximumInterval != normalized)) {
+            maximumIntervalStartedAt = gameTime;
+        } else if (normalized <= 0) {
+            maximumIntervalStartedAt = Long.MIN_VALUE;
+        }
+        maximumInterval = normalized;
+    }
 
     public void configure(int hotTicks, int warmTicks, int coolTicks, int fallbackTicks,
             int configuredMissesPerDemotion) {
@@ -24,7 +40,7 @@ public final class DistributedTargetProbeScheduler<T> {
         refreshMap(current, gameTime);
         int due = 0;
         for (int target = 0; target < current.targetCount(); target++) {
-            if (isDue(target, gameTime)) due++;
+            if (isAdaptiveDue(target, gameTime)) due++;
         }
         return due;
     }
@@ -34,9 +50,30 @@ public final class DistributedTargetProbeScheduler<T> {
         int targets = current.targetCount();
         for (int offset = 0; offset < targets; offset++) {
             int target = Math.floorMod(targetCursor + offset, targets);
-            if (isDue(target, gameTime)) return current.firstSlot(target) + nextLocalSlots[target];
+            if (isAdaptiveDue(target, gameTime)) return current.firstSlot(target) + nextLocalSlots[target];
         }
         return -1;
+    }
+
+    /**
+     * Records a non-definitive inventory observation or simulated extraction. A simulated item is
+     * only a candidate: some handlers expose input contents during simulation but reject the real
+     * extraction, and a source filter or receiving endpoint may reject it before execution.
+     * Advance provisionally so the machine cannot pin the scan to that slot; a successful
+     * execution promotes the slot back to hot through {@link #recordProbe}.
+     */
+    public void recordSimulatedProbe(DistributedSlotMap<T> current, int virtualSlot, long gameTime,
+            boolean available) {
+        if (!available) {
+            recordProbe(current, virtualSlot, gameTime, false);
+            return;
+        }
+        refreshMap(current, gameTime);
+        int target = current.targetIndex(virtualSlot);
+        if (target < 0) return;
+        int localSlot = virtualSlot - current.firstSlot(target);
+        targetCursor = (target + 1) % current.targetCount();
+        nextLocalSlots[target] = (localSlot + 1) % current.slotCount(target);
     }
 
     public void recordProbe(DistributedSlotMap<T> current, int virtualSlot, long gameTime, boolean available) {
@@ -123,11 +160,20 @@ public final class DistributedTargetProbeScheduler<T> {
         return -1;
     }
 
-    private boolean isDue(int target, long gameTime) {
+    private boolean isAdaptiveDue(int target, long gameTime) {
         long lastProbe = lastProbeTicks[target];
-        return lastProbe == Long.MIN_VALUE
-                ? gameTime >= initialProbeTicks[target]
-                : gameTime - lastProbe >= backoff.interval(tiers[target]);
+        if (lastProbe != Long.MIN_VALUE) return gameTime - lastProbe >= interval(tiers[target]);
+        long due = initialProbeTicks[target];
+        if (maximumInterval > 0 && maximumIntervalStartedAt != Long.MIN_VALUE) {
+            due = Math.min(due, maximumIntervalStartedAt
+                    + (long)target * maximumInterval / Math.max(1, lastProbeTicks.length));
+        }
+        return gameTime >= due;
+    }
+
+    private int interval(byte tier) {
+        int interval = backoff.interval(tier);
+        return maximumInterval > 0 ? Math.min(interval, maximumInterval) : interval;
     }
 
     private void refreshMap(DistributedSlotMap<T> current, long gameTime) {

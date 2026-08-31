@@ -21,4 +21,5 @@ class DistributorWorkDeferTest {
             @Override public boolean distributorScanPending() { return indexing; }
         };
     }
+
 }

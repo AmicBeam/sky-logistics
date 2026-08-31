@@ -18,13 +18,13 @@
     },
     {
       "type": "patchouli:text",
-      "title": "Speed Upgrade",
-      "text": "Speed Upgrades stack in one node upgrade slot. Each card adds one slot check per tick.$(br2)By default, up to 8 cards raise the base rate from 1 to 9 slots/t. The server can configure this limit."
+      "title": "Slot Parallel Upgrade",
+      "text": "Slot Parallel Upgrades stack in one node upgrade slot. Each card adds one slot check per tick.$(br2)By default, up to 8 cards raise the base rate from 1 to 9 slots/t. The server can configure this limit."
     },
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:speed_upgrade",
-      "text": "Speed Upgrades can be crafted at a crafting table."
+      "text": "Slot Parallel Upgrades can be crafted at a crafting table."
     },
     {
       "type": "patchouli:text",
@@ -42,7 +42,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The device whitelist defaults to mekanism_extras; an empty list disables this feature.$(br2)Tier 2 offering: put a Speed Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
+      "text": "The device whitelist defaults to mekanism_extras. When none of its configured mod IDs are installed, the upgrade is hidden from creative inventory and JEI, and its offering cannot start. An empty list also disables it.$(br2)Tier 2 offering: put a Slot Parallel Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
     },
     {
       "type": "patchouli:crafting",

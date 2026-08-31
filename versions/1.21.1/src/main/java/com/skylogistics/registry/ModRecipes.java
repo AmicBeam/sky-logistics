@@ -14,7 +14,6 @@ public final class ModRecipes {
             DeferredRegister.create(Registries.RECIPE_SERIALIZER, SkyLogistics.MOD_ID);
     public static final DeferredRegister<RecipeType<?>> TYPES =
             DeferredRegister.create(Registries.RECIPE_TYPE, SkyLogistics.MOD_ID);
-
     public static final DeferredHolder<RecipeType<?>, RecipeType<OfferingRecipe>> SKY_OFFERING_TYPE = TYPES.register("sky_offering",
             () -> new RecipeType<>() {
                 @Override

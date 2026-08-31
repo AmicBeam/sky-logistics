@@ -68,6 +68,14 @@ public class FilterListMenu extends AbstractContainerMenu {
         return !getFluidFilter(slot).isEmpty();
     }
 
+    public String getChemicalFilter(int slot) {
+        return FilterListItem.getChemicalFilter(filterStack(), slot);
+    }
+
+    public boolean isChemicalFilter(int slot) {
+        return !getChemicalFilter(slot).isEmpty();
+    }
+
     public void setGhostItem(int slot, ItemStack stack) {
         if (slot >= 0 && slot < FilterListItem.FILTER_SLOTS) {
             filters.setGhost(slot, stack);
@@ -223,7 +231,7 @@ public class FilterListMenu extends AbstractContainerMenu {
 
         private void addFirstEmpty(ItemStack stack) {
             for (int slot = 0; slot < FilterListItem.FILTER_SLOTS; slot++) {
-                if (getItem(slot).isEmpty()) {
+                if (getItem(slot).isEmpty() && FilterListItem.getChemicalFilter(stack(), slot).isEmpty()) {
                     setGhost(slot, stack);
                     return;
                 }

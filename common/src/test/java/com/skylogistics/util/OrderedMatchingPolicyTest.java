@@ -125,10 +125,15 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
-    void detentionQueueAppliesBackpressureAtCapacity() {
+    void detentionQueueAcceptsReplacementAtCapacity() {
         assertTrue(OrderedMatchingPolicy.canEnqueueDetention(0, 1));
-        assertFalse(OrderedMatchingPolicy.canEnqueueDetention(1, 1));
+        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(1, 1));
+        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(4, 4));
         assertFalse(OrderedMatchingPolicy.canEnqueueDetention(0, 0));
+        assertEquals(0, OrderedMatchingPolicy.detentionEvictionsForEnqueue(3, 4));
+        assertEquals(1, OrderedMatchingPolicy.detentionEvictionsForEnqueue(4, 4));
+        assertEquals(2, OrderedMatchingPolicy.detentionEvictionsForEnqueue(5, 4));
+        assertEquals(0, OrderedMatchingPolicy.detentionEvictionsForEnqueue(1, 0));
     }
 
     @Test

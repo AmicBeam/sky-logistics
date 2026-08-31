@@ -10,6 +10,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.network.SkyNetworkRegistry.CachedEndpoint;
+import com.skylogistics.util.MaintainedSlotPolicy;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -342,7 +343,8 @@ public final class SkyNecklaceTicker {
         int remainingBudget = budget - count.checks();
         if (remainingBudget <= 0) return;
         int current = exact ? count.items() : count.slots();
-        if (current < configured) {
+        if (MaintainedSlotPolicy.shouldInsert(exact, current, configured,
+                SkyLogisticsConfig.fillMaintainedItemSlots())) {
             tryInsert(player, necklace, lineId, itemWhitelist, gameTime, exact ? configured : 0, remainingBudget);
         } else if (current > configured) {
             tryExtract(player, necklace, lineId, itemWhitelist, gameTime, true,
@@ -384,7 +386,6 @@ public final class SkyNecklaceTicker {
         int scannedSlots = count.checks();
         int visitedEndpoints = 0;
         int endpointBudget = SkyLogisticsConfig.skyNecklaceTargetAttemptsPerWork();
-        int transferLimit = SkyLogisticsConfig.nodeItemTransferLimit();
         for (int sourceOffset = 0; sourceOffset < sources.size() && scannedSlots < slotScanBudget
                 && visitedEndpoints < endpointBudget; sourceOffset++) {
             int sourceIndex = (sourceCursor + sourceOffset) % sources.size();
@@ -396,6 +397,8 @@ public final class SkyNecklaceTicker {
                 continue;
             }
             BlockEntity sourceBlockEntity = sourceEndpoint.targetBlockEntity();
+            int transferLimit = (int) Math.min(Integer.MAX_VALUE,
+                    sourceEndpoint.node().limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
             if (sourceBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
                 DimensionInsertResult result = tryInsertFromDimensionSource(playerId, sourceEndpoint,
                         sourceBlockEntity, itemWhitelist, target, transferLimit, gameTime,
@@ -539,16 +542,19 @@ public final class SkyNecklaceTicker {
         while (visited < limit) {
             CachedEndpoint targetEndpoint = targets.get(Math.floorMod(startCursor + visited, targets.size()));
             visited++;
+            int progressionLimit = (int) Math.min(Integer.MAX_VALUE,
+                    targetEndpoint.node().limitItemTransfer(simulated.getCount()));
+            ItemStack limited = simulated.copyWithCount(progressionLimit);
             if (!targetEndpoint.canTryItems(gameTime)
                     || !targetEndpoint.node().isFaceRedstoneAllowed(targetEndpoint.direction())
                     || !targetEndpoint.node().isItemsEnabled(targetEndpoint.direction())
-                    || targetEndpoint.isItemFilterRejected(simulated, gameTime)
-                    || !targetEndpoint.node().allowsItem(targetEndpoint.direction(), simulated)) {
+                    || targetEndpoint.isItemFilterRejected(limited, gameTime)
+                    || !targetEndpoint.node().allowsItem(targetEndpoint.direction(), limited)) {
                 continue;
             }
             BlockEntity targetBlockEntity = targetEndpoint.targetBlockEntity();
             if (targetBlockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
-                if (tryMoveToDimensionTarget(source, slot, simulated, targetEndpoint, targetBlockEntity, gameTime)) {
+                if (tryMoveToDimensionTarget(source, slot, limited, targetEndpoint, targetBlockEntity, gameTime)) {
                     return -1;
                 }
                 continue;
@@ -557,8 +563,8 @@ public final class SkyNecklaceTicker {
             if (target == null) {
                 continue;
             }
-            ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, simulated.copy(), true);
-            int movable = simulated.getCount() - remainder.getCount();
+            ItemStack remainder = ItemHandlerHelper.insertItemStacked(target, limited.copy(), true);
+            int movable = limited.getCount() - remainder.getCount();
             if (movable <= 0) {
                 targetEndpoint.recordItemFailure(gameTime);
                 continue;
@@ -762,7 +768,9 @@ public final class SkyNecklaceTicker {
                 exactRemaining = exactItemLimit - matchingWhitelistItems;
                 if (exactRemaining <= 0) return stack;
             }
-            if (isInsertLimited() && matchingWhitelistSlots >= insertSlotLimit) {
+            if (isInsertLimited() && MaintainedSlotPolicy.blocksInsertionAtSlotLimit(
+                    SkyLogisticsConfig.fillMaintainedItemSlots(), matchingWhitelistSlots,
+                    insertSlotLimit, existing.isEmpty())) {
                 return stack;
             }
             if (existing.isEmpty()) {

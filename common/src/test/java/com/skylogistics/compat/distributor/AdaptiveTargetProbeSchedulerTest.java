@@ -5,6 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 class AdaptiveTargetProbeSchedulerTest {
+    @Test void maintainedDemandCapsFallbackProbeInterval() {
+        AdaptiveTargetProbeScheduler probes = new AdaptiveTargetProbeScheduler();
+        probes.configure(1, 5, 20, 40, 1);
+        probes.recordProbe(1, 0, 0, false);
+        probes.setMaximumInterval(5);
+        assertEquals(-1, probes.nextDueTarget(1, 4));
+        assertEquals(0, probes.nextDueTarget(1, 5));
+        probes.setMaximumInterval(0);
+        assertEquals(-1, probes.nextDueTarget(1, 20));
+        assertEquals(0, probes.nextDueTarget(1, 40));
+    }
+
+    @Test void maintainedDemandAlsoCapsInitialStaggerWindow() {
+        AdaptiveTargetProbeScheduler probes = new AdaptiveTargetProbeScheduler();
+        probes.configure(1, 5, 20, 40, 1);
+        probes.dueProbeCount(4, 0);
+        probes.setMaximumInterval(5, 0);
+
+        assertEquals(1, probes.dueProbeCount(4, 0));
+        assertEquals(4, probes.dueProbeCount(4, 4));
+    }
+
     @Test void topologyRemapPreservesTierAndNextFairMachine() {
         AdaptiveTargetProbeScheduler probes = new AdaptiveTargetProbeScheduler();
         probes.configure(1, 5, 20, 40, 3);

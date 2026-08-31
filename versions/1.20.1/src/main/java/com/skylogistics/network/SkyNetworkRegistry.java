@@ -8,6 +8,7 @@ import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
 import com.skylogistics.compat.arsnouveau.SourceHandlerBridge;
 import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
+import com.skylogistics.compat.distributor.BudgetedDistributorHandler;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.compat.mekanism.MekanismCompat;
@@ -15,6 +16,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.BudgetedScanCursors;
+import com.skylogistics.util.MaintainedResourcePolicy;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import com.skylogistics.util.SimplePipeType;
@@ -1593,11 +1595,13 @@ public final class SkyNetworkRegistry {
         private long energyRetryAfter;
         private long manaRetryAfter;
         private long sourceRetryAfter;
+        private boolean itemMaintainedBackoff;
+        private boolean fluidMaintainedBackoff;
+        private boolean chemicalMaintainedBackoff;
+        private boolean energyMaintainedBackoff;
+        private boolean manaMaintainedBackoff;
+        private boolean sourceMaintainedBackoff;
         private int itemFailures;
-        private int maintainedItemProbeSlot = -1;
-        private ItemStack maintainedItemProbeStack = ItemStack.EMPTY;
-        private int maintainedItemProbeCount;
-        private long maintainedItemProbeAfter = Long.MAX_VALUE;
         private int fluidFailures;
         private int chemicalFailures;
         private int energyFailures;
@@ -1826,7 +1830,7 @@ public final class SkyNetworkRegistry {
 
         public long nextItemWake(long gameTime) {
             long wake = nextCapabilityWake(CAPABILITY_ITEMS, itemRetryAfter, gameTime);
-            return hasMaintainedItemProbe() ? Math.min(wake, maintainedItemProbeAfter) : wake;
+            return wake;
         }
 
         public long nextFluidWake(long gameTime) {
@@ -1918,6 +1922,7 @@ public final class SkyNetworkRegistry {
             IItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
             if (direct != null) {
                 recordCapabilityPresent(CAPABILITY_ITEMS);
+                configureDistributorBackoff(direct, itemMaintainedBackoff);
                 return direct;
             }
             if (itemHandler != null && itemOptional.isPresent()) {
@@ -1943,6 +1948,7 @@ public final class SkyNetworkRegistry {
                 recordCapabilityPresent(CAPABILITY_ITEMS);
                 itemOptional.addListener(ignored -> clearItemCache());
             }
+            configureDistributorBackoff(itemHandler, itemMaintainedBackoff);
             return itemHandler;
         }
 
@@ -1953,6 +1959,7 @@ public final class SkyNetworkRegistry {
             IFluidHandler direct = node.getEndpointFluidHandler(direction, gameTime);
             if (direct != null) {
                 recordCapabilityPresent(CAPABILITY_FLUIDS);
+                configureDistributorBackoff(direct, fluidMaintainedBackoff);
                 return direct;
             }
             if (fluidHandler != null && fluidOptional.isPresent()) {
@@ -1978,6 +1985,7 @@ public final class SkyNetworkRegistry {
                 recordCapabilityPresent(CAPABILITY_FLUIDS);
                 fluidOptional.addListener(ignored -> clearFluidCache());
             }
+            configureDistributorBackoff(fluidHandler, fluidMaintainedBackoff);
             return fluidHandler;
         }
 
@@ -1989,6 +1997,7 @@ public final class SkyNetworkRegistry {
             ChemicalHandlerBridge direct = node.getEndpointChemicalHandler(direction, gameTime);
             if (direct != null) {
                 recordCapabilityPresent(CAPABILITY_CHEMICALS);
+                configureDistributorBackoff(direct, chemicalMaintainedBackoff);
                 return direct;
             }
             if (chemicalHandler != null && gameTime < chemicalHandlerValidateAt) {
@@ -2024,6 +2033,7 @@ public final class SkyNetworkRegistry {
             } else {
                 recordCapabilityPresent(CAPABILITY_CHEMICALS);
             }
+            configureDistributorBackoff(chemicalHandler, chemicalMaintainedBackoff);
             return chemicalHandler;
         }
 
@@ -2161,70 +2171,27 @@ public final class SkyNetworkRegistry {
         public void recordItemFailure(long gameTime) {
             itemFailures = Math.min(itemFailures + 1, MAX_TRANSFER_FAILURES);
             itemRetryAfter = gameTime + delay(itemFailures);
+            capItemRetryForMaintainedBackoff(gameTime, itemMaintainedBackoff);
         }
 
-        public void recordItemFailure(long gameTime, boolean maintainedProbeAvailable) {
-            recordItemFailure(gameTime);
-            if (maintainedProbeAvailable && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
-                itemRetryAfter = Math.min(itemRetryAfter,
-                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+        public void capItemRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            itemRetryAfter = MaintainedResourcePolicy.shortenedRetry(itemRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedItemHotSlotPolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+        }
+
+        public void setItemMaintainedBackoff(boolean active) { itemMaintainedBackoff = active; configureDistributorBackoff(itemHandler, active); }
+        public void setFluidMaintainedBackoff(boolean active) { fluidMaintainedBackoff = active; configureDistributorBackoff(fluidHandler, active); }
+        public void setChemicalMaintainedBackoff(boolean active) { chemicalMaintainedBackoff = active; configureDistributorBackoff(chemicalHandler, active); }
+        public void setEnergyMaintainedBackoff(boolean active) { energyMaintainedBackoff = active; }
+        public void setManaMaintainedBackoff(boolean active) { manaMaintainedBackoff = active; }
+        public void setSourceMaintainedBackoff(boolean active) { sourceMaintainedBackoff = active; }
+
+        private static void configureDistributorBackoff(Object handler, boolean active) {
+            if (handler instanceof BudgetedDistributorHandler distributor) {
+                distributor.setMaintainedExtractionPollTicks(active
+                        ? SkyLogisticsConfig.maintainedItemHotSlotPollTicks() : 0);
             }
-        }
-
-        public boolean canRecordMaintainedItemProbe() {
-            return SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()
-                    && node.getItemSlotLimit(direction) > NetworkEndpointBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED;
-        }
-
-        public void recordMaintainedItemProbe(int slot, ItemStack stack, int observedCount, long gameTime) {
-            if (!canRecordMaintainedItemProbe() || slot < 0 || stack.isEmpty()) return;
-            maintainedItemProbeSlot = slot;
-            maintainedItemProbeStack = stack.copy();
-            maintainedItemProbeStack.setCount(1);
-            maintainedItemProbeCount = Math.max(0, observedCount);
-            maintainedItemProbeAfter = gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks();
-        }
-
-        public boolean hasMaintainedItemProbe() {
-            return SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()
-                    && maintainedItemProbeSlot >= 0 && !maintainedItemProbeStack.isEmpty();
-        }
-
-        public boolean isMaintainedItemProbeDue(long gameTime) {
-            return hasMaintainedItemProbe() && gameTime >= maintainedItemProbeAfter;
-        }
-
-        public boolean probeMaintainedItemChanged(long gameTime) {
-            if (!isMaintainedItemProbeDue(gameTime)) return false;
-            maintainedItemProbeAfter = gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks();
-            IItemHandler handler = maintainedItemProbeHandler(gameTime);
-            if (handler == null || maintainedItemProbeSlot >= handler.getSlots()) {
-                clearMaintainedItemProbe();
-                return false;
-            }
-            ItemStack observed = handler.getStackInSlot(maintainedItemProbeSlot);
-            int observedCount = observed.isEmpty() ? 0 : observed.getCount();
-            boolean changed = observedCount != maintainedItemProbeCount
-                    || !observed.isEmpty() && !ItemStack.isSameItemSameTags(observed, maintainedItemProbeStack);
-            if (changed) {
-                itemFailures = 0;
-                itemRetryAfter = 0L;
-                clearRejectedItemAccepts();
-                clearMaintainedItemProbe();
-            }
-            return changed;
-        }
-
-        private IItemHandler maintainedItemProbeHandler(long gameTime) {
-            IItemHandler direct = node.getEndpointItemHandler(direction, gameTime);
-            return direct != null ? direct : itemHandler;
-        }
-
-        private void clearMaintainedItemProbe() {
-            maintainedItemProbeSlot = -1;
-            maintainedItemProbeStack = ItemStack.EMPTY;
-            maintainedItemProbeCount = 0;
-            maintainedItemProbeAfter = Long.MAX_VALUE;
         }
 
         public void deferItemsUntil(long gameTime) {
@@ -2257,6 +2224,10 @@ public final class SkyNetworkRegistry {
             rejected.setCount(1);
             rejectedItems[rejectedItemCursor] = rejected;
             rejectedItemUntil[rejectedItemCursor] = gameTime + 20L;
+            if (itemMaintainedBackoff && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
+                rejectedItemUntil[rejectedItemCursor] = Math.min(rejectedItemUntil[rejectedItemCursor],
+                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
             rejectedItemCursor = (rejectedItemCursor + 1) % rejectedItems.length;
         }
 
@@ -2391,6 +2362,10 @@ public final class SkyNetworkRegistry {
             int failures = Math.min(rejectedItemAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
             rejectedItemAcceptFailures[index] = failures;
             rejectedItemAcceptUntil[index] = gameTime + delay(failures);
+            if (itemMaintainedBackoff && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
+                rejectedItemAcceptUntil[index] = Math.min(rejectedItemAcceptUntil[index],
+                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
         }
 
         public int itemTargetScanStart(ItemStackKey key, int targetCount) {
@@ -2557,6 +2532,13 @@ public final class SkyNetworkRegistry {
         public void recordFluidFailure(long gameTime) {
             fluidFailures = Math.min(fluidFailures + 1, MAX_TRANSFER_FAILURES);
             fluidRetryAfter = gameTime + delay(fluidFailures);
+            capFluidRetryForMaintainedBackoff(gameTime, fluidMaintainedBackoff);
+        }
+
+        public void capFluidRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            fluidRetryAfter = MaintainedResourcePolicy.shortenedRetry(fluidRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedFluidPolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
         }
 
         public boolean isFluidAcceptRejected(FluidStackKey key, long gameTime) {
@@ -2589,6 +2571,10 @@ public final class SkyNetworkRegistry {
             int failures = Math.min(rejectedFluidAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
             rejectedFluidAcceptFailures[index] = failures;
             rejectedFluidAcceptUntil[index] = gameTime + delay(failures);
+            if (fluidMaintainedBackoff && SkyLogisticsConfig.enableMaintainedFluidPolling()) {
+                rejectedFluidAcceptUntil[index] = Math.min(rejectedFluidAcceptUntil[index],
+                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
         }
 
         public int fluidTargetScanStart(FluidStackKey key, int targetCount) {
@@ -2743,6 +2729,13 @@ public final class SkyNetworkRegistry {
         public void recordChemicalFailure(long gameTime) {
             chemicalFailures = Math.min(chemicalFailures + 1, MAX_TRANSFER_FAILURES);
             chemicalRetryAfter = gameTime + delay(chemicalFailures);
+            capChemicalRetryForMaintainedBackoff(gameTime, chemicalMaintainedBackoff);
+        }
+
+        public void capChemicalRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            chemicalRetryAfter = MaintainedResourcePolicy.shortenedRetry(chemicalRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedChemicalPolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
         }
 
         public boolean isChemicalAcceptRejected(ChemicalStackView key, long gameTime) {
@@ -2769,6 +2762,10 @@ public final class SkyNetworkRegistry {
             int failures = Math.min(rejectedChemicalAcceptFailures[index] + 1, MAX_TRANSFER_FAILURES);
             rejectedChemicalAcceptFailures[index] = failures;
             rejectedChemicalAcceptUntil[index] = gameTime + delay(failures);
+            if (chemicalMaintainedBackoff && SkyLogisticsConfig.enableMaintainedChemicalPolling()) {
+                rejectedChemicalAcceptUntil[index] = Math.min(rejectedChemicalAcceptUntil[index],
+                        gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
         }
 
         public int chemicalTargetScanStart(ChemicalStackView key, int targetCount) {
@@ -2918,6 +2915,13 @@ public final class SkyNetworkRegistry {
         public void recordEnergyFailure(long gameTime) {
             energyFailures = Math.min(energyFailures + 1, MAX_TRANSFER_FAILURES);
             energyRetryAfter = gameTime + delay(energyFailures);
+            capEnergyRetryForMaintainedBackoff(gameTime, energyMaintainedBackoff);
+        }
+
+        public void capEnergyRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            energyRetryAfter = MaintainedResourcePolicy.shortenedRetry(energyRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedEnergyPolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
         }
 
         public void recordManaSuccess() {
@@ -2930,6 +2934,13 @@ public final class SkyNetworkRegistry {
         public void recordManaFailure(long gameTime) {
             manaFailures = Math.min(manaFailures + 1, MAX_TRANSFER_FAILURES);
             manaRetryAfter = gameTime + delay(manaFailures);
+            capManaRetryForMaintainedBackoff(gameTime, manaMaintainedBackoff);
+        }
+
+        public void capManaRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            manaRetryAfter = MaintainedResourcePolicy.shortenedRetry(manaRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedManaPolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
         }
 
         public void recordSourceSuccess() {
@@ -2942,13 +2953,19 @@ public final class SkyNetworkRegistry {
         public void recordSourceFailure(long gameTime) {
             sourceFailures = Math.min(sourceFailures + 1, MAX_TRANSFER_FAILURES);
             sourceRetryAfter = gameTime + delay(sourceFailures);
+            capSourceRetryForMaintainedBackoff(gameTime, sourceMaintainedBackoff);
+        }
+
+        public void capSourceRetryForMaintainedBackoff(long gameTime, boolean demand) {
+            sourceRetryAfter = MaintainedResourcePolicy.shortenedRetry(sourceRetryAfter, gameTime,
+                    SkyLogisticsConfig.enableMaintainedSourcePolling(), demand,
+                    SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
         }
 
         private void clearItemCache() {
             recordCapabilityPresent(CAPABILITY_ITEMS);
             itemHandler = null;
             itemOptional = LazyOptional.empty();
-            clearMaintainedItemProbe();
             clearItemSlotCaches();
             clearRejectedItemAccepts();
             if (itemTargetScanCursors != null) itemTargetScanCursors.clear();
@@ -3130,6 +3147,9 @@ public final class SkyNetworkRegistry {
         }
 
         private void recordEmptyItemSlot(int slot, long gameTime, long until) {
+            if (itemMaintainedBackoff && SkyLogisticsConfig.enableMaintainedItemHotSlotPolling()) {
+                until = Math.min(until, gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
             int index = findEmptyItemSlot(slot);
             if (index < 0) {
                 index = firstFreeOrExpiredEmptyItemSlot(gameTime);
@@ -3201,6 +3221,9 @@ public final class SkyNetworkRegistry {
         }
 
         private void recordEmptyFluidTank(int tank, long gameTime, long until) {
+            if (fluidMaintainedBackoff && SkyLogisticsConfig.enableMaintainedFluidPolling()) {
+                until = Math.min(until, gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
             int index = findEmptyFluidTank(tank);
             if (index < 0) {
                 index = firstFreeOrExpiredEmptyFluidTank(gameTime);
@@ -3268,6 +3291,9 @@ public final class SkyNetworkRegistry {
         }
 
         private void recordEmptyChemicalTank(int tank, long gameTime, long until) {
+            if (chemicalMaintainedBackoff && SkyLogisticsConfig.enableMaintainedChemicalPolling()) {
+                until = Math.min(until, gameTime + SkyLogisticsConfig.maintainedItemHotSlotPollTicks());
+            }
             int index = findEmptyChemicalTank(tank);
             if (index < 0) {
                 index = firstFreeOrExpiredEmptyChemicalTank(gameTime);

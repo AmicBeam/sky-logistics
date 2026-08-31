@@ -4,6 +4,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.compat.ae2.AppliedEnergisticsCompat;
 import com.skylogistics.compat.beyonddimensions.BeyondDimensionsCompat;
 import com.skylogistics.compat.refinedstorage.RefinedStorageCompat;
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModRecipes;
@@ -47,7 +48,9 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
             return;
         }
         List<RecipeHolder<OfferingRecipe>> recipes = minecraft.level.getRecipeManager()
-                .getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get());
+                .getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
+                .filter(recipe -> recipe.value().isEnabled())
+                .toList();
         registration.addRecipes(SKY_OFFERING, recipes);
     }
 
@@ -80,6 +83,9 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
         }
         if (!BeyondDimensionsCompat.isLoaded()) {
             hidden.add(ModItems.SKY_DIMENSION_INTERFACE.get().getDefaultInstance());
+        }
+        if (!SkyLogisticsConfig.forceExtractionUpgradeAvailable()) {
+            hidden.add(ModItems.FORCE_EXTRACTION_UPGRADE.get().getDefaultInstance());
         }
         if (!hidden.isEmpty()) {
             ingredientManager.removeIngredientsAtRuntime(VanillaTypes.ITEM_STACK, hidden);

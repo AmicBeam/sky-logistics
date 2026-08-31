@@ -129,6 +129,8 @@ public abstract class NetworkEndpointBlockEntity extends BlockEntity {
     public boolean consumeRedstonePulse(Direction direction) { return false; }
     public int getPriority(Direction direction) { return 0; }
     public int getItemSlotLimit(Direction direction) { return ITEM_SLOT_LIMIT_UNLIMITED; }
+    public long getMaintainAmount(Direction direction) { return getItemSlotLimit(direction); }
+    public boolean isMaintainByAmount(Direction direction) { return false; }
     public int getOperationRate() { return 1; }
     public boolean hasDimensionUpgrade() { return false; }
     public UUID getTransferOwnerId() {

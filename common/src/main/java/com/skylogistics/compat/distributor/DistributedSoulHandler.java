@@ -2,10 +2,13 @@ package com.skylogistics.compat.distributor;
 
 import com.skylogistics.compat.industrialforegoingsouls.SoulHandlerBridge;
 
-public final class DistributedSoulHandler implements SoulHandlerBridge, BudgetedDistributorHandler {
+public final class DistributedSoulHandler implements SoulHandlerBridge, BudgetedDistributorHandler,
+        ConstrainedDistributorAmountHandler {
     private final DistributedHandlerLookup<SoulHandlerBridge> lookup;
     private int insertCursor;
     private int extractCursor;
+    private ScalarInsertPlan maintainedInsertPlan;
+    private boolean maintainedInsertPlanAwaitingExecution;
 
     public DistributedSoulHandler(DistributedHandlerLookup<SoulHandlerBridge> lookup) {
         this.lookup = lookup;
@@ -39,7 +42,72 @@ public final class DistributedSoulHandler implements SoulHandlerBridge, Budgeted
 
     @Override
     public int fill(int amount, boolean simulate) {
+        if (!simulate && matchingMaintainedPlan(amount)) return executeMaintainedPlan(amount);
         return move(amount, simulate, true);
+    }
+
+    @Override
+    public long planMaintainedInsertion(long amount, boolean maintainByAmount, long maintainTarget,
+            boolean fillMaintainedUnits) {
+        maintainedInsertPlan = buildMaintainedPlan((int)Math.min(Integer.MAX_VALUE, Math.max(0L, amount)),
+                maintainByAmount, maintainTarget, fillMaintainedUnits);
+        maintainedInsertPlanAwaitingExecution = true;
+        return maintainedInsertPlan.accepted;
+    }
+
+    private ScalarInsertPlan buildMaintainedPlan(int amount, boolean maintainByAmount, long maintainTarget,
+            boolean fillMaintainedUnits) {
+        int targets = lookup.size();
+        if (amount <= 0 || targets <= 0) return new ScalarInsertPlan(lookup.gameTime(), amount, new int[0], new long[0], 0);
+        int start = Math.floorMod(insertCursor, targets);
+        int[] targetIndices = new int[targets];
+        long[] stored = new long[targets], capacities = new long[targets], refill = new long[targets];
+        int[] occupied = new int[targets];
+        for (int offset = 0; offset < targets; offset++) {
+            if (!lookup.takeOperation()) return new ScalarInsertPlan(lookup.gameTime(), amount, new int[0], new long[0], 0);
+            int target = (start + offset) % targets;
+            targetIndices[offset] = target;
+            SoulHandlerBridge handler = lookup.handler(target);
+            if (handler == null) continue;
+            for (int tank = 0; tank < handler.getSoulTanks(); tank++) {
+                int current = Math.max(0, handler.getSoulInTank(tank));
+                stored[offset] += current;
+                if (current > 0) {
+                    occupied[offset]++;
+                    refill[offset] += Math.max(0, handler.getTankCapacity(tank) - current);
+                }
+            }
+            capacities[offset] = Math.max(0, handler.fill(amount, true));
+        }
+        long[] assignments = DistributorResourceMaintenancePolicy.assignments(amount, stored, capacities,
+                occupied, refill, maintainByAmount, maintainTarget, fillMaintainedUnits,
+                lookup.sequentialInsertion());
+        long accepted = 0L;
+        int last = -1;
+        for (int i = 0; i < assignments.length; i++) if (assignments[i] > 0L) {
+            accepted += assignments[i]; last = targetIndices[i];
+        }
+        insertCursor = last >= 0 ? last + 1 : start + 1;
+        return new ScalarInsertPlan(lookup.gameTime(), amount, targetIndices, assignments,
+                (int)Math.min(Integer.MAX_VALUE, accepted));
+    }
+
+    private boolean matchingMaintainedPlan(int amount) {
+        return maintainedInsertPlanAwaitingExecution && maintainedInsertPlan != null
+                && maintainedInsertPlan.tick == lookup.gameTime() && amount <= maintainedInsertPlan.accepted;
+    }
+
+    private int executeMaintainedPlan(int amount) {
+        int moved = 0;
+        for (int i = 0; i < maintainedInsertPlan.assignments.length && moved < amount; i++) {
+            long planned = maintainedInsertPlan.assignments[i];
+            if (planned <= 0L) continue;
+            SoulHandlerBridge handler = lookup.handler(maintainedInsertPlan.targets[i]);
+            if (handler != null) moved += handler.fill((int)Math.min(planned, amount - moved), false);
+        }
+        maintainedInsertPlanAwaitingExecution = false;
+        maintainedInsertPlan = null;
+        return Math.min(amount, moved);
     }
 
     @Override
@@ -84,4 +152,6 @@ public final class DistributedSoulHandler implements SoulHandlerBridge, Budgeted
 
     private record TankTarget(SoulHandlerBridge handler, int tank) {
     }
+
+    private record ScalarInsertPlan(long tick, int requested, int[] targets, long[] assignments, int accepted) {}
 }

@@ -12,12 +12,10 @@ import com.skylogistics.item.SkyNodeBlockItem;
 import com.skylogistics.item.SkyNecklaceItem;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.item.UpgradeCardItem;
-import java.util.Optional;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -61,7 +59,8 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
-    public static final Optional<DeferredHolder<Item, Item>> SKY_WRENCH = registerSkyWrench();
+    public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
+            () -> new Item(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",
             () -> new FilterListItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, TagFilterListItem> TAG_FILTER_LIST = ITEMS.register("tag_filter_list",
@@ -97,11 +96,4 @@ public final class ModItems {
         ITEMS.register(bus);
     }
 
-    private static Optional<DeferredHolder<Item, Item>> registerSkyWrench() {
-        if (ModList.get().isLoaded("ae2") || ModList.get().isLoaded("refinedstorage")) {
-            return Optional.empty();
-        }
-        return Optional.of(ITEMS.register("sky_wrench",
-                () -> new Item(new Item.Properties().stacksTo(1))));
-    }
 }

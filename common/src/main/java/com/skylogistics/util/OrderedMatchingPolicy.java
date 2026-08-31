@@ -67,7 +67,11 @@ public final class OrderedMatchingPolicy {
     }
 
     public static boolean canEnqueueDetention(int queueSize, int capacity) {
-        return capacity > 0 && queueSize >= 0 && queueSize < capacity;
+        return capacity > 0 && queueSize >= 0;
+    }
+
+    public static int detentionEvictionsForEnqueue(int queueSize, int capacity) {
+        return canEnqueueDetention(queueSize, capacity) ? Math.max(0, queueSize - capacity + 1) : 0;
     }
 
     public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, int detentionCount,

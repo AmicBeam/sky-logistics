@@ -7,10 +7,12 @@ import com.skylogistics.compat.astages.StageTransferRates;
 import com.skylogistics.compat.astages.TransferRates;
 import com.skylogistics.compat.astages.TransferResource;
 import com.skylogistics.compat.advancements.AdvancementDisplayEntry;
+import com.skylogistics.util.ModIdAvailability;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class SkyLogisticsConfig {
@@ -345,8 +347,18 @@ public final class SkyLogisticsConfig {
         return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
     }
 
+    public static boolean skyWrenchAvailable() {
+        return SERVER_SPEC.isLoaded() && (!SERVER.hideSkyWrenchWhenAe2OrRefinedStorageLoaded.get()
+                || (!ModList.get().isLoaded("ae2") && !ModList.get().isLoaded("refinedstorage")));
+    }
+
     public static boolean forceExtractionDeviceModAllowed(String modId) {
         return SERVER.forceExtractionDeviceModIdWhitelist.get().contains(modId);
+    }
+
+    public static boolean forceExtractionUpgradeAvailable() {
+        return SERVER_SPEC.isLoaded() && ModIdAvailability.anyLoaded(
+                SERVER.forceExtractionDeviceModIdWhitelist.get(), ModList.get()::isLoaded);
     }
 
     private static boolean validModId(Object value) {
@@ -433,6 +445,10 @@ public final class SkyLogisticsConfig {
         return SERVER.targetItemInsertionCursorCount.get();
     }
 
+    public static boolean fillMaintainedItemSlots() {
+        return SERVER.fillMaintainedItemSlots.get();
+    }
+
     public static int rejectedAcceptCacheSize() {
         return SERVER.rejectedAcceptCacheSize.get();
     }
@@ -444,6 +460,13 @@ public final class SkyLogisticsConfig {
     public static boolean enableMaintainedItemHotSlotPolling() {
         return SERVER.enableMaintainedItemHotSlotPolling.get();
     }
+
+    public static boolean enableMaintainedFluidPolling() { return SERVER.enableMaintainedFluidPolling.get(); }
+    public static boolean enableMaintainedChemicalPolling() { return SERVER.enableMaintainedChemicalPolling.get(); }
+    public static boolean enableMaintainedEnergyPolling() { return SERVER.enableMaintainedEnergyPolling.get(); }
+    public static boolean enableMaintainedManaPolling() { return SERVER.enableMaintainedManaPolling.get(); }
+    public static boolean enableMaintainedSourcePolling() { return SERVER.enableMaintainedSourcePolling.get(); }
+    public static boolean enableMaintainedSoulPolling() { return SERVER.enableMaintainedSoulPolling.get(); }
 
     public static int maintainedItemHotSlotPollTicks() {
         return SERVER.maintainedItemHotSlotPollTicks.get();
@@ -507,6 +530,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue externalTankScansPerEndpoint;
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
+        public final ModConfigSpec.BooleanValue fillMaintainedItemSlots;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ModConfigSpec.IntValue targetItemInsertionCursorCount;
         public final ModConfigSpec.IntValue rejectedAcceptCacheSize;
@@ -515,6 +539,12 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue transferRetryThirdTicks;
         public final ModConfigSpec.IntValue transferRetryMaxTicks;
         public final ModConfigSpec.BooleanValue enableMaintainedItemHotSlotPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedFluidPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedChemicalPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedEnergyPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedManaPolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedSourcePolling;
+        public final ModConfigSpec.BooleanValue enableMaintainedSoulPolling;
         public final ModConfigSpec.IntValue maintainedItemHotSlotPollTicks;
         public final ModConfigSpec.IntValue skyNecklaceTickInterval;
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
@@ -525,6 +555,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ModConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
+        public final ModConfigSpec.BooleanValue hideSkyWrenchWhenAe2OrRefinedStorageLoaded;
         public final ModConfigSpec.ConfigValue<List<? extends Object>> forceExtractionDeviceModIdWhitelist;
         public final ModConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
@@ -693,8 +724,8 @@ public final class SkyLogisticsConfig {
                     .defineInRange("simplePipeMaxConnectedBlocks", 1024, 16, 65_536);
             builder.pop();
             maxSpeedUpgradesPerNode = builder
-                    .comment("Maximum speed upgrade cards that stack in one node upgrade slot. Each card adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
-                            "单个节点升级槽内可堆叠的速度升级卡上限；基础速率为每 tick 1 槽，每张卡额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
+                    .comment("Maximum Slot Parallel Upgrades that stack in one node upgrade slot. Each upgrade adds one scanned slot per tick to the base rate of one. It is recommended to set preferredItemSlotCacheSize to at least this value plus one.",
+                            "单个节点升级槽内可堆叠的槽位并行升级上限；基础速率为每 tick 1 槽，每个升级额外增加 1 槽。建议 preferredItemSlotCacheSize 的配置值至少为此升级数加 1。")
                     .defineInRange("maxSpeedUpgradesPerNode", 8, 1, 64);
             skyContainerTransferLimit = builder
                     .comment("Maximum amount moved per direct transfer operation between Sky Logistics vault containers.",
@@ -725,9 +756,13 @@ public final class SkyLogisticsConfig {
                     .defineInRange("sourceSearchAttemptsPerEndpoint", 64, 1, 1_000_000);
             builder.pop();
             maxItemSlotLimit = builder
-                    .comment("Maximum item slot keep limit configurable on a logistics face. Face value 0 still means unlimited.",
-                            "物流面的物品留槽限制可配置的最大值；面配置值 0 仍表示无限制。")
-                    .defineInRange("maxItemSlotLimit", 36, 1, 999);
+                    .comment("Maximum maintained storage-unit count configurable on a logistics face. Face value 0 still means unlimited.",
+                            "物流面可配置的维持存储单元数上限；面配置值 0 仍表示无限制。")
+                    .defineInRange("maxItemSlotLimit", 256, 1, 999);
+            fillMaintainedItemSlots = builder
+                    .comment("Whether slot-count maintenance keeps filling occupied storage units after the configured unit count has been reached. Native amount maintenance is unaffected.",
+                            "按槽数维持任意资源时，达到配置存储单元数后是否继续填满已有匹配单元。按原生数量维持不受影响。")
+                    .define("fillMaintainedItemSlots", true);
             builder.comment("Third-party storage and resource transfer integrations.",
                             "第三方存储与资源传输联动。")
                     .push("integrations");
@@ -739,6 +774,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether transfers treat a Sophisticated Storage stack-upgraded slot as one transportable slot.",
                             "传输时是否将 Sophisticated Storage 堆叠升级后的槽位视为一个可搬运槽位。")
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
+            hideSkyWrenchWhenAe2OrRefinedStorageLoaded = builder
+                    .comment("Whether the Celestial Wrench is hidden when AE2 or Refined Storage is installed. The item remains registered for world compatibility.",
+                            "安装 AE2 或精致存储时是否隐藏天穹扳手。物品会保持注册，以兼容已有世界。")
+                    .define("hideSkyWrenchWhenAe2OrRefinedStorageLoaded", true);
             builder.push("forceExtractionUpgrade");
             forceExtractionDeviceModIdWhitelist = builder
                     .comment("Device block mod IDs allowed for force extraction. An empty list disables the upgrade; only matching mod devices enable its behavior.",
@@ -851,12 +890,18 @@ public final class SkyLogisticsConfig {
                             "连续第四次及后续传输尝试失败后的等待 tick 数。")
                     .defineInRange("transferRetryMaxTicks", 40, 1, 1200);
             enableMaintainedItemHotSlotPolling = builder
-                    .comment("Whether item faces with a non-zero maintain limit probe their last successful transfer slot between full retry scans.",
-                            "物品面维持值非 0 时，是否在完整退避扫描之间探测上次成功传输的槽位。")
+                    .comment("Whether maintained item paths cap every related retry to the configured maintained backoff interval. The legacy key name is retained for compatibility.",
+                            "物品路径经过非零维持值时，是否把相关退避限制到配置的维持退避时长；字段名为兼容旧配置保留。")
                     .define("enableMaintainedItemHotSlotPolling", true);
+            enableMaintainedFluidPolling = builder.comment("Enable the maintained fluid retry cap.", "启用流体维持路径退避上限。").define("enableMaintainedFluidPolling", true);
+            enableMaintainedChemicalPolling = builder.comment("Enable the maintained chemical retry cap.", "启用化学品维持路径退避上限。").define("enableMaintainedChemicalPolling", true);
+            enableMaintainedEnergyPolling = builder.comment("Enable the maintained FE retry cap.", "启用 FE 维持路径退避上限。").define("enableMaintainedEnergyPolling", true);
+            enableMaintainedManaPolling = builder.comment("Enable the maintained Mana retry cap.", "启用 Mana 维持路径退避上限。").define("enableMaintainedManaPolling", true);
+            enableMaintainedSourcePolling = builder.comment("Enable the maintained Source retry cap.", "启用魔源维持路径退避上限。").define("enableMaintainedSourcePolling", true);
+            enableMaintainedSoulPolling = builder.comment("Enable the maintained Souls retry cap.", "启用 Souls 维持路径退避上限。").define("enableMaintainedSoulPolling", true);
             maintainedItemHotSlotPollTicks = builder
-                    .comment("Ticks between low-cost probes of the last successful slot for maintained item input and output faces. The normal transfer retry remains the full-scan fallback.",
-                            "物品输入与输出维持面低成本探测上次成功槽位的间隔 tick；普通传输退避仍作为完整扫描兜底。")
+                    .comment("Maximum retry interval for maintained resource paths. Every related backoff uses min(original, this value). The legacy key name is retained for compatibility.",
+                            "全资源维持路径的最大退避 tick；所有相关退避使用 min(原值, 本值)，字段名为兼容旧配置保留。")
                     .defineInRange("maintainedItemHotSlotPollTicks", 5, 1, 1200);
             builder.pop();
             builder.pop();
@@ -985,13 +1030,13 @@ public final class SkyLogisticsConfig {
                             "逐槽模式是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
                     .define("wrapTargets", true);
             continueAfterTargetFailure = builder
-                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when queue capacity is available.",
-                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在队列有容量时扣押被跳过的分配。")
+                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when detention is enabled.",
+                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在启用扣押时保留被跳过的分配。")
                     .define("continueAfterTargetFailure", true);
             perItemDetentionQueueLength = builder
-                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. Zero disables detention and prevents passing a failed target.",
-                            "逐个模式每个抽取面最多保留的单物品失败分配数。0 表示禁用扣押，并阻止越过失败目标。")
-                    .defineInRange("perItemDetentionQueueLength", 1, 0, 1024);
+                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. A full queue discards its oldest assignment before retaining the new failure. Zero disables detention and prevents passing a failed target.",
+                            "逐个模式每个抽取面最多保留的单物品失败分配数。队列满时先丢弃最早的扣押项，再保留新的失败分配。0 表示禁用扣押，并阻止越过失败目标。")
+                    .defineInRange("perItemDetentionQueueLength", 4, 0, 1024);
             builder.pop();
         }
     }

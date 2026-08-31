@@ -123,6 +123,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         }
         return skyOfferingRecipes(serverLevel).stream()
                 .map(RecipeHolder::value)
+                .filter(OfferingRecipe::isEnabled)
                 .anyMatch(recipe -> recipe.main().ingredient().test(stack));
     }
 
@@ -210,6 +211,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         ItemStack mainStack = getDisplayedItem();
         List<OfferingRecipe> recipes = skyOfferingRecipes(level).stream()
                 .map(RecipeHolder::value)
+                .filter(OfferingRecipe::isEnabled)
                 .toList();
         if (recipes.isEmpty()) {
             return Component.translatable("message.skylogistics.offering_altar.no_recipes");
@@ -295,7 +297,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
     private void tickActiveRecipe(ServerLevel level) {
         OfferingRecipe recipe = activeRecipe(level);
-        if (recipe == null || shouldCheckActiveStructure()
+        if (recipe == null || !recipe.isEnabled() || shouldCheckActiveStructure()
                 && (worldPosition.getY() < SkyLogisticsConfig.skyRitualMinY()
                 || getStructureTier() < recipe.requiredTier())) {
             wakeForRecipeCheck();
