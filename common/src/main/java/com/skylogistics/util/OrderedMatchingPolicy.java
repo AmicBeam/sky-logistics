@@ -45,12 +45,11 @@ public final class OrderedMatchingPolicy {
 
     public static int batchTargetCount(int itemCount, int targetCount) {
         if (itemCount <= 0 || targetCount <= 0) return 0;
-        return itemCount > targetCount ? targetCount : 1;
+        return Math.min(itemCount, targetCount);
     }
 
     public static int batchAmount(int itemCount, int targetCount, int targetOffset) {
         if (itemCount <= 0 || targetCount <= 0 || targetOffset < 0 || targetOffset >= targetCount) return 0;
-        if (itemCount <= targetCount) return targetOffset == 0 ? 1 : 0;
         int base = itemCount / targetCount;
         int remainder = itemCount % targetCount;
         return base + (targetOffset < remainder ? 1 : 0);

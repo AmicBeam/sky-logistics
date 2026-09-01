@@ -91,12 +91,12 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
-    void perItemModeMovesOnlyOneItemUntilBatchThresholdIsExceeded() {
-        assertEquals(1, OrderedMatchingPolicy.batchTargetCount(2, 4));
+    void perItemModeBatchesAcrossAsManyAcceptingTargetsAsItems() {
+        assertEquals(2, OrderedMatchingPolicy.batchTargetCount(2, 4));
         assertEquals(1, OrderedMatchingPolicy.batchAmount(2, 4, 0));
-        assertEquals(0, OrderedMatchingPolicy.batchAmount(2, 4, 1));
+        assertEquals(1, OrderedMatchingPolicy.batchAmount(2, 4, 1));
         assertEquals(0, OrderedMatchingPolicy.batchAmount(2, 4, 2));
-        assertEquals(1, OrderedMatchingPolicy.batchTargetCount(4, 4));
+        assertEquals(4, OrderedMatchingPolicy.batchTargetCount(4, 4));
         assertEquals(4, OrderedMatchingPolicy.batchTargetCount(5, 4));
         assertEquals(2, OrderedMatchingPolicy.batchAmount(5, 4, 0));
         assertEquals(1, OrderedMatchingPolicy.batchAmount(5, 4, 1));
