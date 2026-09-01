@@ -715,8 +715,8 @@ public final class SkyLogisticsConfig {
                             "天穹物流每个服务器 tick 可处理的端点、槽位、储罐和能量传输操作总上限。")
                     .defineInRange("serverOpsPerTick", 32_768, 1, 1_000_000);
             lineOpsPerTick = builder
-                    .comment("Maximum endpoint, slot, tank, and energy transfer operations one logistics line may consume per server tick.",
-                            "单条物流线路每个服务器 tick 可消耗的端点、槽位、储罐和能量传输操作上限。")
+                    .comment("Maximum endpoint, slot, tank, energy, and distributor target probes one logistics line may consume per server tick.",
+                            "单条物流线路每个服务器 tick 可消耗的端点、槽位、储罐、能量和分配器内部目标探测上限。")
                     .defineInRange("lineOpsPerTick", 1_024, 1, 1_000_000);
             endpointTargetAttempts = builder
                     .comment("Maximum receiving endpoints one source endpoint may try after failures for one transfer candidate. A successful transfer still stops immediately.",

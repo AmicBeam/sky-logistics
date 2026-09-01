@@ -22,6 +22,7 @@ import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorChemicalHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorAmountHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
+import com.skylogistics.compat.distributor.DistributorOperationBudget;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.ForceExtractionCompat;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.IntSupplier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
@@ -169,8 +171,9 @@ public final class SkyNetworkTicker {
                             input.deferItemsUntil(nextNecklaceWake(gameTime));
                         }
                     } else {
-                        operations += transferItems(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferItems(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -191,8 +194,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordFluidFailure(gameTime);
                     } else {
-                        operations += transferFluids(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferFluids(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -215,8 +219,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordChemicalFailure(gameTime);
                     } else {
-                        operations += transferChemicals(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferChemicals(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -237,8 +242,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordEnergyFailure(gameTime);
                     } else {
-                        operations += transferEnergy(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferEnergy(input, targets, transferBudget, gameTime));
                     }
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -256,8 +262,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordManaFailure(gameTime);
                     } else {
-                        operations += transferMana(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferMana(input, targets, transferBudget, gameTime));
                     }
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -275,8 +282,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordSourceFailure(gameTime);
                     } else {
-                        operations += transferSource(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferSource(input, targets, transferBudget, gameTime));
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake, itemRoute, fluidRoute,
@@ -292,6 +300,13 @@ public final class SkyNetworkTicker {
             } else {
                 line.sleepUntil(gameTime + 20L);
             }
+        }
+    }
+
+    private static int withDistributorBudget(int budget, IntSupplier transfer) {
+        try (DistributorOperationBudget.Scope scope = DistributorOperationBudget.open(budget)) {
+            int schedulerOperations = transfer.getAsInt();
+            return Math.min(budget, Math.max(schedulerOperations, scope.consumedOperations()));
         }
     }
 

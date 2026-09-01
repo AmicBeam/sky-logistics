@@ -96,7 +96,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Line IDs are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
-- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, tier 3 altar work multiplier, companion-stone charge height, and charge times are configurable.
+- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and BFS scan budgets, hot slot cache size, ritual height, tier 3 altar work multiplier, companion-stone charge height, and charge times are configurable. Distributor transfer probes consume the line operation budget.
 - Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check. Simple pipe recipes use diamonds.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Slot Parallel Upgrade rates or server and line operation budgets.
 - The manual supports both Patchouli and GuideME; when both are installed, Patchouli is preferred and GuideME is the fallback.

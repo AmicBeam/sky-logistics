@@ -21,6 +21,7 @@ import com.skylogistics.compat.distributor.DistributorEnergyMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorResourceMaintenancePolicy;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
 import com.skylogistics.compat.distributor.DistributorMaintenancePolicy;
+import com.skylogistics.compat.distributor.DistributorOperationBudget;
 import com.skylogistics.compat.distributor.DistributorRescanPolicy;
 import com.skylogistics.compat.distributor.DistributedSlotMap;
 import com.skylogistics.compat.distributor.DistributedTargetProbeScheduler;
@@ -96,9 +97,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     private final long[] rejectedItemUntil = new long[MAX_CONFIGURABLE_TARGETS];
     private final FluidStack[] rejectedFluids = new FluidStack[MAX_CONFIGURABLE_TARGETS];
     private final long[] rejectedFluidUntil = new long[MAX_CONFIGURABLE_TARGETS];
-    private long operationBudgetTick = Long.MIN_VALUE;
-    private int remainingOperations;
-    private boolean operationBudgetBlocked;
+    private long operationStateTick = Long.MIN_VALUE;
     private long scanBudgetTick = Long.MIN_VALUE;
     private int remainingScanOperations;
     private int discoveryCursor;
@@ -470,12 +469,10 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         energyCanReceiveAccumulator = false;
     }
 
-    private void prepareOperationBudget() {
+    private void prepareOperationState() {
         long now = gameTime();
-        if (operationBudgetTick == now) return;
-        operationBudgetTick = now;
-        remainingOperations = SkyLogisticsConfig.distributorOpsPerTick();
-        operationBudgetBlocked = false;
+        if (operationStateTick == now) return;
+        operationStateTick = now;
         Arrays.fill(visibleFluidTanks, -2);
         Arrays.fill(visibleFluids, null);
         itemInsertPlan = null;
@@ -488,13 +485,8 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private boolean takeOperation() {
-        prepareOperationBudget();
-        if (remainingOperations <= 0) {
-            operationBudgetBlocked = true;
-            return false;
-        }
-        remainingOperations--;
-        return true;
+        prepareOperationState();
+        return DistributorOperationBudget.takeOperation();
     }
 
     private boolean takeScanOperation() {
@@ -527,7 +519,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private void clearTransientCaches() {
-        operationBudgetTick = Long.MIN_VALUE;
+        operationStateTick = Long.MIN_VALUE;
         energySnapshotTick = Long.MIN_VALUE;
         itemInsertPlan = null;
         itemInsertPlanAwaitingExecution = false;
@@ -670,7 +662,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
-        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean budgetExhausted() { return DistributorOperationBudget.exhausted(); }
         @Override public boolean scanPending() {
             return targetIndexUnavailable(side);
         }
@@ -690,7 +682,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
-        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean budgetExhausted() { return DistributorOperationBudget.exhausted(); }
         @Override public boolean scanPending() { return targetIndexUnavailable(side); }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
@@ -705,7 +697,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
         @Override public boolean takeOperation() { return SkyDistributorBlockEntity.this.takeOperation(); }
         @Override public boolean sequentialInsertion() { return SkyDistributorBlockEntity.this.sequentialInsertion(); }
-        @Override public boolean budgetExhausted() { return operationBudgetBlocked; }
+        @Override public boolean budgetExhausted() { return DistributorOperationBudget.exhausted(); }
         @Override public boolean scanPending() { return targetIndexUnavailable(side); }
         @Override public long gameTime() { return SkyDistributorBlockEntity.this.gameTime(); }
     }
@@ -722,8 +714,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         private DistributedItems(Direction side) { this.side = side; }
 
         @Override public boolean distributorBudgetExhausted() {
-            prepareOperationBudget();
-            return operationBudgetBlocked;
+            return DistributorOperationBudget.exhausted();
         }
 
         @Override public boolean distributorScanPending() {
@@ -841,7 +832,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
 
         private ItemInsertPlan matchingItemInsertPlan(ItemStack stack, boolean simulate) {
-            prepareOperationBudget();
+            prepareOperationState();
             if (itemInsertPlan == null || itemInsertPlan.tick != gameTime()
                     || !sameItemType(itemInsertPlan.request, stack)) return null;
             if (simulate) return sameItem(itemInsertPlan.request, stack) ? itemInsertPlan : null;
@@ -1179,7 +1170,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         private DistributedFluids(Direction side) { this.side = side; }
 
-        @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean distributorBudgetExhausted() { return DistributorOperationBudget.exhausted(); }
         @Override public boolean distributorScanPending() {
             return targetIndexUnavailable(side);
         }
@@ -1195,7 +1186,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         @Override public FluidStack getFluidInTank(int tank) {
             FluidHandler handler = handler(tank);
             if (handler == null || handler.getTanks() == 0) { recordExtractionProbe(tank, false); return FluidStack.EMPTY; }
-            prepareOperationBudget();
+            prepareOperationState();
             if (visibleFluids[tank] != null) { observeDrainTarget(tank, visibleFluids[tank]); recordExtractionProbe(tank, true); return visibleFluids[tank].copy(); }
             int cached = visibleFluidTanks[tank];
             if (cached == -1) return FluidStack.EMPTY;
@@ -1423,7 +1414,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
         }
 
         private void observeDrainTarget(int target, FluidStack stack) { observedDrainTarget = target; observedDrainKey = FluidStackKey.of(stack); observedDrainTick = gameTime(); }
-        private void recordExtractionProbe(int target, boolean available) { AdaptiveRoutingConfig config = fluidRoutingConfig(); if (!config.enabled() || operationBudgetBlocked) return; configureExtractionProbes(); extractionProbes.recordProbe(targets(side).fluids.size(), target, gameTime(), available); }
+        private void recordExtractionProbe(int target, boolean available) { AdaptiveRoutingConfig config = fluidRoutingConfig(); if (!config.enabled() || DistributorOperationBudget.exhausted()) return; configureExtractionProbes(); extractionProbes.recordProbe(targets(side).fluids.size(), target, gameTime(), available); }
         private void configureExtractionProbes() { AdaptiveRoutingConfig config = fluidRoutingConfig(); extractionProbes.configure(config.hotTicks(), config.warmTicks(), config.coolTicks(), config.fallbackTicks(), config.missesPerDemotion()); }
         private void configureInsertionRoutes(AdaptiveRoutingConfig config) { insertionRoutes.configure(config.routeCacheSize(), config.hotTicks(), config.warmTicks(), config.coolTicks(), config.fallbackTicks(), config.missesPerDemotion()); }
         private void clearAdaptiveState() { insertionRoutes.clear(); extractionProbes.clear(); observedDrainTarget = -1; observedDrainKey = null; observedDrainTick = Long.MIN_VALUE; }
@@ -1436,7 +1427,7 @@ public class SkyDistributorBlockEntity extends BlockEntity {
 
         private DistributedEnergy(Direction side) { this.side = side; }
 
-        @Override public boolean distributorBudgetExhausted() { prepareOperationBudget(); return operationBudgetBlocked; }
+        @Override public boolean distributorBudgetExhausted() { return DistributorOperationBudget.exhausted(); }
         @Override public boolean distributorScanPending() { return targetIndexUnavailable(side); }
 
         @Override public int receiveEnergy(int maxReceive, boolean simulate) {
