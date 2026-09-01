@@ -196,6 +196,22 @@ function generate(size, noOutline = false) {
         hub.x - p.x * side * 4.8 * scale,
         hub.y - p.y * side * 4.8 * scale,
         Math.max(0.65, 1.15 * scale), accent);
+    } else {
+      // At 32, retain the concept-art hub as a single symmetric 3x3 jewel,
+      // a three-step inward spear, and a two-step outward key tooth.
+      const cx = Math.round(hub.x);
+      const cy = Math.round(hub.y);
+      const outward = side;
+      const materialEdge = side < 0 ? C.blueDark : C.orangeDark;
+      paintDiamond(canvas, cx + 0.5, cy + 0.5, 2.2, materialEdge);
+      paintDiamond(canvas, cx + 0.5, cy + 0.5, 1.25, C.gold);
+      setPixel(canvas, cx, cy, accent);
+
+      // Outward tooth and inward spear share the hub's exact 180-degree mirror.
+      setPixel(canvas, cx + outward * 2, cy + outward * 2, C.gold);
+      setPixel(canvas, cx + outward * 3, cy + outward * 3, materialEdge);
+      setPixel(canvas, cx - outward * 2, cy - outward * 2, materialEdge);
+      setPixel(canvas, cx - outward * 3, cy - outward * 3, accent);
     }
   }
 

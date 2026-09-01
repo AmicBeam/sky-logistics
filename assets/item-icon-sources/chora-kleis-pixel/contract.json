@@ -17,7 +17,7 @@
     "edge_style": "material-local",
     "simplifications": [
       "remove pixel-scale meander fragments",
-      "replace each hub and prongs with one compact jewel cluster",
+      "replace each detailed hub with one mirrored 3x3 jewel, one short inward spear, and one short outward tooth",
       "reduce leather wrap bands",
       "keep one continuous gold structural band per arc"
     ]
