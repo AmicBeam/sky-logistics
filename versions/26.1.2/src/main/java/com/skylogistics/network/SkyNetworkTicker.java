@@ -36,10 +36,11 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
-import com.skylogistics.util.MaintainedSlotPolicy;
+import com.skylogistics.util.ItemSourceSlotCachePolicy;
 import com.skylogistics.util.MaintainedResourcePolicy;
-import com.skylogistics.util.OrderedMatchingPolicy;
+import com.skylogistics.util.MaintainedSlotPolicy;
 import com.skylogistics.util.OrderedMatchingMode;
+import com.skylogistics.util.OrderedMatchingPolicy;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
@@ -462,7 +463,7 @@ public final class SkyNetworkTicker {
             if (simulated.isEmpty()) {
                 if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
                 if (!independentDistributorProbes) {
-                    sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                    sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
                 }
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
@@ -474,7 +475,7 @@ public final class SkyNetworkTicker {
             }
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
                 if (!independentDistributorProbes) {
-                    sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                    sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
                 }
                 continue;
             }
@@ -713,7 +714,7 @@ public final class SkyNetworkTicker {
                     slot);
             operations++;
             if (resource.isEmpty()) {
-                sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
                     forceSequentialItemFallback = true;
@@ -724,7 +725,7 @@ public final class SkyNetworkTicker {
             }
             ItemStack simulated = resource.stack();
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
-                sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
                 continue;
             }
             foundCandidate = true;
@@ -984,6 +985,12 @@ public final class SkyNetworkTicker {
             }
             return new ItemSourceSearchResult(-1, 0, false, false);
         }
+        if (!ItemSourceSlotCachePolicy.usesHotSlots(slots)) {
+            sourceEndpoint.useSingleItemSlotFastPath();
+            int slot = 0;
+            boolean tried = wasSlotTried(firstTriedSlot, secondTriedSlot, slot);
+            return new ItemSourceSearchResult(tried ? -1 : slot, 0, true, false);
+        }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return new ItemSourceSearchResult(preferredSlot, 0, false, true);
@@ -1017,11 +1024,11 @@ public final class SkyNetworkTicker {
         operations++;
         if (simulated.isEmpty()) {
             if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
-            sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+            sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
         } else if (sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
             sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
         } else {
-            sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+            sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
         }
         return operations;
     }
