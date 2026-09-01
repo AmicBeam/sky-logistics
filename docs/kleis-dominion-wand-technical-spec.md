@@ -1,4 +1,4 @@
-# 柯拉克莱斯（Chora Kleis）技术规格
+# 克莱斯支配之杖（Kleis Dominion Wand）技术规格
 
 > 状态：设计冻结前草案；仅记录需求与实现约束，不代表功能已实现。
 > 更新日期：2026-09-01
@@ -6,7 +6,7 @@
 
 ## 1. 目标
 
-柯拉克莱斯是一件独立的物流工具。玩家主手持有它，并在副手放置天穹配置器时，可以把设备的一个具体方块侧面注册为“虚拟物流节点”。虚拟节点不放置方块、不占用空间，但在传输、线路配置、过滤和优先级等方面应尽量表现得像一个只拥有单一连接面的天穹物流节点。
+克莱斯支配之杖是一件独立的物流工具。玩家主手持有它，并在副手放置天穹配置器时，可以把设备的一个具体方块侧面注册为“虚拟物流节点”。虚拟节点不放置方块、不占用空间，但在传输、线路配置、过滤和优先级等方面应尽量表现得像一个只拥有单一连接面的天穹物流节点。
 
 核心体验：
 
@@ -14,7 +14,7 @@
 - 潜行右击设备侧面：创建或切换为橙色的抽取端点。
 - 左击已绑定侧面：打开单端点节点 GUI。
 - 左击方块时绝不进入方块破坏流程。
-- 手持柯拉克莱斯时可看见已绑定面的常驻边框与方向动画。
+- 手持克莱斯支配之杖时可看见已绑定面的常驻边框与方向动画。
 - 物品栏中的杖端具有类似发光的低频呼吸动画。
 - 虚拟端点天然允许跨维度传输，不需要维度升级卡。
 
@@ -35,11 +35,11 @@
 
 暂定：
 
-- 中文名：`柯拉克莱斯`
-- 英文名：`Chora Kleis`
-- 物品 ID：`skylogistics:chora_kleis`
-- Java 类名：`ChoraKleisItem`
-- SavedData 名称：`skylogistics_chora_kleis_endpoints`
+- 中文名：`克莱斯支配之杖`
+- 英文名：`Kleis Dominion Wand`
+- 物品 ID：`skylogistics:kleis_dominion_wand`
+- Java 类名：`KleisDominionWandItem`
+- SavedData 名称：`skylogistics_kleis_dominion_wand_endpoints`
 
 当前仓库只有美术资产，没有对应物品类、注册项、模型、语言条目、配方或交互逻辑。已有资产包括：
 
@@ -48,7 +48,7 @@
 - `assets/item-icon-sources/chora-kleis-pixel/`
 - `assets/generated/chora-kleis-pixel/`
 
-文档不得把这些资产描述为“物品已经接入游戏”。
+这些是命名冻结前生成的美术源文件。实施阶段应将最终选中的运行时资源复制或重命名为 `kleis_dominion_wand`；在此之前不得把这些资产描述为“物品已经接入游戏”。
 
 ## 4. 术语
 
@@ -83,7 +83,7 @@ EndpointKey = dimension + targetPos + targetFace
 
 ### 5.1 主手
 
-所有世界交互只认主手中的柯拉克莱斯。副手持杖不触发绑定、GUI 或动画。
+所有世界交互只认主手中的克莱斯支配之杖。副手持杖不触发绑定、GUI 或动画。
 
 ### 5.2 副手配置器
 
@@ -97,13 +97,13 @@ EndpointKey = dimension + targetPos + targetFace
 
 ### 5.3 可视化条件
 
-只要主手持有柯拉克莱斯，就可以显示当前维度内已同步的虚拟端点覆盖层。可视化不依赖副手配置器，方便只检查线路而不修改。
+只要主手持有克莱斯支配之杖，就可以显示当前维度内已同步的虚拟端点覆盖层。可视化不依赖副手配置器，方便只检查线路而不修改。
 
 ## 6. 世界交互状态机
 
 ### 6.1 普通右击
 
-条件：主手柯拉克莱斯、副手配置器、命中方块侧面、服务器验证通过。
+条件：主手克莱斯支配之杖、副手配置器、命中方块侧面、服务器验证通过。
 
 行为：
 
@@ -127,7 +127,7 @@ EndpointKey = dimension + targetPos + targetFace
 
 命中方块时：
 
-- 主手是柯拉克莱斯：立即取消原版攻击／挖掘输入。
+- 主手是克莱斯支配之杖：立即取消原版攻击／挖掘输入。
 - 若副手是配置器且命中面已有虚拟端点：向服务端请求打开该端点 GUI。
 - 若副手是配置器但命中面未绑定：显示“该侧面没有柯拉端点”。
 - 若副手不是配置器：显示副手要求，但仍取消方块破坏。
@@ -135,7 +135,7 @@ EndpointKey = dimension + targetPos + targetFace
 不命中方块时：
 
 - 左击空气保持原版挥手表现。
-- 左击实体不在本功能范围内；默认不取消实体攻击。若后续决定柯拉克莱斯完全无攻击能力，应单独追加产品决策。
+- 左击实体不在本功能范围内；默认不取消实体攻击。若后续决定克莱斯支配之杖完全无攻击能力，应单独追加产品决策。
 
 ### 6.4 移除端点
 
@@ -168,7 +168,7 @@ EndpointKey = dimension + targetPos + targetFace
 1. 监听 `InputEvent.InteractionKeyMappingTriggered`，优先级 `HIGHEST`。
 2. 只处理 `event.isAttack()`。
 3. 客户端当前命中必须是 `BlockHitResult` 且类型为 `BLOCK`。
-4. 主手必须是柯拉克莱斯。
+4. 主手必须是克莱斯支配之杖。
 5. 在任何打开 GUI 的网络请求之前先 `event.setCanceled(true)`。
 6. 建议关闭本次手臂挥动，避免视觉上像在敲击设备；若保留挥动，也不能开始裂纹动画。
 7. 每次按下只发一个打开请求，不能在长按期间每 tick 重复发包。
@@ -179,7 +179,7 @@ EndpointKey = dimension + targetPos + targetFace
 
 监听 `PlayerInteractEvent.LeftClickBlock`：
 
-- 主手是柯拉克莱斯时取消事件。
+- 主手是克莱斯支配之杖时取消事件。
 - 将 block usage 与 item usage 都设为拒绝（对应版本 API 支持时）。
 - 只在 `START` 动作处理一次打开请求语义；`CLIENT_HOLD`、`STOP`、`ABORT` 不重复打开。
 
@@ -193,7 +193,7 @@ EndpointKey = dimension + targetPos + targetFace
 
 监听 `BlockEvent.BreakEvent`：
 
-- 玩家主手是柯拉克莱斯时取消方块破坏。
+- 玩家主手是克莱斯支配之杖时取消方块破坏。
 - 此层不负责打开 GUI，只负责安全兜底。
 - 必须覆盖生存、创造和服务端收到异常破坏包的情况。
 
@@ -247,7 +247,7 @@ NeoForge 对 `PlayerInteractEvent.LeftClickBlock` 的官方说明明确指出，
 - Botania mana 或其它现有能量类兼容资源（对应配置开关启用时）
 - Ars Nouveau Source（对应配置开关启用时）
 
-必须复用现有兼容层与配置开关。柯拉克莱斯不是新的第三方存储类型，不得绕过已有类型禁用开关。
+必须复用现有兼容层与配置开关。克莱斯支配之杖不是新的第三方存储类型，不得绕过已有类型禁用开关。
 
 若该面没有任何支持能力：
 
@@ -261,12 +261,12 @@ NeoForge 对 `PlayerInteractEvent.LeftClickBlock` 的官方说明明确指出，
 
 ### 10.1 SavedData
 
-新增服务器级 `ChoraKleisSavedData`，存放在主世界 DataStorage 中，覆盖所有维度。
+新增服务器级 `KleisDominionWandSavedData`，存放在主世界 DataStorage 中，覆盖所有维度。
 
 推荐结构：
 
 ```text
-ChoraKleisSavedData
+KleisDominionWandSavedData
   schemaVersion
   endpoints: Map<EndpointKey, EndpointRecord>
 
@@ -348,7 +348,7 @@ resolveEnergyHandler()
 适配关系：
 
 - `NetworkEndpointBlockEntity` 实现或由适配器实现 `LogisticsEndpoint`。
-- `ChoraKleisRuntimeEndpoint` 从 `EndpointRecord` 和当前 `ServerLevel` 实现相同接口。
+- `KleisDominionWandRuntimeEndpoint` 从 `EndpointRecord` 和当前 `ServerLevel` 实现相同接口。
 - `SkyNetworkRegistry.CachedEndpoint` 不再假设端点一定是 BlockEntity。
 - `SkyNetworkTicker` 只依赖端点接口，不通过强制类型转换访问节点。
 
@@ -391,7 +391,7 @@ resolveEnergyHandler()
 
 ## 13. 默认跨维度规则
 
-柯拉克莱斯端点的 `allowsCrossDimension()` 恒为 `true`。
+克莱斯支配之杖端点的 `allowsCrossDimension()` 恒为 `true`。
 
 语义等同于抽取端安装了维度升级卡，但不实际存放卡片：
 
@@ -413,7 +413,7 @@ GUI 中：
 - `SkyNetworkTicker` 的 `dimensionUpgrade` 路由
 - `ConfiguratorLineDetailsPacket.Entry#dimension`
 
-实现时应抽象成端点能力，而不是在 ticker 中追加大量 `instanceof ChoraKleis...` 分支。
+实现时应抽象成端点能力，而不是在 ticker 中追加大量 `instanceof KleisDominionWand...` 分支。
 
 ## 14. 红石语义
 
@@ -431,7 +431,7 @@ powered = level.hasNeighborSignal(targetPos)
 
 ### 15.1 总体
 
-左击已绑定面打开专用 `ChoraKleisMenu`／`ChoraKleisScreen`，视觉与节点 GUI 一致，但只管理一个端点。
+左击已绑定面打开专用 `KleisDominionWandMenu`／`KleisDominionWandScreen`，视觉与节点 GUI 一致，但只管理一个端点。
 
 不能把 `targetPos` 伪装成 `SkyNodeMenu` 的 BlockEntity 位置。当前 `SkyNodeMenu` 和 `SkyNodeScreen` 会直接从世界取 `SkyNodeBlockEntity`，虚拟端点需要独立后端。
 
@@ -496,29 +496,29 @@ endpointRevision
 
 ### C2S
 
-- `ChoraKleisUpsertEndpointPacket`
+- `KleisDominionWandUpsertEndpointPacket`
   - 右击创建／改模式
   - 字段：dimension、pos、face、requestedMode
-- `ChoraKleisOpenMenuPacket`
+- `KleisDominionWandOpenMenuPacket`
   - 左击请求打开菜单
   - 字段：dimension、pos、face
-- `ChoraKleisMenuActionPacket`
+- `KleisDominionWandMenuActionPacket`
   - 修改单端点配置
   - 字段：containerId、endpointKey、revision、action、value
-- `ChoraKleisRemoveEndpointPacket`
+- `KleisDominionWandRemoveEndpointPacket`
   - GUI 确认移除
-- `ChoraKleisOverlayRequestPacket`
+- `KleisDominionWandOverlayRequestPacket`
   - 客户端手持期间请求当前维度附近端点
 
 ### S2C
 
-- `ChoraKleisEndpointSnapshotPacket`
+- `KleisDominionWandEndpointSnapshotPacket`
   - 菜单配置快照
-- `ChoraKleisOverlaySnapshotPacket`
+- `KleisDominionWandOverlaySnapshotPacket`
   - 当前维度附近可见端点列表
-- `ChoraKleisOverlayDeltaPacket`
+- `KleisDominionWandOverlayDeltaPacket`
   - 创建、修改、删除单条端点
-- `ChoraKleisActionResultPacket`
+- `KleisDominionWandActionResultPacket`
   - 失败原因或成功反馈
 
 ### 16.1 包上限
@@ -553,7 +553,7 @@ OverlayKey = dimension + targetPos + targetFace
 
 ### 17.2 请求策略
 
-主手首次切换到柯拉克莱斯时立即请求快照；之后：
+主手首次切换到克莱斯支配之杖时立即请求快照；之后：
 
 - 玩家跨越一定距离或进入新区块时刷新。
 - 默认最多每 20 tick 请求一次。
@@ -676,7 +676,7 @@ max = (16 + S) / 2
 
 ### 18.9 物品栏杖端呼吸动画
 
-柯拉克莱斯的物品贴图应具有低频、循环的“能量发光”呼吸效果。它是贴图颜色动画，不是附魔 glint，也不产生世界光照。
+克莱斯支配之杖的物品贴图应具有低频、循环的“能量发光”呼吸效果。它是贴图颜色动画，不是附魔 glint，也不产生世界光照。
 
 #### 逻辑尺寸
 
@@ -773,7 +773,7 @@ L5：峰值
 
 #### 客户端配置
 
-建议提供 `animateChoraKleisItemIcon`，默认 `true`。关闭时应使用 `L0` 或中间亮度的静态帧。具体如何在资源 metadata 动画与客户端配置间切换需要实施阶段选型；不能承诺仅靠 `.png.mcmeta` 可以运行时关闭动画。
+建议提供 `animateKleisDominionWandItemIcon`，默认 `true`。关闭时应使用 `L0` 或中间亮度的静态帧。具体如何在资源 metadata 动画与客户端配置间切换需要实施阶段选型；不能承诺仅靠 `.png.mcmeta` 可以运行时关闭动画。
 
 ## 19. GUI 与覆盖层的一致性
 
@@ -822,7 +822,7 @@ L5：峰值
 
 - 玩家仍在服务器上。
 - 玩家当前维度等于请求维度。
-- 主手仍是柯拉克莱斯。
+- 主手仍是克莱斯支配之杖。
 - 需要修改／打开时副手仍是配置器。
 - 命中位置在正常方块交互距离内。
 - 服务端重新射线或至少验证 pos／face 与玩家视线合理。
@@ -837,7 +837,7 @@ L5：峰值
 
 建议服务器配置：
 
-- `enableChoraKleis`：总开关，默认 `true`
+- `enableKleisDominionWand`：总开关，默认 `true`
 - `choraKleisMaxEndpointsPerPlayer`：默认 `256`
 - `choraKleisMaxEndpointsPerChunk`：默认 `64`
 - `choraKleisOverlayRange`：默认 `64`
@@ -846,10 +846,10 @@ L5：峰值
 
 建议客户端配置：
 
-- `renderChoraKleisOverlays`：默认 `true`
+- `renderKleisDominionWandOverlays`：默认 `true`
 - `choraKleisOverlayAnimation`：默认 `true`
 - `choraKleisOverlayAlpha`：默认值按最终视觉测试冻结
-- `animateChoraKleisItemIcon`：默认 `true`；实现方式见 18.9
+- `animateKleisDominionWandItemIcon`：默认 `true`；实现方式见 18.9
 
 关闭动画时仍显示常驻边框。
 
@@ -917,17 +917,17 @@ L5：峰值
 
 三版本都需要对应实现：
 
-- `item/ChoraKleisItem.java`
+- `item/KleisDominionWandItem.java`
 - `registry/ModItems.java`
-- `network/ChoraKleisSavedData.java`
-- `network/ChoraKleisRuntimeEndpoint.java`
-- `network/ChoraKleis*Packet.java`
+- `network/KleisDominionWandSavedData.java`
+- `network/KleisDominionWandRuntimeEndpoint.java`
+- `network/KleisDominionWand*Packet.java`
 - `network/ModNetworking.java`
-- `client/ClientChoraKleisEndpoints.java`
-- `client/ChoraKleisOverlayRenderer.java`
+- `client/ClientKleisDominionWandEndpoints.java`
+- `client/KleisDominionWandOverlayRenderer.java`
 - `client/ClientRuntimeEvents.java` 或 `ClientModEvents.java`
-- `menu/ChoraKleisMenu.java`
-- `client/ChoraKleisScreen.java`
+- `menu/KleisDominionWandMenu.java`
+- `client/KleisDominionWandScreen.java`
 - `registry/ModMenus.java`
 - `config/SkyLogisticsConfig.java`
 - `SkyNetworkRegistry.java`
@@ -936,9 +936,9 @@ L5：峰值
 
 共享资源：
 
-- `models/item/chora_kleis.json`
-- `textures/item/chora_kleis.png` 的 32×192 动画帧条
-- `textures/item/chora_kleis.png.mcmeta`
+- `models/item/kleis_dominion_wand.json`
+- `textures/item/kleis_dominion_wand.png` 的 32×192 动画帧条
+- `textures/item/kleis_dominion_wand.png.mcmeta`
 - 26.1.2 对应 item definition
 - `lang/en_us.json`
 - `lang/zh_cn.json`
@@ -1083,16 +1083,15 @@ L5：峰值
 
 以下内容尚未由产品需求明确，实施前应确认：
 
-1. 最终物品中文名是否固定为“柯拉克莱斯”。
-2. 是否允许柯拉克莱斯攻击实体；本规格默认允许原版实体攻击。
-3. 端点删除是否采用 GUI 二次确认；本规格推荐采用。
-4. 动画每步 3 tick、周期 30 tick 是否合适。
-5. 外框与动画框最终 alpha。
-6. 主手持杖、副手无配置器时是否显示所有覆盖层；本规格默认显示。
-7. 已有端点再次右击是否只改模式；本规格默认只改模式、不覆盖其它设置。
-8. 方块 ID 不变但 BlockEntity 实例被替换时是否保留端点；本规格默认保留，正常 BreakEvent 会优先清理。
-9. 杖端呼吸是否允许在手持、掉落物和展示框中同步播放；本规格默认允许。若必须仅限物品栏，需要自定义渲染路径。
-10. 呼吸周期是否采用 30 tick／1.5 秒；本规格暂定采用。
+1. 是否允许克莱斯支配之杖攻击实体；本规格默认允许原版实体攻击。
+2. 端点删除是否采用 GUI 二次确认；本规格推荐采用。
+3. 动画每步 3 tick、周期 30 tick 是否合适。
+4. 外框与动画框最终 alpha。
+5. 主手持杖、副手无配置器时是否显示所有覆盖层；本规格默认显示。
+6. 已有端点再次右击是否只改模式；本规格默认只改模式、不覆盖其它设置。
+7. 方块 ID 不变但 BlockEntity 实例被替换时是否保留端点；本规格默认保留，正常 BreakEvent 会优先清理。
+8. 杖端呼吸是否允许在手持、掉落物和展示框中同步播放；本规格默认允许。若必须仅限物品栏，需要自定义渲染路径。
+9. 呼吸周期是否采用 30 tick／1.5 秒；本规格暂定采用。
 
 ## 30. 完成定义
 
