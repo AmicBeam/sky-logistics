@@ -28,7 +28,7 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.CONFIGURATOR.get(), ConfiguratorScreen::new);
-        event.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
+        event.register(ModMenus.SKY_NODE.get(), SkyNodeMainScreen::new);
         event.register(ModMenus.KLEIS_DOMINION_WAND.get(), KleisDominionWandScreen::new);
             event.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
             event.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);

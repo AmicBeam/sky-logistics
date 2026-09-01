@@ -17,6 +17,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -65,7 +66,8 @@ public final class ModItems {
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(itemProperties("configurator").stacksTo(1)));
     public static final DeferredHolder<Item, KleisDominionWandItem> KLEIS_DOMINION_WAND = ITEMS.register(
-            "kleis_dominion_wand", () -> new KleisDominionWandItem(itemProperties("kleis_dominion_wand")));
+            "kleis_dominion_wand", () -> new KleisDominionWandItem(
+                    itemProperties("kleis_dominion_wand").rarity(Rarity.EPIC)));
     public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
             () -> new Item(itemProperties("sky_wrench").stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",

@@ -38,6 +38,8 @@ public final class KleisDominionWandItem extends Item {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.CONSUME;
         KleisEndpointSavedData.ToggleResult result = KleisEndpointSavedData.get(serverPlayer.level().getServer()).toggle(
                 serverPlayer, context.getClickedPos(), context.getClickedFace(), player.isShiftKeyDown(), configurator);
+        KleisEndpointSavedData.get(serverPlayer.level().getServer()).syncVisibleOverlays(
+                serverPlayer.level().getServer(), serverPlayer.level().dimension(), context.getClickedPos());
         player.sendOverlayMessage(Component.translatable("message.skylogistics.kleis_dominion_wand."
                 + result.name().toLowerCase(java.util.Locale.ROOT)));
         return InteractionResult.CONSUME;
@@ -49,8 +51,6 @@ public final class KleisDominionWandItem extends Item {
             double x = entity.getX();
             double z = entity.getZ();
             entity.teleportTo(x, 256.0D, z);
-            player.sendOverlayMessage(Component.translatable(
-                    "message.skylogistics.kleis_dominion_wand.entity_teleported"));
         }
         return true;
     }
@@ -59,8 +59,8 @@ public final class KleisDominionWandItem extends Item {
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
             Consumer<Component> tooltip, TooltipFlag flag) {
         tooltip.accept(Component.translatable("tooltip.skylogistics.kleis_dominion_wand")
-                .withStyle(ChatFormatting.AQUA));
+                .withStyle(ChatFormatting.WHITE));
         tooltip.accept(Component.translatable("tooltip.skylogistics.kleis_dominion_wand.cross_dimension")
-                .withStyle(ChatFormatting.LIGHT_PURPLE));
+                .withStyle(ChatFormatting.BLUE));
     }
 }

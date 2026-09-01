@@ -34,9 +34,7 @@ public record KleisOpenMenuPacket(BlockPos pos, Direction face) {
                     | (node.isFluidsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 2 : 0)
                     | (node.isEnergyEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 4 : 0);
             NetworkHooks.openScreen(player, new SimpleMenuProvider((id, inv, ignored) ->
-                    new KleisDominionWandMenu(id, inv, packet.pos, packet.face, node.getLineName(),
-                            node.getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION), mask,
-                            node.getPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION), node),
+                    new KleisDominionWandMenu(id, inv, packet.pos, packet.face, node),
                     Component.translatable("menu.skylogistics.kleis_dominion_wand")), buffer -> {
                         buffer.writeBlockPos(packet.pos); buffer.writeEnum(packet.face); buffer.writeUtf(node.getLineName(), 48);
                         buffer.writeEnum(node.getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION));

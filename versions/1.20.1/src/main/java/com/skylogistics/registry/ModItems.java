@@ -15,6 +15,7 @@ import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.item.UpgradeCardItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -63,7 +64,7 @@ public final class ModItems {
     public static final RegistryObject<Item> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> KLEIS_DOMINION_WAND = ITEMS.register("kleis_dominion_wand",
-            () -> new KleisDominionWandItem(new Item.Properties()));
+            () -> new KleisDominionWandItem(new Item.Properties().rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> SKY_WRENCH = ITEMS.register("sky_wrench",
             () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> FILTER_LIST = ITEMS.register("filter_list",

@@ -1,120 +1,104 @@
 package com.skylogistics.menu;
 
-import com.skylogistics.registry.ModMenus;
 import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
+import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
-import com.skylogistics.util.NodeMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.DataSlot;
-import net.minecraft.world.item.ItemStack;
 
-public final class KleisDominionWandMenu extends AbstractContainerMenu {
-    private final BlockPos pos;
-    private final Direction face;
-    private final String lineName;
-    public static final int ACTION_TOGGLE_MODE = 0;
-    public static final int ACTION_TOGGLE_ITEMS = 1;
-    public static final int ACTION_TOGGLE_FLUIDS = 2;
-    public static final int ACTION_TOGGLE_ENERGY = 3;
-    public static final int ACTION_PRIORITY_DOWN = 4;
-    public static final int ACTION_PRIORITY_UP = 5;
-    private int modeOrdinal;
-    private int resourceMask;
-    private int priority;
-    private final KleisVirtualNodeBlockEntity serverNode;
+/** The normal node menu bound to a remembered Kleis endpoint instead of a placed node block. */
+public final class KleisDominionWandMenu extends SkyNodeMenu {
+    private final Direction targetFace;
 
     public KleisDominionWandMenu(int containerId, Inventory inventory, BlockPos pos, Direction face,
             String lineName, NodeFaceMode mode, int resourceMask, int priority) {
-        this(containerId, inventory, pos, face, lineName, mode, resourceMask, priority, null);
+        this(containerId, inventory, pos, face,
+                clientEndpoint(inventory, pos, face, lineName, mode, resourceMask, priority));
     }
 
     public KleisDominionWandMenu(int containerId, Inventory inventory, BlockPos pos, Direction face,
-            String lineName, NodeFaceMode mode, int resourceMask, int priority,
-            KleisVirtualNodeBlockEntity serverNode) {
-        super(ModMenus.KLEIS_DOMINION_WAND.get(), containerId);
-        this.pos = pos;
-        this.face = face;
-        this.lineName = lineName;
-        this.modeOrdinal = mode.ordinal();
-        this.resourceMask = resourceMask;
-        this.priority = priority;
-        this.serverNode = serverNode;
-        addDataSlot(slot(() -> modeOrdinal, value -> modeOrdinal = value));
-        addDataSlot(slot(() -> this.resourceMask, value -> this.resourceMask = value));
-        addDataSlot(slot(() -> this.priority, value -> this.priority = value));
-        addPlayerInventory(inventory, 39, 101);
+            KleisVirtualNodeBlockEntity endpoint) {
+        super(ModMenus.KLEIS_DOMINION_WAND.get(), containerId, inventory, pos, false, endpoint);
+        this.targetFace = face;
+        addDataSlot(endpointState(endpoint));
+        addDataSlot(resourceState(endpoint));
+        addDataSlot(priorityState(endpoint));
     }
 
-    public BlockPos pos() { return pos; }
-    public Direction face() { return face; }
-    public String lineName() { return lineName; }
-    public NodeFaceMode mode() { return NodeFaceMode.values()[Math.max(0, Math.min(NodeFaceMode.values().length - 1, modeOrdinal))]; }
-    public int resourceMask() { return resourceMask; }
-    public int priority() { return priority; }
+    public Direction targetFace() {
+        return targetFace;
+    }
 
+    /** Compatibility for clients that still have the first implementation's compact action packet. */
     public void handleAction(int action) {
-        if (serverNode == null) return;
-        Direction endpoint = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+        KleisVirtualNodeBlockEntity endpoint = (KleisVirtualNodeBlockEntity) endpointNode();
+        Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
         switch (action) {
-            case ACTION_TOGGLE_MODE -> serverNode.setMode(serverNode.getFaceMode(endpoint) == NodeFaceMode.INPUT
-                    ? NodeMode.OUTPUT : NodeMode.INPUT);
-            case ACTION_TOGGLE_ITEMS -> serverNode.setItemsEnabled(endpoint, !serverNode.isItemsEnabled(endpoint));
-            case ACTION_TOGGLE_FLUIDS -> serverNode.setFluidsEnabled(endpoint, !serverNode.isFluidsEnabled(endpoint));
-            case ACTION_TOGGLE_ENERGY -> serverNode.setEnergyEnabled(endpoint, !serverNode.isEnergyEnabled(endpoint));
-            case ACTION_PRIORITY_DOWN -> serverNode.adjustPriority(endpoint, -1);
-            case ACTION_PRIORITY_UP -> serverNode.adjustPriority(endpoint, 1);
+            case 0 -> endpoint.setFaceMode(face, endpoint.getFaceMode(face) == NodeFaceMode.INPUT
+                    ? NodeFaceMode.OUTPUT : NodeFaceMode.INPUT);
+            case 1 -> endpoint.setItemsEnabled(face, !endpoint.isItemsEnabled(face));
+            case 2 -> endpoint.setFluidsEnabled(face, !endpoint.isFluidsEnabled(face));
+            case 3 -> endpoint.setEnergyEnabled(face, !endpoint.isEnergyEnabled(face));
+            case 4 -> endpoint.adjustPriority(face, -1);
+            case 5 -> endpoint.adjustPriority(face, 1);
             default -> { return; }
         }
-        refreshFromNode();
         broadcastChanges();
     }
 
-    @Override
-    public void broadcastChanges() {
-        refreshFromNode();
-        super.broadcastChanges();
+    private static KleisVirtualNodeBlockEntity clientEndpoint(Inventory inventory, BlockPos pos, Direction face,
+            String lineName, NodeFaceMode mode, int resourceMask, int priority) {
+        KleisVirtualNodeBlockEntity endpoint = new KleisVirtualNodeBlockEntity(pos, face);
+        endpoint.setLevel(inventory.player.level());
+        endpoint.setSuppressChanges(true);
+        endpoint.selectPlayerLine(java.util.UUID.nameUUIDFromBytes(
+                lineName.getBytes(java.nio.charset.StandardCharsets.UTF_8)), lineName, lineName);
+        endpoint.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, mode);
+        endpoint.setItemsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 1) != 0);
+        endpoint.setFluidsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 2) != 0);
+        endpoint.setEnergyEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 4) != 0);
+        endpoint.adjustPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, priority);
+        endpoint.setSuppressChanges(false);
+        return endpoint;
     }
 
-    private void refreshFromNode() {
-        if (serverNode == null) return;
-        Direction endpoint = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
-        modeOrdinal = serverNode.getFaceMode(endpoint).ordinal();
-        resourceMask = (serverNode.isItemsEnabled(endpoint) ? 1 : 0)
-                | (serverNode.isFluidsEnabled(endpoint) ? 2 : 0)
-                | (serverNode.isEnergyEnabled(endpoint) ? 4 : 0);
-        priority = serverNode.getPriority(endpoint);
-    }
-
-    private static DataSlot slot(java.util.function.IntSupplier getter, java.util.function.IntConsumer setter) {
+    private static DataSlot endpointState(KleisVirtualNodeBlockEntity endpoint) {
         return new DataSlot() {
-            @Override public int get() { return getter.getAsInt(); }
-            @Override public void set(int value) { setter.accept(value); }
+            @Override public int get() { return endpoint.getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION).ordinal(); }
+            @Override public void set(int value) {
+                NodeFaceMode[] values = NodeFaceMode.values();
+                endpoint.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION,
+                        values[Math.max(0, Math.min(values.length - 1, value))]);
+            }
         };
     }
 
-    @Override
-    public boolean stillValid(Player player) {
-        return player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
-    }
-
-    @Override
-    public ItemStack quickMoveStack(Player player, int index) {
-        return ItemStack.EMPTY;
-    }
-
-    private void addPlayerInventory(Inventory inventory, int x, int y) {
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, x + column * 18, y + row * 18));
+    private static DataSlot resourceState(KleisVirtualNodeBlockEntity endpoint) {
+        return new DataSlot() {
+            @Override public int get() {
+                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                return (endpoint.isItemsEnabled(face) ? 1 : 0)
+                        | (endpoint.isFluidsEnabled(face) ? 2 : 0)
+                        | (endpoint.isEnergyEnabled(face) ? 4 : 0);
             }
-        }
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, x + column * 18, y + 58));
-        }
+            @Override public void set(int value) {
+                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                endpoint.setItemsEnabled(face, (value & 1) != 0);
+                endpoint.setFluidsEnabled(face, (value & 2) != 0);
+                endpoint.setEnergyEnabled(face, (value & 4) != 0);
+            }
+        };
+    }
+
+    private static DataSlot priorityState(KleisVirtualNodeBlockEntity endpoint) {
+        return new DataSlot() {
+            @Override public int get() { return endpoint.getPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION); }
+            @Override public void set(int value) {
+                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                endpoint.adjustPriority(face, value - endpoint.getPriority(face));
+            }
+        };
     }
 }

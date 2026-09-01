@@ -7,7 +7,7 @@
     "count": 4
   },
   "offerings": [
-    { "item": "skylogistics:eulogia_crystal", "count": 64 },
+    { "item": "skylogistics:eulogia_crystal", "count": 64, "charged": true },
     { "item": "skylogistics:dimension_upgrade", "count": 1 },
     { "item": "minecraft:echo_shard", "count": 8 },
     { "item": "minecraft:end_crystal", "count": 16 }

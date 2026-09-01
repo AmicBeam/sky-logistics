@@ -2,7 +2,8 @@ package com.skylogistics.network;
 
 import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
-import com.skylogistics.util.NodeMode;
+import com.skylogistics.registry.ModItems;
+import com.skylogistics.menu.KleisDominionWandMenu;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,6 +91,7 @@ public final class KleisEndpointSavedData extends SavedData {
             removeRuntime(key);
             entries.remove(key);
             setDirty();
+            closeMenus(player.level().getServer(), key);
             return ToggleResult.REMOVED;
         }
         if (!(player.level() instanceof ServerLevel level) || !level.hasChunkAt(pos)
@@ -101,7 +103,8 @@ public final class KleisEndpointSavedData extends SavedData {
         node.setLevel(level);
         node.setSuppressChanges(true);
         node.applyPlacementToolConfig(config, false);
-        node.setMode(extracting ? NodeMode.INPUT : NodeMode.OUTPUT);
+        node.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION,
+                extracting ? com.skylogistics.util.NodeFaceMode.INPUT : com.skylogistics.util.NodeFaceMode.OUTPUT);
         node.setSuppressChanges(false);
         Entry entry = new Entry(player.getUUID(), 1, node.saveWithoutMetadata(node.getLevel().registryAccess()));
         entries.put(key, entry);
@@ -131,6 +134,20 @@ public final class KleisEndpointSavedData extends SavedData {
                     mapEntry.getValue().getLineId()));
         }
         return List.copyOf(result);
+    }
+
+    public void syncVisibleOverlays(MinecraftServer server, ResourceKey<Level> dimension, BlockPos changedPos) {
+        for (ServerPlayer viewer : server.getPlayerList().getPlayers()) {
+            if (!viewer.level().dimension().equals(dimension)
+                    || viewer.blockPosition().distSqr(changedPos) > 64L * 64L
+                    || !viewer.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                    || !viewer.getOffhandItem().is(ModItems.CONFIGURATOR.get())) continue;
+            UUID selectedLine = ConfiguratorItem.readLineId(viewer.getOffhandItem());
+            if (selectedLine != null) {
+                ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(selectedLine,
+                        snapshots(dimension, selectedLine, viewer.blockPosition(), 64)));
+            }
+        }
     }
 
     public void refresh(MinecraftServer server) {
@@ -175,6 +192,17 @@ public final class KleisEndpointSavedData extends SavedData {
         if (previous == null) return;
         entries.put(key, new Entry(previous.owner(), previous.revision() + 1, node.saveWithoutMetadata(node.getLevel().registryAccess())));
         setDirty();
+        if (node.getLevel() instanceof ServerLevel level) {
+            syncVisibleOverlays(level.getServer(), key.dimension(), key.pos());
+        }
+    }
+
+    private static void closeMenus(MinecraftServer server, Key key) {
+        for (ServerPlayer viewer : server.getPlayerList().getPlayers()) {
+            if (viewer.level().dimension().equals(key.dimension())
+                    && viewer.containerMenu instanceof KleisDominionWandMenu menu
+                    && menu.getPos().equals(key.pos()) && menu.targetFace() == key.face()) viewer.closeContainer();
+        }
     }
 
     private void removeRuntime(Key key) {

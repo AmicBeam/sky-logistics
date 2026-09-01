@@ -25,7 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.lwjgl.glfw.GLFW;
 
-public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
+public class SkyNodeScreen<M extends SkyNodeMenu> extends AbstractContainerScreen<M> {
     private static final int LINE_PANEL_X = 5;
     private static final int LINE_PANEL_Y = 20;
     private static final int LINE_PANEL_WIDTH = 244;
@@ -100,7 +100,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private int tagFilterRejectedSlot = -1;
     private ItemStack tagFilterRejectedPrevious = ItemStack.EMPTY;
 
-    public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
+    public SkyNodeScreen(M menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
         imageHeight = menu.isSingleEndpoint()
@@ -677,11 +677,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private SkyNodeBlockEntity node() {
-        if (Minecraft.getInstance().level == null) {
-            return null;
-        }
-        BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
-        return blockEntity instanceof SkyNodeBlockEntity node ? node : null;
+        return menu.endpointNode();
     }
 
     private void borderedBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {

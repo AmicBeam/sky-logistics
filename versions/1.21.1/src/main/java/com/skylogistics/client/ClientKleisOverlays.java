@@ -7,6 +7,8 @@ import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -21,10 +23,22 @@ public final class ClientKleisOverlays {
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static long lastRequest = Long.MIN_VALUE;
+    private static final Map<KleisOverlayPacket.Entry, Long> animationStarts = new HashMap<>();
     private ClientKleisOverlays() {}
 
-    public static void apply(KleisOverlayPacket packet) { lineId = packet.lineId(); entries = packet.entries(); }
-    public static void clear() { lineId = null; entries = List.of(); lastRequest = Long.MIN_VALUE; }
+    public static void apply(KleisOverlayPacket packet) {
+        Minecraft mc = Minecraft.getInstance();
+        long now = mc.level == null ? 0L : mc.level.getGameTime();
+        Map<KleisOverlayPacket.Entry, Long> nextStarts = new HashMap<>();
+        for (KleisOverlayPacket.Entry entry : packet.entries()) {
+            nextStarts.put(entry, animationStarts.getOrDefault(entry, now));
+        }
+        animationStarts.clear();
+        animationStarts.putAll(nextStarts);
+        lineId = packet.lineId();
+        entries = packet.entries();
+    }
+    public static void clear() { lineId = null; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE; }
 
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
@@ -34,16 +48,19 @@ public final class ClientKleisOverlays {
         UUID selected = ConfiguratorItem.readLineId(mc.player.getOffhandItem());
         if (selected == null) { clear(); return; }
         long now = mc.level.getGameTime();
-        if (!selected.equals(lineId)) { lineId = selected; entries = List.of(); lastRequest = Long.MIN_VALUE; }
+        if (!selected.equals(lineId)) { lineId = selected; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE; }
         if (lastRequest == Long.MIN_VALUE || now - lastRequest >= 20) { lastRequest = now; ModNetworking.requestKleisOverlays(); }
         Vec3 camera = event.getCamera().getPosition();
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
-        int phase = (int)(now % 50L) / 5;
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
+            for (int ring = 1; ring <= 7; ring++) {
+                draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F);
+            }
             draw(event, lines, faceBox(entry.pos(), entry.face(), 0), camera, r, g, b, 0.85F);
+            int phase = (int)(Math.floorMod(now - animationStarts.getOrDefault(entry, now), 50L)) / 5;
             if (phase < 8) {
                 int size = extract ? 2 + phase * 2 : 16 - phase * 2;
                 draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F);
