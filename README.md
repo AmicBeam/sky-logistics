@@ -77,7 +77,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 1. Craft Simple Item, Fluid, or Energy Pipes for an inexpensive early-game logistics network. Normal placement creates an insert endpoint on the clicked container, while sneak-placement creates an extract endpoint.
 2. Use the Sky Configurator to switch machine-facing pipe endpoints between insert and extract. Use the Celestial Wrench or another compatible tagged wrench to disconnect and reconnect pipe sides.
 3. Charge Eulogia Crystals at Y 96 or above by default, or at the configured ritual height, and use them to craft Celestial Stone and advanced Sky Logistics components.
-4. Build a multiblock Sky Offering Altar with Offering Tables to produce Chora Nectar and other offering materials.
+4. Build a tiered Sky Offering Altar with Offering Tables. Tier 2 produces Chora Nectar; four compressed Chora Nectar Blocks upgrade it to a configurable-speed tier 3 altar.
 5. Place Celestial Item Vaults or Celestial Fluid Vaults as aggregate storage endpoints.
 6. Place Sky Logistics Nodes against machines, vaults, distributors, or external storage interfaces. Normal placement creates insert mode, while sneak-placement creates extract mode.
 7. Use the Sky Configurator to create and manage named lines, copy and paste node settings, and preset newly placed nodes from the offhand.
@@ -96,7 +96,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Line IDs are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
-- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, companion-stone charge height, and charge times are configurable.
+- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, tier 3 altar work multiplier, companion-stone charge height, and charge times are configurable.
 - Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check. Simple pipe recipes use diamonds.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Slot Parallel Upgrade rates or server and line operation budgets.
 - The manual supports both Patchouli and GuideME; when both are installed, Patchouli is preferred and GuideME is the fallback.

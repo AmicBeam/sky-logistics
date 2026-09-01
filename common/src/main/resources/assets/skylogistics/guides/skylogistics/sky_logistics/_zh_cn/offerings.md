@@ -9,6 +9,7 @@ item_ids:
   - skylogistics:offering_table
   - skylogistics:eulogia_crystal
   - skylogistics:chora_nectar
+  - skylogistics:chora_nectar_block
 ---
 
 # 祭坛与供奉
@@ -20,6 +21,7 @@ item_ids:
   <ItemIcon id="offering_altar" />
   <ItemIcon id="offering_table" />
   <ItemIcon id="chora_nectar" />
+  <ItemIcon id="chora_nectar_block" />
 </ItemGrid>
 
 从这里开始：
@@ -30,6 +32,8 @@ item_ids:
 - [柯拉甘露供奉](chora_nectar_offering.md)
 
 供奉要求祭坛位于足够高的位置并处在有效法阵内。默认需要达到 Y=96，服务器设置可能有所不同。把主材料放在祭坛上，把供品放在四侧供桌上，顺序不限，然后等待仪式完成。
+
+法阵共有三阶：一阶用于基础供奉，二阶增加制作柯拉甘露所需的外圈角柱，三阶再消耗 4 个柯拉甘露块，以可配置倍率加速所有满足等级要求的供奉。
 
 <RecipeFor id="offering_altar" fallbackText="未找到供奉祭坛配方。" />
 <RecipeFor id="offering_table" fallbackText="未找到供奉台配方。" />
