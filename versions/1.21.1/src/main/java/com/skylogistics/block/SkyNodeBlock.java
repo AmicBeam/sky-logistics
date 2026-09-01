@@ -57,7 +57,7 @@ public class SkyNodeBlock extends BaseEntityBlock {
     private static final VoxelShape[] SHAPES = makeShapes();
 
     public SkyNodeBlock(Properties properties) {
-        super(properties);
+        super(properties.forceSolidOn());
         BlockState state = stateDefinition.any()
                 .setValue(TARGET, net.minecraft.core.Direction.NORTH)
                 .setValue(MODE, NodeMode.OUTPUT);

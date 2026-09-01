@@ -69,7 +69,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private final MapCodec<SimplePipeBlock> codec;
 
     public SimplePipeBlock(Properties properties, SimplePipeType pipeType) {
-        super(properties);
+        super(properties.forceSolidOn());
         this.pipeType = pipeType;
         this.codec = simpleCodec(nextProperties -> new SimplePipeBlock(nextProperties, pipeType));
         BlockState state = stateDefinition.any();

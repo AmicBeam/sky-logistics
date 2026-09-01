@@ -64,7 +64,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
     private final SimplePipeType pipeType;
 
     public SimplePipeBlock(Properties properties, SimplePipeType pipeType) {
-        super(properties);
+        super(properties.forceSolidOn());
         this.pipeType = pipeType;
         BlockState state = stateDefinition.any();
         for (BooleanProperty property : CONNECTION_BY_DIRECTION.values()) {
