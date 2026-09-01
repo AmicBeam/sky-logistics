@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "skylogistics:chora_nectar_block"
+  ],
+  "result": {
+    "id": "skylogistics:chora_nectar",
+    "count": 9
+  }
+}

@@ -45,6 +45,8 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.SKY_DIMENSION_INTERFACE.get(), blockItemProperties("sky_dimension_interface")));
     public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), blockItemProperties("celestial_stone")));
+    public static final DeferredHolder<Item, BlockItem> CHORA_NECTAR_BLOCK = ITEMS.register("chora_nectar_block",
+            () -> new BlockItem(ModBlocks.CHORA_NECTAR_BLOCK.get(), blockItemProperties("chora_nectar_block")));
     public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_SLAB.get(), blockItemProperties("celestial_stone_slab")));
     public static final DeferredHolder<Item, BlockItem> CELESTIAL_STONE_STAIRS = ITEMS.register("celestial_stone_stairs",

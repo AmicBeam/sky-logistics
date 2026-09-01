@@ -472,6 +472,10 @@ public final class SkyLogisticsConfig {
         return SERVER.skyRitualMinY.get();
     }
 
+    public static int tierThreeAltarWorkSpeedMultiplier() {
+        return SERVER.tierThreeAltarWorkSpeedMultiplier.get();
+    }
+
     public static int eulogiaCrystalChargeSeconds() {
         return SERVER.eulogiaCrystalChargeSeconds.get();
     }
@@ -536,6 +540,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue skyNecklaceSlotScansPerTick;
         public final ModConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ModConfigSpec.IntValue skyRitualMinY;
+        public final ModConfigSpec.IntValue tierThreeAltarWorkSpeedMultiplier;
         public final ModConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ModConfigSpec.IntValue eulogiaCompanionStoneMinY;
         public final ModConfigSpec.IntValue eulogiaCompanionStoneChargeSeconds;
@@ -956,6 +961,10 @@ public final class SkyLogisticsConfig {
                     .comment("Minimum block Y for Eulogia Crystals to charge and sky offering altars to work.",
                             "尤洛伽水晶充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
                     .defineInRange("skyRitualMinY", 96, -64, 320);
+            tierThreeAltarWorkSpeedMultiplier = builder
+                    .comment("Base work speed multiplier of a tier 3 sky offering altar. Particle effects keep their normal speed.",
+                            "三阶天穹供奉祭坛的基础工作速度倍率；粒子效果始终保持正常速度。")
+                    .defineInRange("tierThreeAltarWorkSpeedMultiplier", 4, 1, 64);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽水晶在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")

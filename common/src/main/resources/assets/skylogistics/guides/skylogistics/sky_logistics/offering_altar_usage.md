@@ -22,4 +22,6 @@ The altar must be high enough in the sky and inside a valid offering circle. The
 
 Once the ingredients match, the altar starts its particles and counts the recipe duration. When the duration completes, inputs vanish at once and the result appears in the altar slot. If it cannot fit, the remainder is dropped above the altar.
 
+A tier 3 altar advances work at the configured base multiplier (4x by default). Its particles retain the normal timing and do not speed up with the work multiplier.
+
 With Jade installed, looking at an altar or offering table shows the offering currently placed in it. Empty offering slots are not listed.

@@ -42,6 +42,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.EULOGIA_COMPANION_STONE.get());
                         output.accept(EulogiaCrystalItem.chargedStack(ModItems.EULOGIA_COMPANION_STONE.get()));
                         output.accept(ModItems.CHORA_NECTAR.get());
+                        output.accept(ModItems.CHORA_NECTAR_BLOCK.get());
                         if (ManualCompat.isLoaded()) {
                             output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
                         }

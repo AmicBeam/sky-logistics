@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NNN",
+    "NNN",
+    "NNN"
+  ],
+  "key": {
+    "N": "skylogistics:chora_nectar"
+  },
+  "result": {
+    "id": "skylogistics:chora_nectar_block",
+    "count": 1
+  }
+}

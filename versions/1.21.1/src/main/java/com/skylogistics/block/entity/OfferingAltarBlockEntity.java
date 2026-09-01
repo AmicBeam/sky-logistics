@@ -44,6 +44,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     private OfferingRecipe activeRecipe;
     private int activeBatchSize = 1;
     private int progress;
+    private int effectTicks;
     private boolean needsRecipeCheck = true;
     private boolean suppressRecipeRefresh;
 
@@ -77,6 +78,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             activeRecipe = null;
             activeBatchSize = 1;
             progress = 0;
+            effectTicks = 0;
         }
         if (level instanceof ServerLevel serverLevel) {
             tryStartRecipe(serverLevel);
@@ -143,6 +145,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
             tag.putString("ActiveRecipe", activeRecipeId.toString());
             tag.putInt("BatchSize", activeBatchSize);
             tag.putInt("Progress", progress);
+            tag.putInt("EffectTicks", effectTicks);
         }
         tag.putBoolean("NeedsRecipeCheck", needsRecipeCheck);
     }
@@ -153,6 +156,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         activeRecipeId = tag.contains("ActiveRecipe") ? ResourceLocation.parse(tag.getString("ActiveRecipe")) : null;
         activeBatchSize = activeRecipeId == null ? 1 : Math.max(1, tag.getInt("BatchSize"));
         progress = tag.getInt("Progress");
+        effectTicks = tag.getInt("EffectTicks");
         needsRecipeCheck = tag.getBoolean("NeedsRecipeCheck") || activeRecipeId == null;
     }
 
@@ -161,6 +165,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         activeRecipe = recipe.value();
         activeBatchSize = getBatchSize(activeRecipe);
         progress = 0;
+        effectTicks = 0;
         needsRecipeCheck = false;
         setChanged();
         if (level instanceof ServerLevel serverLevel) {
@@ -189,11 +194,10 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (tables.size() != 4) {
             return Component.translatable("message.skylogistics.offering_altar.tables", tables.size());
         }
-        if (!hasTierOneFrame()) {
+        int structureTier = getStructureTier();
+        if (structureTier <= 0) {
             return Component.translatable("message.skylogistics.offering_altar.frame");
         }
-
-        int structureTier = hasTierTwoPillars() ? 2 : 1;
         ItemStack mainStack = getDisplayedItem();
         List<OfferingRecipe> recipes = level.getRecipeManager().getAllRecipesFor(ModRecipes.SKY_OFFERING_TYPE.get()).stream()
                 .map(RecipeHolder::value)
@@ -283,14 +287,17 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
     private void tickActiveRecipe(ServerLevel level) {
         OfferingRecipe recipe = activeRecipe(level);
+        int structureTier = getStructureTier();
         if (recipe == null || !recipe.isEnabled() || shouldCheckActiveStructure()
                 && (worldPosition.getY() < SkyLogisticsConfig.skyRitualMinY()
-                || getStructureTier() < recipe.requiredTier())) {
+                || structureTier < recipe.requiredTier())) {
             wakeForRecipeCheck();
             return;
         }
-        progress++;
-        if (progress % 5 == 0) {
+        progress += OfferingAltarTierPolicy.workProgressPerTick(structureTier,
+                SkyLogisticsConfig.tierThreeAltarWorkSpeedMultiplier());
+        effectTicks++;
+        if (effectTicks % 5 == 0) {
             sendRitualParticles(level, recipe);
         }
         if (progress < recipe.duration()) {
@@ -309,6 +316,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         activeRecipe = null;
         activeBatchSize = 1;
         progress = 0;
+        effectTicks = 0;
         needsRecipeCheck = false;
         suppressRecipeRefresh = true;
         try {
@@ -410,7 +418,7 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     private boolean shouldCheckActiveStructure() {
-        return progress % ACTIVE_STRUCTURE_CHECK_INTERVAL == 0;
+        return effectTicks % ACTIVE_STRUCTURE_CHECK_INTERVAL == 0;
     }
 
     private List<ItemStack> getOfferingStacks() {
@@ -439,10 +447,30 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
         if (level == null || getOfferingTables().size() != 4) {
             return 0;
         }
+        if (hasTierThreeFrame() && hasTierTwoPillars()) {
+            return OfferingAltarTierPolicy.TIER_THREE;
+        }
         if (!hasTierOneFrame()) {
             return 0;
         }
         return hasTierTwoPillars() ? 2 : 1;
+    }
+
+    private boolean hasTierThreeFrame() {
+        for (int dx = -TIER_ONE_FRAME_RADIUS; dx <= TIER_ONE_FRAME_RADIUS; dx++) {
+            for (int dz = -TIER_ONE_FRAME_RADIUS; dz <= TIER_ONE_FRAME_RADIUS; dz++) {
+                if (Math.abs(dx) != TIER_ONE_FRAME_RADIUS && Math.abs(dz) != TIER_ONE_FRAME_RADIUS) {
+                    continue;
+                }
+                BlockState frameState = level.getBlockState(worldPosition.offset(dx, FRAME_Y_OFFSET, dz));
+                if (OfferingAltarTierPolicy.isFrameCorner(dx, dz, TIER_ONE_FRAME_RADIUS)
+                        ? !isChoraNectarBlock(frameState)
+                        : !isCelestialStoneFrameBlock(frameState)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private boolean hasTierOneFrame() {
@@ -483,6 +511,10 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
 
     private static boolean isCelestialGlass(BlockState state) {
         return state.is(ModBlocks.CELESTIAL_GLASS.get());
+    }
+
+    private static boolean isChoraNectarBlock(BlockState state) {
+        return state.is(ModBlocks.CHORA_NECTAR_BLOCK.get());
     }
 
     private static int findMatchingTable(OfferingRecipe.CountedIngredient ingredient,
@@ -561,20 +593,20 @@ public class OfferingAltarBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     private void sendRitualParticles(ServerLevel level, OfferingRecipe recipe) {
-        double progressRatio = recipe.duration() <= 0 ? 1.0D : Math.min(1.0D, (double) progress / recipe.duration());
+        double progressRatio = recipe.duration() <= 0 ? 1.0D : Math.min(1.0D, (double) effectTicks / recipe.duration());
         double x = worldPosition.getX() + 0.5D;
         double y = worldPosition.getY() + 1.15D;
         double z = worldPosition.getZ() + 0.5D;
         level.sendParticles(ParticleTypes.END_ROD, x, y + progressRatio * 0.25D, z,
                 2, 0.18D, 0.04D, 0.18D, 0.012D + progressRatio * 0.008D);
         level.sendParticles(ParticleTypes.ENCHANT, x, y + 0.2D, z, 1, 0.48D, 0.04D, 0.48D, 0.018D);
-        if (progress % 10 == 0) {
+        if (effectTicks % 10 == 0) {
             sendTableTrails(level);
         }
-        if (progress % 20 == 0) {
+        if (effectTicks % 20 == 0) {
             sendFramePulse(level, progressRatio);
         }
-        if (progressRatio > 0.85D && progress % 10 == 0) {
+        if (progressRatio > 0.85D && effectTicks % 10 == 0) {
             level.sendParticles(ParticleTypes.GLOW, x, y + 0.55D, z, 2, 0.25D, 0.06D, 0.25D, 0.004D);
         }
     }

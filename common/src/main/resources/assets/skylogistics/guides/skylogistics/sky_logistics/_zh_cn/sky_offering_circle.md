@@ -9,6 +9,7 @@ item_ids:
   - skylogistics:offering_table
   - skylogistics:celestial_stone
   - skylogistics:celestial_glass
+  - skylogistics:chora_nectar_block
 ---
 
 # 天穹供奉法阵
@@ -30,6 +31,15 @@ item_ids:
 
 <GameScene zoom={0.82} interactive={true} fullWidth={true}>
   <ImportStructure src="/structures/offering_circle_tier2.snbt" />
+  <IsometricCamera yaw={35} pitch={30} />
+</GameScene>
+
+## 三阶
+
+三阶保留二阶的外圈角柱与天穹玻璃柱顶，但把内侧 5x5 框架的四个角替换为柯拉甘露块。三阶祭坛按配置的基础倍率工作（默认 4 倍），仪式粒子仍保持正常速度。
+
+<GameScene zoom={0.82} interactive={true} fullWidth={true}>
+  <ImportStructure src="/structures/offering_circle_tier3.snbt" />
   <IsometricCamera yaw={35} pitch={30} />
 </GameScene>
 

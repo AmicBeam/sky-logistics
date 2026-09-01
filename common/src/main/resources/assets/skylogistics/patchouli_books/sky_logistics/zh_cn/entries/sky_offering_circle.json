@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "一阶祭坛只需要下层外圈完整。天穹石、天穹石台阶、楼梯和墙都可以算作框架。想制作柯拉甘露，需要升级到二阶：在更外圈四角立起石柱，并把天穹玻璃放在柱顶。"
+      "text": "一阶祭坛只需要下层外圈完整。二阶在更外圈四角立起石柱，并把天穹玻璃放在柱顶。三阶保留二阶结构，并把内侧 5x5 框架的四角换成柯拉甘露块；默认以 4 倍速度工作，粒子效果仍保持原速。"
     },
     {
       "type": "patchouli:text",
@@ -81,6 +81,49 @@
             " C   C ",
             " C   C ",
             " CCCCC ",
+            "C     C"
+          ]
+        ]
+      }
+    },
+    {
+      "type": "patchouli:multiblock",
+      "name": "三阶天穹供奉祭坛",
+      "multiblock": {
+        "mapping": {
+          "0": "skylogistics:offering_altar",
+          "T": "skylogistics:offering_table",
+          "C": "skylogistics:celestial_stone",
+          "N": "skylogistics:chora_nectar_block",
+          "G": "skylogistics:celestial_glass",
+          " ": "ANY"
+        },
+        "pattern": [
+          [
+            "G     G",
+            "       ",
+            "       ",
+            "       ",
+            "       ",
+            "       ",
+            "G     G"
+          ],
+          [
+            "C     C",
+            "       ",
+            "   T   ",
+            "  T0T  ",
+            "   T   ",
+            "       ",
+            "C     C"
+          ],
+          [
+            "C     C",
+            " NCCC N",
+            " C   C ",
+            " C   C ",
+            " C   C ",
+            " NCCC N",
             "C     C"
           ]
         ]
