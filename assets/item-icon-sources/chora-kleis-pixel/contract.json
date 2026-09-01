@@ -26,7 +26,7 @@
     ],
     "current_adjustments": [
       "widen the full handle silhouette, navy grip, bronze shaft, and gold core by roughly one pixel tier",
-      "lighten the handle navy and bronze shadows while preserving their hue families",
+      "lighten the handle navy and raise the bronze shadow to #87562e while keeping it below the #9b622c midtone",
       "lighten the head arc's deep blue and deep brown-orange material-edge clusters"
     ]
   },

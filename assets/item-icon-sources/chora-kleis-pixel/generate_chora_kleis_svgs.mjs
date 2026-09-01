@@ -75,7 +75,7 @@ function generate(size, noOutline = false) {
     ...C,
     navy: "#23406a",
     blueDark: "#2d6794",
-    bronzeDark: "#744824",
+    bronzeDark: "#87562e",
     orangeDark: "#bc6c28",
   } : C;
   const neutralEdge = noOutline ? material.bronzeDark : C.outline;

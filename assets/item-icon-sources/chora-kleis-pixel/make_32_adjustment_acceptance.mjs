@@ -3,11 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const inputs = [
-  resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_before_handle_palette.png"),
+  resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_before_brown_lighten.png"),
   resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_refined.png"),
   resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_refined.png"),
 ];
-const labels = ["before", "wider + lighter", "dark background"];
+const labels = ["previous brown", "lighter handle brown", "dark background"];
 const backgrounds = ["#c6c6c6", "#c6c6c6", "#202936"];
 const output = resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_adjustment_acceptance.png");
 const panelSize = 320;
