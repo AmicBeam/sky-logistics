@@ -11,11 +11,24 @@
           }
         ]
       }
+    },
+    "has_eulogia_companion_stone": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "skylogistics:eulogia_companion_stone"
+            ]
+          }
+        ]
+      }
     }
   },
   "requirements": [
     [
-      "has_eulogia_crystal"
+      "has_eulogia_crystal",
+      "has_eulogia_companion_stone"
     ]
   ]
 }

@@ -8,7 +8,7 @@
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
     "minecraft:book",
-    "skylogistics:eulogia_crystal"
+    "skylogistics:eulogia_companion_stone"
   ],
   "result": {
     "id": "skylogistics:sky_logistics_manual",
