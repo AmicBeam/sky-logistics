@@ -27,6 +27,8 @@ import net.minecraftforge.registries.RegistryObject;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 public final class ModBlocks {
+    private static final float OBSIDIAN_BLAST_RESISTANCE = 1_200.0F;
+
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, SkyLogistics.MOD_ID);
 
     public static final RegistryObject<Block> ITEM_VAULT = BLOCKS.register("item_vault",
@@ -44,31 +46,31 @@ public final class ModBlocks {
     public static final RegistryObject<Block> SKY_ME_INTERFACE = BLOCKS.register("sky_me_interface",
             () -> new ExternalNetworkInterfaceBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, OBSIDIAN_BLAST_RESISTANCE)
                     .sound(SoundType.AMETHYST), SkyMEInterfaceBlockEntity::new));
 
     public static final RegistryObject<Block> SKY_RS_INTERFACE = BLOCKS.register("sky_rs_interface",
             () -> new ExternalNetworkInterfaceBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, OBSIDIAN_BLAST_RESISTANCE)
                     .sound(SoundType.AMETHYST), SkyRSInterfaceBlockEntity::new));
 
     public static final RegistryObject<Block> SKY_DIMENSION_INTERFACE = BLOCKS.register("sky_dimension_interface",
             () -> new SkyDimensionInterfaceBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, OBSIDIAN_BLAST_RESISTANCE)
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SKY_NODE = BLOCKS.register("sky_node",
             () -> new SkyNodeBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLUE)
-                    .strength(1.5F, 7.0F)
+                    .strength(1.5F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SKY_DISTRIBUTOR = BLOCKS.register("sky_distributor",
             () -> new SkyDistributorBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.COLOR_CYAN).strength(2.5F, 7.0F).sound(SoundType.AMETHYST)));
+                    .mapColor(MapColor.COLOR_CYAN).strength(2.5F, OBSIDIAN_BLAST_RESISTANCE).sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SIMPLE_ITEM_PIPE = simplePipe("simple_item_pipe", SimplePipeType.ITEM);
     public static final RegistryObject<Block> SIMPLE_FLUID_PIPE = simplePipe("simple_fluid_pipe", SimplePipeType.FLUID);
@@ -96,7 +98,7 @@ public final class ModBlocks {
     public static final RegistryObject<Block> CELESTIAL_GLASS = BLOCKS.register("celestial_glass",
             () -> new CelestialGlassBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(0.6F, 3.0F)
+                    .strength(0.6F, OBSIDIAN_BLAST_RESISTANCE)
                     .sound(SoundType.GLASS)
                     .noOcclusion()
                     .lightLevel(state -> 15)));
@@ -104,14 +106,14 @@ public final class ModBlocks {
     public static final RegistryObject<Block> OFFERING_ALTAR = BLOCKS.register("offering_altar",
             () -> new OfferingAltarBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> OFFERING_TABLE = BLOCKS.register("offering_table",
             () -> new OfferingTableBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(2.5F, 7.0F)
+                    .strength(2.5F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
@@ -125,14 +127,14 @@ public final class ModBlocks {
     private static BlockBehaviour.Properties celestialStoneProperties() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                .strength(2.0F, 7.0F)
+                .strength(2.0F, OBSIDIAN_BLAST_RESISTANCE)
                 .sound(SoundType.AMETHYST);
     }
 
     private static RegistryObject<Block> simplePipe(String name, SimplePipeType type) {
         return BLOCKS.register(name, () -> new SimplePipeBlock(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_BLUE)
-                .strength(1.5F, 7.0F)
+                .strength(1.5F, OBSIDIAN_BLAST_RESISTANCE)
                 .noOcclusion()
                 .sound(SoundType.AMETHYST), type));
     }

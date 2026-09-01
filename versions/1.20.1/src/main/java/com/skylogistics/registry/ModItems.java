@@ -23,9 +23,9 @@ public final class ModItems {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SkyLogistics.MOD_ID);
 
     public static final RegistryObject<Item> ITEM_VAULT = ITEMS.register("item_vault",
-            () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), new Item.Properties()));
+            () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), new Item.Properties().fireResistant()));
     public static final RegistryObject<Item> FLUID_VAULT = ITEMS.register("fluid_vault",
-            () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties()));
+            () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), new Item.Properties().fireResistant()));
     public static final RegistryObject<Item> SKY_ME_INTERFACE = ITEMS.register("sky_me_interface",
             () -> new BlockItem(ModBlocks.SKY_ME_INTERFACE.get(), new Item.Properties()));
     public static final RegistryObject<Item> SKY_RS_INTERFACE = ITEMS.register("sky_rs_interface",
