@@ -1,8 +1,6 @@
 {
   "replace": false,
   "values": [
-    "skylogistics:chora_nectar_block",
-    "skylogistics:item_vault",
-    "skylogistics:fluid_vault"
+    "skylogistics:chora_nectar_block"
   ]
 }

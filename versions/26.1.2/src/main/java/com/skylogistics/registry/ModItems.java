@@ -24,9 +24,9 @@ public final class ModItems {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, SkyLogistics.MOD_ID);
 
     public static final DeferredHolder<Item, BlockItem> ITEM_VAULT = ITEMS.register("item_vault",
-            () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), blockItemProperties("item_vault").fireResistant()));
+            () -> new BlockItem(ModBlocks.ITEM_VAULT.get(), blockItemProperties("item_vault")));
     public static final DeferredHolder<Item, BlockItem> FLUID_VAULT = ITEMS.register("fluid_vault",
-            () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), blockItemProperties("fluid_vault").fireResistant()));
+            () -> new BlockItem(ModBlocks.FLUID_VAULT.get(), blockItemProperties("fluid_vault")));
     public static final DeferredHolder<Item, SkyNodeBlockItem> SKY_NODE = ITEMS.register("sky_node",
             () -> new SkyNodeBlockItem(ModBlocks.SKY_NODE.get(), blockItemProperties("sky_node")));
     public static final DeferredHolder<Item, BlockItem> SKY_DISTRIBUTOR = ITEMS.register("sky_distributor",
