@@ -1,0 +1,18 @@
+{
+  "logical_size": "16x16",
+  "transform": "90-degree clockwise around the center between pixels 7 and 8",
+  "faces": {
+    "top": {
+      "horizontal_mismatches": 0,
+      "vertical_mismatches": 0,
+      "rotational_180_mismatches": 0,
+      "rotational_90_mismatches": 0
+    },
+    "bottom": {
+      "horizontal_mismatches": 0,
+      "vertical_mismatches": 0,
+      "rotational_180_mismatches": 0,
+      "rotational_90_mismatches": 0
+    }
+  }
+}
