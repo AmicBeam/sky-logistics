@@ -15,6 +15,9 @@
     "master": "chora_kleis_32_no_outline.svg",
     "output": "chora_kleis_32_refined.png",
     "edge_style": "material-local",
+    "symmetry_axis": "x+y=32 through pixel centers",
+    "symmetry_mapping": "(x,y) -> (31-y,31-x)",
+    "required_silhouette_mismatches": 0,
     "simplifications": [
       "remove pixel-scale meander fragments",
       "replace each detailed hub with one mirrored 3x3 jewel, one short inward spear, and one short outward tooth",

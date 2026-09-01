@@ -15,16 +15,16 @@
     "iccBytes": 0
   },
   "alpha": {
-    "transparentPixels": 833,
+    "transparentPixels": 829,
     "partialAlphaPixels": 0,
-    "opaquePixels": 191
+    "opaquePixels": 195
   },
   "uniqueColors": 11,
   "palette": [
     {
       "rgba": "#00000000",
-      "count": 833,
-      "percent": 81.348,
+      "count": 829,
+      "percent": 80.957,
       "luminance": 0,
       "hsv": {
         "h": 0,
@@ -34,8 +34,8 @@
     },
     {
       "rgba": "#102733ff",
-      "count": 41,
-      "percent": 4.004,
+      "count": 43,
+      "percent": 4.199,
       "luminance": 0.018002,
       "hsv": {
         "h": 200.6,
@@ -56,8 +56,8 @@
     },
     {
       "rgba": "#e89a36ff",
-      "count": 26,
-      "percent": 2.539,
+      "count": 28,
+      "percent": 2.734,
       "luminance": 0.405333,
       "hsv": {
         "h": 33.7,
@@ -150,9 +150,9 @@
     }
   ],
   "symmetry": {
-    "horizontalMismatches": 330,
-    "verticalMismatches": 330,
-    "rotational180Mismatches": 368
+    "horizontalMismatches": 338,
+    "verticalMismatches": 338,
+    "rotational180Mismatches": 374
   },
   "pixelGrid": [
     [
@@ -518,7 +518,7 @@
       0,
       0,
       0,
-      0,
+      8,
       0,
       0,
       0,
@@ -553,9 +553,9 @@
       0,
       0,
       0,
-      8,
+      10,
       0,
-      0,
+      10,
       1,
       8,
       3,
@@ -589,7 +589,7 @@
       0,
       0,
       10,
-      0,
+      4,
       10,
       3,
       3,
@@ -621,9 +621,9 @@
       0,
       0,
       0,
-      0,
-      0,
       10,
+      4,
+      8,
       4,
       10,
       3,
@@ -658,9 +658,9 @@
       1,
       10,
       4,
-      8,
-      4,
       10,
+      3,
+      1,
       0,
       0,
       0
@@ -692,8 +692,8 @@
       8,
       3,
       10,
+      3,
       4,
-      10,
       0,
       0,
       0,
@@ -726,9 +726,9 @@
       3,
       3,
       3,
-      10,
+      1,
       0,
-      4,
+      10,
       0,
       0,
       0
@@ -763,7 +763,7 @@
       0,
       0,
       0,
-      10,
+      0,
       0,
       0
     ],

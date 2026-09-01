@@ -199,8 +199,10 @@ function generate(size, noOutline = false) {
     } else {
       // At 32, retain the concept-art hub as a single symmetric 3x3 jewel,
       // a three-step inward spear, and a two-step outward key tooth.
-      const cx = Math.round(hub.x);
-      const cy = Math.round(hub.y);
+      // Pixel centers must mirror across x+y=32. Draw the blue center first;
+      // its exact reflected orange coordinate is (31-y, 31-x).
+      const cx = side < 0 ? 18 : 25;
+      const cy = side < 0 ? 6 : 13;
       const outward = side;
       const materialEdge = side < 0 ? C.blueDark : C.orangeDark;
       paintDiamond(canvas, cx + 0.5, cy + 0.5, 2.2, materialEdge);

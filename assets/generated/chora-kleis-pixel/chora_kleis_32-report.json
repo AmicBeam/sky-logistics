@@ -11,20 +11,20 @@
   "previewBackground": "#c6c6c6",
   "edgePixels": 0,
   "alpha": {
-    "transparentPixels": 833,
+    "transparentPixels": 829,
     "partialAlphaPixels": 0,
-    "opaquePixels": 191
+    "opaquePixels": 195
   },
   "palette": {
     "uniqueColors": 11,
     "topColors": [
       {
         "rgba": "#00000000",
-        "count": 833
+        "count": 829
       },
       {
         "rgba": "#102733ff",
-        "count": 41
+        "count": 43
       },
       {
         "rgba": "#3c91c5ff",
@@ -32,7 +32,7 @@
       },
       {
         "rgba": "#e89a36ff",
-        "count": 26
+        "count": 28
       },
       {
         "rgba": "#e0ad50ff",
