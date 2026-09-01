@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <g transform="rotate(180 8 8)">
+  <!-- Chora gate: a hollow key bow, not a vessel. Cyan opens insert space; gold opens extract space. -->
+  <path fill="#142b36" d="M10 1h3v1h1v1h1v3h-1v1h-1v1h-3V7H9V6H8V3h1V2h1z"/>
+  <path fill="#75c9e5" d="M10 2h3v1h-1V2h-2zM9 3h1v3H9zM10 3h1v1h-1z"/>
+  <path fill="#9be6f5" d="M10 2h2v1h-2zM9 3h1v2H9z"/>
+  <path fill="#ffd56f" d="M13 3h1v3h-1zM10 6h3v1h-3zM12 5h1v1h-1z"/>
+  <path fill="#d58b3f" d="M13 5h1v1h-1zM12 6h1v1h-1z"/>
+
+  <!-- Celestial-metal shaft, deliberately diagonal so it reads as a wand at native size. -->
+  <path fill="#142b36" d="M9 6h2v3h-1v1H9v1H8v1H7v1H6v1H3v-1H2v-2h2v-1h1V9h1V8h1V7h2z"/>
+  <path fill="#367bb8" d="M9 7h1v2H9v1H8v1H7v1H6v1H4v-1h1v-1h1v-1h1V9h1V8h1z"/>
+  <path fill="#75c9e5" d="M8 8h1v1H8v1H7v1H6v1H5v-1h1v-1h1V9h1z"/>
+  <path fill="#9be6f5" d="M8 8h1v1H8zM6 10h1v1H6zM4 12h1v1H4z"/>
+
+  <!-- Two asymmetric wards form unmistakable key teeth at the grip end. -->
+  <path fill="#142b36" d="M2 10h2v2H3v1h2v2H2v-1H1v-3h1z"/>
+  <path fill="#ffd56f" d="M2 11h2v1H3v1h1v1H2z"/>
+  <path fill="#fff6aa" d="M2 11h1v1H2z"/>
+  </g>
+</svg>

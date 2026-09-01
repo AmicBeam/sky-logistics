@@ -1,0 +1,38 @@
+{
+  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/item-icon-sources/chora_kleis_symbol_mask.svg",
+  "active": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/item-icon-sources/chora_kleis_symbol_mask.png",
+  "inactive": null,
+  "assetKind": "transparent-icon",
+  "dimensions": "16x16",
+  "svgIntrinsicDimensions": "16x16",
+  "directLogicalRaster": true,
+  "preview": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis/chora_kleis_symbol_mask-review.png",
+  "diffPreview": null,
+  "previewBackground": "#c6c6c6",
+  "edgePixels": 0,
+  "alpha": {
+    "transparentPixels": 181,
+    "partialAlphaPixels": 0,
+    "opaquePixels": 75
+  },
+  "palette": {
+    "uniqueColors": 2,
+    "topColors": [
+      {
+        "rgba": "#00000000",
+        "count": 181
+      },
+      {
+        "rgba": "#ffffffff",
+        "count": 75
+      }
+    ]
+  },
+  "reference": null,
+  "mask": null,
+  "boundary": null,
+  "foregroundMask": null,
+  "contrast": null,
+  "failures": [],
+  "warnings": []
+}

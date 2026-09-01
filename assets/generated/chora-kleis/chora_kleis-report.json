@@ -1,0 +1,62 @@
+{
+  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/item-icon-sources/chora_kleis.svg",
+  "active": "/Users/bytedance/projects/kubejs goety/sky-logistics/common/src/main/resources/assets/skylogistics/textures/item/chora_kleis.png",
+  "inactive": null,
+  "assetKind": "transparent-icon",
+  "dimensions": "16x16",
+  "svgIntrinsicDimensions": "16x16",
+  "directLogicalRaster": true,
+  "preview": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis/chora_kleis-review.png",
+  "diffPreview": null,
+  "previewBackground": "#c6c6c6",
+  "edgePixels": 0,
+  "alpha": {
+    "transparentPixels": 178,
+    "partialAlphaPixels": 0,
+    "opaquePixels": 78
+  },
+  "palette": {
+    "uniqueColors": 8,
+    "topColors": [
+      {
+        "rgba": "#00000000",
+        "count": 178
+      },
+      {
+        "rgba": "#142b36ff",
+        "count": 49
+      },
+      {
+        "rgba": "#ffd56fff",
+        "count": 8
+      },
+      {
+        "rgba": "#9be6f5ff",
+        "count": 7
+      },
+      {
+        "rgba": "#367bb8ff",
+        "count": 6
+      },
+      {
+        "rgba": "#75c9e5ff",
+        "count": 5
+      },
+      {
+        "rgba": "#d58b3fff",
+        "count": 2
+      },
+      {
+        "rgba": "#fff6aaff",
+        "count": 1
+      }
+    ]
+  },
+  "reference": null,
+  "mask": null,
+  "boundary": null,
+  "foregroundMask": null,
+  "contrast": null,
+  "failures": [],
+  "warnings": []
+}
