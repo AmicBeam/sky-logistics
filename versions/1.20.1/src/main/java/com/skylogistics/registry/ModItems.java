@@ -45,7 +45,7 @@ public final class ModItems {
     public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CHORA_NECTAR_BLOCK = ITEMS.register("chora_nectar_block",
-            () -> new BlockItem(ModBlocks.CHORA_NECTAR_BLOCK.get(), new Item.Properties()));
+            () -> new BlockItem(ModBlocks.CHORA_NECTAR_BLOCK.get(), new Item.Properties().fireResistant()));
     public static final RegistryObject<Item> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_SLAB.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE_STAIRS = ITEMS.register("celestial_stone_stairs",

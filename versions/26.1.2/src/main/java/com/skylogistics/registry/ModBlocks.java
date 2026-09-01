@@ -70,7 +70,8 @@ public final class ModBlocks {
 
     public static final DeferredHolder<Block, Block> CHORA_NECTAR_BLOCK = BLOCKS.register("chora_nectar_block",
             () -> new Block(blockProperties("chora_nectar_block", MapColor.COLOR_YELLOW)
-                    .strength(2.0F, 7.0F)
+                    .strength(-1.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SlabBlock> CELESTIAL_STONE_SLAB = BLOCKS.register("celestial_stone_slab",

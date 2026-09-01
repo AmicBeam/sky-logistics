@@ -20,5 +20,7 @@ item_ids:
 
 9 个柯拉甘露可以合成 1 个 <ItemLink id="chora_nectar_block" />，甘露块也能无损拆回 9 个甘露。把二阶祭坛内侧 5x5 框架的四个角换成甘露块，即可升级为三阶祭坛。
 
+放置后的甘露块可抵御普通挖掘、爆炸、熔岩、凋灵和末影龙破坏。潜行使用天穹扳手或兼容扳手右击，可安全拆下并优先收入背包。
+
 <RecipeFor id="chora_nectar_block" fallbackText="未找到柯拉甘露块配方。" />
 <RecipeFor id="chora_nectar_from_block" fallbackText="未找到柯拉甘露块拆解配方。" />
