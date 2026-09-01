@@ -33,13 +33,15 @@ public final class ModBlocks {
     public static final DeferredHolder<Block, ItemVaultBlock> ITEM_VAULT = BLOCKS.register("item_vault",
             () -> new ItemVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, FluidVaultBlock> FLUID_VAULT = BLOCKS.register("fluid_vault",
             () -> new FluidVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SkyNodeBlock> SKY_NODE = BLOCKS.register("sky_node",
