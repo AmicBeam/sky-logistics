@@ -269,10 +269,20 @@ function generate16(noOutline = false) {
   put(C.orange, [[13, 2], [14, 3], [14, 4], [14, 5], [13, 6], [12, 7]]);
   put(C.orangeHi, [[12, 2], [13, 3], [13, 4], [13, 5], [12, 6], [11, 7]]);
 
-  // Gold transition cells imply the 32px structural band without breaking the loop.
+  // Gold transition cells preserve the 32px structural band without breaking the loop.
   put(C.gold, [[11, 1], [10, 7]]);
-  put(C.cyanHi, [[8, 3]]);
-  put(C.goldHi, [[13, 5]]);
+
+  // Preserve every identifiable head detail as a minimal cluster: each arc
+  // keeps one outward key tooth, one gold-set jewel, and one inward ward tip.
+  put(C.blueDark, [[7, 1]]);
+  put(C.gold, [[8, 2], [9, 3]]);
+  put(C.cyanHi, [[10, 3]]);
+  put(C.cyan, [[10, 4]]);
+
+  put(C.orangeDark, [[14, 7]]);
+  put(C.gold, [[13, 6], [12, 5]]);
+  put(C.goldHi, [[11, 5]]);
+  put(C.orangeHi, [[11, 4]]);
   return canvas;
 }
 

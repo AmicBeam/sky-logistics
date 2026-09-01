@@ -5,13 +5,15 @@ import { dirname, resolve } from "node:path";
 const inputs = [
   resolve("assets/generated/chora-kleis-pixel/chora_kleis_32_refined.png"),
   resolve("assets/generated/chora-kleis-pixel/chora_kleis_16_refined.png"),
+  resolve("assets/generated/chora-kleis-pixel/chora_kleis_16_refined.png"),
 ];
-const labels = ["32px reference", "16px simplified"];
+const labels = ["32px reference", "16px on light", "16px on dark"];
+const backgrounds = ["#c6c6c6", "#c6c6c6", "#202936"];
 const output = resolve("assets/generated/chora-kleis-pixel/chora_kleis_16_acceptance.png");
 const panelSize = 256;
 const gap = 24;
 const labelHeight = 38;
-const width = panelSize * 2 + gap * 3;
+const width = panelSize * inputs.length + gap * (inputs.length + 1);
 const height = panelSize + labelHeight + gap * 2;
 const layers = [];
 
@@ -22,7 +24,7 @@ for (let index = 0; index < inputs.length; index += 1) {
     .png()
     .toBuffer();
   const tile = await sharp({
-    create: { width: panelSize, height: panelSize, channels: 4, background: "#c6c6c6" },
+    create: { width: panelSize, height: panelSize, channels: 4, background: backgrounds[index] },
   }).composite([{ input: icon }]).png().toBuffer();
   layers.push({ input: tile, left, top: gap });
   layers.push({

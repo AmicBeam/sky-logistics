@@ -32,8 +32,8 @@
     "edge_style": "material-local",
     "simplifications": [
       "collapse the arc gaps into color transitions so the 16px silhouette remains a complete ring with a clear inner hole",
-      "reduce each energy hub to one highlight cell",
-      "omit engraving, inward spears, and outward teeth",
+      "reduce each energy hub to a gold-set highlight cluster",
+      "retain one inward ward tip and one outward key tooth on each colored arc",
       "render the grip and shaft as a three-pixel stepped diagonal following the vanilla diamond-pickaxe handle grammar"
     ]
   },

@@ -11,55 +11,55 @@
   "previewBackground": "#c6c6c6",
   "edgePixels": 0,
   "alpha": {
-    "transparentPixels": 206,
+    "transparentPixels": 198,
     "partialAlphaPixels": 0,
-    "opaquePixels": 50
+    "opaquePixels": 58
   },
   "palette": {
     "uniqueColors": 13,
     "topColors": [
       {
         "rgba": "#00000000",
-        "count": 206
+        "count": 198
       },
       {
         "rgba": "#172849ff",
         "count": 8
       },
       {
-        "rgba": "#3c91c5ff",
-        "count": 6
+        "rgba": "#e0ad50ff",
+        "count": 8
+      },
+      {
+        "rgba": "#79dce9ff",
+        "count": 7
+      },
+      {
+        "rgba": "#ffd56fff",
+        "count": 7
       },
       {
         "rgba": "#5c391dff",
         "count": 6
       },
       {
-        "rgba": "#e89a36ff",
-        "count": 6
-      },
-      {
-        "rgba": "#79dce9ff",
-        "count": 5
-      },
-      {
-        "rgba": "#ffd56fff",
-        "count": 5
-      },
-      {
         "rgba": "#224f7aff",
-        "count": 4
+        "count": 5
       },
       {
-        "rgba": "#e0ad50ff",
-        "count": 4
+        "rgba": "#3c91c5ff",
+        "count": 5
       },
       {
-        "rgba": "#9b622cff",
-        "count": 2
+        "rgba": "#e89a36ff",
+        "count": 5
       },
       {
         "rgba": "#a85b23ff",
+        "count": 3
+      },
+      {
+        "rgba": "#9b622cff",
         "count": 2
       },
       {
