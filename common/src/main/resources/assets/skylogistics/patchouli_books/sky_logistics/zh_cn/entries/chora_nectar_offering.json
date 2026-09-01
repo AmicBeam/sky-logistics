@@ -20,7 +20,7 @@
       "type": "patchouli:crafting",
       "recipe": "skylogistics:chora_nectar_block",
       "recipe2": "skylogistics:chora_nectar_from_block",
-      "text": "9 个柯拉甘露可压缩成 1 个甘露块，并能无损拆回。把二阶祭坛内侧 5x5 框架的四角换成甘露块，即可升级为三阶。甘露块可抵御挖掘、爆炸、熔岩、凋灵和末影龙破坏；潜行使用兼容扳手可安全回收。"
+      "text": "9 个柯拉甘露可压缩成 1 个甘露块，并能无损拆回。把二阶祭坛内侧 5x5 框架的四角换成甘露块，即可升级为三阶。甘露块仍可普通挖掘，但可抵御爆炸、熔岩、凋灵和末影龙破坏；潜行使用兼容扳手可立即回收。"
     }
   ]
 }

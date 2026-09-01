@@ -20,7 +20,7 @@
       "type": "patchouli:crafting",
       "recipe": "skylogistics:chora_nectar_block",
       "recipe2": "skylogistics:chora_nectar_from_block",
-      "text": "Nine Chora Nectar pack into one Chora Nectar Block, which unpacks back into nine nectar. Four blocks replace the corners of the inner 5x5 frame to upgrade a tier 2 altar to tier 3. The block resists mining, explosions, lava, Withers, and the Ender Dragon; sneak-use a compatible wrench to recover it."
+      "text": "Nine Chora Nectar pack into one Chora Nectar Block, which unpacks back into nine nectar. Four blocks replace the corners of the inner 5x5 frame to upgrade a tier 2 altar to tier 3. The block remains mineable but resists explosions, lava, Withers, and the Ender Dragon; sneak-use a compatible wrench to recover it instantly."
     }
   ]
 }

@@ -12,10 +12,10 @@ class ChoraNectarBlockProtectionTest {
     private static final String CHORA_NECTAR_BLOCK = "skylogistics:chora_nectar_block";
 
     @Test
-    void blockIsUnbreakableAndExplosionResistant() throws IOException {
+    void blockRemainsNormallyMineableAndExplosionResistant() throws IOException {
         String registration = registrationBlock(readJava("registry/ModBlocks.java"), "CHORA_NECTAR_BLOCK");
         assertAll(
-                () -> assertTrue(registration.contains(".strength(-1.0F, 3_600_000.0F)"), registration),
+                () -> assertTrue(registration.contains(".strength(2.0F, 3_600_000.0F)"), registration),
                 () -> assertTrue(registration.contains(".forceSolidOn()"), registration));
     }
 
