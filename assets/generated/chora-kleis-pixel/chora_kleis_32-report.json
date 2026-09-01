@@ -1,30 +1,30 @@
 {
-  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/item-icon-sources/chora-kleis-pixel/chora_kleis_32.svg",
-  "active": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis-pixel/chora_kleis_32.png",
+  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/item-icon-sources/chora-kleis-pixel/chora_kleis_32.svg",
+  "active": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_32.png",
   "inactive": null,
   "assetKind": "transparent-icon",
   "dimensions": "32x32",
   "svgIntrinsicDimensions": "32x32",
   "directLogicalRaster": true,
-  "preview": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis-pixel/chora_kleis_32-review.png",
+  "preview": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_32-review.png",
   "diffPreview": null,
   "previewBackground": "#c6c6c6",
   "edgePixels": 0,
   "alpha": {
-    "transparentPixels": 829,
+    "transparentPixels": 802,
     "partialAlphaPixels": 0,
-    "opaquePixels": 195
+    "opaquePixels": 222
   },
   "palette": {
     "uniqueColors": 11,
     "topColors": [
       {
         "rgba": "#00000000",
-        "count": 829
+        "count": 802
       },
       {
         "rgba": "#102733ff",
-        "count": 43
+        "count": 56
       },
       {
         "rgba": "#3c91c5ff",
@@ -35,16 +35,16 @@
         "count": 28
       },
       {
+        "rgba": "#23406aff",
+        "count": 27
+      },
+      {
         "rgba": "#e0ad50ff",
         "count": 21
       },
       {
-        "rgba": "#172849ff",
-        "count": 19
-      },
-      {
-        "rgba": "#224f7aff",
-        "count": 12
+        "rgba": "#2d6794ff",
+        "count": 18
       },
       {
         "rgba": "#79dce9ff",
@@ -55,11 +55,11 @@
         "count": 12
       },
       {
-        "rgba": "#5c391dff",
+        "rgba": "#744824ff",
         "count": 10
       },
       {
-        "rgba": "#a85b23ff",
+        "rgba": "#bc6c28ff",
         "count": 10
       }
     ]

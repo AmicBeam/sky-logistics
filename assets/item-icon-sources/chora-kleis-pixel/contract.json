@@ -23,6 +23,11 @@
       "replace each detailed hub with one mirrored 3x3 jewel, one short inward spear, and one short outward tooth",
       "reduce leather wrap bands",
       "keep one continuous gold structural band per arc"
+    ],
+    "current_adjustments": [
+      "widen the full handle silhouette, navy grip, bronze shaft, and gold core by roughly one pixel tier",
+      "lighten the handle navy and bronze shadows while preserving their hue families",
+      "lighten the head arc's deep blue and deep brown-orange material-edge clusters"
     ]
   },
   "focused_16_design": {

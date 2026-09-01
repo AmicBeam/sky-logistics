@@ -1,5 +1,5 @@
 {
-  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis-pixel/chora_kleis_32_refined.png",
+  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_32_refined.png",
   "axis": "pixel-center reflection across x+y=32",
   "mapping": "(x,y) -> (31-y,31-x)",
   "silhouetteMismatches": 0,

@@ -71,7 +71,14 @@ function paintSegment(canvas, ax, ay, bx, by, radius, color) {
 function generate(size, noOutline = false) {
   if (size === 16) return generate16(noOutline);
   const canvas = createCanvas(size);
-  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
+  const material = size === 32 ? {
+    ...C,
+    navy: "#23406a",
+    blueDark: "#2d6794",
+    bronzeDark: "#744824",
+    orangeDark: "#bc6c28",
+  } : C;
+  const neutralEdge = noOutline ? material.bronzeDark : C.outline;
   const scale = size / 64;
   const u = { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
   const p = { x: Math.SQRT1_2, y: Math.SQRT1_2 };
@@ -88,13 +95,13 @@ function generate(size, noOutline = false) {
 
   // Long diagonal silhouette and lower-left leather grip.
   paintSegment(canvas, gripStart.x, gripStart.y, connector.x, connector.y,
-    Math.max(1.15, 2.55 * scale), neutralEdge);
+    size === 32 ? 1.65 : Math.max(1.15, 2.55 * scale), neutralEdge);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
-    Math.max(0.7, 1.65 * scale), C.bronzeDark);
+    size === 32 ? 1.15 : Math.max(0.7, 1.65 * scale), material.bronzeDark);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
-    Math.max(0.35, 0.75 * scale), C.gold);
+    size === 32 ? 0.55 : Math.max(0.35, 0.75 * scale), C.gold);
   paintSegment(canvas, gripStart.x, gripStart.y, gripEnd.x, gripEnd.y,
-    Math.max(1.1, 2.15 * scale), C.navy);
+    size === 32 ? 1.45 : Math.max(1.1, 2.15 * scale), material.navy);
 
   // Leather wrap bands are size-specific clusters rather than a scaled texture.
   const wrapCount = size >= 64 ? 7 : size >= 32 ? 3 : 2;
@@ -104,7 +111,7 @@ function generate(size, noOutline = false) {
     const cy = gripStart.y + (gripEnd.y - gripStart.y) * t;
     paintSegment(canvas, cx - p.x * 2.2 * scale, cy - p.y * 2.2 * scale,
       cx + p.x * 2.2 * scale, cy + p.y * 2.2 * scale,
-      Math.max(0.35, 0.55 * scale), C.blueDark);
+      size === 32 ? 0.45 : Math.max(0.35, 0.55 * scale), material.blueDark);
   }
 
   // Pommel and centered connector.
@@ -139,7 +146,7 @@ function generate(size, noOutline = false) {
       const energyWidth = size === 32 ? 1.35 : 2.4 * scale;
       let color;
       if (edgeDistance < edgeWidth) color = noOutline
-        ? (blueSide ? C.blueDark : C.orangeDark)
+        ? (blueSide ? material.blueDark : material.orangeDark)
         : C.outline;
       else if (size === 32 && radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
@@ -149,7 +156,7 @@ function generate(size, noOutline = false) {
       else if (radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
       } else {
-        color = blueSide ? C.blueDark : C.orangeDark;
+        color = blueSide ? material.blueDark : material.orangeDark;
       }
       canvas[y][x] = color;
     }
@@ -204,7 +211,7 @@ function generate(size, noOutline = false) {
       const cx = side < 0 ? 18 : 25;
       const cy = side < 0 ? 6 : 13;
       const outward = side;
-      const materialEdge = side < 0 ? C.blueDark : C.orangeDark;
+      const materialEdge = side < 0 ? material.blueDark : material.orangeDark;
       paintDiamond(canvas, cx + 0.5, cy + 0.5, 2.2, materialEdge);
       paintDiamond(canvas, cx + 0.5, cy + 0.5, 1.25, C.gold);
       setPixel(canvas, cx, cy, accent);
