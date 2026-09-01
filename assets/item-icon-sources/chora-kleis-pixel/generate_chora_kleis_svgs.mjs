@@ -250,28 +250,29 @@ function generate16(noOutline = false) {
   put(C.bronzeDark, [[1, 14]]);
   put(C.gold, [[2, 14]]);
 
-  // Keep the two semicircles separate at the north-east gap. At this scale the
-  // material-local outer cells carry the frame; engraving and teeth are omitted.
-  const mirrorRingPixel = ([x, y]) => [15 - y, 15 - x];
+  // At 16px the two arc gaps collapse into color transitions. Preserve the
+  // complete circular silhouette and its readable inner hole; a literal open
+  // north-east gap makes the head read as pliers rather than a ritual ring.
   const blueRing = [
-    [9, 1], [10, 1], [8, 2], [9, 2], [10, 2], [7, 3], [8, 3],
+    [9, 1], [10, 1], [11, 1], [8, 2], [9, 2], [7, 3], [8, 3],
     [7, 4], [8, 4], [7, 5], [8, 5], [8, 6], [9, 6],
   ];
-  const blueMid = [[9, 1], [8, 2], [7, 3], [7, 4], [7, 5], [8, 6]];
-  const blueLight = [[10, 1], [9, 2], [8, 3], [8, 4], [8, 5], [9, 6]];
+  const orangeRing = [
+    [12, 1], [12, 2], [13, 2], [13, 3], [14, 3], [13, 4], [14, 4],
+    [13, 5], [14, 5], [12, 6], [13, 6], [9, 7], [10, 7], [11, 7], [12, 7],
+  ];
   put(noOutline ? C.blueDark : C.outline, blueRing);
-  put(C.blue, blueMid);
-  put(C.cyan, blueLight);
+  put(C.blue, [[9, 1], [8, 2], [7, 3], [7, 4], [7, 5], [8, 6]]);
+  put(C.cyan, [[10, 1], [9, 2], [8, 3], [8, 4], [8, 5], [9, 6]]);
 
-  // Reflect the complete blue silhouette so the opposing arc keeps the 32px
-  // master's exact diagonal balance even though its palette is warm.
-  put(noOutline ? C.orangeDark : C.outline, blueRing.map(mirrorRingPixel));
-  put(C.orange, blueMid.map(mirrorRingPixel));
-  put(C.orangeHi, blueLight.map(mirrorRingPixel));
+  put(noOutline ? C.orangeDark : C.outline, orangeRing);
+  put(C.orange, [[13, 2], [14, 3], [14, 4], [14, 5], [13, 6], [12, 7]]);
+  put(C.orangeHi, [[12, 2], [13, 3], [13, 4], [13, 5], [12, 6], [11, 7]]);
 
-  // One highlight cluster on each arc preserves the paired energy-hub rhythm.
+  // Gold transition cells imply the 32px structural band without breaking the loop.
+  put(C.gold, [[11, 1], [10, 7]]);
   put(C.cyanHi, [[8, 3]]);
-  put(C.goldHi, [mirrorRingPixel([8, 3])]);
+  put(C.goldHi, [[13, 5]]);
   return canvas;
 }
 
