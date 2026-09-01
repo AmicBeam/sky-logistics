@@ -11,6 +11,17 @@
     "no_outline": "material-local dark blue, dark orange, and dark bronze edge colors",
     "selection_status": "awaiting visual approval"
   },
+  "focused_32_design": {
+    "master": "chora_kleis_32_no_outline.svg",
+    "output": "chora_kleis_32_refined.png",
+    "edge_style": "material-local",
+    "simplifications": [
+      "remove pixel-scale meander fragments",
+      "replace each hub and prongs with one compact jewel cluster",
+      "reduce leather wrap bands",
+      "keep one continuous gold structural band per arc"
+    ]
+  },
   "render_mode": "pixel-grid",
   "light_direction": "top-left",
   "protected_regions": [],

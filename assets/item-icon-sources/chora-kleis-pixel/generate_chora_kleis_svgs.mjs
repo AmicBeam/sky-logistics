@@ -97,7 +97,7 @@ function generate(size, noOutline = false) {
     Math.max(1.1, 2.15 * scale), C.navy);
 
   // Leather wrap bands are size-specific clusters rather than a scaled texture.
-  const wrapCount = size >= 64 ? 7 : size >= 32 ? 4 : 2;
+  const wrapCount = size >= 64 ? 7 : size >= 32 ? 3 : 2;
   for (let index = 1; index < wrapCount; index += 1) {
     const t = index / wrapCount;
     const cx = gripStart.x + (gripEnd.x - gripStart.x) * t;
@@ -113,9 +113,12 @@ function generate(size, noOutline = false) {
   paintDiamond(canvas, gripStart.x - u.x * 1.4 * scale, gripStart.y - u.y * 1.4 * scale,
     Math.max(0.8, 1.7 * scale), C.gold);
   paintDiamond(canvas, connector.x, connector.y, Math.max(1.4, 3.5 * scale), neutralEdge);
-  paintDiamond(canvas, connector.x, connector.y, Math.max(0.9, 2.5 * scale), C.bronze);
-  paintDiamond(canvas, connector.x - 0.6 * scale, connector.y - 0.6 * scale,
-    Math.max(0.45, 1.1 * scale), C.goldHi);
+  paintDiamond(canvas, connector.x, connector.y, Math.max(0.9, 2.5 * scale),
+    size === 32 ? C.gold : C.bronze);
+  if (size >= 64) {
+    paintDiamond(canvas, connector.x - 0.6 * scale, connector.y - 0.6 * scale,
+      1.1 * scale, C.goldHi);
+  }
 
   // Two open circular arcs. The gap stripe lies exactly on the wand axis.
   for (let y = 1; y < size - 1; y += 1) {
@@ -138,7 +141,11 @@ function generate(size, noOutline = false) {
       if (edgeDistance < edgeWidth) color = noOutline
         ? (blueSide ? C.blueDark : C.orangeDark)
         : C.outline;
-      else if (radius > outer - outerFrameWidth) color = radius > outer - outerGoldWidth ? C.gold : C.bronze;
+      else if (size === 32 && radius < inner + energyWidth) {
+        color = blueSide ? C.cyan : C.orangeHi;
+      } else if (size === 32) {
+        color = blueSide ? C.blue : C.orange;
+      } else if (radius > outer - outerFrameWidth) color = radius > outer - outerGoldWidth ? C.gold : C.bronze;
       else if (radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
       } else {
@@ -148,8 +155,9 @@ function generate(size, noOutline = false) {
     }
   }
 
-  // Sparse Greek-meander suggestion on 64/32, omitted at 16 for clarity.
-  if (size >= 32) {
+  // The engraved meander survives only at 64. At 32 it reads as noise, so the
+  // uninterrupted gold frame itself carries the Greek ornamental character.
+  if (size >= 64) {
     for (let y = 1; y < size - 1; y += 1) {
       for (let x = 1; x < size - 1; x += 1) {
         const dx = x + 0.5 - center.x;
@@ -176,10 +184,10 @@ function generate(size, noOutline = false) {
     };
     const accent = side < 0 ? C.cyan : C.orangeHi;
     const accentDark = side < 0 ? C.blue : C.orange;
-    paintCircle(canvas, hub.x, hub.y, Math.max(1.0, 3.1 * scale), neutralEdge);
-    paintCircle(canvas, hub.x, hub.y, Math.max(0.6, 2.05 * scale), C.gold);
-    paintCircle(canvas, hub.x, hub.y, Math.max(0.35, 1.05 * scale), accent);
-    if (size >= 32) {
+    if (size >= 64) {
+      paintCircle(canvas, hub.x, hub.y, 3.1 * scale, neutralEdge);
+      paintCircle(canvas, hub.x, hub.y, 2.05 * scale, C.gold);
+      paintCircle(canvas, hub.x, hub.y, 1.05 * scale, accent);
       paintSegment(canvas, hub.x, hub.y,
         hub.x - p.x * side * 5.0 * scale,
         hub.y - p.y * side * 5.0 * scale,
@@ -192,9 +200,9 @@ function generate(size, noOutline = false) {
   }
 
   // Intentional top-left highlights, reduced at small sizes.
-  setPixel(canvas, center.x - outer * 0.55, center.y - outer * 0.72, C.goldHi);
-  setPixel(canvas, gripEnd.x - 1, gripEnd.y - 1, C.goldHi);
-  if (size >= 32) setPixel(canvas, center.x - outer * 0.78, center.y - outer * 0.2, C.cyanHi);
+  if (size >= 64) setPixel(canvas, center.x - outer * 0.55, center.y - outer * 0.72, C.goldHi);
+  if (size >= 64) setPixel(canvas, gripEnd.x - 1, gripEnd.y - 1, C.goldHi);
+  if (size >= 64) setPixel(canvas, center.x - outer * 0.78, center.y - outer * 0.2, C.cyanHi);
 
   return canvas;
 }
