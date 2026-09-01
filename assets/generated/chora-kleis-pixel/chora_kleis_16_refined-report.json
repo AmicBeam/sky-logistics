@@ -1,12 +1,12 @@
 {
-  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/item-icon-sources/chora-kleis-pixel/chora_kleis_16.svg",
-  "active": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_16.png",
+  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/item-icon-sources/chora-kleis-pixel/chora_kleis_16_no_outline.svg",
+  "active": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_16_refined.png",
   "inactive": null,
   "assetKind": "transparent-icon",
   "dimensions": "16x16",
   "svgIntrinsicDimensions": "16x16",
   "directLogicalRaster": true,
-  "preview": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_16-review.png",
+  "preview": "/private/tmp/sky-logistics-kleis-dominion-wand/assets/generated/chora-kleis-pixel/chora_kleis_16_refined-review.png",
   "diffPreview": null,
   "previewBackground": "#c6c6c6",
   "edgePixels": 0,
@@ -16,18 +16,22 @@
     "opaquePixels": 47
   },
   "palette": {
-    "uniqueColors": 12,
+    "uniqueColors": 13,
     "topColors": [
       {
         "rgba": "#00000000",
         "count": 209
       },
       {
-        "rgba": "#102733ff",
-        "count": 15
+        "rgba": "#172849ff",
+        "count": 8
       },
       {
         "rgba": "#3c91c5ff",
+        "count": 6
+      },
+      {
+        "rgba": "#5c391dff",
         "count": 6
       },
       {
@@ -35,12 +39,12 @@
         "count": 6
       },
       {
-        "rgba": "#ffd56fff",
+        "rgba": "#224f7aff",
         "count": 5
       },
       {
-        "rgba": "#224f7aff",
-        "count": 4
+        "rgba": "#ffd56fff",
+        "count": 5
       },
       {
         "rgba": "#79dce9ff",
@@ -55,7 +59,7 @@
         "count": 2
       },
       {
-        "rgba": "#5c391dff",
+        "rgba": "#a85b23ff",
         "count": 1
       },
       {

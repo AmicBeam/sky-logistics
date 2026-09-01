@@ -227,35 +227,51 @@ function generate(size, noOutline = false) {
 
 function generate16(noOutline = false) {
   const canvas = createCanvas(16);
-  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
   const put = (color, coordinates) => {
     for (const [x, y] of coordinates) setPixel(canvas, x, y, color);
   };
 
-  // Two-pixel diagonal body: navy grip at lower-left, bronze shaft toward the ring gap.
-  put(neutralEdge, [
-    [1, 13], [2, 12], [2, 13], [3, 11], [3, 12], [4, 10], [4, 11],
-    [5, 9], [5, 10], [6, 8], [6, 9], [7, 7], [7, 8], [8, 6], [8, 7],
+  // Use the vanilla diamond-pickaxe handle grammar: a three-pixel staircase
+  // with two dark edge cells and one alternating highlight cell. Preserve the
+  // 32px wand's navy grip and bronze/gold shaft instead of borrowing its colors.
+  const gripEdge = noOutline ? C.navy : C.outline;
+  const shaftEdge = noOutline ? C.bronzeDark : C.outline;
+  put(gripEdge, [
+    [1, 13], [2, 13], [3, 13], [2, 12], [3, 12], [4, 12],
+    [3, 11], [4, 11], [5, 11], [4, 10], [5, 10], [6, 10],
   ]);
-  put(C.navy, [[2, 12], [3, 11], [4, 10], [3, 12], [4, 11], [5, 10]]);
-  put(C.bronze, [[5, 9], [6, 8], [7, 7], [6, 9], [7, 8], [8, 7]]);
-  put(C.gold, [[1, 13], [2, 13], [8, 6]]);
-
-  // Dark backing establishes the open ring before the two color ramps are applied.
-  put(neutralEdge, [
-    [9, 1], [10, 1], [11, 1], [12, 1], [8, 2], [9, 2], [12, 2], [13, 2],
-    [7, 3], [8, 3], [13, 3], [14, 3], [7, 4], [8, 4], [13, 4], [14, 4],
-    [7, 5], [8, 5], [12, 5], [13, 5], [8, 6], [9, 6], [11, 6], [12, 6],
-    [9, 7], [10, 7], [11, 7],
+  put(C.blueDark, [[2, 13], [3, 12], [4, 11], [5, 10]]);
+  put(shaftEdge, [
+    [5, 9], [6, 9], [7, 9], [6, 8], [7, 8], [8, 8],
+    [7, 7], [8, 7], [9, 7],
   ]);
-  put(C.blue, [[9, 1], [10, 1], [8, 2], [9, 2], [7, 3], [8, 3], [7, 4], [8, 4], [7, 5], [8, 5], [8, 6], [9, 6]]);
-  put(C.cyan, [[10, 1], [9, 2], [8, 3], [8, 4], [8, 5], [9, 6]]);
-  put(C.orange, [[12, 2], [13, 2], [13, 3], [14, 3], [13, 4], [14, 4], [12, 5], [13, 5], [11, 6], [12, 6], [10, 7], [11, 7]]);
-  put(C.orangeHi, [[12, 2], [13, 3], [13, 4], [12, 5], [11, 6], [10, 7]]);
+  put(C.bronze, [[6, 9], [8, 7]]);
+  put(C.gold, [[7, 8]]);
+  put(C.bronzeDark, [[1, 14]]);
+  put(C.gold, [[2, 14]]);
 
-  // One bright cell per side stands in for the paired hubs at inventory scale.
+  // Keep the two semicircles separate at the north-east gap. At this scale the
+  // material-local outer cells carry the frame; engraving and teeth are omitted.
+  const mirrorRingPixel = ([x, y]) => [15 - y, 15 - x];
+  const blueRing = [
+    [9, 1], [10, 1], [8, 2], [9, 2], [10, 2], [7, 3], [8, 3],
+    [7, 4], [8, 4], [7, 5], [8, 5], [8, 6], [9, 6],
+  ];
+  const blueMid = [[9, 1], [8, 2], [7, 3], [7, 4], [7, 5], [8, 6]];
+  const blueLight = [[10, 1], [9, 2], [8, 3], [8, 4], [8, 5], [9, 6]];
+  put(noOutline ? C.blueDark : C.outline, blueRing);
+  put(C.blue, blueMid);
+  put(C.cyan, blueLight);
+
+  // Reflect the complete blue silhouette so the opposing arc keeps the 32px
+  // master's exact diagonal balance even though its palette is warm.
+  put(noOutline ? C.orangeDark : C.outline, blueRing.map(mirrorRingPixel));
+  put(C.orange, blueMid.map(mirrorRingPixel));
+  put(C.orangeHi, blueLight.map(mirrorRingPixel));
+
+  // One highlight cluster on each arc preserves the paired energy-hub rhythm.
   put(C.cyanHi, [[8, 3]]);
-  put(C.goldHi, [[13, 5]]);
+  put(C.goldHi, [mirrorRingPixel([8, 3])]);
   return canvas;
 }
 

@@ -25,6 +25,18 @@
       "keep one continuous gold structural band per arc"
     ]
   },
+  "focused_16_design": {
+    "reference": "chora_kleis_32_no_outline.svg",
+    "master": "chora_kleis_16_no_outline.svg",
+    "output": "chora_kleis_16_refined.png",
+    "edge_style": "material-local",
+    "simplifications": [
+      "retain the separated blue and orange semicircle silhouette with a visible north-east gap",
+      "reduce each energy hub to one highlight cell",
+      "omit engraving, inward spears, and outward teeth",
+      "render the grip and shaft as a three-pixel stepped diagonal following the vanilla diamond-pickaxe handle grammar"
+    ]
+  },
   "render_mode": "pixel-grid",
   "light_direction": "top-left",
   "protected_regions": [],
