@@ -28,6 +28,7 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
@@ -58,11 +59,14 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingOut);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onExtractBlockOutline);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onAttackInput);
+        NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::render);
     }
 
     private static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.CONFIGURATOR.get(), ConfiguratorScreen::new);
         event.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
+        event.register(ModMenus.KLEIS_DOMINION_WAND.get(), KleisDominionWandScreen::new);
         event.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
         event.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
         event.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);
@@ -152,6 +156,7 @@ public final class ClientModEvents {
         ClientOfferingRecipes.clear();
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+        ClientKleisOverlays.clear();
     }
 
     private static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
@@ -162,6 +167,17 @@ public final class ClientModEvents {
                 || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
         ModNetworking.sendOrderedMatchingOffset(event.getScrollDeltaY() > 0.0D);
         event.setCanceled(true);
+    }
+
+    private static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.isAttack() || minecraft.player == null
+                || !minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || !(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        event.setCanceled(true);
+        if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
+            ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
     }
 
     private static void onExtractBlockOutline(ExtractBlockOutlineRenderStateEvent event) {

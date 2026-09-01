@@ -15,10 +15,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 @EventBusSubscriber(modid = SkyLogistics.MOD_ID, value = Dist.CLIENT)
 public final class ClientRuntimeEvents {
@@ -29,6 +31,7 @@ public final class ClientRuntimeEvents {
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+        ClientKleisOverlays.clear();
     }
 
     @SubscribeEvent
@@ -40,6 +43,18 @@ public final class ClientRuntimeEvents {
                 || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
         ModNetworking.sendOrderedMatchingOffset(event.getScrollDeltaY() > 0.0D);
         event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.isAttack() || minecraft.player == null
+                || !minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || !(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        event.setCanceled(true);
+        if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
+            ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
     }
 
     @SubscribeEvent
@@ -64,4 +79,6 @@ public final class ClientRuntimeEvents {
                     0.25F, 0.95F, 0.90F, 1.0F);
         }
     }
+
+    @SubscribeEvent public static void onRenderLevel(RenderLevelStageEvent event) { ClientKleisOverlays.render(event); }
 }

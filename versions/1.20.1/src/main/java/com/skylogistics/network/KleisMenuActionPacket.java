@@ -1,0 +1,3 @@
+package com.skylogistics.network;
+import com.skylogistics.menu.KleisDominionWandMenu; import java.util.function.Supplier; import net.minecraft.network.FriendlyByteBuf; import net.minecraftforge.network.NetworkEvent;
+public record KleisMenuActionPacket(int action){public static void encode(KleisMenuActionPacket p,FriendlyByteBuf b){b.writeVarInt(p.action);}public static KleisMenuActionPacket decode(FriendlyByteBuf b){return new KleisMenuActionPacket(b.readVarInt());}public static void handle(KleisMenuActionPacket p,Supplier<NetworkEvent.Context>s){NetworkEvent.Context c=s.get();c.enqueueWork(()->{if(c.getSender()!=null&&c.getSender().containerMenu instanceof KleisDominionWandMenu m)m.handleAction(p.action);});c.setPacketHandled(true);}}

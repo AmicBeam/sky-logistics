@@ -30,6 +30,7 @@ public final class ClientModEvents {
         event.enqueueWork(() -> {
             MenuScreens.register(ModMenus.CONFIGURATOR.get(), ConfiguratorScreen::new);
             MenuScreens.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
+            MenuScreens.register(ModMenus.KLEIS_DOMINION_WAND.get(), KleisDominionWandScreen::new);
             MenuScreens.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
             MenuScreens.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
             MenuScreens.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);

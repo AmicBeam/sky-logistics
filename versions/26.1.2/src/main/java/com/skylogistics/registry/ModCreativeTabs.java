@@ -25,6 +25,7 @@ public final class ModCreativeTabs {
                     .title(Component.translatable("itemGroup.skylogistics"))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.CONFIGURATOR.get());
+                        output.accept(ModItems.KLEIS_DOMINION_WAND.get());
                         if (SkyLogisticsConfig.skyWrenchAvailable()) {
                             output.accept(ModItems.SKY_WRENCH.get());
                         }

@@ -37,6 +37,10 @@ public final class ModNetworking {
                 TagFilterEditPacket::handle);
         registrar.playToServer(DistributorTargetsRequestPacket.TYPE, DistributorTargetsRequestPacket.STREAM_CODEC,
                 DistributorTargetsRequestPacket::handle);
+        registrar.playToServer(KleisOpenMenuPacket.TYPE, KleisOpenMenuPacket.STREAM_CODEC, KleisOpenMenuPacket::handle);
+        registrar.playToServer(KleisOverlayRequestPacket.TYPE, KleisOverlayRequestPacket.STREAM_CODEC, KleisOverlayRequestPacket::handle);
+        registrar.playToClient(KleisOverlayPacket.TYPE, KleisOverlayPacket.STREAM_CODEC, KleisOverlayPacket::handle);
+        registrar.playToServer(KleisMenuActionPacket.TYPE, KleisMenuActionPacket.STREAM_CODEC, KleisMenuActionPacket::handle);
         registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
                 DistributorTargetsPacket::handle);
     }
@@ -64,6 +68,12 @@ public final class ModNetworking {
     public static void requestDistributorTargets(BlockPos distributorPos) {
         PacketDistributor.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
+
+    public static void openKleisEndpoint(BlockPos pos, net.minecraft.core.Direction face) {
+        PacketDistributor.sendToServer(new KleisOpenMenuPacket(pos, face));
+    }
+    public static void requestKleisOverlays() { PacketDistributor.sendToServer(new KleisOverlayRequestPacket()); }
+    public static void sendKleisMenuAction(int action) { PacketDistributor.sendToServer(new KleisMenuActionPacket(action)); }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
         PacketDistributor.sendToServer(FilterGhostPacket.item(slot, stack));

@@ -9,6 +9,7 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.network.KleisEndpointSavedData;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModCreativeTabs;
@@ -34,6 +35,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -71,6 +73,8 @@ public class SkyLogistics {
         MinecraftForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(AdvancementDataPackHandler::onServerStarted);
         MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
+        MinecraftForge.EVENT_BUS.addListener(this::onLeftClickBlock);
+        MinecraftForge.EVENT_BUS.addListener(this::onBlockBreak);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
@@ -79,9 +83,24 @@ public class SkyLogistics {
             return;
         }
         if (event.getHand() == InteractionHand.MAIN_HAND
-                && isNodeOrSimplePipe(event.getItemStack())) {
+                && (isNodeOrSimplePipe(event.getItemStack())
+                        || event.getItemStack().is(ModItems.KLEIS_DOMINION_WAND.get()))) {
             event.setUseBlock(Event.Result.DENY);
             event.setUseItem(Event.Result.ALLOW);
+        }
+    }
+
+    private void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        if (event.getEntity().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) {
+            event.setUseBlock(Event.Result.DENY);
+            event.setUseItem(Event.Result.DENY);
+            event.setCanceled(true);
+        }
+    }
+
+    private void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (event.getPlayer().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) {
+            event.setCanceled(true);
         }
     }
 
@@ -155,6 +174,7 @@ public class SkyLogistics {
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
+        if (event.getServer().overworld() != null) KleisEndpointSavedData.get(event.getServer()).clearRuntime();
         SkyNetworkRegistry.clear();
         SkyNetworkTicker.clear();
         SkyNecklaceTicker.clear();

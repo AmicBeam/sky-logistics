@@ -5,6 +5,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ChoraNectarItem;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.KleisDominionWandItem;
 import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyLogisticsManualItem;
@@ -63,6 +64,8 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(itemProperties("configurator").stacksTo(1)));
+    public static final DeferredHolder<Item, KleisDominionWandItem> KLEIS_DOMINION_WAND = ITEMS.register(
+            "kleis_dominion_wand", () -> new KleisDominionWandItem(itemProperties("kleis_dominion_wand")));
     public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
             () -> new Item(itemProperties("sky_wrench").stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",

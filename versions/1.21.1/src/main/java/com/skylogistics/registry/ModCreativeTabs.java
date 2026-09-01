@@ -28,6 +28,7 @@ public final class ModCreativeTabs {
                             output.accept(ModItems.SKY_LOGISTICS_MANUAL.get());
                         }
                         output.accept(ModItems.CONFIGURATOR.get());
+                        output.accept(ModItems.KLEIS_DOMINION_WAND.get());
                         if (SkyLogisticsConfig.skyWrenchAvailable()) {
                             output.accept(ModItems.SKY_WRENCH.get());
                         }

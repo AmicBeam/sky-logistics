@@ -51,6 +51,14 @@ public final class ModNetworking {
                 ChemicalFilterPacket::decode, ChemicalFilterPacket::handle);
         CHANNEL.registerMessage(13, OrderedMatchingOffsetPacket.class, OrderedMatchingOffsetPacket::encode,
                 OrderedMatchingOffsetPacket::decode, OrderedMatchingOffsetPacket::handle);
+        CHANNEL.registerMessage(14, KleisOpenMenuPacket.class, KleisOpenMenuPacket::encode,
+                KleisOpenMenuPacket::decode, KleisOpenMenuPacket::handle);
+        CHANNEL.registerMessage(15, KleisOverlayRequestPacket.class, KleisOverlayRequestPacket::encode,
+                KleisOverlayRequestPacket::decode, KleisOverlayRequestPacket::handle);
+        CHANNEL.registerMessage(16, KleisOverlayPacket.class, KleisOverlayPacket::encode,
+                KleisOverlayPacket::decode, KleisOverlayPacket::handle);
+        CHANNEL.registerMessage(17, KleisMenuActionPacket.class, KleisMenuActionPacket::encode,
+                KleisMenuActionPacket::decode, KleisMenuActionPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -76,6 +84,13 @@ public final class ModNetworking {
     public static void requestDistributorTargets(BlockPos distributorPos) {
         CHANNEL.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
+
+    public static void openKleisEndpoint(BlockPos pos, net.minecraft.core.Direction face) {
+        CHANNEL.sendToServer(new KleisOpenMenuPacket(pos, face));
+    }
+
+    public static void requestKleisOverlays() { CHANNEL.sendToServer(new KleisOverlayRequestPacket()); }
+    public static void sendKleisMenuAction(int action) { CHANNEL.sendToServer(new KleisMenuActionPacket(action)); }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
         CHANNEL.sendToServer(FilterGhostPacket.item(slot, stack));

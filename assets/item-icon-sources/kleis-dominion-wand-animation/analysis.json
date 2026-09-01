@@ -1,0 +1,235 @@
+{
+  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/common/src/main/resources/assets/skylogistics/textures/item/kleis_dominion_wand.png",
+  "dimensions": {
+    "width": 32,
+    "height": 192
+  },
+  "metadata": {
+    "format": "png",
+    "space": "srgb",
+    "channels": 4,
+    "depth": "uchar",
+    "density": null,
+    "hasAlpha": true,
+    "isPalette": false,
+    "iccBytes": 0
+  },
+  "alpha": {
+    "transparentPixels": 4974,
+    "partialAlphaPixels": 0,
+    "opaquePixels": 1170
+  },
+  "uniqueColors": 18,
+  "palette": [
+    {
+      "rgba": "#00000000",
+      "count": 4974,
+      "percent": 80.957,
+      "luminance": 0,
+      "hsv": {
+        "h": 0,
+        "s": 0,
+        "v": 0
+      }
+    },
+    {
+      "rgba": "#224f7aff",
+      "count": 192,
+      "percent": 3.125,
+      "luminance": 0.073372,
+      "hsv": {
+        "h": 209.3,
+        "s": 0.7213,
+        "v": 0.4784
+      }
+    },
+    {
+      "rgba": "#3c91c5ff",
+      "count": 180,
+      "percent": 2.93,
+      "luminance": 0.252427,
+      "hsv": {
+        "h": 202.8,
+        "s": 0.6954,
+        "v": 0.7725
+      }
+    },
+    {
+      "rgba": "#a85b23ff",
+      "count": 180,
+      "percent": 2.93,
+      "luminance": 0.159284,
+      "hsv": {
+        "h": 25.3,
+        "s": 0.7917,
+        "v": 0.6588
+      }
+    },
+    {
+      "rgba": "#e89a36ff",
+      "count": 180,
+      "percent": 2.93,
+      "luminance": 0.405333,
+      "hsv": {
+        "h": 33.7,
+        "s": 0.7672,
+        "v": 0.9098
+      }
+    },
+    {
+      "rgba": "#e0ad50ff",
+      "count": 126,
+      "percent": 2.051,
+      "luminance": 0.463136,
+      "hsv": {
+        "h": 38.8,
+        "s": 0.6429,
+        "v": 0.8784
+      }
+    },
+    {
+      "rgba": "#172849ff",
+      "count": 114,
+      "percent": 1.855,
+      "luminance": 0.021808,
+      "hsv": {
+        "h": 219.6,
+        "s": 0.6849,
+        "v": 0.2863
+      }
+    },
+    {
+      "rgba": "#5c391dff",
+      "count": 78,
+      "percent": 1.27,
+      "luminance": 0.052903,
+      "hsv": {
+        "h": 26.7,
+        "s": 0.6848,
+        "v": 0.3608
+      }
+    },
+    {
+      "rgba": "#52abcfff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.354247,
+      "hsv": {
+        "h": 197.3,
+        "s": 0.6039,
+        "v": 0.8118
+      }
+    },
+    {
+      "rgba": "#68c4dbff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.475374,
+      "hsv": {
+        "h": 192,
+        "s": 0.5251,
+        "v": 0.8588
+      }
+    },
+    {
+      "rgba": "#79dce9ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.611345,
+      "hsv": {
+        "h": 187,
+        "s": 0.4807,
+        "v": 0.9137
+      }
+    },
+    {
+      "rgba": "#9cecf0ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.733501,
+      "hsv": {
+        "h": 182.9,
+        "s": 0.35,
+        "v": 0.9412
+      }
+    },
+    {
+      "rgba": "#b9fff4ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.883659,
+      "hsv": {
+        "h": 170.6,
+        "s": 0.2745,
+        "v": 1
+      }
+    },
+    {
+      "rgba": "#eeaa44ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.473439,
+      "hsv": {
+        "h": 36,
+        "s": 0.7143,
+        "v": 0.9333
+      }
+    },
+    {
+      "rgba": "#f4bb54ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.554138,
+      "hsv": {
+        "h": 38.6,
+        "s": 0.6557,
+        "v": 0.9569
+      }
+    },
+    {
+      "rgba": "#ffd56fff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.699962,
+      "hsv": {
+        "h": 42.5,
+        "s": 0.5647,
+        "v": 1
+      }
+    },
+    {
+      "rgba": "#ffe68aff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.796886,
+      "hsv": {
+        "h": 47.2,
+        "s": 0.4588,
+        "v": 1
+      }
+    },
+    {
+      "rgba": "#fff0a2ff",
+      "count": 12,
+      "percent": 0.195,
+      "luminance": 0.861888,
+      "hsv": {
+        "h": 50.3,
+        "s": 0.3647,
+        "v": 1
+      }
+    }
+  ],
+  "edgeColors": [
+    {
+      "rgba": "#00000000",
+      "count": 444
+    }
+  ],
+  "symmetry": {
+    "horizontalMismatches": 2008,
+    "verticalMismatches": 2008,
+    "rotational180Mismatches": 2244
+  },
+  "pixelGrid": null
+}

@@ -1878,6 +1878,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
 
     private void markLineNameChanged() {
         setChanged();
+        if (isVirtualEndpoint()) {
+            if (level instanceof ServerLevel serverLevel) SkyNetworkRegistry.markVirtualDirty(serverLevel, this);
+            return;
+        }
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
@@ -1896,6 +1900,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
     private void markChanged(ChangeKind changeKind) {
         updateVisualState();
         setChanged();
+        if (isVirtualEndpoint()) {
+            if (level instanceof ServerLevel serverLevel) SkyNetworkRegistry.markVirtualDirty(serverLevel, this);
+            return;
+        }
         if (level != null) {
             if (level instanceof ServerLevel serverLevel) {
                 switch (changeKind) {
@@ -1912,6 +1920,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         TOPOLOGY,
         RUNTIME,
         PRIORITY
+    }
+
+    protected boolean isVirtualEndpoint() {
+        return false;
     }
 
     private NodeMode visualMode() {

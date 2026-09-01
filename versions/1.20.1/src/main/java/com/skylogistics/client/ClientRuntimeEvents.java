@@ -17,7 +17,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderHighlightEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = SkyLogistics.MOD_ID, value = Dist.CLIENT)
@@ -29,6 +31,7 @@ public final class ClientRuntimeEvents {
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+        ClientKleisOverlays.clear();
     }
 
     @SubscribeEvent
@@ -40,6 +43,18 @@ public final class ClientRuntimeEvents {
                 || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
         ModNetworking.sendOrderedMatchingOffset(event.getScrollDelta() > 0.0D);
         event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.isAttack() || minecraft.player == null
+                || !minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || !(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        event.setCanceled(true);
+        if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
+            ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
     }
 
     @SubscribeEvent
@@ -64,4 +79,7 @@ public final class ClientRuntimeEvents {
                     0.25F, 0.95F, 0.90F, 1.0F);
         }
     }
+
+    @SubscribeEvent
+    public static void onRenderLevel(RenderLevelStageEvent event) { ClientKleisOverlays.render(event); }
 }

@@ -93,6 +93,7 @@ public final class SkyNetworkTicker {
         if (server.overworld() == null) {
             return;
         }
+        KleisEndpointSavedData.get(server).refresh(server);
         long gameTime = server.overworld().getGameTime();
         int serverOpsPerTick = SkyLogisticsConfig.serverOpsPerTick();
         int lineOpsPerTick = SkyLogisticsConfig.lineOpsPerTick();
