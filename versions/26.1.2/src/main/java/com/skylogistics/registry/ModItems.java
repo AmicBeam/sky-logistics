@@ -84,6 +84,7 @@ public final class ModItems {
             () -> new EulogiaCrystalItem(itemProperties("eulogia_crystal").stacksTo(64)));
     public static final DeferredHolder<Item, EulogiaCrystalItem> EULOGIA_COMPANION_STONE = ITEMS.register("eulogia_companion_stone",
             () -> new EulogiaCrystalItem(itemProperties("eulogia_companion_stone").stacksTo(64),
+                    SkyLogisticsConfig::eulogiaCompanionStoneMinY,
                     SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(itemProperties("chora_nectar")));

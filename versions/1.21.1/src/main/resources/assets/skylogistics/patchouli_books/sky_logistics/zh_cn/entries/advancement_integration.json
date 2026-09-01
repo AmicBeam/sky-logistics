@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "服务器默认按线路持有者完成的 Minecraft 进度限制并逐步解锁单次搬运量，同时提供天穹物流进度页。此功能无需额外模组，可在 $(thing)transfers.advancements.enabled$() 中关闭。"
+      "text": "服务器可按线路持有者完成的 Minecraft 进度限制并逐步解锁单次搬运量，同时提供天穹物流进度页。此功能无需额外模组，默认关闭；需在 $(thing)transfers.advancements.enabled$() 中启用。"
     },
     {
       "type": "patchouli:text",

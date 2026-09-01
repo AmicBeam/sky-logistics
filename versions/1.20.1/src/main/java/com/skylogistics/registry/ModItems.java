@@ -83,6 +83,7 @@ public final class ModItems {
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item> EULOGIA_COMPANION_STONE = ITEMS.register("eulogia_companion_stone",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64),
+                    SkyLogisticsConfig::eulogiaCompanionStoneMinY,
                     SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(new Item.Properties()));

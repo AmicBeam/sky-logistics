@@ -57,7 +57,7 @@
     {
       "type": "patchouli:text",
       "title": "Per Item",
-      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. Success advances the cursor. An unfinished cross-tick batch resumes its original plan; an idle source with no detention resets to 0. Every target costs budget.$(br2)Failed extracts stay at the source and enter the detention queue (default 1).$(br2)Equal priorities remain separate."
+      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. Success advances the cursor. An unfinished cross-tick batch resumes its original plan; an idle source with no detention resets to 0. Every target costs budget.$(br2)Failed targets are skipped by default; failed items stay at the source and enter a length-4 detention queue. A full queue replaces its oldest entry; set the length to 0 to disable detention.$(br2)Equal priorities remain separate."
     }
   ]
 }

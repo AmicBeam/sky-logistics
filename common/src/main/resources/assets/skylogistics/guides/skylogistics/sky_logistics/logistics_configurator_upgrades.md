@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:force_extraction_upgrade
   - skylogistics:ordered_matching_upgrade
 ---
 
@@ -30,6 +31,8 @@ Per Item persists a receiver cursor for every extract face. Success advances the
 The network keeps independent source and receiver order lists for items, fluids, FE, chemicals, mana, and source. Membership depends only on whether that resource is enabled, not fullness or filter contents; equal-priority endpoints remain separate. The Sky Configurator displays connections using the same priority and stable-position order. This upgrade currently consumes the item lists.
 
 <RecipeFor id="ordered_matching_upgrade" fallbackText="The ordered matching upgrade recipe is unavailable." />
+
+Force Extraction Upgrades work only on item extract nodes. For devices whose mod ID appears in `transfers.integrations.forceExtractionUpgrade.deviceModIdWhitelist`, they bypass an external interface's 64-item return cap and request the amount the destination can actually accept; rejected moves restore the source slot. The whitelist contains `mekanism_extras` by default. If none of its configured mods are installed, or the list is empty, the item is hidden from the creative inventory and JEI and its tier 2 offering cannot start. The offering uses a Slot Parallel Upgrade on the altar plus 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap on offering tables.
 
 Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped.
 

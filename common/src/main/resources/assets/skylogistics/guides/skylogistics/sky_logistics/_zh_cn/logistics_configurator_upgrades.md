@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:force_extraction_upgrade
   - skylogistics:ordered_matching_upgrade
 ---
 
@@ -30,6 +31,8 @@ item_ids:
 网络分别为物品、流体、FE、化学品、Mana、魔源维护来源端和接收端顺位。列表只看对应资源是否启用，不因库存已满或过滤内容而变化；同优先级节点仍各占一位。天穹配置器使用相同的优先级与稳定位置顺序显示连接面。当前升级只使用物品顺位列表。
 
 <RecipeFor id="ordered_matching_upgrade" fallbackText="未找到顺序匹配升级配方。" />
+
+强制抽取升级只用于物品抽取端。对 `transfers.integrations.forceExtractionUpgrade.deviceModIdWhitelist` 中模组提供的设备，它会绕过外部接口单次返回 64 个物品的限制，改为请求目标实际可接收的数量；目标拒收时会恢复来源槽。白名单默认包含 `mekanism_extras`；配置中的模组均未安装或列表为空时，物品会从创造栏和 JEI 隐藏，二阶供奉也无法启动。供奉配方为：祭坛放槽位并行升级，供桌放 4 根烈焰棒、4 个岩浆膏、4 个哭泣黑曜石和 1 个下界合金碎片。
 
 维度升级卡也装在节点升级槽里，但只影响抽取面。带有维度升级的抽取面可以把资源送到其它已加载维度里同线路的存入面；存入面不需要维度升级。它不是区块加载器，未加载的维度或区块会被跳过。
 

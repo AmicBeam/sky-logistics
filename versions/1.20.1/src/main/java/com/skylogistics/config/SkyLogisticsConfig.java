@@ -476,6 +476,10 @@ public final class SkyLogisticsConfig {
         return SERVER.eulogiaCrystalChargeSeconds.get();
     }
 
+    public static int eulogiaCompanionStoneMinY() {
+        return SERVER.eulogiaCompanionStoneMinY.get();
+    }
+
     public static int eulogiaCompanionStoneChargeSeconds() {
         return SERVER.eulogiaCompanionStoneChargeSeconds.get();
     }
@@ -533,6 +537,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue skyNecklaceTargetAttemptsPerWork;
         public final ForgeConfigSpec.IntValue skyRitualMinY;
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
+        public final ForgeConfigSpec.IntValue eulogiaCompanionStoneMinY;
         public final ForgeConfigSpec.IntValue eulogiaCompanionStoneChargeSeconds;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
@@ -633,7 +638,7 @@ public final class SkyLogisticsConfig {
             enableAdvancementTransferRates = builder
                     .comment("Whether vanilla advancements completed by the line owner limit and unlock per-operation transfer amounts.",
                             "是否由线路持有者完成的原版进度限制并解锁单次操作传输量。")
-                    .define("enabled", true);
+                    .define("enabled", false);
             builder.push("initialRates");
             advancementInitialItems = builder.defineInRange("items", 4L, 1L, Long.MAX_VALUE);
             advancementInitialFluids = builder.defineInRange("fluids", 625L, 1L, Long.MAX_VALUE);
@@ -955,16 +960,20 @@ public final class SkyLogisticsConfig {
 
             builder.push("rituals");
             skyRitualMinY = builder
-                    .comment("Minimum block Y for Eulogia chargeable items to charge and sky offering altars to work.",
-                            "尤洛伽水晶与配石充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
+                    .comment("Minimum block Y for Eulogia Crystals to charge and sky offering altars to work.",
+                            "尤洛伽水晶充能及天穹供奉祭坛工作的最低方块 Y 坐标。")
                     .defineInRange("skyRitualMinY", 96, -64, 320);
             eulogiaCrystalChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Crystal must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽水晶在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
                     .defineInRange("eulogiaCrystalChargeSeconds", 20, 1, 3600);
+            eulogiaCompanionStoneMinY = builder
+                    .comment("Minimum block Y for Eulogia Companion Stones to charge.",
+                            "尤洛伽配石充能的最低方块 Y 坐标。")
+                    .defineInRange("eulogiaCompanionStoneMinY", 64, -64, 320);
             eulogiaCompanionStoneChargeSeconds = builder
-                    .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above skyRitualMinY before it becomes charged. One second is 20 ticks.",
-                            "未充能尤洛伽配石在 skyRitualMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
+                    .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above eulogiaCompanionStoneMinY before it becomes charged. One second is 20 ticks.",
+                            "未充能尤洛伽配石在 eulogiaCompanionStoneMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
                     .defineInRange("eulogiaCompanionStoneChargeSeconds", 10, 1, 3600);
             builder.pop();
         }

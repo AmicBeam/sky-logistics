@@ -25,7 +25,7 @@
 - **模组联动**：与 Jade、JEI、Patchouli、Curios、Sophisticated Backpacks、Mekanism、植物魔法和新生魔艺等提供可选且可配置的兼容；在模组版本及 API 兼容时，专用接口可将天穹线路接入 AE2、Refined Storage 和 Beyond Dimensions 网络。
 - **扩展资源**：Mekanism 化学品与 1.21.1 的坚守者灵魂走流体面和流体管道，并拥有独立限速；植物魔法 mana 与新生魔艺 Source 走能量面和能量管道。扩展资源只在同类处理器之间搬运。
 - **AStages 进度联动**：Minecraft 1.20.1 与 1.21.1 可按线路持有者拥有的 stage 限制并逐步解锁单次搬运量；该联动需要 AStages 2.x，且默认关闭。
-- **原版进度联动**：所有版本默认按线路持有者完成的 Minecraft Advancement 逐步解锁各资源的单次搬运量，并提供串行“天穹物流”进度页；无需第三方模组，可在服务端配置中关闭。
+- **原版进度联动**：所有版本都可按线路持有者完成的 Minecraft Advancement 逐步解锁各资源的单次搬运量，并提供串行“天穹物流”进度页；无需第三方模组，默认关闭。
 
 ## 依赖
 
@@ -95,7 +95,7 @@
 - 显示名对应的线路 id 是稳定的；不改名或复用同名线路时，会继续指向同一条线路。
 - 节点传输使用预算、缓存、就绪线路队列、热槽追踪、能力缓存和端点退避来控制性能开销。
 - 天穹项链的工作间隔可通过服务端配置 `skyNecklaceTickInterval` 调整，默认 10 tick；`skyNecklaceTargetAttemptsPerWork` 限制每次工作访问的输出端点数，默认 1。
-- 仓库类型上限、节点物品/能量单次传输量、天穹容器间直连传输量、分配器目标数与操作预算、热槽缓存大小、供奉高度和水晶充能时间均可配置。
+- 仓库类型上限、节点物品/能量单次传输量、天穹容器间直连传输量、分配器目标数与操作预算、热槽缓存大小、供奉高度、配石充能高度和充能时间均可配置。
 - 简易管道配置集中在 `transfers.simplePipes` 分类；其中各资源的 `...TransferRate` 可独立限速，`simplePipeMaxConnectedBlocks` 控制单条线路规模，`enforceSimplePipeConnectionLimit` 可关闭上限检查。简易管道固定使用钻石配方。
 - AStages 控制单次操作上限，而不是操作频率；它不会提高槽位并行升级速率或服务器、线路的每 tick 操作预算。
 - Patchouli 支持为纯数据内容，安装 Patchouli 后会显示指南书内容。

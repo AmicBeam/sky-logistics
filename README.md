@@ -26,7 +26,7 @@ Celestial-themed logistics for Minecraft. Sky Logistics moves items, fluids, ene
 - **Mod integrations**: optional and configurable compatibility is available for Jade, JEI, GuideME, Patchouli, Curios, Sophisticated Backpacks, Mekanism, Botania, and Ars Nouveau. Dedicated interfaces connect Sky Logistics lines to AE2, Refined Storage, and Beyond Dimensions networks when compatible versions and APIs are present.
 - **Extended resources**: Mekanism chemicals and, on 1.21.1, Warden Souls use fluid-enabled faces and pipes with independent transfer limits. Botania mana and Ars Nouveau Source use energy-enabled faces and pipes; extended resources move only between matching handlers.
 - **AStages progression**: on Minecraft 1.20.1 and 1.21.1, servers can optionally limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration requires AStages 2.x and is disabled by default.
-- **Vanilla advancement progression**: every supported version progressively unlocks per-operation transfer amounts according to Minecraft advancements completed by the line owner, with a serial Sky Logistics advancement tab. No third-party mod is required; servers can disable it in configuration.
+- **Vanilla advancement progression**: every supported version can progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner, with a serial Sky Logistics advancement tab. No third-party mod is required; the integration is disabled by default.
 
 ## Requirements
 
@@ -96,7 +96,7 @@ This repository keeps the supported Minecraft versions in one branch. Each versi
 - Line IDs are stable for their display names, so unchanged/reused line names continue to point at the same line.
 - Node transfer work is budgeted and cached with ready-line queues, hot slot tracking, capability caches, and endpoint backoff.
 - Sky Necklace work interval is configurable with `skyNecklaceTickInterval` in the server config. The default is 10 ticks. `skyNecklaceTargetAttemptsPerWork` bounds output endpoint visits per interval and defaults to 1.
-- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, and crystal charge time are configurable.
+- Vault type limits, node item/energy transfer limits, direct sky-container transfer limits, distributor target and operation budgets, hot slot cache size, ritual height, companion-stone charge height, and charge times are configurable.
 - Simple pipe settings are grouped under `transfers.simplePipes`; each resource has an independent `...TransferRate`, while `simplePipeMaxConnectedBlocks` controls line size and `enforceSimplePipeConnectionLimit` disables that check. Simple pipe recipes use diamonds.
 - AStages controls per-operation limits rather than operation frequency. It does not increase Slot Parallel Upgrade rates or server and line operation budgets.
 - The manual supports both Patchouli and GuideME; when both are installed, Patchouli is preferred and GuideME is the fallback.

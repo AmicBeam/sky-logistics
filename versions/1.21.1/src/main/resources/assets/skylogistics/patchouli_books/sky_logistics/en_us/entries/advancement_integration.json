@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Servers progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner and provide a Sky Logistics advancement tab by default. No extra mod is required; disable it at $(thing)transfers.advancements.enabled$()."
+      "text": "Servers can progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner and provide a Sky Logistics advancement tab. No extra mod is required. This feature is disabled by default; enable it at $(thing)transfers.advancements.enabled$()."
     },
     {
       "type": "patchouli:text",
