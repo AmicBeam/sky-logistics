@@ -57,7 +57,7 @@
     {
       "type": "patchouli:text",
       "title": "Per Item",
-      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. Success advances the cursor. An unfinished cross-tick batch resumes its original plan; an idle source resets its cursor when appropriate. Every visited target costs budget.$(br2)When a target is temporarily unavailable, failed items stay at the source and receive priority retries later without blocking other assignments.$(br2)Equal priorities remain separate."
+      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. The mode first checks receivers from the cursor, keeps only those that accept the item, then batch-distributes across that set.$(br2)Checks and transfers both cost budget and may continue next tick. A target that stops accepting is skipped without creating an owed assignment; leftovers remain at the source for a later batch.$(br2)Equal priorities remain separate."
     }
   ]
 }

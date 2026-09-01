@@ -69,10 +69,6 @@ public final class SkyLogisticsConfig {
         return SERVER.orderedMatchingUpgrade.continueAfterTargetFailure.get();
     }
 
-    public static int orderedMatchingPerItemDetentionQueueLength() {
-        return SERVER.orderedMatchingUpgrade.perItemDetentionQueueLength.get();
-    }
-
     public static boolean enableAStagesTransferRates() {
         return SERVER.enableAStagesTransferRates.get();
     }
@@ -258,7 +254,6 @@ public final class SkyLogisticsConfig {
     public static int distributorMaxTargets() { return SERVER.distributorMaxTargets.get(); }
     public static int distributorScanOpsPerTick() { return SERVER.distributorScanOpsPerTick.get(); }
     public static int distributorIndexingRetryTicks() { return SERVER.distributorIndexingRetryTicks.get(); }
-    public static int distributorOpsPerTick() { return SERVER.distributorOpsPerTick.get(); }
     public static boolean enableDistributorAdaptiveItemTargetProbes() { return SERVER.enableDistributorAdaptiveItemTargetProbes.get(); }
     public static boolean enableDistributorAdaptiveFluidTargetProbes() { return SERVER.enableDistributorAdaptiveFluidTargetProbes.get(); }
     public static boolean enableDistributorAdaptiveChemicalTargetProbes() { return SERVER.enableDistributorAdaptiveChemicalTargetProbes.get(); }
@@ -574,7 +569,6 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue distributorMaxTargets;
         public final ForgeConfigSpec.IntValue distributorScanOpsPerTick;
         public final ForgeConfigSpec.IntValue distributorIndexingRetryTicks;
-        public final ForgeConfigSpec.IntValue distributorOpsPerTick;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveItemTargetProbes;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveFluidTargetProbes;
         public final ForgeConfigSpec.BooleanValue enableDistributorAdaptiveChemicalTargetProbes;
@@ -906,10 +900,6 @@ public final class SkyLogisticsConfig {
                     .comment("Ticks a logistics endpoint waits before retrying a distributor whose machine index is still rebuilding. This local defer does not count as a transfer failure.",
                             "分配器机器索引仍在重建时，物流端点再次尝试前等待的 tick；该局部延后不计为传输失败。")
                     .defineInRange("indexingRetryTicks", 20, 1, 1200);
-            distributorOpsPerTick = builder
-                    .comment("Maximum transfer probes one Celestial Distributor may perform per server tick. Each directly accessed item slot, tank, or resource target costs one probe; item insertion combines a target and its first slot. BFS discovery uses scanOpsPerTick instead.",
-                            "单个天穹分配器每个服务器 tick 最多执行的传输探测数。每个直接访问的物品槽、储罐或资源目标消耗一次；物品插入将目标及其首槽合并计数。BFS 发现改用 scanOpsPerTick。")
-                    .defineInRange("opsPerTick", 64, 1, 4096);
             enableDistributorAdaptiveItemTargetProbes = builder
                     .comment("Whether distributor item extraction and insertion use independent adaptive per-machine routing tiers.",
                             "分配器物品抽取与插入是否使用独立的按机器自适应路由等级。")
@@ -1004,7 +994,6 @@ public final class SkyLogisticsConfig {
     public static final class OrderedMatchingUpgrade {
         public final ForgeConfigSpec.BooleanValue wrapTargets;
         public final ForgeConfigSpec.BooleanValue continueAfterTargetFailure;
-        public final ForgeConfigSpec.IntValue perItemDetentionQueueLength;
 
         private OrderedMatchingUpgrade(ForgeConfigSpec.Builder builder) {
             builder.comment("Ordered Matching Upgrade behavior.",
@@ -1015,13 +1004,9 @@ public final class SkyLogisticsConfig {
                             "逐槽模式是否按 槽位号 % 接收端数量 循环映射。关闭后，超出接收端数量的来源槽位不再发配。")
                     .define("wrapTargets", true);
             continueAfterTargetFailure = builder
-                    .comment("Whether a failed or temporarily unavailable target may be passed. Per Item detains the skipped assignment when detention is enabled.",
-                            "目标拒收或暂时不可用时是否允许越过；逐个模式会在启用扣押时保留被跳过的分配。")
+                    .comment("Whether Per Slot may pass a failed or temporarily unavailable target.",
+                            "逐槽模式是否允许越过拒收或暂时不可用的目标。")
                     .define("continueAfterTargetFailure", true);
-            perItemDetentionQueueLength = builder
-                    .comment("Maximum number of one-item failed assignments retained per Per Item extraction face. A full queue discards its oldest assignment before retaining the new failure. Zero disables detention and prevents passing a failed target.",
-                            "逐个模式每个抽取面最多保留的单物品失败分配数。队列满时先丢弃最早的扣押项，再保留新的失败分配。0 表示禁用扣押，并阻止越过失败目标。")
-                    .defineInRange("perItemDetentionQueueLength", 4, 0, 1024);
             builder.pop();
         }
     }

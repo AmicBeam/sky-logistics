@@ -62,47 +62,32 @@ public final class OrderedMatchingPolicy {
                 Math.min(Math.max(0, targetBudget), Math.max(0, targetAttemptLimit)));
     }
 
-    public static int availableAfterDetention(int sourceCount, int reservedCount) {
-        return Math.max(0, sourceCount - Math.max(0, reservedCount));
-    }
-
-    public static boolean canEnqueueDetention(int queueSize, int capacity) {
-        return capacity > 0 && queueSize >= 0;
-    }
-
-    public static int detentionEvictionsForEnqueue(int queueSize, int capacity) {
-        return canEnqueueDetention(queueSize, capacity) ? Math.max(0, queueSize - capacity + 1) : 0;
-    }
-
-    public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, int detentionCount,
-            boolean hasPendingBatch) {
-        return !hasTransferableResource && detentionCount <= 0 && !hasPendingBatch;
+    public static boolean shouldResetPerItemCursor(boolean hasTransferableResource, boolean hasPendingBatch) {
+        return !hasTransferableResource && !hasPendingBatch;
     }
 
     public static final class PerItemBatchPlan {
         private final int sourceAmount;
-        private final int targetCount;
-        private final int startCursor;
+        private final int[] targetIndices;
         private final int assignmentCount;
         private int nextAssignment;
 
-        public PerItemBatchPlan(int sourceAmount, int targetCount, int startCursor) {
+        public PerItemBatchPlan(int sourceAmount, int[] targetIndices) {
             this.sourceAmount = Math.max(0, sourceAmount);
-            this.targetCount = Math.max(0, targetCount);
-            this.startCursor = normalizeCursor(startCursor, targetCount);
-            this.assignmentCount = batchTargetCount(sourceAmount, targetCount);
+            this.targetIndices = targetIndices == null ? new int[0] : targetIndices.clone();
+            this.assignmentCount = batchTargetCount(sourceAmount, this.targetIndices.length);
         }
 
         public int targetCount() {
-            return targetCount;
+            return targetIndices.length;
         }
 
         public int targetIndex() {
-            return complete() ? -1 : Math.floorMod(startCursor + nextAssignment, targetCount);
+            return complete() ? -1 : targetIndices[nextAssignment];
         }
 
         public int amount() {
-            return complete() ? 0 : batchAmount(sourceAmount, targetCount, nextAssignment);
+            return complete() ? 0 : batchAmount(sourceAmount, targetIndices.length, nextAssignment);
         }
 
         public int remainingAssignments() {
@@ -112,7 +97,7 @@ public final class OrderedMatchingPolicy {
         public int remainingAmount() {
             int remaining = 0;
             for (int assignment = nextAssignment; assignment < assignmentCount; assignment++) {
-                remaining += batchAmount(sourceAmount, targetCount, assignment);
+                remaining += batchAmount(sourceAmount, targetIndices.length, assignment);
             }
             return remaining;
         }

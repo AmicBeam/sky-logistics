@@ -68,9 +68,10 @@ function paintSegment(canvas, ax, ay, bx, by, radius, color) {
   paintDistance(canvas, (x, y) => distanceToSegment(x, y, ax, ay, bx, by) <= radius, color);
 }
 
-function generate(size) {
-  if (size === 16) return generate16();
+function generate(size, noOutline = false) {
+  if (size === 16) return generate16(noOutline);
   const canvas = createCanvas(size);
+  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
   const scale = size / 64;
   const u = { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
   const p = { x: Math.SQRT1_2, y: Math.SQRT1_2 };
@@ -87,7 +88,7 @@ function generate(size) {
 
   // Long diagonal silhouette and lower-left leather grip.
   paintSegment(canvas, gripStart.x, gripStart.y, connector.x, connector.y,
-    Math.max(1.15, 2.55 * scale), C.outline);
+    Math.max(1.15, 2.55 * scale), neutralEdge);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
     Math.max(0.7, 1.65 * scale), C.bronzeDark);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
@@ -108,10 +109,10 @@ function generate(size) {
 
   // Pommel and centered connector.
   paintDiamond(canvas, gripStart.x - u.x * 1.4 * scale, gripStart.y - u.y * 1.4 * scale,
-    Math.max(1.3, 2.7 * scale), C.outline);
+    Math.max(1.3, 2.7 * scale), neutralEdge);
   paintDiamond(canvas, gripStart.x - u.x * 1.4 * scale, gripStart.y - u.y * 1.4 * scale,
     Math.max(0.8, 1.7 * scale), C.gold);
-  paintDiamond(canvas, connector.x, connector.y, Math.max(1.4, 3.5 * scale), C.outline);
+  paintDiamond(canvas, connector.x, connector.y, Math.max(1.4, 3.5 * scale), neutralEdge);
   paintDiamond(canvas, connector.x, connector.y, Math.max(0.9, 2.5 * scale), C.bronze);
   paintDiamond(canvas, connector.x - 0.6 * scale, connector.y - 0.6 * scale,
     Math.max(0.45, 1.1 * scale), C.goldHi);
@@ -134,7 +135,9 @@ function generate(size) {
       const outerGoldWidth = size === 32 ? 0.72 : 2.0 * scale;
       const energyWidth = size === 32 ? 1.35 : 2.4 * scale;
       let color;
-      if (edgeDistance < edgeWidth) color = C.outline;
+      if (edgeDistance < edgeWidth) color = noOutline
+        ? (blueSide ? C.blueDark : C.orangeDark)
+        : C.outline;
       else if (radius > outer - outerFrameWidth) color = radius > outer - outerGoldWidth ? C.gold : C.bronze;
       else if (radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
@@ -173,7 +176,7 @@ function generate(size) {
     };
     const accent = side < 0 ? C.cyan : C.orangeHi;
     const accentDark = side < 0 ? C.blue : C.orange;
-    paintCircle(canvas, hub.x, hub.y, Math.max(1.0, 3.1 * scale), C.outline);
+    paintCircle(canvas, hub.x, hub.y, Math.max(1.0, 3.1 * scale), neutralEdge);
     paintCircle(canvas, hub.x, hub.y, Math.max(0.6, 2.05 * scale), C.gold);
     paintCircle(canvas, hub.x, hub.y, Math.max(0.35, 1.05 * scale), accent);
     if (size >= 32) {
@@ -196,14 +199,15 @@ function generate(size) {
   return canvas;
 }
 
-function generate16() {
+function generate16(noOutline = false) {
   const canvas = createCanvas(16);
+  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
   const put = (color, coordinates) => {
     for (const [x, y] of coordinates) setPixel(canvas, x, y, color);
   };
 
   // Two-pixel diagonal body: navy grip at lower-left, bronze shaft toward the ring gap.
-  put(C.outline, [
+  put(neutralEdge, [
     [1, 13], [2, 12], [2, 13], [3, 11], [3, 12], [4, 10], [4, 11],
     [5, 9], [5, 10], [6, 8], [6, 9], [7, 7], [7, 8], [8, 6], [8, 7],
   ]);
@@ -212,7 +216,7 @@ function generate16() {
   put(C.gold, [[1, 13], [2, 13], [8, 6]]);
 
   // Dark backing establishes the open ring before the two color ramps are applied.
-  put(C.outline, [
+  put(neutralEdge, [
     [9, 1], [10, 1], [11, 1], [12, 1], [8, 2], [9, 2], [12, 2], [13, 2],
     [7, 3], [8, 3], [13, 3], [14, 3], [7, 4], [8, 4], [13, 4], [14, 4],
     [7, 5], [8, 5], [12, 5], [13, 5], [8, 6], [9, 6], [11, 6], [12, 6],
@@ -254,4 +258,7 @@ for (const size of [64, 32, 16]) {
   const output = resolve(outputDirectory, `chora_kleis_${size}.svg`);
   await writeFile(output, canvasToSvg(generate(size)));
   console.log(output);
+  const noOutlineOutput = resolve(outputDirectory, `chora_kleis_${size}_no_outline.svg`);
+  await writeFile(noOutlineOutput, canvasToSvg(generate(size, true)));
+  console.log(noOutlineOutput);
 }

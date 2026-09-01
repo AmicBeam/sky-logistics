@@ -1,0 +1,82 @@
+{
+  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/item-icon-sources/chora-kleis-pixel/chora_kleis_32_no_outline.svg",
+  "active": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis-pixel/chora_kleis_32_no_outline.png",
+  "inactive": null,
+  "assetKind": "transparent-icon",
+  "dimensions": "32x32",
+  "svgIntrinsicDimensions": "32x32",
+  "directLogicalRaster": true,
+  "preview": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/generated/chora-kleis-pixel/chora_kleis_32_no_outline-review.png",
+  "diffPreview": null,
+  "previewBackground": "#c6c6c6",
+  "edgePixels": 0,
+  "alpha": {
+    "transparentPixels": 842,
+    "partialAlphaPixels": 0,
+    "opaquePixels": 182
+  },
+  "palette": {
+    "uniqueColors": 13,
+    "topColors": [
+      {
+        "rgba": "#00000000",
+        "count": 842
+      },
+      {
+        "rgba": "#224f7aff",
+        "count": 39
+      },
+      {
+        "rgba": "#a85b23ff",
+        "count": 33
+      },
+      {
+        "rgba": "#e0ad50ff",
+        "count": 28
+      },
+      {
+        "rgba": "#5c391dff",
+        "count": 20
+      },
+      {
+        "rgba": "#172849ff",
+        "count": 16
+      },
+      {
+        "rgba": "#79dce9ff",
+        "count": 13
+      },
+      {
+        "rgba": "#9b622cff",
+        "count": 13
+      },
+      {
+        "rgba": "#ffd56fff",
+        "count": 13
+      },
+      {
+        "rgba": "#3c91c5ff",
+        "count": 2
+      },
+      {
+        "rgba": "#e89a36ff",
+        "count": 2
+      },
+      {
+        "rgba": "#fff0a2ff",
+        "count": 2
+      },
+      {
+        "rgba": "#b9fff4ff",
+        "count": 1
+      }
+    ]
+  },
+  "reference": null,
+  "mask": null,
+  "boundary": null,
+  "foregroundMask": null,
+  "contrast": null,
+  "failures": [],
+  "warnings": []
+}

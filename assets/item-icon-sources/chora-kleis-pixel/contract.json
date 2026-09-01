@@ -6,6 +6,11 @@
     {"size": 32, "master": "chora_kleis_32.svg", "output": "chora_kleis_32.png", "detail": "reduced"},
     {"size": 16, "master": "chora_kleis_16.svg", "output": "chora_kleis_16.png", "detail": "silhouette"}
   ],
+  "outline_comparison": {
+    "original": "near-black silhouette outline",
+    "no_outline": "material-local dark blue, dark orange, and dark bronze edge colors",
+    "selection_status": "awaiting visual approval"
+  },
   "render_mode": "pixel-grid",
   "light_direction": "top-left",
   "protected_regions": [],
