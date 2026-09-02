@@ -65,6 +65,7 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onAttackInput);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onKleisEndpointEdit);
         NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::render);
+        NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::renderHud);
     }
 
     private static void registerMenuScreens(RegisterMenuScreensEvent event) {

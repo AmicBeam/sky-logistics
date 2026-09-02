@@ -12,9 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -103,6 +105,20 @@ public final class ClientKleisOverlays {
         lastRequestLevel = null;
         lastRequestChunkX = Integer.MIN_VALUE;
         lastRequestChunkZ = Integer.MIN_VALUE;
+    }
+
+    public static void renderHud(net.neoforged.neoforge.client.event.RenderGuiEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.screen != null
+                || !(mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        KleisOverlayPacket.Entry entry = entryAt(hit.getBlockPos(), hit.getDirection());
+        if (entry == null) return;
+        String name = ClientLineNames.displayName(entry.lineId(), entry.lineName());
+        Component mode = Component.translatable(entry.mode() == NodeFaceMode.INPUT
+                ? "tooltip.skylogistics.mode.input" : "tooltip.skylogistics.mode.output");
+        Component label = Component.literal(name + " · ").append(mode);
+        GuiGraphicsExtractor graphics = event.getGuiGraphics();
+        graphics.centeredText(mc.font, label, graphics.guiWidth() / 2, graphics.guiHeight() / 2 + 12, 0xFFFFFFFF);
     }
 
     private static void draw(RenderLevelStageEvent.AfterTranslucentParticles event, VertexConsumer consumer, AABB box, Vec3 camera,

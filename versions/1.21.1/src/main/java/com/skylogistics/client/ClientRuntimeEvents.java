@@ -23,6 +23,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
@@ -108,4 +109,8 @@ public final class ClientRuntimeEvents {
     }
 
     @SubscribeEvent public static void onRenderLevel(RenderLevelStageEvent event) { ClientKleisOverlays.render(event); }
+
+    @SubscribeEvent public static void onRenderGui(RenderGuiEvent.Post event) {
+        ClientKleisOverlays.renderHud(event.getGuiGraphics());
+    }
 }

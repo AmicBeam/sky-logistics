@@ -127,7 +127,8 @@ public final class KleisEndpointSavedData extends SavedData {
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(), saved.revision()));
+                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(),
+                    node.getLineName(), saved.revision()));
         }
         return List.copyOf(result);
     }
@@ -143,7 +144,8 @@ public final class KleisEndpointSavedData extends SavedData {
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(), saved.revision()));
+                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(),
+                    node.getLineName(), saved.revision()));
         }
         return List.copyOf(result);
     }
@@ -303,7 +305,7 @@ public final class KleisEndpointSavedData extends SavedData {
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}
     public record Entry(UUID owner, int revision, CompoundTag nodeData) {}
     public record Snapshot(BlockPos pos, Direction face, com.skylogistics.util.NodeFaceMode mode,
-                           UUID lineId, int revision) {}
+                           UUID lineId, String lineName, int revision) {}
 
     public enum EditResult {
         COPIED,
