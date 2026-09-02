@@ -6,6 +6,7 @@ import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.LineNaming;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
+import com.skylogistics.util.EnumMaps;
 import com.skylogistics.util.StackData;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -902,7 +903,7 @@ public class ConfiguratorItem extends Item {
         }
 
         public ToolConfig {
-            faces = new EnumMap<>(faces);
+            faces = EnumMaps.copyOf(Direction.class, faces);
             upgrades = upgrades.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();
         }
 
