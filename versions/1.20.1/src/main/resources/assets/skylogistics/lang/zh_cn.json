@@ -21,6 +21,7 @@
   "item.skylogistics.kleis_dominion_wand": "克莱斯支配之杖",
   "tooltip.skylogistics.kleis_dominion_wand": "配合副手天穹配置器，让网络记住设备侧面。",
   "tooltip.skylogistics.kleis_dominion_wand.cross_dimension": "内置跨维度能力",
+  "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled": "虚拟覆盖面不支持红石控制",
   "message.skylogistics.kleis_dominion_wand.configurator_required": "副手需要天穹配置器。",
   "message.skylogistics.kleis_dominion_wand.created_insert": "网络已记住该存入面。",
   "message.skylogistics.kleis_dominion_wand.created_extract": "网络已记住该抽取面。",

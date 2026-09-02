@@ -49,7 +49,7 @@ The <ItemLink id="sky_necklace" /> supports extract, insert, and maintain modes.
 
 ## Kleis Dominion Wand
 
-Hold the <ItemLink id="kleis_dominion_wand" /> in your main hand and a configured Sky Configurator in your offhand to create or remove wireless virtual faces. Swap hands to edit them: sneak-right-click a highlighted face to copy its single-face configuration, then right-click another highlighted face or a real logistics node to paste. Configurations copied from real nodes can likewise be pasted onto highlighted virtual faces.
+Hold the <ItemLink id="kleis_dominion_wand" /> in your main hand and a configured Sky Configurator in your offhand to create or remove wireless virtual faces. Swap hands to edit them: sneak-right-click a highlighted face to copy its single-face configuration, then right-click another highlighted face or a real logistics node to paste. Configurations copied from real nodes can likewise be pasted onto highlighted virtual faces. Virtual faces always ignore redstone; their redstone button is disabled and redstone settings are not copied to them.
 
 <RecipeFor id="configurator" fallbackText="The configurator recipe is unavailable." />
 <RecipeFor id="sky_necklace" fallbackText="The sky necklace recipe is unavailable." />

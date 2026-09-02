@@ -1,6 +1,8 @@
 package com.skylogistics.block.entity;
 
 import com.skylogistics.registry.ModBlocks;
+import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.util.RedstoneControl;
 import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -99,6 +101,35 @@ public final class KleisVirtualNodeBlockEntity extends SkyNodeBlockEntity {
     @Override
     public boolean hasDimensionUpgrade() {
         return true;
+    }
+
+    @Override
+    public void applyPlacementToolConfig(ConfiguratorItem.ToolConfig config, boolean includeMode) {
+        super.applyPlacementToolConfig(config.withPlacement(
+                config.placement().withRedstoneControl(RedstoneControl.IGNORE)), includeMode);
+    }
+
+    @Override
+    public RedstoneControl getRedstoneControl(Direction direction) {
+        return RedstoneControl.IGNORE;
+    }
+
+    @Override
+    public boolean isFaceRedstoneAllowed(Direction direction) {
+        return true;
+    }
+
+    @Override
+    public boolean consumeRedstonePulse(Direction direction) {
+        return false;
+    }
+
+    @Override
+    public void onRedstoneNeighborChanged() {
+    }
+
+    @Override
+    public void cycleRedstoneControl(Direction direction) {
     }
 
     @Override

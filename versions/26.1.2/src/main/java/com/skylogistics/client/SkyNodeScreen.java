@@ -833,6 +833,10 @@ public class SkyNodeScreen<M extends SkyNodeMenu> extends AbstractContainerScree
         private RedstoneButton(int x, int y) {
             super(x, y, ADVANCED_CONTROL_WIDTH, ConfigPanel.STEPPER_HEIGHT,
                     Component.translatable("screen.skylogistics.redstone"));
+            if (node() instanceof com.skylogistics.block.entity.KleisVirtualNodeBlockEntity) {
+                setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(
+                        "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled")));
+            }
         }
 
         @Override
@@ -840,6 +844,11 @@ public class SkyNodeScreen<M extends SkyNodeMenu> extends AbstractContainerScree
             if (active) {
                 ModNetworking.sendMenuAction(MenuAction.faceRedstone(selectedFace));
             }
+        }
+
+        @Override
+        protected boolean canUse(SkyNodeBlockEntity node) {
+            return !(node instanceof com.skylogistics.block.entity.KleisVirtualNodeBlockEntity);
         }
 
         @Override

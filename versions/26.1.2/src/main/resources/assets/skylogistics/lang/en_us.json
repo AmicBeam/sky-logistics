@@ -21,6 +21,7 @@
   "item.skylogistics.kleis_dominion_wand": "Kleis Dominion Wand",
   "tooltip.skylogistics.kleis_dominion_wand": "Use with an offhand Sky Configurator to make the network remember machine faces.",
   "tooltip.skylogistics.kleis_dominion_wand.cross_dimension": "Cross-dimensional routing is built in",
+  "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled": "Virtual faces do not support redstone control",
   "message.skylogistics.kleis_dominion_wand.configurator_required": "A Sky Configurator is required in the offhand.",
   "message.skylogistics.kleis_dominion_wand.created_insert": "The network now remembers this insert face.",
   "message.skylogistics.kleis_dominion_wand.created_extract": "The network now remembers this extract face.",

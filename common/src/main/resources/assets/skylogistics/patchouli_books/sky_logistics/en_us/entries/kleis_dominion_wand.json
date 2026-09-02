@@ -14,7 +14,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "The copied settings include line, extract/insert mode, enabled resources, redstone behavior, priority, limits, filters, and supported upgrades. Pasting never creates free upgrades. A virtual endpoint ignores Dimension Upgrades because cross-dimensional routing is built in. Only loaded machine faces operate; the wand never loads chunks."
+      "text": "The copied settings include line, extract/insert mode, enabled resources, priority, limits, filters, and supported upgrades. Virtual faces always ignore redstone, and their redstone button is disabled. Pasting never creates free upgrades. A virtual endpoint ignores Dimension Upgrades because cross-dimensional routing is built in. Only loaded machine faces operate; the wand never loads chunks."
     }
   ]
 }
