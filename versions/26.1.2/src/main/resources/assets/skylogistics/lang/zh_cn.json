@@ -24,6 +24,7 @@
   "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled": "虚拟覆盖面不支持红石控制",
   "message.skylogistics.kleis_dominion_wand.configurator_required": "副手需要天穹配置器。",
   "message.skylogistics.kleis_dominion_wand.invalid_target": "该侧面没有可用的物流能力。",
+  "message.skylogistics.kleis_dominion_wand.line_conflict": "该侧面已绑定其它线路，请切换到原线路后再删除。",
   "message.skylogistics.kleis_dominion_wand.no_paste_config": "配置器没有可粘贴的复制配置。",
   "message.skylogistics.kleis_dominion_wand.stale_endpoint": "该覆盖面已发生变化，请重新瞄准。",
   "message.skylogistics.kleis_dominion_wand.edit_denied": "你无权配置该覆盖面。",

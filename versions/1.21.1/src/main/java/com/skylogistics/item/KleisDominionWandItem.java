@@ -40,6 +40,7 @@ public final class KleisDominionWandItem extends Item {
         KleisEndpointSavedData.get(serverPlayer.getServer()).syncVisibleOverlays(serverPlayer.getServer(),
                 serverPlayer.level().dimension(), context.getClickedPos());
         if (result == KleisEndpointSavedData.ToggleResult.INVALID_TARGET
+                || result == KleisEndpointSavedData.ToggleResult.LINE_CONFLICT
                 || result == KleisEndpointSavedData.ToggleResult.EDIT_DENIED) {
             player.displayClientMessage(Component.translatable("message.skylogistics.kleis_dominion_wand."
                     + result.name().toLowerCase(java.util.Locale.ROOT)), true);

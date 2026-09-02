@@ -1,5 +1,7 @@
 package com.skylogistics.network;
 
+import java.util.UUID;
+
 /** Pure decision rules shared by the version-specific Kleis capability probes. */
 public final class KleisEndpointPolicy {
     private KleisEndpointPolicy() {
@@ -30,5 +32,9 @@ public final class KleisEndpointPolicy {
 
     public static boolean hasMixedEndpointModes(int mask) {
         return (mask & 3) == 3;
+    }
+
+    public static boolean sameLine(UUID existingLineId, UUID selectedLineId) {
+        return existingLineId.equals(selectedLineId);
     }
 }

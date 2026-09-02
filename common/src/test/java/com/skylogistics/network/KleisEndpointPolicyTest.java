@@ -3,6 +3,7 @@ package com.skylogistics.network;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class KleisEndpointPolicyTest {
@@ -37,5 +38,12 @@ class KleisEndpointPolicyTest {
         assertFalse(KleisEndpointPolicy.hasMixedEndpointModes(mask));
         mask = KleisEndpointPolicy.addEndpointMode(mask, false);
         assertTrue(KleisEndpointPolicy.hasMixedEndpointModes(mask));
+    }
+
+    @Test
+    void existingEndpointCanOnlyBeToggledByItsOwnLine() {
+        UUID existing = new UUID(0L, 1L);
+        assertTrue(KleisEndpointPolicy.sameLine(existing, existing));
+        assertFalse(KleisEndpointPolicy.sameLine(existing, new UUID(0L, 2L)));
     }
 }

@@ -24,6 +24,7 @@
   "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled": "Virtual faces do not support redstone control",
   "message.skylogistics.kleis_dominion_wand.configurator_required": "A Sky Configurator is required in the offhand.",
   "message.skylogistics.kleis_dominion_wand.invalid_target": "That face exposes no supported logistics capability.",
+  "message.skylogistics.kleis_dominion_wand.line_conflict": "That face belongs to another line. Switch to that line before removing it.",
   "message.skylogistics.kleis_dominion_wand.no_paste_config": "The configurator has no copied configuration to paste.",
   "message.skylogistics.kleis_dominion_wand.stale_endpoint": "That remembered face changed; aim at it again.",
   "message.skylogistics.kleis_dominion_wand.edit_denied": "You cannot configure that remembered face.",

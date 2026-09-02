@@ -91,8 +91,15 @@ public final class KleisEndpointSavedData extends SavedData {
     public ToggleResult toggle(ServerPlayer player, BlockPos pos, Direction face, boolean extracting,
             ItemStack configurator) {
         Key key = new Key(player.level().dimension(), pos.immutable(), face);
-        if (entries.containsKey(key)) {
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(configurator, player);
+        Entry existing = entries.get(key);
+        if (existing != null) {
             if (!canModify(player, key) || !isReachable(player, key)) return ToggleResult.EDIT_DENIED;
+            KleisRuntimeEndpoint existingNode = runtimeFor(player, key, existing);
+            if (existingNode == null) return ToggleResult.INVALID_TARGET;
+            if (!KleisEndpointPolicy.sameLine(existingNode.getLineId(), config.lineId())) {
+                return ToggleResult.LINE_CONFLICT;
+            }
             removeRuntime(key);
             removeEntry(key);
             setDirty();
@@ -103,7 +110,6 @@ public final class KleisEndpointSavedData extends SavedData {
                 || level.getBlockState(pos).isAir()) {
             return ToggleResult.INVALID_TARGET;
         }
-        ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(configurator, player);
         UUID lineOwner = SkyPlayerLines.ownerOf(player.level().getServer(), config.lineId());
         if (lineOwner != null && !lineOwner.equals(player.getUUID())) return ToggleResult.EDIT_DENIED;
         KleisRuntimeEndpoint node = new KleisRuntimeEndpoint(level, pos, face, player.getUUID(), config,
@@ -349,6 +355,7 @@ public final class KleisEndpointSavedData extends SavedData {
         CREATED_EXTRACT,
         REMOVED,
         INVALID_TARGET,
+        LINE_CONFLICT,
         EDIT_DENIED
     }
 }
