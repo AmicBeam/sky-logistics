@@ -10,8 +10,8 @@ import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,7 +26,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 public final class ClientKleisOverlays {
-    private static final RenderType XRAY_MASK = XrayRenderType.createMask();
+    private static final RenderType XRAY_CENTER = XrayRenderType.createCenter();
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -35,24 +35,16 @@ public final class ClientKleisOverlays {
     private static Object snapshotLevel;
     private static int lastRequestChunkX = Integer.MIN_VALUE;
     private static int lastRequestChunkZ = Integer.MIN_VALUE;
-    private static final Map<KleisOverlayPacket.Entry, Long> animationStarts = new HashMap<>();
+    private static final Set<BlockPos> xrayBlocks = new HashSet<>();
     private ClientKleisOverlays() {}
 
     public static void apply(KleisOverlayPacket packet) {
-        Minecraft mc = Minecraft.getInstance();
-        long now = mc.level == null ? 0L : mc.level.getGameTime();
-        Map<KleisOverlayPacket.Entry, Long> nextStarts = new HashMap<>();
-        for (KleisOverlayPacket.Entry entry : packet.entries()) {
-            nextStarts.put(entry, animationStarts.getOrDefault(entry, now));
-        }
-        animationStarts.clear();
-        animationStarts.putAll(nextStarts);
         lineId = packet.selectedLineId();
         editNearby = packet.editNearby();
         entries = packet.entries();
     }
     public static void clear() {
-        lineId = null; editNearby = false; active = false; entries = List.of(); animationStarts.clear();
+        lineId = null; editNearby = false; active = false; entries = List.of(); xrayBlocks.clear();
         snapshotLevel = null; resetRequestLocation();
     }
 
@@ -70,7 +62,6 @@ public final class ClientKleisOverlays {
         if (snapshotLevel != mc.level) {
             snapshotLevel = mc.level;
             entries = List.of();
-            animationStarts.clear();
             ModNetworking.requestKleisOverlays(true);
         }
         boolean edit = mc.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
@@ -84,7 +75,7 @@ public final class ClientKleisOverlays {
         if (!active) { active = true; resetRequestLocation(); }
         long now = mc.level.getGameTime();
         if (edit != editNearby || !edit && !java.util.Objects.equals(selected, lineId)) {
-            editNearby = edit; lineId = selected; entries = List.of(); animationStarts.clear(); resetRequestLocation();
+            editNearby = edit; lineId = selected; entries = List.of(); resetRequestLocation();
         } else if (edit) {
             lineId = selected;
         }
@@ -97,18 +88,17 @@ public final class ClientKleisOverlays {
         Vec3 camera = event.getCamera().getPosition();
         net.minecraft.world.phys.BlockHitResult hit = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit
                 ? blockHit : null;
-        renderMasks(event, mc, camera, hit, edit, false);
-        renderMasks(event, mc, camera, hit, edit, true);
+        renderMasks(event, mc, camera, hit, edit);
+        renderXrayCenters(event, mc, camera, hit, edit);
         renderAnimation(event, mc, camera, hit, edit, now);
     }
 
     private static void renderMasks(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
-            net.minecraft.world.phys.BlockHitResult hit, boolean edit, boolean xray) {
-        RenderType type = xray ? XRAY_MASK : RenderType.debugFilledBox();
+            net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
+        RenderType type = RenderType.debugFilledBox();
         VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
-            if (xray && !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
@@ -122,16 +112,36 @@ public final class ClientKleisOverlays {
         mc.renderBuffers().bufferSource().endBatch(type);
     }
 
+    private static void renderXrayCenters(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
+            net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
+        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(XRAY_CENTER);
+        xrayBlocks.clear();
+        for (KleisOverlayPacket.Entry entry : entries) {
+            if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()
+                    || !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
+                    || !xrayBlocks.add(entry.pos())) continue;
+            boolean extract = entry.mode() == NodeFaceMode.INPUT;
+            float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
+            boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
+            float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
+            double x = entry.pos().getX() - camera.x, y = entry.pos().getY() - camera.y, z = entry.pos().getZ() - camera.z;
+            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), consumer,
+                    x + 0.25D, y + 0.25D, z + 0.25D, x + 0.75D, y + 0.75D, z + 0.75D,
+                    r, g, b, 0.50F * alphaScale);
+        }
+        mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
+    }
+
     private static void renderAnimation(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit, long now) {
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
+        int phase = (int)(Math.floorMod(now, 50L)) / 5;
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            int phase = (int)(Math.floorMod(now - animationStarts.getOrDefault(entry, now), 50L)) / 5;
             if (phase < 8) {
                 int size = extract ? 2 + phase * 2 : 16 - phase * 2;
                 draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F * alphaScale);
@@ -198,8 +208,8 @@ public final class ClientKleisOverlays {
                     0, false, false, () -> {}, () -> {});
         }
 
-        private static RenderType createMask() {
-            return RenderType.create("skylogistics_kleis_xray_mask", DefaultVertexFormat.POSITION_COLOR,
+        private static RenderType createCenter() {
+            return RenderType.create("skylogistics_kleis_xray_center", DefaultVertexFormat.POSITION_COLOR,
                     VertexFormat.Mode.TRIANGLE_STRIP, 256, false, false, RenderType.CompositeState.builder()
                             .setShaderState(POSITION_COLOR_SHADER)
                             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
