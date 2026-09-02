@@ -9,7 +9,6 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
-import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
 import java.util.HashSet;
@@ -124,7 +123,6 @@ public final class ClientKleisOverlays {
         xrayBlocks.clear();
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()
-                    || !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
                     || !xrayBlocks.add(entry.pos())) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;

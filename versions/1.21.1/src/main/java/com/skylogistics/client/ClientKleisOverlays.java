@@ -7,7 +7,6 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
-import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
 import java.util.HashSet;
@@ -24,13 +23,16 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.joml.Matrix4f;
 
 public final class ClientKleisOverlays {
     private static final RenderType XRAY_CENTER = RenderType.create("skylogistics_kleis_xray_center",
-            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP, 256, false, false,
+            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS, 65536, false, false,
             RenderType.CompositeState.builder()
                     .setShaderState(net.minecraft.client.renderer.RenderStateShard.POSITION_COLOR_SHADER)
                     .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+                    .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+                    .setLightmapState(net.minecraft.client.renderer.RenderStateShard.NO_LIGHTMAP)
                     .setDepthTestState(net.minecraft.client.renderer.RenderStateShard.GREATER_DEPTH_TEST)
                     .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
                     .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
@@ -126,15 +128,12 @@ public final class ClientKleisOverlays {
         xrayBlocks.clear();
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()
-                    || !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
                     || !xrayBlocks.add(entry.pos())) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            double x = entry.pos().getX() - camera.x, y = entry.pos().getY() - camera.y, z = entry.pos().getZ() - camera.z;
-            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), consumer,
-                    x + 0.25D, y + 0.25D, z + 0.25D, x + 0.75D, y + 0.75D, z + 0.75D,
+            drawCenterCube(event.getPoseStack().last().pose(), consumer, entry.pos(), camera,
                     r, g, b, 0.50F * alphaScale);
         }
         mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
@@ -196,6 +195,27 @@ public final class ClientKleisOverlays {
             float r, float g, float b, float a) {
         LevelRenderer.renderLineBox(event.getPoseStack(), consumer, box.minX-camera.x, box.minY-camera.y, box.minZ-camera.z,
                 box.maxX-camera.x, box.maxY-camera.y, box.maxZ-camera.z, r,g,b,a);
+    }
+
+    private static void drawCenterCube(Matrix4f matrix, VertexConsumer consumer, BlockPos pos, Vec3 camera,
+            float r, float g, float b, float a) {
+        float x0=(float)(pos.getX()-camera.x)+.25F, y0=(float)(pos.getY()-camera.y)+.25F, z0=(float)(pos.getZ()-camera.z)+.25F;
+        float x1=x0+.5F, y1=y0+.5F, z1=z0+.5F;
+        quad(consumer,matrix,x0,y0,z0,x1,y0,z0,x1,y0,z1,x0,y0,z1,r,g,b,a,0,-1,0);
+        quad(consumer,matrix,x0,y1,z1,x1,y1,z1,x1,y1,z0,x0,y1,z0,r,g,b,a,0,1,0);
+        quad(consumer,matrix,x0,y0,z0,x0,y1,z0,x1,y1,z0,x1,y0,z0,r,g,b,a,0,0,-1);
+        quad(consumer,matrix,x1,y0,z1,x1,y1,z1,x0,y1,z1,x0,y0,z1,r,g,b,a,0,0,1);
+        quad(consumer,matrix,x0,y0,z1,x0,y1,z1,x0,y1,z0,x0,y0,z0,r,g,b,a,-1,0,0);
+        quad(consumer,matrix,x1,y0,z0,x1,y1,z0,x1,y1,z1,x1,y0,z1,r,g,b,a,1,0,0);
+    }
+
+    private static void quad(VertexConsumer consumer, Matrix4f matrix,
+            float ax,float ay,float az,float bx,float by,float bz,float cx,float cy,float cz,float dx,float dy,float dz,
+            float r,float g,float b,float a,float nx,float ny,float nz) {
+        consumer.addVertex(matrix,ax,ay,az).setColor(r,g,b,a).setNormal(nx,ny,nz);
+        consumer.addVertex(matrix,bx,by,bz).setColor(r,g,b,a).setNormal(nx,ny,nz);
+        consumer.addVertex(matrix,cx,cy,cz).setColor(r,g,b,a).setNormal(nx,ny,nz);
+        consumer.addVertex(matrix,dx,dy,dz).setColor(r,g,b,a).setNormal(nx,ny,nz);
     }
 
     private static AABB faceBox(BlockPos pos, Direction face, double inset) {

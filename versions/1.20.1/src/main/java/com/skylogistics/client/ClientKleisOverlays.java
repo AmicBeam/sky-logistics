@@ -7,7 +7,6 @@ import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
-import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
 import java.util.HashSet;
@@ -24,6 +23,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import org.joml.Matrix4f;
 
 public final class ClientKleisOverlays {
     private static final RenderType XRAY_CENTER = XrayRenderType.createCenter();
@@ -118,15 +118,12 @@ public final class ClientKleisOverlays {
         xrayBlocks.clear();
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()
-                    || !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
                     || !xrayBlocks.add(entry.pos())) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            double x = entry.pos().getX() - camera.x, y = entry.pos().getY() - camera.y, z = entry.pos().getZ() - camera.z;
-            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), consumer,
-                    x + 0.25D, y + 0.25D, z + 0.25D, x + 0.75D, y + 0.75D, z + 0.75D,
+            drawCenterCube(event.getPoseStack().last().pose(), consumer, entry.pos(), camera,
                     r, g, b, 0.50F * alphaScale);
         }
         mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
@@ -190,6 +187,27 @@ public final class ClientKleisOverlays {
                 box.maxX-camera.x, box.maxY-camera.y, box.maxZ-camera.z, r,g,b,a);
     }
 
+    private static void drawCenterCube(Matrix4f matrix, VertexConsumer consumer, BlockPos pos, Vec3 camera,
+            float r, float g, float b, float a) {
+        float x0=(float)(pos.getX()-camera.x)+.25F, y0=(float)(pos.getY()-camera.y)+.25F, z0=(float)(pos.getZ()-camera.z)+.25F;
+        float x1=x0+.5F, y1=y0+.5F, z1=z0+.5F;
+        quad(consumer,matrix,x0,y0,z0,x1,y0,z0,x1,y0,z1,x0,y0,z1,r,g,b,a,0,-1,0);
+        quad(consumer,matrix,x0,y1,z1,x1,y1,z1,x1,y1,z0,x0,y1,z0,r,g,b,a,0,1,0);
+        quad(consumer,matrix,x0,y0,z0,x0,y1,z0,x1,y1,z0,x1,y0,z0,r,g,b,a,0,0,-1);
+        quad(consumer,matrix,x1,y0,z1,x1,y1,z1,x0,y1,z1,x0,y0,z1,r,g,b,a,0,0,1);
+        quad(consumer,matrix,x0,y0,z1,x0,y1,z1,x0,y1,z0,x0,y0,z0,r,g,b,a,-1,0,0);
+        quad(consumer,matrix,x1,y0,z0,x1,y1,z0,x1,y1,z1,x1,y0,z1,r,g,b,a,1,0,0);
+    }
+
+    private static void quad(VertexConsumer consumer, Matrix4f matrix,
+            float ax,float ay,float az,float bx,float by,float bz,float cx,float cy,float cz,float dx,float dy,float dz,
+            float r,float g,float b,float a,float nx,float ny,float nz) {
+        consumer.vertex(matrix,ax,ay,az).color(r,g,b,a).normal(nx,ny,nz).endVertex();
+        consumer.vertex(matrix,bx,by,bz).color(r,g,b,a).normal(nx,ny,nz).endVertex();
+        consumer.vertex(matrix,cx,cy,cz).color(r,g,b,a).normal(nx,ny,nz).endVertex();
+        consumer.vertex(matrix,dx,dy,dz).color(r,g,b,a).normal(nx,ny,nz).endVertex();
+    }
+
     private static AABB faceBox(BlockPos pos, Direction face, double inset) {
         double x=pos.getX(), y=pos.getY(), z=pos.getZ(), lo=inset, hi=1-inset, o=.002, d=.001;
         return switch(face) {
@@ -204,15 +222,17 @@ public final class ClientKleisOverlays {
 
     private abstract static class XrayRenderType extends RenderType {
         private XrayRenderType() {
-            super("unused", DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS,
+            super("unused", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS,
                     0, false, false, () -> {}, () -> {});
         }
 
         private static RenderType createCenter() {
-            return RenderType.create("skylogistics_kleis_xray_center", DefaultVertexFormat.POSITION_COLOR,
-                    VertexFormat.Mode.TRIANGLE_STRIP, 256, false, false, RenderType.CompositeState.builder()
+            return RenderType.create("skylogistics_kleis_xray_center", DefaultVertexFormat.POSITION_COLOR_NORMAL,
+                    VertexFormat.Mode.QUADS, 65536, false, false, RenderType.CompositeState.builder()
                             .setShaderState(POSITION_COLOR_SHADER)
                             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                            .setTextureState(NO_TEXTURE)
+                            .setLightmapState(NO_LIGHTMAP)
                             .setDepthTestState(GREATER_DEPTH_TEST)
                             .setCullState(NO_CULL)
                             .setWriteMaskState(COLOR_WRITE)
