@@ -5,11 +5,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "服务器可按线路持有者完成的 Minecraft 进度限制并逐步解锁单次搬运量，同时提供天穹物流进度页。此功能无需额外模组，默认关闭；需在 $(thing)transfers.advancements.enabled$() 中启用。"
+      "text": "如果整合包启用了原版进度联动，完成指定 Minecraft 进度后，可以逐步提高线路每次搬运的数量，并在进度界面中查看天穹物流的解锁路线。"
     },
     {
       "type": "patchouli:text",
-      "text": "在 advancementRates 中填写完整进度 ID 与各资源上限。系统从 initialRates 起步，对持有者已完成的配置进度按资源取最高解锁值，再与设备自身及其它已启用限流取最低值。持有者离线或无法确定时使用初始值。"
+      "text": "物品、流体、化学品、FE、mana、Source 与坚守者灵魂可以分别解锁。线路会使用持有者已经达到的最高数量，但不会超过设备和目标本身能处理的数量。"
     }
   ]
 }

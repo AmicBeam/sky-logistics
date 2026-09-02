@@ -10,7 +10,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:sky_node",
-      "text": "One craft gives 2 nodes. Nodes have no internal buffer; they only pair same-line endpoints for transfer."
+      "text": "One craft gives 2 nodes. Nodes store no resources; they only pair endpoints on the same line."
     },
     {
       "type": "patchouli:text",
@@ -18,7 +18,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. A face blocked by redstone is paused and is not treated as a failing endpoint. Extract faces have four redstone states: ignore signals, work with a signal, work without a signal, or pulse. Pulse wakes on a rising edge and sleeps after one successful transfer. Insert faces skip pulse, and an existing pulse setting changes to ignore."
+      "text": "Nodes also have resource toggles, priority, and redstone controls. Higher-priority insert targets are attempted earlier. Extract faces offer ignore signals, work with a signal, work without a signal, and pulse. Pulse works once when a redstone signal turns on. Insert faces do not use pulse mode."
     },
     {
       "type": "patchouli:text",

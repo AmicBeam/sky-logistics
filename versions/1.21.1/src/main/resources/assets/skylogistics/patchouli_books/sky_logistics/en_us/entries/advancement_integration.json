@@ -5,11 +5,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Servers can progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner and provide a Sky Logistics advancement tab. No extra mod is required. This feature is disabled by default; enable it at $(thing)transfers.advancements.enabled$()."
+      "text": "If a modpack uses vanilla advancement integration, completing selected Minecraft advancements can gradually increase how much a line moves at once. A Sky Logistics advancement tab shows the unlock path."
     },
     {
       "type": "patchouli:text",
-      "text": "Each advancementRates entry contains a full advancement ID and optional resource limits. Completed configured advancements unlock the highest value per resource above initialRates; device and other enabled limits still apply. Offline or unknown owners use the initial rates."
+      "text": "Items, fluids, chemicals, FE, mana, Source, and Warden Souls can unlock separately. A line uses the highest amount its owner has reached, but devices and targets still keep their own limits."
     }
   ]
 }

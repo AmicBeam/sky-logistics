@@ -36,7 +36,7 @@ item_ids:
 
 ## 三阶
 
-三阶保留二阶的外圈角柱与天穹玻璃柱顶，但把内侧 5x5 框架的四个角替换为柯拉甘露块。三阶祭坛按配置的基础倍率工作，默认 4 倍。
+三阶保留二阶的外圈角柱与天穹玻璃柱顶，但把内侧 5x5 框架的四个角替换为柯拉甘露块。三阶祭坛通常以 4 倍速度完成供奉。
 
 <GameScene zoom={0.82} interactive={true} fullWidth={true}>
   <ImportStructure src="/structures/offering_circle_tier3.snbt" />

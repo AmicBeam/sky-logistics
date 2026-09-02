@@ -27,7 +27,7 @@ Read more:
 
 ## External Networks
 
-When the matching mod is installed, dedicated interfaces can connect Sky Logistics to AE2, Refined Storage, and Beyond Dimensions. See [External Network Interfaces](external_network_interfaces.md) for resource paths, filter requirements, and server switches:
+When the matching mod is installed, dedicated interfaces can connect Sky Logistics to AE2, Refined Storage, and Beyond Dimensions. See [External Network Interfaces](external_network_interfaces.md) for supported resources and filter requirements:
 
 <ItemGrid>
   <ItemIcon id="sky_me_interface" />

@@ -18,10 +18,10 @@ The <ItemLink id="offering_altar" /> and <ItemLink id="offering_table" /> each h
 
 The altar consumes a charged Eulogia Crystal, while the offering table only requires Celestial Stone.
 
-The altar must be high enough in the sky and inside a valid offering circle. The required height is Y=96 by default, though server settings may differ. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter.
+The altar must be high enough in the sky and inside a valid offering circle. It normally needs Y=96. Put the main ingredient on the altar and the offerings on the four side tables; table order does not matter.
 
 Once the ingredients match, the altar starts its particles and counts the recipe duration. When the duration completes, inputs vanish at once and the result appears in the altar slot. If it cannot fit, the remainder is dropped above the altar.
 
-A tier 3 altar advances work at `tierThreeAltarWorkSpeedMultiplier`, which defaults to 4x and can be configured by the server from 1x to 64x.
+A tier 3 altar normally completes offerings at 4x speed and can run tier 1, tier 2, and tier 3 offerings.
 
 With Jade installed, looking at an altar or offering table shows the offering currently placed in it. Empty offering slots are not listed.

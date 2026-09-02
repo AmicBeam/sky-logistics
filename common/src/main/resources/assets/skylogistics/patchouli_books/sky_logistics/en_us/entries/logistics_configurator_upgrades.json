@@ -1,63 +1,19 @@
 {
   "name": "Configurator and Upgrades",
   "icon": "skylogistics:configurator",
-  "category": "skylogistics:logistics",
+  "category": "skylogistics:tools",
+  "sortnum": 0,
   "pages": [
-    {
-      "type": "patchouli:text",
-      "text": "The Sky Configurator stores a line name, line ID, and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:configurator",
-      "text": "The configurator is the starting point for creating lines and copying settings in bulk."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Sneak-right-click a node with the configurator to copy that node and enter paste mode. While in paste mode, right-click another node to write the stored line and resource toggles to it. Sneak-right-click again, open the configurator screen, or stop holding the configurator to leave paste mode."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Slot Parallel Upgrade",
-      "text": "Slot Parallel Upgrades stack in one node upgrade slot. Each card adds one slot check per tick.$(br2)By default, up to 8 cards raise the base rate from 1 to 9 slots/t. The server can configure this limit."
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:speed_upgrade",
-      "text": "Slot Parallel Upgrades can be crafted at a crafting table."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Dimension Upgrade",
-      "text": "Dimension Upgrades only need to be installed on extract nodes. They allow resources to reach same-line insert nodes in other dimensions.$(br2)They do not load chunks. Unloaded dimensions or target chunks are skipped."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "Tier 2 offering: place a Nether Star on the altar, then place 4 Eyes of Ender and 1 Chora Nectar on offering tables.$(br2)The ritual takes about 12 seconds."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Force Extraction",
-      "text": "Install it only on extract nodes. For server-whitelisted devices, it bypasses the external interface's 64-item return limit.$(br2)It extracts the amount the target can actually accept. A rejected transfer restores the source slot."
-    },
-    {
-      "type": "patchouli:text",
-      "text": "The device whitelist defaults to mekanism_extras. When none of its configured mod IDs are installed, the upgrade is hidden from creative inventory and JEI, and its offering cannot start. An empty list also disables it.$(br2)Tier 2 offering: put a Slot Parallel Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:ordered_matching_upgrade",
-      "text": "Per Slot works on item extract or insert nodes; Per Item affects extract nodes only. Right-click air to switch; Per Slot is the default."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Per Slot",
-      "text": "Mapping:$(br)local slot + offset = network position$(br2)Extract maps slots to receivers; insert maps sources to slots. Sneak-scroll adjusts offset without changing the hotbar:$(br)+2: slot 0 → position 2$(br)-2: slot 2 → position 0$(br2)Per Item clears the offset."
-    },
-    {
-      "type": "patchouli:text",
-      "title": "Per Item",
-      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. The mode first checks receivers from the cursor, keeps only those that accept the item, then batch-distributes across that set.$(br2)Checks and transfers both cost budget and may continue next tick. A target that stops accepting is skipped without creating an owed assignment; leftovers remain at the source for a later batch.$(br2)Equal priorities remain separate."
-    }
+    {"type":"patchouli:text","text":"The Sky Configurator selects a line and the resource types to move. Right-click air to open its screen; right-click a node to open the node screen. Place a node while holding the configurator in your offhand to apply its line and toggles automatically."},
+    {"type":"patchouli:crafting","recipe":"skylogistics:configurator","text":"The configurator is the starting point for creating lines and copying settings in bulk."},
+    {"type":"patchouli:text","text":"Sneak-right-click a node with the configurator to copy its line and resource toggles and enter paste mode. Right-click other nodes to paste those settings. Sneak-right-click again, open the configurator screen, or stop holding it to leave paste mode."},
+    {"type":"patchouli:text","text":"Slot Parallel Upgrades stack in one node upgrade slot. Each card lets the node handle more slots at once, which helps devices that move many different items."},
+    {"type":"patchouli:crafting","recipe":"skylogistics:speed_upgrade","text":"Craft Slot Parallel Upgrades at a crafting table."},
+    {"type":"patchouli:text","text":"A Dimension Upgrade is only needed on an extract face. It can send resources to insert faces on the same line in other loaded dimensions, but it does not load dimensions or chunks."},
+    {"type":"patchouli:text","text":"Make a Dimension Upgrade with a tier 2 offering: put a Nether Star on the altar and place 4 Eyes of Ender and 1 Chora Nectar on offering tables."},
+    {"type":"patchouli:text","text":"A Force Extraction Upgrade works only on item extract faces. It lets supported devices provide more items at once. The upgrade is hidden when no supported device mod is installed. Its tier 2 offering uses a Slot Parallel Upgrade on the altar with 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap on offering tables."},
+    {"type":"patchouli:crafting","recipe":"skylogistics:ordered_matching_upgrade","text":"Ordered Matching Upgrades switch between Per Slot and Per Item. Right-click air while holding one to change mode; Per Slot is the default."},
+    {"type":"patchouli:text","text":"Per Slot works on item extract or insert faces. Extract faces match local slots to receiving endpoints on the line; insert faces match source endpoints to local slots. Sneak-scroll while holding the upgrade to shift the matching order forward or backward."},
+    {"type":"patchouli:text","text":"Per Item works only on extract faces and divides one item type as evenly as possible among every target that can accept it. On an insert face, it behaves like normal insertion without the upgrade."}
   ]
 }

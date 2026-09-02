@@ -6,19 +6,19 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "With AStages installed, a server can limit and progressively unlock per-operation transfer amounts according to stages owned by the line owner. The integration is disabled by default and must be enabled at $(thing)transfers.astages.enabled$(). It covers wireless nodes, external interfaces, and simple pipes."
+      "text": "If a modpack uses the AStages integration, gaining stages can gradually increase how much wireless nodes, external interfaces, and simple pipes move at once for the line owner."
     },
     {
       "type": "patchouli:text",
-      "text": "Items, fluids, Mekanism chemicals, FE, Botania mana, and Ars Nouveau Source each have their own limit. The system starts with initialRates, takes the highest configured value for each resource across every owned stage, then applies the lowest of that value, the device limit, and target acceptance."
+      "text": "Items, fluids, Mekanism chemicals, FE, Botania mana, and Ars Nouveau Source unlock separately. The highest amount from your current stages is used, but devices and targets still keep their own limits."
     },
     {
       "type": "patchouli:text",
-      "text": "Rates only limit how much one successful operation may commit. They do not change node operations per tick, Slot Parallel Upgrades, server or line operation budgets, or necklace intervals. A simple pipe's own configured limit still caps the result."
+      "text": "Stages increase the amount moved at once. They do not make nodes work more often and do not replace Slot Parallel Upgrades. Simple pipes and target devices still keep their own speeds."
     },
     {
       "type": "patchouli:text",
-      "text": "Wireless lines use the player who created or claimed the line as owner. Simple pipe networks use their placer or inherited network owner. If no owner can be found, a query fails, or AStages is unavailable, only initialRates apply; nearby online players never lend their stages."
+      "text": "Wireless lines normally follow the player who created or claimed them, while simple pipes follow their placer. In multiplayer, lines built by different players may therefore have different unlock progress."
     }
   ]
 }

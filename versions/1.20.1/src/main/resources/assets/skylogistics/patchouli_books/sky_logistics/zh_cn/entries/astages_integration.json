@@ -6,19 +6,19 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "安装 AStages 后，服务器可按线路持有者拥有的 stage 限制并逐步解锁单次搬运量。联动默认关闭，需在 $(thing)transfers.astages.enabled$() 中启用。它覆盖无线节点、外部网络接口和简易管道。"
+      "text": "如果整合包启用了 AStages 联动，线路持有者获得新的 stage 后，可以逐步提高无线节点、外部网络接口和简易管道每次搬运的数量。"
     },
     {
       "type": "patchouli:text",
-      "text": "物品、流体、Mekanism 化学品、FE、Botania mana 与 Ars Nouveau Source 分别计算上限。系统从 initialRates 取得初始值，再从持有者拥有的所有已配置 stage 中按资源取最高值，最后与设备自身上限和目标接收能力取最低值。"
+      "text": "物品、流体、Mekanism 化学品、FE、Botania mana 与 Ars Nouveau Source 分别解锁。拥有多个 stage 时，会使用当前已解锁的最高数量，但仍不会超过设备和目标本身能处理的数量。"
     },
     {
       "type": "patchouli:text",
-      "text": "速率只限制一次成功操作最多提交多少资源，不改变节点每 tick 工作次数、槽位并行升级、服务器或线路操作预算、项链工作间隔。简易管道自身配置若更低，stage 也不能把实际传输量提高到管道上限以上。"
+      "text": "stage 提高的是每次搬运的数量，不会让节点工作得更频繁，也不会代替槽位并行升级。简易管道和目标设备自身的速度仍然有效。"
     },
     {
       "type": "patchouli:text",
-      "text": "无线线路以创建或认领它的玩家为持有者；简易管网以放置者或继承到的管网持有者判断。无法确定持有者、查询失败或 AStages 不可用时，只使用 initialRates，不借用附近在线玩家的 stage。"
+      "text": "无线线路通常跟随创建或认领它的玩家，简易管道跟随放置者。因此多人游戏中，不同玩家建立的线路可能拥有不同的解锁进度。"
     }
   ]
 }

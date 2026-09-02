@@ -1,63 +1,19 @@
 {
   "name": "配置器与升级",
   "icon": "skylogistics:configurator",
-  "category": "skylogistics:logistics",
+  "category": "skylogistics:tools",
+  "sortnum": 0,
   "pages": [
-    {
-      "type": "patchouli:text",
-      "text": "天穹配置器用来保存当前线路和搬运类型。右击空气打开配置器界面；右击节点打开节点界面。副手拿着配置器放置节点时，新节点会自动使用配置器里的线路和开关。"
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:configurator",
-      "text": "配置器是建立线路和批量复制设置的起点。"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "手持配置器潜行右击节点，会复制这个节点的线路和搬运开关，并进入粘贴模式。之后普通右击其他节点，就能把同样设置贴过去。再次潜行右击、打开配置器界面，或换掉手中的配置器都会退出。"
-    },
-    {
-      "type": "patchouli:text",
-      "title": "槽位并行升级",
-      "text": "槽位并行升级可堆叠在一个节点升级槽里。每张让节点每 tick 多检查一个槽位。$(br2)默认最多堆叠 8 张，使基础 1 槽/t 提升到 9 槽/t；上限可由服务器配置。"
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:speed_upgrade",
-      "text": "槽位并行升级可在工作台中合成。"
-    },
-    {
-      "type": "patchouli:text",
-      "title": "维度升级",
-      "text": "维度升级只需要装在抽取端。它允许资源送往其它维度中同线路的存入端。$(br2)它不会加载区块；未加载的维度或目标区块会暂时跳过。"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "通过二阶天穹供奉获得：祭坛放下界之星，供桌放 4 个末影之眼和 1 个柯拉甘露。$(br2)仪式约 12 秒完成。"
-    },
-    {
-      "type": "patchouli:text",
-      "title": "强制抽取升级",
-      "text": "只装在抽取端。对服务器白名单中的设备，它可绕过外部接口单次返回 64 个物品的限制。$(br2)一次抽取目标实际可接收的数量；目标拒收时会恢复来源槽。"
-    },
-    {
-      "type": "patchouli:text",
-      "text": "设备白名单默认是 mekanism_extras。配置的 modID 均未安装时，升级会从创造栏和 JEI 隐藏，供奉也无法启动；空列表同样会禁用。$(br2)二阶供奉配方：祭坛放槽位并行升级，供桌放 4 根烈焰棒、4 个岩浆膏、4 个哭泣黑曜石和 1 个下界合金碎片。"
-    },
-    {
-      "type": "patchouli:crafting",
-      "recipe": "skylogistics:ordered_matching_upgrade",
-      "text": "逐槽可装在物品抽取端或存入端；逐个仅对抽取端生效。手持右击空气切换，默认逐槽。"
-    },
-    {
-      "type": "patchouli:text",
-      "title": "逐槽模式",
-      "text": "映射关系：$(br)本地槽位 + 顺位偏移 = 网络顺位$(br2)抽取端匹配接收端，存入端反向匹配库存槽。潜行滚轮调偏移且不切快捷栏：$(br)正 2：槽 0 → 顺位 2$(br)负 2：槽 2 → 顺位 0$(br2)切到逐个会清零偏移。"
-    },
-    {
-      "type": "patchouli:text",
-      "title": "逐个模式",
-      "text": "仅对抽取端生效：从游标开始检查接收端，只保留能接收该物品的目标，再在这些目标间批量分配。$(br2)检查和传输都消耗预算，并可在后续 tick 继续。执行时目标若已不能接收，会直接跳过且不记录欠目标任务；剩余物品留在来源，交给后续批次。$(br2)同优先级节点仍各占一位。"
-    }
+    {"type":"patchouli:text","text":"天穹配置器用来选择线路和搬运类型。右击空气打开配置器界面；右击节点打开节点界面。副手拿着配置器放置节点时，新节点会自动使用配置器里的线路和开关。"},
+    {"type":"patchouli:crafting","recipe":"skylogistics:configurator","text":"配置器是建立线路和批量复制设置的起点。"},
+    {"type":"patchouli:text","text":"手持配置器潜行右击节点，会复制这个节点的线路和搬运开关，并进入粘贴模式。之后普通右击其它节点即可粘贴。再次潜行右击、打开配置器界面或换掉手中的配置器都会退出。"},
+    {"type":"patchouli:text","text":"槽位并行升级可堆叠在节点的一个升级槽里。每张都能让节点同时处理更多槽位，适合需要快速搬运多种物品的设备。"},
+    {"type":"patchouli:crafting","recipe":"skylogistics:speed_upgrade","text":"槽位并行升级可在工作台中合成。"},
+    {"type":"patchouli:text","text":"维度升级只需要装在抽取端。它允许资源送往其它已加载维度中同线路的存入端，但不会加载维度或区块。"},
+    {"type":"patchouli:text","text":"维度升级通过二阶供奉获得：祭坛放下界之星，供桌放 4 个末影之眼和 1 个柯拉甘露。"},
+    {"type":"patchouli:text","text":"强制抽取升级只用于物品抽取端。它能让受支持的设备一次提供更多物品；如果当前没有安装受支持的设备模组，这张升级不会显示。二阶供奉需要在祭坛放槽位并行升级，供桌放 4 根烈焰棒、4 个岩浆膏、4 个哭泣黑曜石和 1 个下界合金碎片。"},
+    {"type":"patchouli:crafting","recipe":"skylogistics:ordered_matching_upgrade","text":"顺序匹配升级可在逐槽和逐个两种模式间切换。手持升级右击空气即可切换，默认使用逐槽。"},
+    {"type":"patchouli:text","text":"逐槽模式可装在物品抽取端或存入端。抽取端按本地槽位对应线路中的接收端；存入端则按线路中的来源端对应本地槽位。潜行滚轮可以前后调整对应顺序。"},
+    {"type":"patchouli:text","text":"逐个模式只对抽取端生效，会把一种物品尽量均分给所有能接收它的目标。装在存入端时会像没有这张升级一样正常存入。"}
   ]
 }

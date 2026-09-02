@@ -6,13 +6,13 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "外部网络接口把其它模组的大型存储网络接入天穹线路。本词条只会在 AE2、精致存储或 Beyond Dimensions 至少安装一个时出现，并且只显示当前已安装模组对应的页面。三种接口共用节点式界面：选择线路、抽取或存入模式、资源类型、升级、红石、优先级和过滤规则。"
+      "text": "外部网络接口把其它模组的大型存储网络接入天穹线路。本词条只会显示当前已安装模组对应的页面。三种接口共用节点式界面：选择线路、抽取或存入模式、资源类型、升级、红石、优先级和过滤规则。新放置的接口需要先开启想要搬运的资源。"
     },
     {
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "天穹 ME 接口",
-      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；附属模组还可启用 FE、化学品、mana、Source 或坚守者灵魂。1.21.1 由 Soulplied Energistics 提供 Soul Key，AppliedSoul 灵魂元件复用同一 Key，可直接支持。"
+      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；安装对应附属模组后，还可搬运 FE、化学品、mana、Source 或坚守者灵魂。1.21.1 也能读取 AppliedSoul 灵魂存储元件。"
     },
     {
       "type": "patchouli:crafting",
@@ -42,11 +42,11 @@
       "type": "patchouli:crafting",
       "flag": "mod:beyonddimensions",
       "recipe": "skylogistics:sky_dimension_interface",
-      "text": "每种资源路径都有独立服务端开关。关闭联动不会删除方块或破坏已保存的天穹线路。"
+      "text": "天穹维度网络接口接入的是 Beyond Dimensions 存储网络，不等同于让普通节点跨维度工作的维度升级。"
     },
     {
       "type": "patchouli:text",
-      "text": "从外部网络抽取物品时，必须配置至少包含一个具体物品的白名单，避免无界扫描整个网络；标签或模组过滤不能代替这份可枚举白名单。维度升级不是区块加载器，未加载的维度和区块仍会被跳过。"
+      "text": "从外部网络抽取物品时，必须使用至少包含一个具体物品的白名单，否则不会工作；标签或模组过滤不能代替它。维度升级不会加载区块，未加载的目标仍会被跳过。"
     }
   ]
 }

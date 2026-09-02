@@ -36,7 +36,7 @@ Tier 2 adds one Celestial Stone pillar at each corner of the next outer ring, wi
 
 ## Tier 3
 
-Tier 3 keeps the tier 2 outer pillars and glass caps, but replaces the four corners of the inner 5x5 frame with Chora Nectar Blocks. It processes offerings at the configured base multiplier, which defaults to 4x.
+Tier 3 keeps the tier 2 outer pillars and glass caps, but replaces the four corners of the inner 5x5 frame with Chora Nectar Blocks. It normally completes offerings at 4x speed.
 
 <GameScene zoom={0.82} interactive={true} fullWidth={true}>
   <ImportStructure src="/structures/offering_circle_tier3.snbt" />

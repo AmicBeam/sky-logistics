@@ -15,6 +15,7 @@
     {
       "type": "patchouli:crafting",
       "recipe": "skylogistics:simple_item_pipe",
+      "recipe2": "skylogistics:eulogia_companion_stone",
       "text": "物品管道以橙色线条标识，一次合成 2 个。三种管道都需要已充能尤洛伽水晶配石；物品管道使用木箱作为区分材料。"
     },
     {

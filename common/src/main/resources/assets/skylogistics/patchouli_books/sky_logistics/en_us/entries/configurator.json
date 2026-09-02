@@ -8,9 +8,14 @@
       "text": "The Sky Configurator manages lines and quickly copies logistics node settings. Right-click air to open its screen; doing so exits paste mode. The screen lets you switch lines and choose whether the saved settings carry items, fluids, and energy."
     },
     {
+      "type": "patchouli:crafting",
+      "recipe": "skylogistics:configurator",
+      "text": "Craft the configurator at a crafting table."
+    },
+    {
       "type": "patchouli:text",
       "title": "Line Bar",
-      "text": "The |<, <, >+, and >| buttons go to the first, previous, next-or-new, and last line. Edit the name field and press Enter or unfocus it to rename the current line. × only removes this tool's reference; it does not delete other devices. Display names can change while internal line IDs remain stable."
+      "text": "The |<, <, >+, and >| buttons go to the first, previous, next-or-new, and last line. Edit the name field and press Enter or unfocus it to rename the current line. × only makes this configurator leave the line; it does not affect other devices."
     },
     {
       "type": "patchouli:text",

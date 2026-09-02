@@ -6,13 +6,13 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "External network interfaces connect large storage networks from other mods to a Sky Logistics line. This entry only appears when AE2, Refined Storage, or Beyond Dimensions is installed, and only pages for installed integrations are shown. All three use the node-style screen for line, mode, resources, upgrades, redstone, priority, and filters."
+      "text": "External network interfaces connect large storage networks from other mods to a Sky Logistics line. Only pages for installed mods are shown. All three use the node-style screen for line, mode, resources, upgrades, redstone, priority, and filters. Enable the resources you want to move after placing an interface."
     },
     {
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "Sky ME Interface",
-      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. Optional add-ons enable FE, chemicals, mana, Source, or Warden Souls. On 1.21.1, Soulplied Energistics supplies the Soul Key; AppliedSoul cells use that same key and are supported directly."
+      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. Optional add-ons enable FE, chemicals, mana, Source, or Warden Souls. On 1.21.1 it can also read Warden Souls stored in AppliedSoul cells."
     },
     {
       "type": "patchouli:crafting",
@@ -42,11 +42,11 @@
       "type": "patchouli:crafting",
       "flag": "mod:beyonddimensions",
       "recipe": "skylogistics:sky_dimension_interface",
-      "text": "Each resource path has an independent server switch. Disabling an integration does not remove the block or damage saved Sky lines."
+      "text": "The Sky Dimension Interface connects a Beyond Dimensions storage network. It is not the same as a Dimension Upgrade for ordinary nodes."
     },
     {
       "type": "patchouli:text",
-      "text": "Extracting items from an external network requires a whitelist containing at least one concrete item, preventing unbounded scans of the entire network. Tag and mod filters cannot replace that enumerable whitelist. Dimension Upgrades do not load chunks; unloaded dimensions and chunks are still skipped."
+      "text": "Extracting items from an external network requires a whitelist containing at least one concrete item or it will not work. Tag and mod filters cannot replace it. Dimension Upgrades do not load chunks, so unloaded targets are skipped."
     }
   ]
 }
