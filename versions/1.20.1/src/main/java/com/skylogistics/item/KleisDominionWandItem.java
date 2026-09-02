@@ -39,8 +39,11 @@ public final class KleisDominionWandItem extends Item {
                 serverPlayer, context.getClickedPos(), context.getClickedFace(), player.isShiftKeyDown(), configurator);
         KleisEndpointSavedData.get(serverPlayer.getServer()).syncVisibleOverlays(serverPlayer.getServer(),
                 serverPlayer.level().dimension(), context.getClickedPos());
-        player.displayClientMessage(Component.translatable("message.skylogistics.kleis_dominion_wand."
-                + result.name().toLowerCase(java.util.Locale.ROOT)), true);
+        if (result == KleisEndpointSavedData.ToggleResult.INVALID_TARGET
+                || result == KleisEndpointSavedData.ToggleResult.EDIT_DENIED) {
+            player.displayClientMessage(Component.translatable("message.skylogistics.kleis_dominion_wand."
+                    + result.name().toLowerCase(java.util.Locale.ROOT)), true);
+        }
         return InteractionResult.CONSUME;
     }
 
