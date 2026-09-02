@@ -32,11 +32,11 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 public final class ClientKleisOverlays {
     private static final RenderPipeline XRAY_MASK_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
             .withLocation("pipeline/skylogistics_kleis_xray_mask")
-            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN, false))
             .withCull(false)
             .build();
     private static final RenderType XRAY_MASK = RenderType.create("skylogistics_kleis_xray_mask",
-            RenderSetup.builder(XRAY_MASK_PIPELINE).sortOnUpload().createRenderSetup());
+            RenderSetup.builder(XRAY_MASK_PIPELINE).createRenderSetup());
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -108,7 +108,7 @@ public final class ClientKleisOverlays {
                 ? blockHit : null;
         renderMasks(event, mc, camera, hit, edit, false);
         renderMasks(event, mc, camera, hit, edit, true);
-        renderLines(event, mc, camera, hit, edit, now);
+        renderAnimation(event, mc, camera, hit, edit, now);
     }
 
     private static void renderMasks(RenderLevelStageEvent.AfterTranslucentParticles event, Minecraft mc, Vec3 camera,
@@ -117,7 +117,7 @@ public final class ClientKleisOverlays {
         VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
-            if (mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get()) != xray) continue;
+            if (xray && !mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
@@ -128,7 +128,7 @@ public final class ClientKleisOverlays {
         mc.renderBuffers().bufferSource().endBatch(type);
     }
 
-    private static void renderLines(RenderLevelStageEvent.AfterTranslucentParticles event, Minecraft mc, Vec3 camera,
+    private static void renderAnimation(RenderLevelStageEvent.AfterTranslucentParticles event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit, long now) {
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderTypes.lines());
         for (KleisOverlayPacket.Entry entry : entries) {
@@ -137,10 +137,6 @@ public final class ClientKleisOverlays {
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            for (int ring = 1; ring <= 7; ring++) {
-                draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F * alphaScale);
-            }
-            draw(event, lines, faceBox(entry.pos(), entry.face(), 0), camera, r, g, b, 0.85F * alphaScale);
             int phase = (int)(Math.floorMod(now - animationStarts.getOrDefault(entry, now), 50L)) / 5;
             if (phase < 8) {
                 int size = extract ? 2 + phase * 2 : 16 - phase * 2;
