@@ -27,6 +27,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModBlocks {
+    private static final float OBSIDIAN_BLAST_RESISTANCE = 1_200.0F;
+
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, SkyLogistics.MOD_ID);
 
     public static final DeferredHolder<Block, ItemVaultBlock> ITEM_VAULT = BLOCKS.register("item_vault",
@@ -43,12 +45,12 @@ public final class ModBlocks {
 
     public static final DeferredHolder<Block, SkyNodeBlock> SKY_NODE = BLOCKS.register("sky_node",
             () -> new SkyNodeBlock(blockProperties("sky_node", MapColor.COLOR_BLUE)
-                    .strength(1.5F, 7.0F)
+                    .strength(1.5F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
     public static final DeferredHolder<Block, SkyDistributorBlock> SKY_DISTRIBUTOR = BLOCKS.register("sky_distributor",
             () -> new SkyDistributorBlock(blockProperties("sky_distributor", MapColor.COLOR_CYAN)
-                    .strength(2.5F, 7.0F).sound(SoundType.AMETHYST)));
+                    .strength(2.5F, OBSIDIAN_BLAST_RESISTANCE).sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SimplePipeBlock> SIMPLE_ITEM_PIPE =
             simplePipe("simple_item_pipe", SimplePipeType.ITEM);
@@ -87,20 +89,20 @@ public final class ModBlocks {
 
     public static final DeferredHolder<Block, CelestialGlassBlock> CELESTIAL_GLASS = BLOCKS.register("celestial_glass",
             () -> new CelestialGlassBlock(blockProperties("celestial_glass", MapColor.COLOR_LIGHT_BLUE)
-                    .strength(0.6F, 3.0F)
+                    .strength(0.6F, OBSIDIAN_BLAST_RESISTANCE)
                     .sound(SoundType.GLASS)
                     .noOcclusion()
                     .lightLevel(state -> 15)));
 
     public static final DeferredHolder<Block, OfferingAltarBlock> OFFERING_ALTAR = BLOCKS.register("offering_altar",
             () -> new OfferingAltarBlock(blockProperties("offering_altar", MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, OfferingTableBlock> OFFERING_TABLE = BLOCKS.register("offering_table",
             () -> new OfferingTableBlock(blockProperties("offering_table", MapColor.COLOR_LIGHT_BLUE)
-                    .strength(2.5F, 7.0F)
+                    .strength(2.5F, OBSIDIAN_BLAST_RESISTANCE)
                     .noOcclusion()
                     .sound(SoundType.AMETHYST)));
 
@@ -119,20 +121,20 @@ public final class ModBlocks {
 
     private static BlockBehaviour.Properties celestialStoneProperties(String name) {
         return blockProperties(name, MapColor.COLOR_LIGHT_BLUE)
-                .strength(2.0F, 7.0F)
+                .strength(2.0F, OBSIDIAN_BLAST_RESISTANCE)
                 .sound(SoundType.AMETHYST);
     }
 
     private static BlockBehaviour.Properties interfaceProperties(String name, MapColor mapColor) {
         return blockProperties(name, mapColor)
-                .strength(2.5F, 7.0F)
+                .strength(2.5F, OBSIDIAN_BLAST_RESISTANCE)
                 .noOcclusion()
                 .sound(SoundType.AMETHYST);
     }
 
     private static DeferredHolder<Block, SimplePipeBlock> simplePipe(String name, SimplePipeType type) {
         return BLOCKS.register(name, () -> new SimplePipeBlock(blockProperties(name, MapColor.COLOR_BLUE)
-                .strength(1.5F, 7.0F)
+                .strength(1.5F, OBSIDIAN_BLAST_RESISTANCE)
                 .noOcclusion()
                 .sound(SoundType.AMETHYST), type));
     }
