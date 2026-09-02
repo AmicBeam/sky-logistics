@@ -16,6 +16,7 @@ import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.item.UpgradeCardItem;
 import com.skylogistics.network.SkyLineNames;
+import com.skylogistics.network.LogisticsTargetCapabilities;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
@@ -221,15 +222,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
     }
 
     public boolean supportsChemicalEndpoint(Direction direction) {
-        return hasChemicalHandler(getTargetPos(direction), getAccessSide(direction));
+        return LogisticsTargetCapabilities.detect(level, getTargetPos(direction), getAccessSide(direction)).chemical();
     }
 
     public boolean supportsManaEndpoint(Direction direction) {
-        return hasManaHandler(getTargetPos(direction), getAccessSide(direction));
+        return LogisticsTargetCapabilities.detect(level, getTargetPos(direction), getAccessSide(direction)).mana();
     }
 
     public boolean supportsSourceEndpoint(Direction direction) {
-        return hasSourceHandler(getTargetPos(direction), getAccessSide(direction));
+        return LogisticsTargetCapabilities.detect(level, getTargetPos(direction), getAccessSide(direction)).source();
     }
 
     @Override
@@ -238,16 +239,13 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
                 || !level.isLoaded(getTargetPos(direction))) return null;
         BlockPos targetPos = getTargetPos(direction);
         Direction accessSide = getAccessSide(direction);
-        BlockEntity target = level.getBlockEntity(targetPos);
-        if (isItemsEnabled(direction) && hasItemHandler(target, accessSide)) return TransferResource.ITEMS;
-        if (isFluidsEnabled(direction) && hasFluidHandler(target, accessSide)) return TransferResource.FLUIDS;
-        if (isFluidsEnabled(direction) && SkyLogisticsConfig.allowFluidChemicalTransfer()
-                && hasChemicalHandler(targetPos, accessSide)) return TransferResource.CHEMICALS;
-        if (isEnergyEnabled(direction) && hasEnergyHandler(target, accessSide)) return TransferResource.ENERGY;
-        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergyManaTransfer()
-                && hasManaHandler(targetPos, accessSide)) return TransferResource.MANA;
-        if (isEnergyEnabled(direction) && SkyLogisticsConfig.allowEnergySourceTransfer()
-                && hasSourceHandler(targetPos, accessSide)) return TransferResource.SOURCE;
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, accessSide);
+        if (isItemsEnabled(direction) && capabilities.items()) return TransferResource.ITEMS;
+        if (isFluidsEnabled(direction) && capabilities.fluid()) return TransferResource.FLUIDS;
+        if (isFluidsEnabled(direction) && capabilities.chemical()) return TransferResource.CHEMICALS;
+        if (isEnergyEnabled(direction) && capabilities.nativeEnergy()) return TransferResource.ENERGY;
+        if (isEnergyEnabled(direction) && capabilities.mana()) return TransferResource.MANA;
+        if (isEnergyEnabled(direction) && capabilities.source()) return TransferResource.SOURCE;
         return null;
     }
 
@@ -936,13 +934,10 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
         }
         BlockPos targetPos = getTargetPos(direction);
         Direction accessSide = getAccessSide(direction);
-        BlockEntity target = level.getBlockEntity(targetPos);
-        boolean supportsItems = hasItemHandler(target, accessSide);
-        boolean supportsFluids = hasFluidHandler(target, accessSide)
-                || (SkyLogisticsConfig.allowFluidChemicalTransfer() && hasChemicalHandler(targetPos, accessSide));
-        boolean supportsEnergy = hasEnergyHandler(target, accessSide)
-                || (SkyLogisticsConfig.allowEnergyManaTransfer() && hasManaHandler(targetPos, accessSide))
-                || (SkyLogisticsConfig.allowEnergySourceTransfer() && hasSourceHandler(targetPos, accessSide));
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, accessSide);
+        boolean supportsItems = capabilities.items();
+        boolean supportsFluids = capabilities.fluids();
+        boolean supportsEnergy = capabilities.energy();
         if (isItemsEnabled(direction) == supportsItems
                 && isFluidsEnabled(direction) == supportsFluids
                 && isEnergyEnabled(direction) == supportsEnergy) {
@@ -952,65 +947,6 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
         faceFluidsEnabled.put(direction, supportsFluids);
         faceEnergyEnabled.put(direction, supportsEnergy);
         return true;
-    }
-
-    private static boolean hasItemHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasItemTargets(accessSide);
-        return target != null && target.getCapability(ForgeCapabilities.ITEM_HANDLER, accessSide)
-                .map(handler -> handler.getSlots() > 0)
-                .orElse(false);
-    }
-
-    private static boolean hasFluidHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasFluidTargets(accessSide);
-        return target != null && target.getCapability(ForgeCapabilities.FLUID_HANDLER, accessSide)
-                .map(handler -> handler.getTanks() > 0)
-                .orElse(false);
-    }
-
-    private boolean hasChemicalHandler(BlockPos targetPos, Direction accessSide) {
-        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasChemicalTargets(accessSide);
-        }
-        if (!SkyLogisticsConfig.allowFluidChemicalTransfer() || !MekanismCompat.isLoaded()) {
-            return false;
-        }
-        ChemicalHandlerBridge handler = MekanismCompat.chemicalHandler(level, targetPos, accessSide);
-        return handler != null && handler.getTanks() > 0;
-    }
-
-    private static boolean hasEnergyHandler(BlockEntity target, Direction accessSide) {
-        if (target instanceof SkyDistributorBlockEntity distributor) return distributor.hasEnergyTargets(accessSide);
-        return target != null && target.getCapability(ForgeCapabilities.ENERGY, accessSide)
-                .map(SkyNodeBlockEntity::isUsableEnergyStorage)
-                .orElse(false);
-    }
-
-    private boolean hasManaHandler(BlockPos targetPos, Direction accessSide) {
-        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasManaTargets(accessSide);
-        }
-        if (!SkyLogisticsConfig.allowEnergyManaTransfer() || !BotaniaCompat.isLoaded()) {
-            return false;
-        }
-        ManaHandlerBridge handler = BotaniaCompat.manaHandler(level, targetPos, accessSide);
-        return handler != null && (handler.canExtract() || handler.canReceive() || handler.getMaxMana() > 0);
-    }
-
-    private boolean hasSourceHandler(BlockPos targetPos, Direction accessSide) {
-        if (level.getBlockEntity(targetPos) instanceof SkyDistributorBlockEntity distributor) {
-            return distributor.hasSourceTargets(accessSide);
-        }
-        if (!SkyLogisticsConfig.allowEnergySourceTransfer() || !ArsNouveauCompat.isLoaded()) {
-            return false;
-        }
-        SourceHandlerBridge handler = ArsNouveauCompat.sourceHandler(level, targetPos, accessSide);
-        return handler != null
-                && (handler.canExtract() || handler.canReceive() || handler.getMaxSource() > 0);
-    }
-
-    private static boolean isUsableEnergyStorage(IEnergyStorage storage) {
-        return storage.getMaxEnergyStored() > 0 || storage.canExtract() || storage.canReceive();
     }
 
     public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config) {

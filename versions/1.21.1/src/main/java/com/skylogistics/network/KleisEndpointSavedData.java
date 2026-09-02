@@ -171,8 +171,9 @@ public final class KleisEndpointSavedData extends SavedData {
     public EditResult copyToConfigurator(ServerPlayer player, Key key, int expectedRevision,
             ItemStack configurator) {
         Entry saved = entries.get(key);
-        KleisRuntimeEndpoint node = runtime.get(key);
-        if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
+        KleisRuntimeEndpoint node = runtimeFor(player, key, saved);
+        if (saved == null || node == null
+                || !KleisEndpointPolicy.revisionMatches(expectedRevision, saved.revision())) return EditResult.STALE;
         if (!canView(player, key) || !isReachable(player, key)) return EditResult.DENIED;
         ConfiguratorItem.writeConfig(configurator, ConfiguratorItem.ToolConfig.fromSingleEndpoint(node),
                 node.getAssignedLineName());
@@ -184,8 +185,9 @@ public final class KleisEndpointSavedData extends SavedData {
     public EditResult pasteFromConfigurator(ServerPlayer player, Key key, int expectedRevision,
             ItemStack configurator) {
         Entry saved = entries.get(key);
-        KleisRuntimeEndpoint node = runtime.get(key);
-        if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
+        KleisRuntimeEndpoint node = runtimeFor(player, key, saved);
+        if (saved == null || node == null
+                || !KleisEndpointPolicy.revisionMatches(expectedRevision, saved.revision())) return EditResult.STALE;
         if (!canModify(player, key) || !isReachable(player, key)) return EditResult.DENIED;
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(configurator);
         if (!ConfiguratorItem.isPasteMode(configurator) || config == null) return EditResult.NO_CONFIG;
@@ -271,6 +273,16 @@ public final class KleisEndpointSavedData extends SavedData {
         KleisRuntimeEndpoint node = KleisRuntimeEndpoint.fromSavedData(level, key.pos(), key.face(),
                 entry.owner(), entry.nodeData().copy());
         attachRuntime(key, entry, node);
+    }
+
+    private KleisRuntimeEndpoint runtimeFor(ServerPlayer player, Key key, Entry entry) {
+        KleisRuntimeEndpoint node = runtime.get(key);
+        if (node == null && entry != null && player.level() instanceof ServerLevel level
+                && level.dimension().equals(key.dimension()) && level.hasChunkAt(key.pos())) {
+            attachSavedRuntime(level, key, entry);
+            node = runtime.get(key);
+        }
+        return node;
     }
 
     private void storeEntry(Key key, Entry entry) {

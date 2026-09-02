@@ -73,15 +73,15 @@ public final class ClientRuntimeEvents {
             return;
         }
         KleisOverlayPacket.Entry endpoint = ClientKleisOverlays.entryAt(event.getPos(), event.getFace());
-        if (endpoint == null) return;
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
+        int revision = endpoint == null ? -1 : endpoint.revision();
         if (minecraft.player.isShiftKeyDown()) {
-            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), true);
+            ModNetworking.editKleisEndpoint(event.getPos(), event.getFace(), revision, true);
         } else if (ConfiguratorItem.isPasteMode(minecraft.player.getMainHandItem())) {
-            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), false);
+            ModNetworking.editKleisEndpoint(event.getPos(), event.getFace(), revision, false);
         } else {
-            ModNetworking.openKleisEndpoint(endpoint.pos(), endpoint.face());
+            ModNetworking.openKleisEndpoint(event.getPos(), event.getFace());
         }
     }
 

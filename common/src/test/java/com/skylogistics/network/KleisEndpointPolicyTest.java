@@ -23,4 +23,11 @@ class KleisEndpointPolicyTest {
         assertFalse(KleisEndpointPolicy.supportsConfiguration(false,
                 false, false, false, true, true, true));
     }
+
+    @Test
+    void uncachedInteractionMayUseCurrentServerRevision() {
+        assertTrue(KleisEndpointPolicy.revisionMatches(-1, 7));
+        assertTrue(KleisEndpointPolicy.revisionMatches(7, 7));
+        assertFalse(KleisEndpointPolicy.revisionMatches(6, 7));
+    }
 }

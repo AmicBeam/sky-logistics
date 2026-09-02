@@ -23,9 +23,10 @@ public record KleisOverlayRequestPacket(boolean editNearby) implements CustomPac
                     && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             boolean currentLine = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
                     && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
-            if (packet.editNearby != actualEdit || !actualEdit && !currentLine) return;
+            boolean prefetch = packet.editNearby && !actualEdit && !currentLine;
+            if (!prefetch && (packet.editNearby != actualEdit || !actualEdit && !currentLine)) return;
             KleisEndpointSavedData data = KleisEndpointSavedData.get(player.level().getServer());
-            if (actualEdit) {
+            if (actualEdit || prefetch) {
                 UUID selected = ConfiguratorItem.readLineId(player.getMainHandItem());
                 ModNetworking.sendToPlayer(player, KleisOverlayPacket.from(true, selected,
                         data.snapshotsNearby(player, player.level().dimension(), player.blockPosition(), 64)));

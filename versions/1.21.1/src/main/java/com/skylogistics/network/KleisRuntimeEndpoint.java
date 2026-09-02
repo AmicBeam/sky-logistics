@@ -285,47 +285,27 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
         };
     }
     @Override public boolean supportsChemicalEndpoint(Direction direction) {
-        return SkyLogisticsConfig.allowFluidChemicalTransfer() && MekanismCompat.isLoaded()
-                && MekanismCompat.chemicalHandler(level, targetPos, targetFace) != null;
+        return LogisticsTargetCapabilities.detect(level, targetPos, targetFace).chemical();
     }
     @Override public boolean supportsSoulEndpoint(Direction direction) {
-        return SkyLogisticsConfig.allowFluidSoulTransfer() && IndustrialForegoingSoulsCompat.isLoaded()
-                && IndustrialForegoingSoulsCompat.soulHandler(level, targetPos, targetFace) != null;
+        return LogisticsTargetCapabilities.detect(level, targetPos, targetFace).soul();
     }
     @Override public boolean supportsManaEndpoint(Direction direction) {
-        return SkyLogisticsConfig.allowEnergyManaTransfer() && BotaniaCompat.isLoaded()
-                && BotaniaCompat.manaHandler(level, targetPos, targetFace) != null;
+        return LogisticsTargetCapabilities.detect(level, targetPos, targetFace).mana();
     }
     @Override public boolean supportsSourceEndpoint(Direction direction) {
-        return SkyLogisticsConfig.allowEnergySourceTransfer() && ArsNouveauCompat.isLoaded()
-                && ArsNouveauCompat.sourceHandler(level, targetPos, targetFace) != null;
+        return LogisticsTargetCapabilities.detect(level, targetPos, targetFace).source();
     }
     @Override public TransferResource firstEnabledTransferResource(Direction direction) {
         if (direction != ENDPOINT_DIRECTION || !hasConfigurableTarget(direction)) return null;
-        BlockEntity target = level.getBlockEntity(targetPos);
-        if (target instanceof SkyDistributorBlockEntity distributor) {
-            if (itemsEnabled && distributor.hasItemTargets(targetFace)) return TransferResource.ITEMS;
-            if (fluidsEnabled && distributor.hasFluidTargets(targetFace)) return TransferResource.FLUIDS;
-            if (fluidsEnabled && SkyLogisticsConfig.allowFluidChemicalTransfer()
-                    && distributor.hasChemicalTargets(targetFace)) return TransferResource.CHEMICALS;
-            if (fluidsEnabled && SkyLogisticsConfig.allowFluidSoulTransfer()
-                    && distributor.hasSoulTargets(targetFace)) return TransferResource.SOULS;
-            if (energyEnabled && distributor.hasEnergyTargets(targetFace)) return TransferResource.ENERGY;
-            if (energyEnabled && SkyLogisticsConfig.allowEnergyManaTransfer()
-                    && distributor.hasManaTargets(targetFace)) return TransferResource.MANA;
-            if (energyEnabled && SkyLogisticsConfig.allowEnergySourceTransfer()
-                    && distributor.hasSourceTargets(targetFace)) return TransferResource.SOURCE;
-            return null;
-        }
-        IItemHandler itemHandler = level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, targetFace);
-        if (itemsEnabled && itemHandler != null && itemHandler.getSlots() > 0) return TransferResource.ITEMS;
-        IFluidHandler fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetFace);
-        if (fluidsEnabled && fluidHandler != null && fluidHandler.getTanks() > 0) return TransferResource.FLUIDS;
-        if (fluidsEnabled && supportsChemicalEndpoint(direction)) return TransferResource.CHEMICALS;
-        if (fluidsEnabled && supportsSoulEndpoint(direction)) return TransferResource.SOULS;
-        if (energyEnabled && level.getCapability(Capabilities.EnergyStorage.BLOCK, targetPos, targetFace) != null) return TransferResource.ENERGY;
-        if (energyEnabled && supportsManaEndpoint(direction)) return TransferResource.MANA;
-        if (energyEnabled && supportsSourceEndpoint(direction)) return TransferResource.SOURCE;
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, targetFace);
+        if (itemsEnabled && capabilities.items()) return TransferResource.ITEMS;
+        if (fluidsEnabled && capabilities.fluid()) return TransferResource.FLUIDS;
+        if (fluidsEnabled && capabilities.chemical()) return TransferResource.CHEMICALS;
+        if (fluidsEnabled && capabilities.soul()) return TransferResource.SOULS;
+        if (energyEnabled && capabilities.nativeEnergy()) return TransferResource.ENERGY;
+        if (energyEnabled && capabilities.mana()) return TransferResource.MANA;
+        if (energyEnabled && capabilities.source()) return TransferResource.SOURCE;
         return null;
     }
 
@@ -377,12 +357,12 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
         installCopiedUpgrades(config, player);
     }
     public boolean hasEnabledTargetCapability() {
-        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, targetFace);
         return KleisEndpointPolicy.hasEnabledCapability(itemsEnabled, fluidsEnabled, energyEnabled,
                 capabilities.items(), capabilities.fluids(), capabilities.energy());
     }
     public boolean supportsToolConfig(ConfiguratorItem.ToolConfig config) {
-        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, targetFace);
         ConfiguratorItem.FaceConfig face = config.placement();
         return KleisEndpointPolicy.supportsConfiguration(face.autoDetectResources(),
                 face.itemsEnabled(), face.fluidsEnabled(), face.energyEnabled(),
@@ -440,7 +420,7 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
         if(notify)changed();
     }
     private void detectResources() {
-        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos, targetFace);
         itemsEnabled = capabilities.items();
         fluidsEnabled = capabilities.fluids();
         energyEnabled = capabilities.energy();

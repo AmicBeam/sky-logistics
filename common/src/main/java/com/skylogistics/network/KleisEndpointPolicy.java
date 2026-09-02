@@ -19,4 +19,8 @@ public final class KleisEndpointPolicy {
         return hasEnabledCapability(itemsEnabled, fluidsEnabled, energyEnabled,
                 supportsItems, supportsFluids, supportsEnergy);
     }
+
+    public static boolean revisionMatches(int expectedRevision, int currentRevision) {
+        return expectedRevision < 0 || expectedRevision == currentRevision;
+    }
 }

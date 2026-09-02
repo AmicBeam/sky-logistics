@@ -1,10 +1,13 @@
 package com.skylogistics.client;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
 import java.util.HashMap;
@@ -23,10 +26,21 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 public final class ClientKleisOverlays {
+    private static final RenderType XRAY_MASK = RenderType.create("skylogistics_kleis_xray_mask",
+            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 256, false, true,
+            RenderType.CompositeState.builder()
+                    .setShaderState(net.minecraft.client.renderer.RenderStateShard.POSITION_COLOR_SHADER)
+                    .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(net.minecraft.client.renderer.RenderStateShard.NO_DEPTH_TEST)
+                    .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+                    .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
+                    .createCompositeState(false));
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
+    private static boolean active;
     private static Object lastRequestLevel;
+    private static Object snapshotLevel;
     private static int lastRequestChunkX = Integer.MIN_VALUE;
     private static int lastRequestChunkZ = Integer.MIN_VALUE;
     private static final Map<KleisOverlayPacket.Entry, Long> animationStarts = new HashMap<>();
@@ -46,7 +60,8 @@ public final class ClientKleisOverlays {
         entries = packet.entries();
     }
     public static void clear() {
-        lineId = null; editNearby = false; entries = List.of(); animationStarts.clear(); resetRequestLocation();
+        lineId = null; editNearby = false; active = false; entries = List.of(); animationStarts.clear();
+        snapshotLevel = null; resetRequestLocation();
     }
 
     public static KleisOverlayPacket.Entry entryAt(BlockPos pos, Direction face) {
@@ -60,14 +75,21 @@ public final class ClientKleisOverlays {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) { clear(); return; }
+        if (snapshotLevel != mc.level) {
+            snapshotLevel = mc.level;
+            entries = List.of();
+            animationStarts.clear();
+            ModNetworking.requestKleisOverlays(true);
+        }
         boolean edit = mc.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                 && mc.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
         boolean currentLine = mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
                 && mc.player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
-        if (!edit && !currentLine) { clear(); return; }
+        if (!edit && !currentLine) { active = false; resetRequestLocation(); return; }
         UUID selected = ConfiguratorItem.readLineId(edit
                 ? mc.player.getMainHandItem() : mc.player.getOffhandItem());
-        if (!edit && selected == null) { clear(); return; }
+        if (!edit && selected == null) { active = false; resetRequestLocation(); return; }
+        if (!active) { active = true; resetRequestLocation(); }
         long now = mc.level.getGameTime();
         if (edit != editNearby || !edit && !java.util.Objects.equals(selected, lineId)) {
             editNearby = edit; lineId = selected; entries = List.of(); animationStarts.clear(); resetRequestLocation();
@@ -81,6 +103,8 @@ public final class ClientKleisOverlays {
             ModNetworking.requestKleisOverlays(edit);
         }
         Vec3 camera = event.getCamera().getPosition();
+        VertexConsumer masks = mc.renderBuffers().bufferSource().getBuffer(RenderType.debugFilledBox());
+        VertexConsumer xrayMasks = mc.renderBuffers().bufferSource().getBuffer(XRAY_MASK);
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
         net.minecraft.world.phys.BlockHitResult hit = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit
                 ? blockHit : null;
@@ -90,6 +114,13 @@ public final class ClientKleisOverlays {
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
+            AABB mask = faceBox(entry.pos(), entry.face(), 0);
+            VertexConsumer maskConsumer = mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
+                    ? xrayMasks : masks;
+            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), maskConsumer,
+                    mask.minX-camera.x, mask.minY-camera.y, mask.minZ-camera.z,
+                    mask.maxX-camera.x, mask.maxY-camera.y, mask.maxZ-camera.z,
+                    r, g, b, 0.22F * alphaScale);
             for (int ring = 1; ring <= 7; ring++) {
                 draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F * alphaScale);
             }
@@ -100,6 +131,8 @@ public final class ClientKleisOverlays {
                 draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F * alphaScale);
             }
         }
+        mc.renderBuffers().bufferSource().endBatch(RenderType.debugFilledBox());
+        mc.renderBuffers().bufferSource().endBatch(XRAY_MASK);
         mc.renderBuffers().bufferSource().endBatch(RenderType.lines());
     }
 
@@ -111,14 +144,14 @@ public final class ClientKleisOverlays {
 
     public static void renderHud(GuiGraphics graphics) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null
+        if (!active || mc.player == null || mc.screen != null
                 || !(mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
         KleisOverlayPacket.Entry entry = entryAt(hit.getBlockPos(), hit.getDirection());
         if (entry == null) return;
         String name = ClientLineNames.displayName(entry.lineId(), entry.lineName());
         Component resources = resourceLabel(entry.resourceMask());
         int centerX = graphics.guiWidth() / 2;
-        int firstLineY = graphics.guiHeight() / 2 + 12;
+        int firstLineY = graphics.guiHeight() - 69;
         graphics.drawCenteredString(mc.font, name, centerX, firstLineY, 0xFFFFFFFF);
         graphics.drawCenteredString(mc.font, resources, centerX, firstLineY + 10, 0xFFFFFFFF);
     }

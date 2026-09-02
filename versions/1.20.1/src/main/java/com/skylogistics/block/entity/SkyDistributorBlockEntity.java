@@ -31,6 +31,7 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.SkyNetworkRegistry;
+import com.skylogistics.network.LogisticsTargetCapabilities;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.storage.FluidStackKey;
@@ -282,25 +283,14 @@ public class SkyDistributorBlockEntity extends BlockEntity {
     }
 
     private Target inspect(BlockPos pos, Direction accessSide) {
-        IItemHandler itemHandler = SkyLogisticsConfig.enableDistributorItems()
-                ? capability(pos, accessSide, ForgeCapabilities.ITEM_HANDLER) : null;
-        int itemSlots = itemHandler == null ? 0 : Math.max(0, itemHandler.getSlots());
-        Direction itemSide = itemSlots > 0 ? accessSide : null;
-        Direction fluidSide = SkyLogisticsConfig.enableDistributorFluids()
-                ? usableFluids(capability(pos, accessSide, ForgeCapabilities.FLUID_HANDLER)) ? accessSide : null : null;
-        Direction energySide = SkyLogisticsConfig.enableDistributorEnergy()
-                ? usableEnergy(capability(pos, accessSide, ForgeCapabilities.ENERGY)) ? accessSide : null : null;
-        boolean chemical = SkyLogisticsConfig.enableDistributorFluids()
-                && SkyLogisticsConfig.allowFluidChemicalTransfer()
-                && usableChemical(MekanismCompat.chemicalHandler(level, pos, accessSide));
-        boolean mana = SkyLogisticsConfig.enableDistributorEnergy()
-                && SkyLogisticsConfig.allowEnergyManaTransfer()
-                && usableMana(BotaniaCompat.manaHandler(level, pos, accessSide));
-        boolean source = SkyLogisticsConfig.enableDistributorEnergy()
-                && SkyLogisticsConfig.allowEnergySourceTransfer()
-                && usableSource(ArsNouveauCompat.sourceHandler(level, pos, accessSide));
-        return new Target(pos.immutable(), accessSide,
-                itemSide != null, itemSlots, fluidSide != null, chemical, energySide != null, mana, source);
+        LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detectDirect(level, pos, accessSide);
+        int itemSlots = SkyLogisticsConfig.enableDistributorItems() ? capabilities.itemSlots() : 0;
+        return new Target(pos.immutable(), accessSide, itemSlots > 0, itemSlots,
+                SkyLogisticsConfig.enableDistributorFluids() && capabilities.fluid(),
+                SkyLogisticsConfig.enableDistributorFluids() && capabilities.chemical(),
+                SkyLogisticsConfig.enableDistributorEnergy() && capabilities.nativeEnergy(),
+                SkyLogisticsConfig.enableDistributorEnergy() && capabilities.mana(),
+                SkyLogisticsConfig.enableDistributorEnergy() && capabilities.source());
     }
 
     private <T> T capability(BlockPos pos, Direction side, Capability<T> capability) {
