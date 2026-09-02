@@ -101,7 +101,7 @@
         "pattern": [
           ["G     G", "       ", "       ", "       ", "       ", "       ", "G     G"],
           ["C     C", "       ", "   T   ", "  T0T  ", "   T   ", "       ", "C     C"],
-          ["C     C", " NCCC N", " C   C ", " C   C ", " C   C ", " NCCC N", "C     C"]
+          ["C     C", " NCCCN ", " C   C ", " C   C ", " C   C ", " NCCCN ", "C     C"]
         ]
       }
     }
