@@ -871,7 +871,7 @@ public class ConfiguratorItem extends Item {
                     upgrades);
         }
 
-        public static ToolConfig fromSingleEndpoint(SkyNodeBlockEntity node) {
+        public static ToolConfig fromSingleEndpoint(com.skylogistics.network.ConfigurableLogisticsEndpoint node) {
             Direction direction = node.getTargetDirection();
             ArrayList<ItemStack> filters = new ArrayList<>(SkyNodeBlockEntity.FACE_FILTER_SLOTS);
             for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {

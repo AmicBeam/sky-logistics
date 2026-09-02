@@ -10,6 +10,7 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
+import com.skylogistics.network.LogisticsEndpoint;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.Arrays;
@@ -30,7 +31,7 @@ import net.minecraftforge.items.IItemHandler;
  * Minimal scheduler-facing base shared by configurable nodes and simple pipes.
  * It intentionally contains no line-name, filter, upgrade, or per-face configuration data.
  */
-public abstract class NetworkEndpointBlockEntity extends BlockEntity {
+public abstract class NetworkEndpointBlockEntity extends BlockEntity implements LogisticsEndpoint {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
 
     public enum TargetResource {

@@ -1,6 +1,6 @@
 package com.skylogistics.menu;
 
-import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
+import com.skylogistics.network.KleisRuntimeEndpoint;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
@@ -9,6 +9,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
+import net.minecraft.world.item.ItemStack;
 
 /** The normal node menu bound to a remembered Kleis endpoint instead of a placed node block. */
 public final class KleisDominionWandMenu extends SkyNodeMenu {
@@ -21,7 +22,7 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
     }
 
     public KleisDominionWandMenu(int containerId, Inventory inventory, BlockPos pos, Direction face,
-            KleisVirtualNodeBlockEntity endpoint) {
+            KleisRuntimeEndpoint endpoint) {
         super(ModMenus.KLEIS_DOMINION_WAND.get(), containerId, inventory, pos, false, endpoint);
         this.targetFace = face;
         addDataSlot(endpointState(endpoint));
@@ -44,8 +45,8 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
 
     /** Compatibility for clients that still have the first implementation's compact action packet. */
     public void handleAction(int action) {
-        KleisVirtualNodeBlockEntity endpoint = (KleisVirtualNodeBlockEntity) endpointNode();
-        Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+        KleisRuntimeEndpoint endpoint = (KleisRuntimeEndpoint) endpointNode();
+        Direction face = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
         switch (action) {
             case 0 -> endpoint.setFaceMode(face, endpoint.getFaceMode(face) == NodeFaceMode.INPUT
                     ? NodeFaceMode.OUTPUT : NodeFaceMode.INPUT);
@@ -59,43 +60,40 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
         broadcastChanges();
     }
 
-    private static KleisVirtualNodeBlockEntity clientEndpoint(Inventory inventory, BlockPos pos, Direction face,
+    private static KleisRuntimeEndpoint clientEndpoint(Inventory inventory, BlockPos pos, Direction face,
             String lineName, NodeFaceMode mode, int resourceMask, int priority) {
-        KleisVirtualNodeBlockEntity endpoint = new KleisVirtualNodeBlockEntity(pos, face);
-        endpoint.setLevel(inventory.player.level());
-        endpoint.setSuppressChanges(true);
-        endpoint.selectPlayerLine(java.util.UUID.nameUUIDFromBytes(
-                lineName.getBytes(java.nio.charset.StandardCharsets.UTF_8)), lineName, lineName);
-        endpoint.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, mode);
-        endpoint.setItemsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 1) != 0);
-        endpoint.setFluidsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 2) != 0);
-        endpoint.setEnergyEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, (resourceMask & 4) != 0);
-        endpoint.adjustPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION, priority);
-        endpoint.setSuppressChanges(false);
-        return endpoint;
+        java.util.UUID lineId = java.util.UUID.nameUUIDFromBytes(
+                lineName.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var placement = new com.skylogistics.item.ConfiguratorItem.FaceConfig(mode,
+                (resourceMask & 1) != 0, (resourceMask & 2) != 0, (resourceMask & 4) != 0,
+                false, com.skylogistics.util.RedstoneControl.IGNORE, priority, 0,
+                java.util.List.of(ItemStack.EMPTY));
+        var config = new com.skylogistics.item.ConfiguratorItem.ToolConfig(lineId, lineName, placement,
+                java.util.Map.of(), false, java.util.List.of());
+        return new KleisRuntimeEndpoint(inventory.player.level(), pos, face, inventory.player.getUUID(), config, mode);
     }
 
-    private static DataSlot endpointState(KleisVirtualNodeBlockEntity endpoint) {
+    private static DataSlot endpointState(KleisRuntimeEndpoint endpoint) {
         return new DataSlot() {
-            @Override public int get() { return endpoint.getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION).ordinal(); }
+            @Override public int get() { return endpoint.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION).ordinal(); }
             @Override public void set(int value) {
                 NodeFaceMode[] values = NodeFaceMode.values();
-                endpoint.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION,
+                endpoint.setFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION,
                         values[Math.max(0, Math.min(values.length - 1, value))]);
             }
         };
     }
 
-    private static DataSlot resourceState(KleisVirtualNodeBlockEntity endpoint) {
+    private static DataSlot resourceState(KleisRuntimeEndpoint endpoint) {
         return new DataSlot() {
             @Override public int get() {
-                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                Direction face = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
                 return (endpoint.isItemsEnabled(face) ? 1 : 0)
                         | (endpoint.isFluidsEnabled(face) ? 2 : 0)
                         | (endpoint.isEnergyEnabled(face) ? 4 : 0);
             }
             @Override public void set(int value) {
-                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                Direction face = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
                 endpoint.setItemsEnabled(face, (value & 1) != 0);
                 endpoint.setFluidsEnabled(face, (value & 2) != 0);
                 endpoint.setEnergyEnabled(face, (value & 4) != 0);
@@ -103,11 +101,11 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
         };
     }
 
-    private static DataSlot priorityState(KleisVirtualNodeBlockEntity endpoint) {
+    private static DataSlot priorityState(KleisRuntimeEndpoint endpoint) {
         return new DataSlot() {
-            @Override public int get() { return endpoint.getPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION); }
+            @Override public int get() { return endpoint.getPriority(KleisRuntimeEndpoint.ENDPOINT_DIRECTION); }
             @Override public void set(int value) {
-                Direction face = KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION;
+                Direction face = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
                 endpoint.adjustPriority(face, value - endpoint.getPriority(face));
             }
         };

@@ -64,7 +64,8 @@ import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
-public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
+public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
+        implements com.skylogistics.network.ConfigurableLogisticsEndpoint {
     private static final String DATA_TAG = "SkyLogisticsSkyNode";
     public static final int UPGRADE_SLOTS = 2;
     public static final int FACE_FILTER_SLOTS = 1;

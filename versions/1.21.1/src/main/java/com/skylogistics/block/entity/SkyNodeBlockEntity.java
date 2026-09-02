@@ -58,7 +58,8 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
-public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
+public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
+        implements com.skylogistics.network.ConfigurableLogisticsEndpoint {
     public static final int UPGRADE_SLOTS = 2;
     public static final int FACE_FILTER_SLOTS = 1;
     public static final int MAX_ITEM_SLOT_LIMIT = 999;

@@ -1,7 +1,7 @@
 package com.skylogistics.network;
 
 import com.skylogistics.SkyLogistics;
-import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
+import com.skylogistics.network.KleisRuntimeEndpoint;
 import com.skylogistics.menu.KleisDominionWandMenu;
 import com.skylogistics.registry.ModItems;
 import net.minecraft.core.BlockPos;
@@ -29,17 +29,17 @@ public record KleisOpenMenuPacket(BlockPos pos, Direction face) implements Custo
             if (!wandMode && !editMode) return;
             KleisEndpointSavedData.Key key = new KleisEndpointSavedData.Key(player.level().dimension(), packet.pos, packet.face);
             KleisEndpointSavedData data = KleisEndpointSavedData.get(player.level().getServer());
-            KleisVirtualNodeBlockEntity node = data.runtimeNode(key);
+            KleisRuntimeEndpoint node = data.runtimeNode(key);
             if (node == null || !data.canView(player, key) || !data.isReachable(player, key)) return;
-            int mask = (node.isItemsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 1 : 0)
-                    | (node.isFluidsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 2 : 0)
-                    | (node.isEnergyEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 4 : 0);
+            int mask = (node.isItemsEnabled(KleisRuntimeEndpoint.ENDPOINT_DIRECTION) ? 1 : 0)
+                    | (node.isFluidsEnabled(KleisRuntimeEndpoint.ENDPOINT_DIRECTION) ? 2 : 0)
+                    | (node.isEnergyEnabled(KleisRuntimeEndpoint.ENDPOINT_DIRECTION) ? 4 : 0);
             player.openMenu(new SimpleMenuProvider((id, inv, ignored) ->
                     new KleisDominionWandMenu(id, inv, packet.pos, packet.face, node),
                     Component.translatable("menu.skylogistics.kleis_dominion_wand")), buffer -> {
                         buffer.writeBlockPos(packet.pos); buffer.writeEnum(packet.face); buffer.writeUtf(node.getLineName(), 48);
-                        buffer.writeEnum(node.getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION));
-                        buffer.writeByte(mask); buffer.writeInt(node.getPriority(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION));
+                        buffer.writeEnum(node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION));
+                        buffer.writeByte(mask); buffer.writeInt(node.getPriority(KleisRuntimeEndpoint.ENDPOINT_DIRECTION));
                     });
         });
     }

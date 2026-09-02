@@ -146,17 +146,17 @@ public final class SkyNetworkRegistry {
         }
     }
 
-    public static synchronized void registerVirtual(ServerLevel level, NetworkEndpointBlockEntity endpoint) {
+    public static synchronized void registerVirtual(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.computeIfAbsent(level.dimension(), ignored -> new DimensionIndex());
         if (index.virtualEndpoints.add(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
     }
 
-    public static synchronized void unregisterVirtual(ServerLevel level, NetworkEndpointBlockEntity endpoint) {
+    public static synchronized void unregisterVirtual(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.get(level.dimension());
         if (index != null && index.virtualEndpoints.remove(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
     }
 
-    public static synchronized void markVirtualDirty(ServerLevel level, NetworkEndpointBlockEntity endpoint) {
+    public static synchronized void markVirtualDirty(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.get(level.dimension());
         if (index != null && index.virtualEndpoints.contains(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
     }
@@ -434,7 +434,7 @@ public final class SkyNetworkRegistry {
             if (details.size() >= limit) {
                 return;
             }
-            NetworkEndpointBlockEntity node = endpoint.node();
+            LogisticsEndpoint node = endpoint.node();
             Direction direction = endpoint.direction();
             NodeFaceMode faceMode = node.getFaceMode(direction);
             if (faceMode == NodeFaceMode.NONE || !level.isLoaded(node.getBlockPos())) {
@@ -608,7 +608,7 @@ public final class SkyNetworkRegistry {
                 }
             }
         }
-        for (NetworkEndpointBlockEntity node : index.virtualEndpoints) {
+        for (LogisticsEndpoint node : index.virtualEndpoints) {
             LineIndex line = index.lines.computeIfAbsent(node.getLineId(), lineId -> {
                 LineIndex created = new LineIndex(lineId);
                 created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
@@ -631,7 +631,7 @@ public final class SkyNetworkRegistry {
     }
 
     private static CachedEndpoint reusableEndpoint(Map<EndpointKey, CachedEndpoint> reusableEndpoints,
-            NetworkEndpointBlockEntity node, Direction direction) {
+            LogisticsEndpoint node, Direction direction) {
         CachedEndpoint endpoint = reusableEndpoints.remove(new EndpointKey(node, direction));
         if (endpoint != null && endpoint.node() == node) {
             return endpoint;
@@ -1217,7 +1217,7 @@ public final class SkyNetworkRegistry {
     private static final class DimensionIndex {
         private final Set<BlockPos> nodes = new HashSet<>();
         private final Map<BlockPos, NetworkEndpointBlockEntity> loadedEndpoints = new HashMap<>();
-        private final Set<NetworkEndpointBlockEntity> virtualEndpoints = new HashSet<>();
+        private final Set<LogisticsEndpoint> virtualEndpoints = new HashSet<>();
         private final Map<UUID, LineIndex> lines = new HashMap<>();
         private final Map<BlockPos, LineIndex> lineByNode = new HashMap<>();
         private final Map<UUID, Set<BlockPos>> lineMembers = new HashMap<>();
@@ -1233,7 +1233,7 @@ public final class SkyNetworkRegistry {
         private boolean dirty = true;
     }
 
-    private record EndpointKey(NetworkEndpointBlockEntity node, Direction direction) {
+    private record EndpointKey(LogisticsEndpoint node, Direction direction) {
     }
 
     public record LineStats(int nodes, int inputs, int outputs) {
@@ -1521,7 +1521,7 @@ public final class SkyNetworkRegistry {
             priorityEnergyOutputs.remove(endpoint);
             priorityManaOutputs.remove(endpoint);
             prioritySourceOutputs.remove(endpoint);
-            NetworkEndpointBlockEntity node = endpoint.node();
+            LogisticsEndpoint node = endpoint.node();
             Direction direction = endpoint.direction();
             if (node.isItemsEnabled(direction)) insertByPriority(priorityItemOutputs, endpoint);
             if (node.isFluidsEnabled(direction)) {
@@ -1589,7 +1589,7 @@ public final class SkyNetworkRegistry {
                 List<CachedEndpoint> soulEndpoints,
                 List<CachedEndpoint> energyEndpoints, List<CachedEndpoint> manaEndpoints,
                 List<CachedEndpoint> sourceEndpoints) {
-            NetworkEndpointBlockEntity node = endpoint.node();
+            LogisticsEndpoint node = endpoint.node();
             Direction direction = endpoint.direction();
             int resourceMask = 0;
             if (node.isItemsEnabled(direction)) {
@@ -1634,7 +1634,7 @@ public final class SkyNetworkRegistry {
         private static final int CAPABILITY_MANA = 1 << 5;
         private static final int CAPABILITY_SOURCE = 1 << 6;
         private static final long CAPABILITY_LIFECYCLE_CHECK_INTERVAL = 20L;
-        private final NetworkEndpointBlockEntity node;
+        private final LogisticsEndpoint node;
         private final Direction direction;
         private final BlockPos targetPos;
         private final Direction accessSide;
@@ -1734,7 +1734,7 @@ public final class SkyNetworkRegistry {
         private long manaHandlerValidateAt;
         private long sourceHandlerValidateAt;
 
-        private CachedEndpoint(NetworkEndpointBlockEntity node, Direction direction) {
+        private CachedEndpoint(LogisticsEndpoint node, Direction direction) {
             this.node = node;
             this.direction = direction;
             this.targetPos = node.getTargetPos(direction);
@@ -1843,7 +1843,7 @@ public final class SkyNetworkRegistry {
             rejectedChemicalAcceptFailures = new int[rejectedAcceptCacheSize];
         }
 
-        public NetworkEndpointBlockEntity node() {
+        public LogisticsEndpoint node() {
             return node;
         }
 

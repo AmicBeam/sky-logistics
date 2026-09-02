@@ -1,6 +1,5 @@
 package com.skylogistics.network;
 
-import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.menu.KleisDominionWandMenu;
@@ -42,7 +41,7 @@ public final class KleisEndpointSavedData extends SavedData {
     private static final String ENTRIES = "Entries";
 
     private final Map<Key, Entry> entries = new HashMap<>();
-    private final Map<Key, KleisVirtualNodeBlockEntity> runtime = new HashMap<>();
+    private final Map<Key, KleisRuntimeEndpoint> runtime = new HashMap<>();
     private long lastRefreshTick = Long.MIN_VALUE;
 
     public static KleisEndpointSavedData get(MinecraftServer server) {
@@ -103,14 +102,9 @@ public final class KleisEndpointSavedData extends SavedData {
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(configurator, player);
         UUID lineOwner = SkyPlayerLines.ownerOf(player.level().getServer(), config.lineId());
         if (lineOwner != null && !lineOwner.equals(player.getUUID())) return ToggleResult.EDIT_DENIED;
-        KleisVirtualNodeBlockEntity node = new KleisVirtualNodeBlockEntity(pos, face);
-        node.setLevel(level);
-        node.setSuppressChanges(true);
-        node.applyPlacementToolConfig(config, false);
-        node.setFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION,
+        KleisRuntimeEndpoint node = new KleisRuntimeEndpoint(level, pos, face, player.getUUID(), config,
                 extracting ? com.skylogistics.util.NodeFaceMode.INPUT : com.skylogistics.util.NodeFaceMode.OUTPUT);
-        node.setSuppressChanges(false);
-        Entry entry = new Entry(player.getUUID(), 1, node.saveWithoutMetadata(node.getLevel().registryAccess()));
+        Entry entry = new Entry(player.getUUID(), 1, node.save());
         entries.put(key, entry);
         attachRuntime(key, entry, node);
         SkyPlayerLines.claimOwner(player.level().getServer(), node.getLineId(), player);
@@ -122,7 +116,7 @@ public final class KleisEndpointSavedData extends SavedData {
         return entries.get(key);
     }
 
-    public KleisVirtualNodeBlockEntity runtimeNode(Key key) {
+    public KleisRuntimeEndpoint runtimeNode(Key key) {
         return runtime.get(key);
     }
 
@@ -130,14 +124,14 @@ public final class KleisEndpointSavedData extends SavedData {
             BlockPos center, int range) {
         long distance = (long) range * range;
         List<Snapshot> result = new ArrayList<>();
-        for (Map.Entry<Key, KleisVirtualNodeBlockEntity> mapEntry : runtime.entrySet()) {
+        for (Map.Entry<Key, KleisRuntimeEndpoint> mapEntry : runtime.entrySet()) {
             Key key = mapEntry.getKey();
             if (!key.dimension().equals(dimension) || !mapEntry.getValue().getLineId().equals(lineId)
                     || key.pos().distSqr(center) > distance || !canView(viewer, key)) continue;
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    mapEntry.getValue().getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION),
+                    mapEntry.getValue().getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION),
                     mapEntry.getValue().getLineId(), saved.revision()));
         }
         return List.copyOf(result);
@@ -147,14 +141,14 @@ public final class KleisEndpointSavedData extends SavedData {
             BlockPos center, int range) {
         long distance = (long) range * range;
         List<Snapshot> result = new ArrayList<>();
-        for (Map.Entry<Key, KleisVirtualNodeBlockEntity> mapEntry : runtime.entrySet()) {
+        for (Map.Entry<Key, KleisRuntimeEndpoint> mapEntry : runtime.entrySet()) {
             Key key = mapEntry.getKey();
             if (!key.dimension().equals(dimension) || key.pos().distSqr(center) > distance
                     || !canView(viewer, key)) continue;
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    mapEntry.getValue().getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION),
+                    mapEntry.getValue().getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION),
                     mapEntry.getValue().getLineId(), saved.revision()));
         }
         return List.copyOf(result);
@@ -163,7 +157,7 @@ public final class KleisEndpointSavedData extends SavedData {
     public EditResult copyToConfigurator(ServerPlayer player, Key key, int expectedRevision,
             ItemStack configurator) {
         Entry saved = entries.get(key);
-        KleisVirtualNodeBlockEntity node = runtime.get(key);
+        KleisRuntimeEndpoint node = runtime.get(key);
         if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
         if (!canView(player, key) || !isReachable(player, key)) return EditResult.DENIED;
         ConfiguratorItem.writeConfig(configurator, ConfiguratorItem.ToolConfig.fromSingleEndpoint(node),
@@ -176,7 +170,7 @@ public final class KleisEndpointSavedData extends SavedData {
     public EditResult pasteFromConfigurator(ServerPlayer player, Key key, int expectedRevision,
             ItemStack configurator) {
         Entry saved = entries.get(key);
-        KleisVirtualNodeBlockEntity node = runtime.get(key);
+        KleisRuntimeEndpoint node = runtime.get(key);
         if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
         if (!canModify(player, key) || !isReachable(player, key)) return EditResult.DENIED;
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(configurator);
@@ -239,39 +233,32 @@ public final class KleisEndpointSavedData extends SavedData {
                 continue;
             }
             if (!runtime.containsKey(key)) {
-                KleisVirtualNodeBlockEntity node = new KleisVirtualNodeBlockEntity(key.pos(), key.face());
-                node.setLevel(level);
-                node.setSuppressChanges(true);
-                node.loadWithComponents(net.minecraft.world.level.storage.TagValueInput.create(
-                        net.minecraft.util.ProblemReporter.DISCARDING, level.registryAccess(),
-                        mapEntry.getValue().nodeData().copy()));
-                node.setSuppressChanges(false);
+                KleisRuntimeEndpoint node = KleisRuntimeEndpoint.fromSavedData(level, key.pos(), key.face(),
+                        mapEntry.getValue().owner(), mapEntry.getValue().nodeData().copy());
                 attachRuntime(key, mapEntry.getValue(), node);
             }
         }
     }
 
     public void clearRuntime() {
-        for (Map.Entry<Key, KleisVirtualNodeBlockEntity> entry : List.copyOf(runtime.entrySet())) {
+        for (Map.Entry<Key, KleisRuntimeEndpoint> entry : List.copyOf(runtime.entrySet())) {
             removeRuntime(entry.getKey());
         }
         lastRefreshTick = Long.MIN_VALUE;
     }
 
-    private void attachRuntime(Key key, Entry entry, KleisVirtualNodeBlockEntity node) {
+    private void attachRuntime(Key key, Entry entry, KleisRuntimeEndpoint node) {
         runtime.put(key, node);
         node.setChangeListener(() -> updateFromRuntime(key, node));
         SkyNetworkRegistry.registerVirtual((ServerLevel) node.getLevel(), node);
     }
 
-    private void updateFromRuntime(Key key, KleisVirtualNodeBlockEntity node) {
+    private void updateFromRuntime(Key key, KleisRuntimeEndpoint node) {
         Entry previous = entries.get(key);
         if (previous == null) return;
-        entries.put(key, new Entry(previous.owner(), previous.revision() + 1, node.saveWithoutMetadata(node.getLevel().registryAccess())));
+        entries.put(key, new Entry(previous.owner(), previous.revision() + 1, node.save()));
         setDirty();
-        if (node.getLevel() instanceof ServerLevel level) {
-            syncVisibleOverlays(level.getServer(), key.dimension(), key.pos());
-        }
+        syncVisibleOverlays(node.getLevel().getServer(), key.dimension(), key.pos());
     }
 
     private static void closeMenus(MinecraftServer server, Key key) {
@@ -283,10 +270,8 @@ public final class KleisEndpointSavedData extends SavedData {
     }
 
     private void removeRuntime(Key key) {
-        KleisVirtualNodeBlockEntity node = runtime.remove(key);
-        if (node != null && node.getLevel() instanceof ServerLevel level) {
-            SkyNetworkRegistry.unregisterVirtual(level, node);
-        }
+        KleisRuntimeEndpoint node = runtime.remove(key);
+        if (node != null) SkyNetworkRegistry.unregisterVirtual((ServerLevel) node.getLevel(), node);
     }
 
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}

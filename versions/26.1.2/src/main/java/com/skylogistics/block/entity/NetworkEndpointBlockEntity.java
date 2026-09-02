@@ -9,6 +9,7 @@ import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
+import com.skylogistics.network.LogisticsEndpoint;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
@@ -26,7 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 /** Minimal scheduler-facing state shared by configurable nodes and simple pipes. */
-public abstract class NetworkEndpointBlockEntity extends BlockEntity {
+public abstract class NetworkEndpointBlockEntity extends BlockEntity implements LogisticsEndpoint {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
     public enum TargetResource { ITEM, FLUID, CHEMICAL, ENERGY, MANA, SOURCE }
     private int itemCursor;

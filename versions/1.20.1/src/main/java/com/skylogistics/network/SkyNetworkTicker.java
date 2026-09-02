@@ -6,7 +6,7 @@ import com.skylogistics.block.entity.ItemVaultBlockEntity;
 import com.skylogistics.block.entity.SkyMEInterfaceBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.block.entity.SkyNodeBlockEntity.ExternalWhitelistCandidates;
-import com.skylogistics.block.entity.NetworkEndpointBlockEntity;
+import com.skylogistics.network.LogisticsEndpoint;
 import com.skylogistics.block.entity.NetworkEndpointBlockEntity.TargetResource;
 import com.skylogistics.block.entity.SkyRSInterfaceBlockEntity;
 import com.skylogistics.compat.arsnouveau.ArsNouveauCompat;
@@ -145,7 +145,7 @@ public final class SkyNetworkTicker {
                     lineBudgetExhausted = true;
                     break;
                 }
-                NetworkEndpointBlockEntity node = input.node();
+                LogisticsEndpoint node = input.node();
                 if (!node.isFaceRedstoneAllowed(input.direction())) {
                     nextWake = Math.min(nextWake, gameTime + 20L);
                     continue;
@@ -325,7 +325,7 @@ public final class SkyNetworkTicker {
         return localOutputs;
     }
 
-    private static long nextInputWake(CachedEndpoint input, NetworkEndpointBlockEntity node, long gameTime,
+    private static long nextInputWake(CachedEndpoint input, LogisticsEndpoint node, long gameTime,
             long current, boolean itemRoute, boolean fluidRoute, boolean chemicalRoute, boolean energyRoute,
             boolean manaRoute, boolean sourceRoute) {
         long nextWake = current;
@@ -368,7 +368,7 @@ public final class SkyNetworkTicker {
         if (isDimensionItemEndpoint(sourceEndpoint)) {
             return transferDimensionItems(sourceEndpoint, targets, budget, gameTime);
         }
-        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        LogisticsEndpoint sourceNode = sourceEndpoint.node();
         IItemHandler source = sourceEndpoint.itemHandler(gameTime);
         if (source == null || budget <= 0) {
             return 0;
@@ -551,7 +551,7 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean isExternalNetworkItemEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.node();
+        BlockEntity blockEntity = endpoint.node() instanceof BlockEntity value ? value : null;
         return (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
                 && SkyLogisticsConfig.allowAe2ItemTransfer())
@@ -617,7 +617,7 @@ public final class SkyNetworkTicker {
 
     private static int transferExternalNetworkItems(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
             int budget, long gameTime) {
-        BlockEntity sourceBlockEntity = sourceEndpoint.node();
+        BlockEntity sourceBlockEntity = sourceEndpoint.node() instanceof BlockEntity value ? value : null;
         LongItemEndpoint sourceLongEndpoint = longItemEndpoint(sourceEndpoint);
         if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
             return 0;
@@ -684,7 +684,7 @@ public final class SkyNetworkTicker {
         if (operations >= budget) {
             return operations;
         }
-        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        LogisticsEndpoint sourceNode = sourceEndpoint.node();
         int slots = BeyondDimensionsCompat.itemTypeCount(sourceBlockEntity);
         if (slots <= 0) {
             sourceEndpoint.recordItemFailure(gameTime);
@@ -987,7 +987,7 @@ public final class SkyNetworkTicker {
     }
 
     private static ItemSourceSearchResult nextItemSlot(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode, IItemHandler source,
+            LogisticsEndpoint sourceNode, IItemHandler source,
             int slots, long gameTime, int firstTriedSlot, int secondTriedSlot, int skipBudget) {
         if (usesIndependentDistributorProbes(source)
                 && source instanceof BudgetedDistributorHandler distributor) {
@@ -1022,7 +1022,7 @@ public final class SkyNetworkTicker {
     }
 
     private static int discoverAdditionalItemSlot(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode, IItemHandler source, int slots, long gameTime,
+            LogisticsEndpoint sourceNode, IItemHandler source, int slots, long gameTime,
             int successfulSlot, int budget) {
         if (budget <= 0 || !sourceEndpoint.isItemSlotDiscoveryActive()) return 0;
         ItemSourceSearchResult search = nextSequentialItemSlot(sourceEndpoint, sourceNode, slots, gameTime,
@@ -1049,7 +1049,7 @@ public final class SkyNetworkTicker {
     }
 
     private static ItemSourceSearchResult nextSequentialItemSlot(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode, int slots, long gameTime, int firstTriedSlot, int secondTriedSlot,
+            LogisticsEndpoint sourceNode, int slots, long gameTime, int firstTriedSlot, int secondTriedSlot,
             boolean ignoreEmptyCooldown, int skipBudget) {
         int skippedChecks = 0;
         int attemptLimit = Math.min(slots, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
@@ -1074,7 +1074,7 @@ public final class SkyNetworkTicker {
 
     private static SlotLimitCheck checkExtractionSlotLimit(CachedEndpoint endpoint, IItemHandler source,
             int checkBudget) {
-        NetworkEndpointBlockEntity node = endpoint.node();
+        LogisticsEndpoint node = endpoint.node();
         if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(endpoint.direction())) {
             SOURCE_SLOT_LIMIT_SCANS.remove(endpoint);
             return SlotLimitCheck.ALLOWED;
@@ -1145,7 +1145,7 @@ public final class SkyNetworkTicker {
             return SlotLimitCheck.ALLOWED;
         }
         if (target instanceof ConstrainedDistributorItemHandler) return SlotLimitCheck.ALLOWED;
-        NetworkEndpointBlockEntity node = endpoint.node();
+        LogisticsEndpoint node = endpoint.node();
         net.minecraft.core.Direction direction = endpoint.direction();
         if (node instanceof SkyNodeBlockEntity skyNode && skyNode.isItemLimitByItems(direction)) return SlotLimitCheck.ALLOWED;
         int limit = node.getItemSlotLimit(direction);
@@ -1539,7 +1539,7 @@ public final class SkyNetworkTicker {
 
     private static DistributorItemInsertContext distributorItemInsertContext(CachedEndpoint sourceEndpoint,
             CachedEndpoint targetEndpoint) {
-        NetworkEndpointBlockEntity endpointNode = targetEndpoint.node();
+        LogisticsEndpoint endpointNode = targetEndpoint.node();
         DistributorItemInsertContext.MaintainUnit unit = DistributorItemInsertContext.MaintainUnit.NONE;
         int amount = 0;
         if (endpointNode instanceof SkyNodeBlockEntity node) {
@@ -1558,7 +1558,7 @@ public final class SkyNetworkTicker {
     }
 
     private static int itemSourcePriorityIndex(CachedEndpoint sourceEndpoint) {
-        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        LogisticsEndpoint sourceNode = sourceEndpoint.node();
         if (!(sourceNode.getLevel() instanceof ServerLevel level)) return -1;
         List<CachedEndpoint> sources = sourceNode.hasDimensionUpgrade()
                 ? SkyNetworkRegistry.globalItemInputs(level.getServer(), sourceNode.getLineId())
@@ -1669,7 +1669,7 @@ public final class SkyNetworkTicker {
         }
         BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
                 || endpoint.node() instanceof SkyRSInterfaceBlockEntity
-                ? endpoint.node() : endpoint.targetBlockEntity();
+                ? (BlockEntity) endpoint.node() : endpoint.targetBlockEntity();
         boolean supported = blockEntity instanceof ItemVaultBlockEntity
                 || blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost
                 || (blockEntity instanceof SkyMEInterfaceBlockEntity
@@ -1948,7 +1948,7 @@ public final class SkyNetworkTicker {
         if (isExternalNetworkFluidEndpoint(sourceEndpoint)) {
             return transferExternalNetworkFluids(sourceEndpoint, targets, budget, gameTime);
         }
-        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        LogisticsEndpoint sourceNode = sourceEndpoint.node();
         IFluidHandler source = sourceEndpoint.fluidHandler(gameTime);
         if (source == null || budget <= 0) {
             return 0;
@@ -2022,7 +2022,7 @@ public final class SkyNetworkTicker {
     }
 
     private static boolean isExternalNetworkFluidEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.node();
+        BlockEntity blockEntity = endpoint.node() instanceof BlockEntity value ? value : null;
         return (blockEntity instanceof SkyMEInterfaceBlockEntity
                 && AppliedEnergisticsCompat.isLoaded()
                 && SkyLogisticsConfig.allowAe2FluidTransfer())
@@ -2033,7 +2033,7 @@ public final class SkyNetworkTicker {
 
     private static int transferExternalNetworkFluids(CachedEndpoint sourceEndpoint, List<CachedEndpoint> targets,
             int budget, long gameTime) {
-        BlockEntity sourceBlockEntity = sourceEndpoint.node();
+        BlockEntity sourceBlockEntity = sourceEndpoint.node() instanceof BlockEntity value ? value : null;
         LongFluidEndpoint sourceLongEndpoint = longFluidEndpoint(sourceEndpoint);
         if (sourceBlockEntity == null || sourceLongEndpoint == null || budget <= 0) {
             return 0;
@@ -2090,7 +2090,7 @@ public final class SkyNetworkTicker {
         return LongFluidResource.EMPTY;
     }
 
-    private static SourceSearchResult nextFluidTank(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
+    private static SourceSearchResult nextFluidTank(CachedEndpoint sourceEndpoint, LogisticsEndpoint sourceNode,
             int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
         IFluidHandler handler = sourceEndpoint.fluidHandler(gameTime);
         if (usesIndependentDistributorProbes(handler) && handler instanceof BudgetedDistributorHandler distributor) {
@@ -2130,7 +2130,7 @@ public final class SkyNetworkTicker {
     }
 
     private static SourceSearchResult nextSequentialFluidTank(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
+            LogisticsEndpoint sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
             boolean ignoreEmptyCooldown, int skipBudget) {
         int skippedChecks = 0;
         int attemptLimit = Math.min(tanks, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
@@ -2382,7 +2382,7 @@ public final class SkyNetworkTicker {
     private static LongFluidEndpoint longFluidEndpoint(CachedEndpoint endpoint) {
         BlockEntity blockEntity = endpoint.node() instanceof SkyMEInterfaceBlockEntity
                 || endpoint.node() instanceof SkyRSInterfaceBlockEntity
-                ? endpoint.node() : endpoint.targetBlockEntity();
+                ? (BlockEntity) endpoint.node() : endpoint.targetBlockEntity();
         boolean supported = blockEntity instanceof FluidVaultBlockEntity
                 || blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost
                 || (blockEntity instanceof SkyMEInterfaceBlockEntity
@@ -2633,7 +2633,7 @@ public final class SkyNetworkTicker {
         if (!SkyLogisticsConfig.allowFluidChemicalTransfer()) {
             return 0;
         }
-        NetworkEndpointBlockEntity sourceNode = sourceEndpoint.node();
+        LogisticsEndpoint sourceNode = sourceEndpoint.node();
         ChemicalHandlerBridge source = sourceEndpoint.chemicalHandler(gameTime);
         if (source == null || budget <= 0) {
             return 0;
@@ -2701,7 +2701,7 @@ public final class SkyNetworkTicker {
         return operations;
     }
 
-    private static SourceSearchResult nextChemicalTank(CachedEndpoint sourceEndpoint, NetworkEndpointBlockEntity sourceNode,
+    private static SourceSearchResult nextChemicalTank(CachedEndpoint sourceEndpoint, LogisticsEndpoint sourceNode,
             int tanks, long gameTime, int firstTriedTank, int secondTriedTank, int skipBudget) {
         ChemicalHandlerBridge handler = sourceEndpoint.chemicalHandler(gameTime);
         if (usesIndependentDistributorProbes(handler) && handler instanceof BudgetedDistributorHandler distributor) {
@@ -2741,7 +2741,7 @@ public final class SkyNetworkTicker {
     }
 
     private static SourceSearchResult nextSequentialChemicalTank(CachedEndpoint sourceEndpoint,
-            NetworkEndpointBlockEntity sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
+            LogisticsEndpoint sourceNode, int tanks, long gameTime, int firstTriedTank, int secondTriedTank,
             boolean ignoreEmptyCooldown, int skipBudget) {
         int skippedChecks = 0;
         int attemptLimit = Math.min(tanks, SkyLogisticsConfig.sourceSearchAttemptsPerEndpoint());
@@ -3008,7 +3008,7 @@ public final class SkyNetworkTicker {
     }
 
     private static LongEnergyEndpoint longEnergyEndpoint(CachedEndpoint endpoint) {
-        BlockEntity blockEntity = endpoint.node();
+        BlockEntity blockEntity = endpoint.node() instanceof BlockEntity value ? value : null;
         if (blockEntity instanceof BeyondDimensionsCompat.NetworkBoundHost) {
             return new DimensionEnergyLongEndpoint(blockEntity);
         }
@@ -3815,7 +3815,7 @@ public final class SkyNetworkTicker {
 
     private static long maintainedAllowance(CachedEndpoint endpoint, long requested, long stored, int occupied,
             long existingRefillCapacity) {
-        NetworkEndpointBlockEntity node = endpoint.node();
+        LogisticsEndpoint node = endpoint.node();
         long target = node.getMaintainAmount(endpoint.direction());
         return MaintainedResourcePolicy.insertionAllowance(node.isMaintainByAmount(endpoint.direction()),
                 requested, stored, occupied, target, SkyLogisticsConfig.fillMaintainedItemSlots(),
