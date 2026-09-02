@@ -1,5 +1,5 @@
 {
-  "input": "/private/tmp/sky-logistics-kleis-dominion-wand/common/src/main/resources/assets/skylogistics/textures/item/kleis_dominion_wand.png",
+  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/common/src/main/resources/assets/skylogistics/textures/item/kleis_dominion_wand.png",
   "dimensions": {
     "width": 32,
     "height": 192
@@ -15,16 +15,16 @@
     "iccBytes": 0
   },
   "alpha": {
-    "transparentPixels": 4974,
+    "transparentPixels": 4812,
     "partialAlphaPixels": 0,
-    "opaquePixels": 1170
+    "opaquePixels": 1332
   },
   "uniqueColors": 18,
   "palette": [
     {
       "rgba": "#00000000",
-      "count": 4974,
-      "percent": 80.957,
+      "count": 4812,
+      "percent": 78.32,
       "luminance": 0,
       "hsv": {
         "h": 0,
@@ -33,14 +33,14 @@
       }
     },
     {
-      "rgba": "#224f7aff",
-      "count": 192,
-      "percent": 3.125,
-      "luminance": 0.073372,
+      "rgba": "#2d6794ff",
+      "count": 228,
+      "percent": 3.711,
+      "luminance": 0.123965,
       "hsv": {
-        "h": 209.3,
-        "s": 0.7213,
-        "v": 0.4784
+        "h": 206.2,
+        "s": 0.6959,
+        "v": 0.5804
       }
     },
     {
@@ -55,14 +55,14 @@
       }
     },
     {
-      "rgba": "#a85b23ff",
+      "rgba": "#bc6c28ff",
       "count": 180,
       "percent": 2.93,
-      "luminance": 0.159284,
+      "luminance": 0.215697,
       "hsv": {
-        "h": 25.3,
-        "s": 0.7917,
-        "v": 0.6588
+        "h": 27.6,
+        "s": 0.7872,
+        "v": 0.7373
       }
     },
     {
@@ -77,6 +77,28 @@
       }
     },
     {
+      "rgba": "#23406aff",
+      "count": 162,
+      "percent": 2.637,
+      "luminance": 0.050647,
+      "hsv": {
+        "h": 215.5,
+        "s": 0.6698,
+        "v": 0.4157
+      }
+    },
+    {
+      "rgba": "#87562eff",
+      "count": 156,
+      "percent": 2.539,
+      "luminance": 0.120037,
+      "hsv": {
+        "h": 27,
+        "s": 0.6593,
+        "v": 0.5294
+      }
+    },
+    {
       "rgba": "#e0ad50ff",
       "count": 126,
       "percent": 2.051,
@@ -85,28 +107,6 @@
         "h": 38.8,
         "s": 0.6429,
         "v": 0.8784
-      }
-    },
-    {
-      "rgba": "#172849ff",
-      "count": 114,
-      "percent": 1.855,
-      "luminance": 0.021808,
-      "hsv": {
-        "h": 219.6,
-        "s": 0.6849,
-        "v": 0.2863
-      }
-    },
-    {
-      "rgba": "#5c391dff",
-      "count": 78,
-      "percent": 1.27,
-      "luminance": 0.052903,
-      "hsv": {
-        "h": 26.7,
-        "s": 0.6848,
-        "v": 0.3608
       }
     },
     {
@@ -227,9 +227,9 @@
     }
   ],
   "symmetry": {
-    "horizontalMismatches": 2008,
-    "verticalMismatches": 2008,
-    "rotational180Mismatches": 2244
+    "horizontalMismatches": 2272,
+    "verticalMismatches": 2272,
+    "rotational180Mismatches": 2412
   },
   "pixelGrid": null
 }
