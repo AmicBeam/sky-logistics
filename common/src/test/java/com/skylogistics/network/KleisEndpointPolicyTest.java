@@ -30,4 +30,12 @@ class KleisEndpointPolicyTest {
         assertTrue(KleisEndpointPolicy.revisionMatches(7, 7));
         assertFalse(KleisEndpointPolicy.revisionMatches(6, 7));
     }
+
+    @Test
+    void detectsBlocksWithBothEndpointDirections() {
+        int mask = KleisEndpointPolicy.addEndpointMode(0, true);
+        assertFalse(KleisEndpointPolicy.hasMixedEndpointModes(mask));
+        mask = KleisEndpointPolicy.addEndpointMode(mask, false);
+        assertTrue(KleisEndpointPolicy.hasMixedEndpointModes(mask));
+    }
 }

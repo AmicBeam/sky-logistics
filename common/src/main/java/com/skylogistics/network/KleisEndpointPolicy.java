@@ -23,4 +23,12 @@ public final class KleisEndpointPolicy {
     public static boolean revisionMatches(int expectedRevision, int currentRevision) {
         return expectedRevision < 0 || expectedRevision == currentRevision;
     }
+
+    public static int addEndpointMode(int mask, boolean extracting) {
+        return mask | (extracting ? 1 : 2);
+    }
+
+    public static boolean hasMixedEndpointModes(int mask) {
+        return (mask & 3) == 3;
+    }
 }

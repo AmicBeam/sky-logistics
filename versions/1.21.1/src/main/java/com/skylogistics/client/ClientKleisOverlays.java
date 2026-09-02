@@ -5,11 +5,14 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.KleisOverlayPacket;
+import com.skylogistics.network.KleisEndpointPolicy;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.NodeFaceMode;
 import java.util.List;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
@@ -45,7 +48,7 @@ public final class ClientKleisOverlays {
     private static Object snapshotLevel;
     private static int lastRequestChunkX = Integer.MIN_VALUE;
     private static int lastRequestChunkZ = Integer.MIN_VALUE;
-    private static final Set<BlockPos> xrayBlocks = new HashSet<>();
+    private static final Map<BlockPos, Integer> centerModes = new HashMap<>();
     private ClientKleisOverlays() {}
 
     public static void apply(KleisOverlayPacket packet) {
@@ -54,7 +57,7 @@ public final class ClientKleisOverlays {
         entries = packet.entries();
     }
     public static void clear() {
-        lineId = null; editNearby = false; active = false; entries = List.of(); xrayBlocks.clear();
+        lineId = null; editNearby = false; active = false; entries = List.of(); centerModes.clear();
         snapshotLevel = null; resetRequestLocation();
     }
 
@@ -125,15 +128,26 @@ public final class ClientKleisOverlays {
     private static void renderXrayCenters(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
         VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(XRAY_CENTER);
-        xrayBlocks.clear();
+        centerModes.clear();
+        Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
-            if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()
-                    || !xrayBlocks.add(entry.pos())) continue;
-            boolean extract = entry.mode() == NodeFaceMode.INPUT;
-            float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
-            boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
-            float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            drawCenterCube(event.getPoseStack().last().pose(), consumer, entry.pos(), camera,
+            centerModes.merge(entry.pos(), entry.mode() == NodeFaceMode.INPUT ? 1 : 2,
+                    (mask, ignored) -> KleisEndpointPolicy.addEndpointMode(mask,
+                            entry.mode() == NodeFaceMode.INPUT));
+            if (lineId != null && lineId.equals(entry.lineId())) currentLineBlocks.add(entry.pos());
+        }
+        for (Map.Entry<BlockPos, Integer> center : centerModes.entrySet()) {
+            BlockPos pos = center.getKey();
+            if (!mc.level.isLoaded(pos) || mc.level.getBlockState(pos).isAir()) continue;
+            boolean mixed = KleisEndpointPolicy.hasMixedEndpointModes(center.getValue());
+            boolean extract = (center.getValue() & 1) != 0;
+            float r = mixed ? 0.78F : extract ? 1.0F : 0.25F;
+            float g = mixed ? 0.64F : extract ? 0.62F : 0.86F;
+            float b = mixed ? 1.0F : extract ? 0.22F : 0.94F;
+            boolean focused = hit != null && hit.getBlockPos().equals(pos);
+            boolean current = currentLineBlocks.contains(pos);
+            float alphaScale = edit && !focused && lineId != null && !current ? 0.45F : 1.0F;
+            drawCenterCube(event.getPoseStack().last().pose(), consumer, pos, camera,
                     r, g, b, 0.50F * alphaScale);
         }
         mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
