@@ -95,24 +95,42 @@ public final class ClientKleisOverlays {
             ModNetworking.requestKleisOverlays(edit);
         }
         Vec3 camera = event.getCamera().getPosition();
-        VertexConsumer masks = mc.renderBuffers().bufferSource().getBuffer(RenderType.debugFilledBox());
-        VertexConsumer xrayMasks = mc.renderBuffers().bufferSource().getBuffer(XRAY_MASK);
-        VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
         net.minecraft.world.phys.BlockHitResult hit = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit
                 ? blockHit : null;
+        renderMasks(event, mc, camera, hit, edit, false);
+        renderMasks(event, mc, camera, hit, edit, true);
+        renderLines(event, mc, camera, hit, edit, now);
+    }
+
+    private static void renderMasks(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
+            net.minecraft.world.phys.BlockHitResult hit, boolean edit, boolean xray) {
+        RenderType type = xray ? XRAY_MASK : RenderType.debugFilledBox();
+        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
+        for (KleisOverlayPacket.Entry entry : entries) {
+            if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
+            if (mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get()) != xray) continue;
+            boolean extract = entry.mode() == NodeFaceMode.INPUT;
+            float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
+            boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
+            float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
+            AABB mask = faceBox(entry.pos(), entry.face(), 0);
+            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), consumer,
+                    mask.minX-camera.x, mask.minY-camera.y, mask.minZ-camera.z,
+                    mask.maxX-camera.x, mask.maxY-camera.y, mask.maxZ-camera.z,
+                    r, g, b, 0.22F * alphaScale);
+        }
+        mc.renderBuffers().bufferSource().endBatch(type);
+    }
+
+    private static void renderLines(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
+            net.minecraft.world.phys.BlockHitResult hit, boolean edit, long now) {
+        VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
             boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
             float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
-            AABB mask = faceBox(entry.pos(), entry.face(), 0);
-            VertexConsumer maskConsumer = mc.level.getBlockState(entry.pos()).is(ModBlocks.SKY_DISTRIBUTOR.get())
-                    ? xrayMasks : masks;
-            LevelRenderer.addChainedFilledBoxVertices(event.getPoseStack(), maskConsumer,
-                    mask.minX-camera.x, mask.minY-camera.y, mask.minZ-camera.z,
-                    mask.maxX-camera.x, mask.maxY-camera.y, mask.maxZ-camera.z,
-                    r, g, b, 0.22F * alphaScale);
             for (int ring = 1; ring <= 7; ring++) {
                 draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F * alphaScale);
             }
@@ -123,8 +141,6 @@ public final class ClientKleisOverlays {
                 draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F * alphaScale);
             }
         }
-        mc.renderBuffers().bufferSource().endBatch(RenderType.debugFilledBox());
-        mc.renderBuffers().bufferSource().endBatch(XRAY_MASK);
         mc.renderBuffers().bufferSource().endBatch(RenderType.lines());
     }
 
@@ -188,7 +204,7 @@ public final class ClientKleisOverlays {
 
         private static RenderType createMask() {
             return RenderType.create("skylogistics_kleis_xray_mask", DefaultVertexFormat.POSITION_COLOR,
-                    VertexFormat.Mode.QUADS, 256, false, true, RenderType.CompositeState.builder()
+                    VertexFormat.Mode.TRIANGLE_STRIP, 256, false, true, RenderType.CompositeState.builder()
                             .setShaderState(POSITION_COLOR_SHADER)
                             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                             .setDepthTestState(NO_DEPTH_TEST)
