@@ -137,7 +137,7 @@ public final class KleisEndpointSavedData extends SavedData {
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
                     node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(),
-                    node.getLineName(), saved.revision()));
+                    node.getLineName(), resourceMask(node), saved.revision()));
         }
         return List.copyOf(result);
     }
@@ -154,7 +154,7 @@ public final class KleisEndpointSavedData extends SavedData {
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
                     node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(),
-                    node.getLineName(), saved.revision()));
+                    node.getLineName(), resourceMask(node), saved.revision()));
         }
         return List.copyOf(result);
     }
@@ -167,6 +167,13 @@ public final class KleisEndpointSavedData extends SavedData {
             }
         }
         return result;
+    }
+
+    private static int resourceMask(KleisRuntimeEndpoint node) {
+        Direction direction = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
+        return (node.isItemsEnabled(direction) ? 1 : 0)
+                | (node.isFluidsEnabled(direction) ? 2 : 0)
+                | (node.isEnergyEnabled(direction) ? 4 : 0);
     }
 
     public EditResult copyToConfigurator(ServerPlayer player, Key key, int expectedRevision,
@@ -314,7 +321,7 @@ public final class KleisEndpointSavedData extends SavedData {
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}
     public record Entry(UUID owner, int revision, CompoundTag nodeData) {}
     public record Snapshot(BlockPos pos, Direction face, com.skylogistics.util.NodeFaceMode mode,
-                           UUID lineId, String lineName, int revision) {}
+                           UUID lineId, String lineName, int resourceMask, int revision) {}
 
     public enum EditResult {
         COPIED,

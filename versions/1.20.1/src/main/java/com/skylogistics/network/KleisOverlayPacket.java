@@ -14,13 +14,14 @@ import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 public record KleisOverlayPacket(boolean editNearby, UUID selectedLineId, List<Entry> entries) {
-    public record Entry(BlockPos pos, Direction face, NodeFaceMode mode, UUID lineId, String lineName, int revision) {}
+    public record Entry(BlockPos pos, Direction face, NodeFaceMode mode, UUID lineId, String lineName,
+                        int resourceMask, int revision) {}
 
     public static KleisOverlayPacket from(boolean editNearby, UUID selectedLineId,
             List<KleisEndpointSavedData.Snapshot> snapshots) {
         return new KleisOverlayPacket(editNearby, selectedLineId, snapshots.stream().limit(512)
                 .map(snapshot -> new Entry(snapshot.pos(), snapshot.face(), snapshot.mode(),
-                        snapshot.lineId(), snapshot.lineName(), snapshot.revision())).toList());
+                        snapshot.lineId(), snapshot.lineName(), snapshot.resourceMask(), snapshot.revision())).toList());
     }
 
     public static void encode(KleisOverlayPacket packet, FriendlyByteBuf buffer) {
@@ -30,7 +31,8 @@ public record KleisOverlayPacket(boolean editNearby, UUID selectedLineId, List<E
         buffer.writeVarInt(packet.entries.size());
         for (Entry entry : packet.entries) {
             buffer.writeBlockPos(entry.pos); buffer.writeEnum(entry.face); buffer.writeEnum(entry.mode);
-            buffer.writeUUID(entry.lineId); buffer.writeUtf(entry.lineName, 48); buffer.writeVarInt(entry.revision);
+            buffer.writeUUID(entry.lineId); buffer.writeUtf(entry.lineName, 48);
+            buffer.writeByte(entry.resourceMask); buffer.writeVarInt(entry.revision);
         }
     }
 
@@ -41,7 +43,7 @@ public record KleisOverlayPacket(boolean editNearby, UUID selectedLineId, List<E
         List<Entry> entries = new ArrayList<>(size);
         for (int i = 0; i < size; i++) entries.add(new Entry(buffer.readBlockPos(),
                 buffer.readEnum(Direction.class), buffer.readEnum(NodeFaceMode.class),
-                buffer.readUUID(), buffer.readUtf(48), buffer.readVarInt()));
+                buffer.readUUID(), buffer.readUtf(48), buffer.readUnsignedByte() & 7, buffer.readVarInt()));
         return new KleisOverlayPacket(editNearby, selected, List.copyOf(entries));
     }
 

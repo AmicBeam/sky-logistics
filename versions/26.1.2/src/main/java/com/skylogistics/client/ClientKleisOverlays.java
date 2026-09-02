@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -114,11 +115,26 @@ public final class ClientKleisOverlays {
         KleisOverlayPacket.Entry entry = entryAt(hit.getBlockPos(), hit.getDirection());
         if (entry == null) return;
         String name = ClientLineNames.displayName(entry.lineId(), entry.lineName());
-        Component mode = Component.translatable(entry.mode() == NodeFaceMode.INPUT
-                ? "tooltip.skylogistics.mode.input" : "tooltip.skylogistics.mode.output");
-        Component label = Component.literal(name + " · ").append(mode);
+        Component resources = resourceLabel(entry.resourceMask());
         GuiGraphicsExtractor graphics = event.getGuiGraphics();
-        graphics.centeredText(mc.font, label, graphics.guiWidth() / 2, graphics.guiHeight() / 2 + 12, 0xFFFFFFFF);
+        int centerX = graphics.guiWidth() / 2;
+        int firstLineY = graphics.guiHeight() / 2 + 12;
+        graphics.centeredText(mc.font, name, centerX, firstLineY, 0xFFFFFFFF);
+        graphics.centeredText(mc.font, resources, centerX, firstLineY + 10, 0xFFFFFFFF);
+    }
+
+    private static Component resourceLabel(int mask) {
+        MutableComponent label = Component.empty();
+        if ((mask & 1) != 0) label.append(Component.translatable("button.skylogistics.items"));
+        if ((mask & 2) != 0) {
+            if (!label.getString().isEmpty()) label.append(" · ");
+            label.append(Component.translatable("button.skylogistics.fluids"));
+        }
+        if ((mask & 4) != 0) {
+            if (!label.getString().isEmpty()) label.append(" · ");
+            label.append(Component.translatable("button.skylogistics.energy"));
+        }
+        return label.getString().isEmpty() ? Component.literal("-") : label;
     }
 
     private static void draw(RenderLevelStageEvent.AfterTranslucentParticles event, VertexConsumer consumer, AABB box, Vec3 camera,
