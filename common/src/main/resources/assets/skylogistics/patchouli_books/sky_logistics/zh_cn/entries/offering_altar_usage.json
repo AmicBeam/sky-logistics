@@ -24,6 +24,10 @@
     },
     {
       "type": "patchouli:text",
+      "text": "三阶祭坛按 tierThreeAltarWorkSpeedMultiplier 推进工作。服务器默认倍率为 4，可在 1–64 之间调整；三阶可以运行所有祭坛等级要求不高于三阶的供奉。"
+    },
+    {
+      "type": "patchouli:text",
       "text": "放入或取出材料后，祭坛会重新检查配方。如果装了 Jade，准星对准祭坛或供桌时可以看到其中已有的供品；空槽不会额外显示。"
     }
   ]

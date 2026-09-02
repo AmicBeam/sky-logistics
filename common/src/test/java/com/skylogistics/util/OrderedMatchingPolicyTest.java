@@ -91,12 +91,12 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
-    void perItemModeMovesOnlyOneItemUntilBatchThresholdIsExceeded() {
-        assertEquals(1, OrderedMatchingPolicy.batchTargetCount(2, 4));
+    void perItemModeBatchesAcrossAsManyAcceptingTargetsAsItems() {
+        assertEquals(2, OrderedMatchingPolicy.batchTargetCount(2, 4));
         assertEquals(1, OrderedMatchingPolicy.batchAmount(2, 4, 0));
-        assertEquals(0, OrderedMatchingPolicy.batchAmount(2, 4, 1));
+        assertEquals(1, OrderedMatchingPolicy.batchAmount(2, 4, 1));
         assertEquals(0, OrderedMatchingPolicy.batchAmount(2, 4, 2));
-        assertEquals(1, OrderedMatchingPolicy.batchTargetCount(4, 4));
+        assertEquals(4, OrderedMatchingPolicy.batchTargetCount(4, 4));
         assertEquals(4, OrderedMatchingPolicy.batchTargetCount(5, 4));
         assertEquals(2, OrderedMatchingPolicy.batchAmount(5, 4, 0));
         assertEquals(1, OrderedMatchingPolicy.batchAmount(5, 4, 1));
@@ -118,36 +118,16 @@ class OrderedMatchingPolicyTest {
     }
 
     @Test
-    void detainedItemsAreExcludedFromFreshDispatch() {
-        assertEquals(9, OrderedMatchingPolicy.availableAfterDetention(10, 1));
-        assertEquals(0, OrderedMatchingPolicy.availableAfterDetention(1, 1));
-        assertEquals(0, OrderedMatchingPolicy.availableAfterDetention(1, 3));
-    }
-
-    @Test
-    void detentionQueueAcceptsReplacementAtCapacity() {
-        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(0, 1));
-        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(1, 1));
-        assertTrue(OrderedMatchingPolicy.canEnqueueDetention(4, 4));
-        assertFalse(OrderedMatchingPolicy.canEnqueueDetention(0, 0));
-        assertEquals(0, OrderedMatchingPolicy.detentionEvictionsForEnqueue(3, 4));
-        assertEquals(1, OrderedMatchingPolicy.detentionEvictionsForEnqueue(4, 4));
-        assertEquals(2, OrderedMatchingPolicy.detentionEvictionsForEnqueue(5, 4));
-        assertEquals(0, OrderedMatchingPolicy.detentionEvictionsForEnqueue(1, 0));
-    }
-
-    @Test
-    void idleSourceAddsCursorResetWhenNoDetentionRemains() {
-        assertTrue(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0, false));
-        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(true, 0, false));
-        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 1, false));
-        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, 0, true));
+    void idleSourceResetsOnlyWhenNoBatchRemains() {
+        assertTrue(OrderedMatchingPolicy.shouldResetPerItemCursor(false, false));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(true, false));
+        assertFalse(OrderedMatchingPolicy.shouldResetPerItemCursor(false, true));
     }
 
     @Test
     void perItemBatchPlanSurvivesAFourTargetTickBudget() {
         OrderedMatchingPolicy.PerItemBatchPlan plan =
-                new OrderedMatchingPolicy.PerItemBatchPlan(64, 5, 0);
+                new OrderedMatchingPolicy.PerItemBatchPlan(64, new int[] {0, 1, 2, 3, 4});
         assertEquals(13, plan.amount());
         for (int target = 0; target < 4; target++) {
             assertEquals(target, plan.targetIndex());
@@ -164,7 +144,7 @@ class OrderedMatchingPolicyTest {
     @Test
     void sixtyFourItemsKeepTheirFiveTargetResultAcrossTicks() {
         OrderedMatchingPolicy.PerItemBatchPlan plan =
-                new OrderedMatchingPolicy.PerItemBatchPlan(64, 5, 0);
+                new OrderedMatchingPolicy.PerItemBatchPlan(64, new int[] {0, 1, 2, 3, 4});
         int[] received = new int[5];
         while (!plan.complete()) {
             for (int visits = 0; visits < 4 && !plan.complete(); visits++) {
@@ -173,5 +153,28 @@ class OrderedMatchingPolicyTest {
             }
         }
         assertArrayEquals(new int[] {13, 13, 13, 13, 12}, received);
+    }
+
+    @Test
+    void batchUsesOnlyAcceptingTargetIndices() {
+        OrderedMatchingPolicy.PerItemBatchPlan plan =
+                new OrderedMatchingPolicy.PerItemBatchPlan(10, new int[] {1, 4, 7});
+        assertEquals(1, plan.targetIndex());
+        assertEquals(4, plan.amount());
+        plan.advance();
+        assertEquals(4, plan.targetIndex());
+        assertEquals(3, plan.amount());
+        plan.advance();
+        assertEquals(7, plan.targetIndex());
+        assertEquals(3, plan.amount());
+    }
+
+    @Test
+    void noAcceptingTargetsProducesNoAssignments() {
+        OrderedMatchingPolicy.PerItemBatchPlan plan =
+                new OrderedMatchingPolicy.PerItemBatchPlan(10, new int[0]);
+        assertTrue(plan.complete());
+        assertEquals(-1, plan.targetIndex());
+        assertEquals(0, plan.remainingAmount());
     }
 }

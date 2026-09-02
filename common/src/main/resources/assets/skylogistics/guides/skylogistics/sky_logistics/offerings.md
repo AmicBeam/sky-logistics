@@ -9,6 +9,7 @@ item_ids:
   - skylogistics:offering_table
   - skylogistics:eulogia_crystal
   - skylogistics:chora_nectar
+  - skylogistics:chora_nectar_block
 ---
 
 # Sky Offerings
@@ -20,6 +21,7 @@ Offerings are the early progression path for Sky Logistics. The altar validates 
   <ItemIcon id="offering_altar" />
   <ItemIcon id="offering_table" />
   <ItemIcon id="chora_nectar" />
+  <ItemIcon id="chora_nectar_block" />
 </ItemGrid>
 
 Start here:
@@ -30,6 +32,8 @@ Start here:
 - [Chora Nectar Offering](chora_nectar_offering.md)
 
 Offerings require the altar to be high enough in the sky and inside a valid circle. The required height is Y=96 by default, though server settings may differ. Put the main ingredient on the altar, place the offerings on the four side tables in any order, then wait for the ritual to finish.
+
+The circle has three tiers. Tier 1 unlocks basic offerings, tier 2 adds the outer pillars needed for Chora Nectar, and tier 3 uses four Chora Nectar Blocks to accelerate all valid offerings at a configurable multiplier.
 
 <RecipeFor id="offering_altar" fallbackText="The offering altar recipe is unavailable." />
 <RecipeFor id="offering_table" fallbackText="The offering table recipe is unavailable." />

@@ -31,19 +31,28 @@ public class EulogiaCrystalItem extends Item implements SkyChargeableItem {
     private static final int TICKS_PER_SECOND = 20;
     private static final int CHARGED_DAMAGE_VALUE = 1;
     private static final int FULL_BAR_WIDTH = 13;
+    private final IntSupplier minimumChargeY;
     private final IntSupplier requiredChargeSeconds;
     private final String translationKeyBase;
     private final Identifier chargedItemModel;
 
     public EulogiaCrystalItem(Properties properties) {
-        this(properties, SkyLogisticsConfig::eulogiaCrystalChargeSeconds, "eulogia_crystal");
+        this(properties, SkyLogisticsConfig::skyRitualMinY,
+                SkyLogisticsConfig::eulogiaCrystalChargeSeconds, "eulogia_crystal");
     }
 
-    public EulogiaCrystalItem(Properties properties, IntSupplier requiredChargeSeconds, String translationKeyBase) {
+    public EulogiaCrystalItem(Properties properties, IntSupplier minimumChargeY,
+            IntSupplier requiredChargeSeconds, String translationKeyBase) {
         super(properties);
+        this.minimumChargeY = minimumChargeY;
         this.requiredChargeSeconds = requiredChargeSeconds;
         this.translationKeyBase = translationKeyBase;
         this.chargedItemModel = SkyLogistics.id(translationKeyBase + "_charged");
+    }
+
+    @Override
+    public int minimumChargeY() {
+        return minimumChargeY.getAsInt();
     }
 
     public static boolean isCharged(ItemStack stack) {
@@ -125,7 +134,7 @@ public class EulogiaCrystalItem extends Item implements SkyChargeableItem {
             ensureChargedComponents(stack);
             return;
         }
-        if (player.blockPosition().getY() < SkyLogisticsConfig.skyRitualMinY()) {
+        if (player.blockPosition().getY() < minimumChargeY()) {
             return;
         }
         if (level.getGameTime() % TICKS_PER_SECOND != 0L) {
@@ -186,7 +195,7 @@ public class EulogiaCrystalItem extends Item implements SkyChargeableItem {
             tooltip.accept(Component.translatable("tooltip.skylogistics." + translationKeyBase + ".charged").withStyle(ChatFormatting.AQUA));
         } else {
             tooltip.accept(Component.translatable("tooltip.skylogistics." + translationKeyBase + ".uncharged",
-                    SkyLogisticsConfig.skyRitualMinY()).withStyle(ChatFormatting.GRAY));
+                    minimumChargeY()).withStyle(ChatFormatting.GRAY));
         }
     }
 }

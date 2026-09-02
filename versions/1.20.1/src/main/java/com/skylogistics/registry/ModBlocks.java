@@ -32,13 +32,15 @@ public final class ModBlocks {
     public static final RegistryObject<Block> ITEM_VAULT = BLOCKS.register("item_vault",
             () -> new ItemVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> FLUID_VAULT = BLOCKS.register("fluid_vault",
             () -> new FluidVaultBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> SKY_ME_INTERFACE = BLOCKS.register("sky_me_interface",
@@ -76,6 +78,13 @@ public final class ModBlocks {
 
     public static final RegistryObject<Block> CELESTIAL_STONE = BLOCKS.register("celestial_stone",
             () -> new Block(celestialStoneProperties()));
+
+    public static final RegistryObject<Block> CHORA_NECTAR_BLOCK = BLOCKS.register("chora_nectar_block",
+            () -> new Block(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_YELLOW)
+                    .strength(2.0F, 3_600_000.0F)
+                    .forceSolidOn()
+                    .sound(SoundType.AMETHYST)));
 
     public static final RegistryObject<Block> CELESTIAL_STONE_SLAB = BLOCKS.register("celestial_stone_slab",
             () -> new SlabBlock(celestialStoneProperties()));

@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Tier 1 requires the lower outer frame to remain complete. Celestial Stone, slabs, stairs, and walls all count as frame blocks. Tier 2 adds one Celestial Stone pillar at each corner of the next outer ring, with Celestial Glass on top."
+      "text": "Tier 1 requires the lower outer frame to remain complete. Tier 2 adds Celestial Stone pillars at the next outer corners with Celestial Glass on top. Tier 3 keeps tier 2 and replaces the four inner-frame corners with Chora Nectar Blocks; it works at 4x speed by default."
     },
     {
       "type": "patchouli:text",
@@ -83,6 +83,25 @@
             " CCCCC ",
             "C     C"
           ]
+        ]
+      }
+    },
+    {
+      "type": "patchouli:multiblock",
+      "name": "Tier 3 Sky Offering Altar",
+      "multiblock": {
+        "mapping": {
+          "0": "skylogistics:offering_altar",
+          "T": "skylogistics:offering_table",
+          "C": "skylogistics:celestial_stone",
+          "N": "skylogistics:chora_nectar_block",
+          "G": "skylogistics:celestial_glass",
+          " ": "ANY"
+        },
+        "pattern": [
+          ["G     G", "       ", "       ", "       ", "       ", "       ", "G     G"],
+          ["C     C", "       ", "   T   ", "  T0T  ", "   T   ", "       ", "C     C"],
+          ["C     C", " NCCCN ", " C   C ", " C   C ", " C   C ", " NCCCN ", "C     C"]
         ]
       }
     }

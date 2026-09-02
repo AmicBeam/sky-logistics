@@ -24,6 +24,10 @@
     },
     {
       "type": "patchouli:text",
+      "text": "A tier 3 altar advances work at tierThreeAltarWorkSpeedMultiplier. The server default is 4x, configurable from 1x to 64x. Tier 3 can run every offering allowed by its required altar tier."
+    },
+    {
+      "type": "patchouli:text",
       "text": "With Jade installed, looking at an altar or offering table shows the offering currently placed in it. Empty offering slots are not listed."
     }
   ]

@@ -1,0 +1,51 @@
+{
+  "asset_kind": "transparent-icon",
+  "design_reference": "/private/tmp/chora-kleis-rotated-45.png",
+  "variants": [
+    {"size": 64, "master": "chora_kleis_64.svg", "output": "chora_kleis_64.png", "detail": "full"},
+    {"size": 32, "master": "chora_kleis_32.svg", "output": "chora_kleis_32.png", "detail": "reduced"},
+    {"size": 16, "master": "chora_kleis_16.svg", "output": "chora_kleis_16.png", "detail": "silhouette"}
+  ],
+  "outline_comparison": {
+    "original": "near-black silhouette outline",
+    "no_outline": "material-local dark blue, dark orange, and dark bronze edge colors",
+    "selection_status": "awaiting visual approval"
+  },
+  "focused_32_design": {
+    "master": "chora_kleis_32_no_outline.svg",
+    "output": "chora_kleis_32_refined.png",
+    "edge_style": "material-local",
+    "symmetry_axis": "x+y=32 through pixel centers",
+    "symmetry_mapping": "(x,y) -> (31-y,31-x)",
+    "required_silhouette_mismatches": 0,
+    "simplifications": [
+      "remove pixel-scale meander fragments",
+      "replace each detailed hub with one mirrored 3x3 jewel, one short inward spear, and one short outward tooth",
+      "reduce leather wrap bands",
+      "keep one continuous gold structural band per arc"
+    ]
+  },
+  "render_mode": "pixel-grid",
+  "light_direction": "top-left",
+  "protected_regions": [],
+  "masks": {"edit": null, "cleanup": null, "foreground": null},
+  "geometry": {
+    "axis": "lower-left handle to upper-right ring gap, exactly 45 degrees",
+    "ring": "two mirror-balanced open semicircular arcs around the wand axis",
+    "blue_arc": "upper-left side",
+    "orange_arc": "lower-right side",
+    "handle": "lower-left navy leather grip"
+  },
+  "palette": {
+    "source_family": ["sky_wrench.png", "chora_nectar.png", "configurator.png"],
+    "max_colors_including_transparency": 14,
+    "partial_alpha_allowed": false
+  },
+  "quality_gates": {
+    "edge_contact": false,
+    "direct_logical_raster": true,
+    "max_unique_colors": 14,
+    "partial_alpha_allowed": false
+  },
+  "acceptance": ["native-1x", "nearest-preview", "dark-background", "light-background", "three-size-comparison"]
+}

@@ -21,7 +21,7 @@ item_ids:
 
 未充能水晶放在玩家背包里就能充能，也可以放在 <ItemLink id="offering_table" /> 上等待充能。普通箱子不会充能水晶。默认充能时间约为 20 秒，服务器设置可能有所不同。
 
-<ItemLink id="eulogia_companion_stone" /> 使用 3 个青金石和 2 个无色玻璃合成，复用相同的充能高度，在背包或供桌上默认约 10 秒完成充能。已充能配石用于制作三种简易管道。
+<ItemLink id="eulogia_companion_stone" /> 使用 3 个青金石和 2 个无色玻璃合成。配石充能高度与水晶、祭坛独立，默认为 Y=64 或更高；在背包或供桌上默认约 10 秒完成，服务器可分别修改高度和时间。已充能配石用于制作三种简易管道。
 
 <RecipeFor id="eulogia_companion_stone" fallbackText="未找到尤洛伽水晶配石配方。" />
 

@@ -22,6 +22,7 @@ import com.skylogistics.compat.distributor.ConstrainedDistributorFluidHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorChemicalHandler;
 import com.skylogistics.compat.distributor.ConstrainedDistributorAmountHandler;
 import com.skylogistics.compat.distributor.DistributorItemInsertContext;
+import com.skylogistics.compat.distributor.DistributorOperationBudget;
 import com.skylogistics.compat.distributor.DistributorWorkDefer;
 import com.skylogistics.compat.distributor.MaintainedStorageView;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
@@ -36,10 +37,11 @@ import com.skylogistics.network.SkyNetworkRegistry.LineIndex;
 import com.skylogistics.network.SkyNetworkRegistry.ReadyLines;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
-import com.skylogistics.util.MaintainedSlotPolicy;
+import com.skylogistics.util.ItemSourceSlotCachePolicy;
 import com.skylogistics.util.MaintainedResourcePolicy;
-import com.skylogistics.util.OrderedMatchingPolicy;
+import com.skylogistics.util.MaintainedSlotPolicy;
 import com.skylogistics.util.OrderedMatchingMode;
+import com.skylogistics.util.OrderedMatchingPolicy;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
 import com.skylogistics.util.ItemHandler;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.IntSupplier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
@@ -165,8 +168,9 @@ public final class SkyNetworkTicker {
                             input.deferItemsUntil(nextNecklaceWake(gameTime));
                         }
                     } else {
-                        operations += transferItems(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferItems(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -187,8 +191,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordFluidFailure(gameTime);
                     } else {
-                        operations += transferFluids(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferFluids(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -211,8 +216,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordChemicalFailure(gameTime);
                     } else {
-                        operations += transferChemicals(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferChemicals(input, targets, transferBudget, gameTime));
                     }
                 }
                 if (operations >= serverOpsPerTick) {
@@ -233,8 +239,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordEnergyFailure(gameTime);
                     } else {
-                        operations += transferEnergy(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferEnergy(input, targets, transferBudget, gameTime));
                     }
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -252,8 +259,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordManaFailure(gameTime);
                     } else {
-                        operations += transferMana(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferMana(input, targets, transferBudget, gameTime));
                     }
                 }
                 remainingLineBudget = lineOpsPerTick - (operations - lineOperationsBefore);
@@ -271,8 +279,9 @@ public final class SkyNetworkTicker {
                     if (targets.isEmpty()) {
                         input.recordSourceFailure(gameTime);
                     } else {
-                        operations += transferSource(input, targets,
-                                Math.min(serverOpsPerTick - operations, remainingLineBudget), gameTime);
+                        int transferBudget = Math.min(serverOpsPerTick - operations, remainingLineBudget);
+                        operations += withDistributorBudget(transferBudget,
+                                () -> transferSource(input, targets, transferBudget, gameTime));
                     }
                 }
                 nextWake = nextInputWake(input, node, gameTime, nextWake, itemRoute, fluidRoute,
@@ -288,6 +297,13 @@ public final class SkyNetworkTicker {
             } else {
                 line.sleepUntil(gameTime + 20L);
             }
+        }
+    }
+
+    private static int withDistributorBudget(int budget, IntSupplier transfer) {
+        try (DistributorOperationBudget.Scope scope = DistributorOperationBudget.open(budget)) {
+            int schedulerOperations = transfer.getAsInt();
+            return Math.min(budget, Math.max(schedulerOperations, scope.consumedOperations()));
         }
     }
 
@@ -365,7 +381,6 @@ public final class SkyNetworkTicker {
         if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return 0;
         if (slots <= 0) {
             if (orderedPerItem) {
-                orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
                 orderedMatchingNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
                 resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
             }
@@ -395,7 +410,6 @@ public final class SkyNetworkTicker {
         if (exactExcess == 0) {
             if (orderedPerItem) {
                 if (exactScan.total() == 0L) {
-                    orderedMatchingNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), 0);
                     orderedMatchingNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
                 }
                 resetOrderedPerItemCursorIfIdle(sourceEndpoint, orderedMatchingNode, targets.size());
@@ -420,16 +434,6 @@ public final class SkyNetworkTicker {
         boolean sourceSlotsExhausted = false;
         int transferLimit = (int) Math.min(Integer.MAX_VALUE,
                 sourceNode.limitItemTransfer(SkyLogisticsConfig.nodeItemTransferLimit()));
-        if (orderedPerItem) {
-            OrderedPerItemMoveResult detained = retryOrderedPerItemDetentions(sourceEndpoint,
-                    orderedMatchingNode, source, targets, Math.max(1, budget - operations), gameTime);
-            operations += detained.operations();
-            if (exactExcess > 0) exactExcess = Math.max(0, exactExcess - detained.movedItems());
-            if (!detained.continueSourceSearch() || exactExcess == 0 || operations >= budget) {
-                if (exactExcess >= 0) SOURCE_EXACT_ITEM_SCANS.remove(sourceEndpoint);
-                return operations;
-            }
-        }
         // The upgrade promises a strict order, so it deliberately bypasses hot-slot rotation and
         // rechecks from physical slot 0 even when that scan exceeds this endpoint's normal budget.
         if (orderedMatching) slotChecks = slots;
@@ -462,7 +466,7 @@ public final class SkyNetworkTicker {
             if (simulated.isEmpty()) {
                 if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
                 if (!independentDistributorProbes) {
-                    sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                    sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
                 }
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
@@ -474,17 +478,9 @@ public final class SkyNetworkTicker {
             }
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
                 if (!independentDistributorProbes) {
-                    sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                    sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
                 }
                 continue;
-            }
-            if (orderedPerItem) {
-                int reserved = orderedMatchingNode.orderedMatchingReservedItems(
-                        sourceEndpoint.direction(), slot, simulated);
-                int available = OrderedMatchingPolicy.availableAfterDetention(
-                        source.getStackInSlot(slot).getCount(), reserved);
-                if (available <= 0) continue;
-                if (simulated.getCount() > available) simulated = simulated.copyWithCount(available);
             }
             if (exactExcess > 0 && simulated.getCount() > exactExcess) simulated = simulated.copyWithCount(exactExcess);
             foundCandidate = true;
@@ -713,7 +709,7 @@ public final class SkyNetworkTicker {
                     slot);
             operations++;
             if (resource.isEmpty()) {
-                sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+                sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
                 if (search.preferred() && !usedEmptyPreferredSlotFallback && slotChecks < slots) {
                     usedEmptyPreferredSlotFallback = true;
                     forceSequentialItemFallback = true;
@@ -724,7 +720,7 @@ public final class SkyNetworkTicker {
             }
             ItemStack simulated = resource.stack();
             if (!sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
-                sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+                sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
                 continue;
             }
             foundCandidate = true;
@@ -984,6 +980,12 @@ public final class SkyNetworkTicker {
             }
             return new ItemSourceSearchResult(-1, 0, false, false);
         }
+        if (!ItemSourceSlotCachePolicy.usesHotSlots(slots)) {
+            sourceEndpoint.useSingleItemSlotFastPath();
+            int slot = 0;
+            boolean tried = wasSlotTried(firstTriedSlot, secondTriedSlot, slot);
+            return new ItemSourceSearchResult(tried ? -1 : slot, 0, true, false);
+        }
         int preferredSlot = sourceEndpoint.nextPreferredItemSlot(slots, gameTime, firstTriedSlot, secondTriedSlot);
         if (preferredSlot >= 0) {
             return new ItemSourceSearchResult(preferredSlot, 0, false, true);
@@ -1017,11 +1019,11 @@ public final class SkyNetworkTicker {
         operations++;
         if (simulated.isEmpty()) {
             if (deferExhaustedDistributor(sourceEndpoint, source, gameTime)) return operations;
-            sourceEndpoint.recordItemSlotMiss(slot, gameTime);
+            sourceEndpoint.recordItemSlotMiss(slot, slots, gameTime);
         } else if (sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
             sourceEndpoint.recordItemSlotSuccess(slot, slots, gameTime);
         } else {
-            sourceEndpoint.recordItemSlotRejected(slot, gameTime);
+            sourceEndpoint.recordItemSlotRejected(slot, slots, gameTime);
         }
         return operations;
     }
@@ -1162,54 +1164,10 @@ public final class SkyNetworkTicker {
         return new SlotLimitCheck(scan.matchingSlots >= limit && !scan.canRefill, checks, true);
     }
 
-    private static OrderedPerItemMoveResult retryOrderedPerItemDetentions(CachedEndpoint sourceEndpoint,
-            SkyNodeBlockEntity sourceNode, ItemHandler source, List<CachedEndpoint> targets, int budget,
-            long gameTime) {
-        int capacity = SkyLogisticsConfig.orderedMatchingPerItemDetentionQueueLength();
-        sourceNode.trimOrderedMatchingDetentions(sourceEndpoint.direction(), capacity);
-        int attempts = Math.min(sourceNode.orderedMatchingDetentionCount(sourceEndpoint.direction()),
-                Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts()));
-        int operations = 0;
-        int movedItems = 0;
-        boolean continueSourceSearch = true;
-        for (int i = 0; i < attempts && operations < budget; i++) {
-            SkyNodeBlockEntity.OrderedMatchingDetention detention =
-                    sourceNode.peekOrderedMatchingDetention(sourceEndpoint.direction());
-            if (detention == null) break;
-            if (detention.sourceSlot() < 0 || detention.sourceSlot() >= source.getSlots()) {
-                sourceNode.removeOrderedMatchingDetention(sourceEndpoint.direction(), detention);
-                continue;
-            }
-            ItemStack simulated = simulateSourceItem(sourceEndpoint, source, detention.sourceSlot(), 1);
-            operations++;
-            if (simulated.isEmpty() || !detention.item().equals(ItemStackKey.of(simulated))
-                    || !sourceNode.allowsItem(sourceEndpoint.direction(), simulated)) {
-                sourceNode.removeOrderedMatchingDetention(sourceEndpoint.direction(), detention);
-                continue;
-            }
-            int targetIndex = Math.floorMod(detention.targetIndex(), targets.size());
-            MoveResult result = tryMoveItem(sourceEndpoint, source, detention.sourceSlot(), simulated.copyWithCount(1),
-                    List.of(targets.get(targetIndex)), Math.max(1, budget - operations), gameTime, 1L);
-            operations += result.operations();
-            if (result.moved()) {
-                movedItems++;
-                sourceNode.removeOrderedMatchingDetention(sourceEndpoint.direction(), detention);
-                sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), targetIndex + 1, targets.size());
-            } else if (!SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure()) {
-                continueSourceSearch = false;
-                break;
-            } else {
-                sourceNode.rotateOrderedMatchingDetention(sourceEndpoint.direction(), detention);
-            }
-        }
-        return new OrderedPerItemMoveResult(movedItems > 0, operations, continueSourceSearch, movedItems);
-    }
-
     private static void resetOrderedPerItemCursorIfIdle(CachedEndpoint sourceEndpoint,
             SkyNodeBlockEntity sourceNode, int targetCount) {
-        int detentionCount = sourceNode.orderedMatchingDetentionCount(sourceEndpoint.direction());
         boolean hasPendingBatch = sourceNode.hasOrderedMatchingBatch(sourceEndpoint.direction());
-        if (OrderedMatchingPolicy.shouldResetPerItemCursor(false, detentionCount, hasPendingBatch)) {
+        if (OrderedMatchingPolicy.shouldResetPerItemCursor(false, hasPendingBatch)) {
             sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), 0, targetCount);
         }
     }
@@ -1219,19 +1177,32 @@ public final class SkyNetworkTicker {
             long gameTime) {
         int targetCount = targets.size();
         if (targetCount <= 0 || simulated.isEmpty() || budget <= 0) {
-            return new OrderedPerItemMoveResult(false, 0, false, 0);
+            return new OrderedPerItemMoveResult(false, 0, false);
         }
         int cursor = sourceNode.getOrderedMatchingCursor(sourceEndpoint.direction(), targetCount);
         SkyNodeBlockEntity.OrderedMatchingBatch batch = sourceNode.prepareOrderedMatchingBatch(
                 sourceEndpoint.direction(), slot, simulated, targetCount, cursor);
-        OrderedMatchingPolicy.PerItemBatchPlan plan = batch.plan();
-        int maxAttempts = Math.min(plan.remainingAssignments(),
-                Math.min(budget, SkyLogisticsConfig.endpointTargetAttempts()));
         int operations = 0;
+        int attempts = 0;
+        int attemptLimit = SkyLogisticsConfig.endpointTargetAttempts();
+        while (!batch.probingComplete() && operations < budget && attempts < attemptLimit) {
+            int targetIndex = batch.nextProbeTargetIndex();
+            MoveResult probe = tryMoveItem(sourceEndpoint, source, slot, simulated.copyWithCount(1),
+                    List.of(targets.get(targetIndex)), Math.max(1, budget - operations), gameTime, 1L, true);
+            operations += probe.operations();
+            attempts++;
+            batch.recordProbe(probe.moved());
+        }
+        if (!batch.probingComplete()) {
+            return new OrderedPerItemMoveResult(false, operations, false);
+        }
+        OrderedMatchingPolicy.PerItemBatchPlan plan = batch.plan();
+        if (plan.complete()) {
+            sourceNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
+            return new OrderedPerItemMoveResult(false, operations, true);
+        }
         boolean moved = false;
-        boolean continueSourceSearch = false;
-        int detentionCapacity = SkyLogisticsConfig.orderedMatchingPerItemDetentionQueueLength();
-        for (int attempt = 0; attempt < maxAttempts && (attempt == 0 || operations < budget); attempt++) {
+        while (!plan.complete() && operations < budget && attempts < attemptLimit) {
             int targetIndex = plan.targetIndex();
             int amount = plan.amount();
             if (amount <= 0) break;
@@ -1241,23 +1212,22 @@ public final class SkyNetworkTicker {
             operations += result.operations();
             if (result.moved()) {
                 moved = true;
-                sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), targetIndex + 1, targetCount);
-                plan.advance();
-            } else {
-                if (!SkyLogisticsConfig.orderedMatchingContinueAfterTargetFailure()
-                        || !sourceNode.enqueueOrderedMatchingDetention(sourceEndpoint.direction(), slot, targetIndex,
-                                simulated, detentionCapacity)) break;
-                continueSourceSearch = true;
-                sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), targetIndex + 1, targetCount);
-                plan.advance();
             }
+            sourceNode.setOrderedMatchingCursor(sourceEndpoint.direction(), targetIndex + 1, targetCount);
+            plan.advance();
+            attempts++;
         }
         if (plan.complete()) sourceNode.clearOrderedMatchingBatch(sourceEndpoint.direction());
-        return new OrderedPerItemMoveResult(moved, operations, continueSourceSearch, 0);
+        return new OrderedPerItemMoveResult(moved, operations, plan.complete() && !moved);
     }
 
     private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, ItemHandler source, int slot, ItemStack simulated,
             List<CachedEndpoint> targets, int budget, long gameTime, long maxMoveAmount) {
+        return tryMoveItem(sourceEndpoint, source, slot, simulated, targets, budget, gameTime, maxMoveAmount, false);
+    }
+
+    private static MoveResult tryMoveItem(CachedEndpoint sourceEndpoint, ItemHandler source, int slot, ItemStack simulated,
+            List<CachedEndpoint> targets, int budget, long gameTime, long maxMoveAmount, boolean probeOnly) {
         if (budget <= 0) {
             return new MoveResult(false, 0);
         }
@@ -1314,6 +1284,16 @@ public final class SkyNetworkTicker {
                 }
                 LongItemEndpoint targetLongEndpoint = longItemEndpoint(targetEndpoint);
                 if (sourceLongEndpoint != null && targetLongEndpoint != null) {
+                    if (probeOnly) {
+                        LongItemResource resource = sourceLongEndpoint.resourceInSlot(slot);
+                        long requested = resource.isEmpty() ? 0L
+                                : Math.min(skyContainerTransferLimit, resource.amount());
+                        if (!sourceLongEndpoint.sameStorage(targetLongEndpoint) && requested > 0L
+                                && targetLongEndpoint.insert(resource.stack(), requested, true) > 0L) {
+                            return new MoveResult(true, operations);
+                        }
+                        continue;
+                    }
                     long moved = moveLongItem(sourceEndpoint, sourceLongEndpoint, slot, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
@@ -1330,6 +1310,13 @@ public final class SkyNetworkTicker {
                     continue;
                 }
                 if (targetLongEndpoint != null) {
+                    if (probeOnly) {
+                        long requested = Math.min(skyContainerTransferLimit, simulated.getCount());
+                        if (requested > 0L && targetLongEndpoint.insert(simulated, requested, true) > 0L) {
+                            return new MoveResult(true, operations);
+                        }
+                        continue;
+                    }
                     long moved = moveItemToLongTarget(sourceEndpoint, source, slot, simulated, targetEndpoint,
                             targetLongEndpoint, skyContainerTransferLimit);
                     if (moved > 0L) {
@@ -1416,6 +1403,9 @@ public final class SkyNetworkTicker {
                     }
                     continue;
                 }
+                if (probeOnly) {
+                    return new MoveResult(true, operations);
+                }
                 ItemSlotTransfer transfer = transferItemSlot(sourceEndpoint, source, slot, targetEndpoint, target,
                         targetSlot.slot(), movable);
                 if (!transfer.extracted()) {
@@ -1434,7 +1424,7 @@ public final class SkyNetworkTicker {
                 return new MoveResult(true, operations);
         }
         if (!singleTarget && !budgetExhausted) sourceEndpoint.resetItemTargetScan(simulatedKey);
-        if (!redstoneBlocked && !budgetExhausted) {
+        if (!probeOnly && !redstoneBlocked && !budgetExhausted) {
             sourceEndpoint.recordItemFailure(gameTime);
         }
         return new MoveResult(false, operations);
@@ -3592,8 +3582,7 @@ public final class SkyNetworkTicker {
     private record MoveResult(boolean moved, int operations) {
     }
 
-    private record OrderedPerItemMoveResult(boolean moved, int operations, boolean continueSourceSearch,
-            int movedItems) {
+    private record OrderedPerItemMoveResult(boolean moved, int operations, boolean continueSourceSearch) {
     }
 
     private static final class ExactItemScan {

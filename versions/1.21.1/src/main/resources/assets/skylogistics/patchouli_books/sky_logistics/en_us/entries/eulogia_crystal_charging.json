@@ -16,7 +16,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Crystals and companion stones charge in your inventory or on a Sky Offering Table at the same minimum height. Crystals take about 20 seconds by default and companion stones about 10 seconds."
+      "text": "Crystals and companion stones charge in your inventory or on a Sky Offering Table. Crystals and altars require Y=96 by default; companion stones have an independent Y=64 default. Crystals take about 20 seconds and companion stones about 10 seconds; both heights and durations are configurable."
     },
     {
       "type": "patchouli:text",

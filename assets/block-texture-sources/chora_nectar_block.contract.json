@@ -1,0 +1,36 @@
+{
+  "asset_kind": "tileable-block-face",
+  "logical_size": {"width": 16, "height": 16},
+  "source_reference": "common/src/main/resources/assets/skylogistics/textures/item/chora_nectar.png",
+  "source": "assets/block-texture-sources/chora_nectar_block.svg",
+  "outputs": [
+    "common/src/main/resources/assets/skylogistics/textures/block/chora_nectar_block.png"
+  ],
+  "render_mode": "pixel-grid",
+  "light_direction": "top-left",
+  "protected_regions": [],
+  "masks": {},
+  "remove_motifs": [],
+  "palette": {
+    "source": "chora_nectar item icon",
+    "max_new_colors": 1,
+    "ramps": [
+      {"material": "outline", "colors": ["#142b36"]},
+      {"material": "nectar", "colors": ["#d9b449", "#f7d567", "#fff6aa"]},
+      {"material": "glass", "colors": ["#a8f6ff", "#b9fff4", "#d9ffff"]}
+    ]
+  },
+  "directional": {
+    "enabled": false,
+    "faces": "all six faces use the same texture"
+  },
+  "quality_gates": {
+    "opaque": true,
+    "max_unique_colors": 7,
+    "max_new_colors": 1,
+    "partial_alpha_allowed": false,
+    "native_size_reviewed": true,
+    "three_by_three_tile_reviewed": true
+  },
+  "acceptance": ["native-1x", "nearest-preview", "three-by-three-tile"]
+}

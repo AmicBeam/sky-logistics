@@ -1,0 +1,38 @@
+{
+  "asset_kind": "transparent-icon",
+  "logical_size": {"width": 16, "height": 16},
+  "source": null,
+  "outputs": [
+    "common/src/main/resources/assets/skylogistics/textures/item/chora_kleis.png"
+  ],
+  "render_mode": "pixel-grid",
+  "light_direction": "top-left",
+  "protected_regions": [],
+  "masks": {
+    "edit": null,
+    "cleanup": null,
+    "foreground": "assets/item-icon-sources/chora_kleis_symbol_mask.png"
+  },
+  "remove_motifs": [],
+  "design": {
+    "silhouette": "diagonal ritual key-wand running from the upper-right grip and teeth to the lower-left hollow gate bow",
+    "semantics": "the item opens Chora rather than representing Chora as a container",
+    "mode_colors": {"insert": "cyan-blue", "extract": "gold-orange"}
+  },
+  "palette": {
+    "source": ["sky_wrench.png", "configurator.png", "chora_nectar.png"],
+    "max_colors_including_transparency": 10,
+    "ramps": [
+      {"material": "celestial metal", "colors": ["#142b36", "#367bb8", "#75c9e5", "#9be6f5"]},
+      {"material": "extract ward", "colors": ["#d58b3f", "#ffd56f", "#fff6aa"]}
+    ]
+  },
+  "directional": {"enabled": false},
+  "quality_gates": {
+    "opaque": false,
+    "edge_contact": false,
+    "max_unique_colors": 9,
+    "partial_alpha_allowed": false
+  },
+  "acceptance": ["native-1x", "nearest-preview", "light-background", "dark-background"]
+}

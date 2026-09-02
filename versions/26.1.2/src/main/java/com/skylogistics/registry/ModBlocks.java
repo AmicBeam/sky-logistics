@@ -31,12 +31,14 @@ public final class ModBlocks {
 
     public static final DeferredHolder<Block, ItemVaultBlock> ITEM_VAULT = BLOCKS.register("item_vault",
             () -> new ItemVaultBlock(blockProperties("item_vault", MapColor.COLOR_CYAN)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, FluidVaultBlock> FLUID_VAULT = BLOCKS.register("fluid_vault",
             () -> new FluidVaultBlock(blockProperties("fluid_vault", MapColor.COLOR_LIGHT_BLUE)
-                    .strength(3.0F, 10.0F)
+                    .strength(3.0F, 3_600_000.0F)
+                    .forceSolidOn()
                     .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SkyNodeBlock> SKY_NODE = BLOCKS.register("sky_node",
@@ -67,6 +69,12 @@ public final class ModBlocks {
 
     public static final DeferredHolder<Block, Block> CELESTIAL_STONE = BLOCKS.register("celestial_stone",
             () -> new Block(celestialStoneProperties("celestial_stone")));
+
+    public static final DeferredHolder<Block, Block> CHORA_NECTAR_BLOCK = BLOCKS.register("chora_nectar_block",
+            () -> new Block(blockProperties("chora_nectar_block", MapColor.COLOR_YELLOW)
+                    .strength(2.0F, 3_600_000.0F)
+                    .forceSolidOn()
+                    .sound(SoundType.AMETHYST)));
 
     public static final DeferredHolder<Block, SlabBlock> CELESTIAL_STONE_SLAB = BLOCKS.register("celestial_stone_slab",
             () -> new SlabBlock(celestialStoneProperties("celestial_stone_slab")));

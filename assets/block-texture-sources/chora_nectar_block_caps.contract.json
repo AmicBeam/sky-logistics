@@ -1,0 +1,35 @@
+{
+  "asset_kind": "opaque-block-face",
+  "logical_size": {"width": 16, "height": 16},
+  "source_reference": "common/src/main/resources/assets/skylogistics/textures/block/chora_nectar_block.png",
+  "sources": [
+    "assets/block-texture-sources/chora_nectar_block_top.svg",
+    "assets/block-texture-sources/chora_nectar_block_bottom.svg"
+  ],
+  "outputs": [
+    "common/src/main/resources/assets/skylogistics/textures/block/chora_nectar_block_top.png",
+    "common/src/main/resources/assets/skylogistics/textures/block/chora_nectar_block_bottom.png"
+  ],
+  "render_mode": "pixel-grid",
+  "light_direction": "radial; four-way symmetry takes precedence",
+  "palette": {
+    "source": "existing Chora Nectar Block side texture",
+    "max_new_colors": 0,
+    "colors": ["#142b36", "#d9b449", "#f7d567", "#fff6aa", "#a8f6ff", "#b9fff4", "#d9ffff"]
+  },
+  "face_mapping": {
+    "north_south_east_west": "chora_nectar_block.png",
+    "up": "chora_nectar_block_top.png",
+    "down": "chora_nectar_block_bottom.png"
+  },
+  "quality_gates": {
+    "opaque": true,
+    "max_unique_colors": 7,
+    "max_new_colors": 0,
+    "partial_alpha_allowed": false,
+    "horizontal_symmetry_mismatches": 0,
+    "vertical_symmetry_mismatches": 0,
+    "rotational_90_symmetry_mismatches": 0
+  },
+  "acceptance": ["side-top-bottom-review", "native-1x", "nearest-preview"]
+}

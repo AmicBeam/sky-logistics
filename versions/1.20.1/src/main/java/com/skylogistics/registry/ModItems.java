@@ -44,6 +44,8 @@ public final class ModItems {
             () -> new BlockItem(ModBlocks.SIMPLE_ENERGY_PIPE.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE = ITEMS.register("celestial_stone",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> CHORA_NECTAR_BLOCK = ITEMS.register("chora_nectar_block",
+            () -> new BlockItem(ModBlocks.CHORA_NECTAR_BLOCK.get(), new Item.Properties().fireResistant()));
     public static final RegistryObject<Item> CELESTIAL_STONE_SLAB = ITEMS.register("celestial_stone_slab",
             () -> new BlockItem(ModBlocks.CELESTIAL_STONE_SLAB.get(), new Item.Properties()));
     public static final RegistryObject<Item> CELESTIAL_STONE_STAIRS = ITEMS.register("celestial_stone_stairs",
@@ -83,6 +85,7 @@ public final class ModItems {
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64)));
     public static final RegistryObject<Item> EULOGIA_COMPANION_STONE = ITEMS.register("eulogia_companion_stone",
             () -> new EulogiaCrystalItem(new Item.Properties().stacksTo(64),
+                    SkyLogisticsConfig::eulogiaCompanionStoneMinY,
                     SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
             () -> new ChoraNectarItem(new Item.Properties()));

@@ -16,6 +16,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.storage.FluidStackKey;
 import com.skylogistics.storage.ItemStackKey;
 import com.skylogistics.util.BudgetedScanCursors;
+import com.skylogistics.util.ItemSourceSlotCachePolicy;
 import com.skylogistics.util.MaintainedResourcePolicy;
 import com.skylogistics.util.EnergyStorage;
 import com.skylogistics.util.FluidHandler;
@@ -1639,8 +1640,10 @@ public final class SkyNetworkRegistry {
             this.accessSide = node.getAccessSide(direction);
         }
 
-        private void enableItemSourceCaching() {
-            int configuredSize = SkyLogisticsConfig.preferredItemSlotCacheSize();
+        private void enableItemSourceCaching(int totalSlots) {
+            int configuredSize = ItemSourceSlotCachePolicy.hotSlotCapacity(
+                    SkyLogisticsConfig.preferredItemSlotCacheSize(), totalSlots);
+            if (configuredSize <= 0) return;
             if (preferredItemSlots != null) {
                 if (preferredItemSlots.length != configuredSize) resizePreferredItemSlots(configuredSize);
                 return;
@@ -1651,6 +1654,19 @@ public final class SkyNetworkRegistry {
             emptyItemSlots = new int[EMPTY_ITEM_SLOT_CACHE_SIZE];
             emptyItemSlotUntil = new long[EMPTY_ITEM_SLOT_CACHE_SIZE];
             clearItemSlotCaches();
+        }
+
+        public void useSingleItemSlotFastPath() {
+            if (preferredItemSlots == null && emptyItemSlots == null) return;
+            preferredItemSlots = null;
+            preferredItemSlotMisses = null;
+            preferredItemSlotTriedAt = null;
+            emptyItemSlots = null;
+            emptyItemSlotUntil = null;
+            preferredItemSlotCursor = 0;
+            preferredItemSlotWriteCursor = 0;
+            itemSlotDiscoveryRemaining = 0;
+            itemSlotDiscoveryDeferrals = 0;
         }
 
         private void resizePreferredItemSlots(int configuredSize) {
@@ -2308,7 +2324,7 @@ public final class SkyNetworkRegistry {
 
         public int nextPreferredItemSlot(int slots, long gameTime, int firstTriedSlot, int secondTriedSlot) {
             if (preferredItemSlots == null) return -1;
-            enableItemSourceCaching();
+            enableItemSourceCaching(slots);
             for (int i = 0; i < preferredItemSlots.length; i++) {
                 int index = Math.floorMod(preferredItemSlotCursor + i, preferredItemSlots.length);
                 int slot = preferredItemSlots[index];
@@ -2341,7 +2357,8 @@ public final class SkyNetworkRegistry {
         }
 
         public void recordItemSlotSuccess(int slot, int totalSlots, long gameTime) {
-            enableItemSourceCaching();
+            enableItemSourceCaching(totalSlots);
+            if (preferredItemSlots == null) return;
             int preferredCount = preferredItemSlotCount();
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
@@ -2398,8 +2415,9 @@ public final class SkyNetworkRegistry {
             itemSlotDiscoveryDeferrals = 0;
         }
 
-        public void recordItemSlotMiss(int slot, long gameTime) {
-            enableItemSourceCaching();
+        public void recordItemSlotMiss(int slot, int totalSlots, long gameTime) {
+            enableItemSourceCaching(totalSlots);
+            if (preferredItemSlots == null) return;
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
                 int misses = preferredItemSlotMisses[preferredIndex] + 1;
@@ -2415,8 +2433,9 @@ public final class SkyNetworkRegistry {
             recordEmptyItemSlot(slot, gameTime, gameTime + EMPTY_ITEM_SLOT_RETRY_TICKS);
         }
 
-        public void recordItemSlotRejected(int slot, long gameTime) {
-            enableItemSourceCaching();
+        public void recordItemSlotRejected(int slot, int totalSlots, long gameTime) {
+            enableItemSourceCaching(totalSlots);
+            if (preferredItemSlots == null) return;
             int preferredIndex = findPreferredItemSlot(slot);
             if (preferredIndex >= 0) {
                 preferredItemSlots[preferredIndex] = -1;

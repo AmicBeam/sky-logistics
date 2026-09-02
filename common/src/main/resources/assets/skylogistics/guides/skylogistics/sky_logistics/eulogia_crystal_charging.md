@@ -21,7 +21,7 @@ The Eulogia Crystal is built around a diamond core and does not consume an Ender
 
 Uncharged crystals charge in your inventory or on an <ItemLink id="offering_table" />. Ordinary containers do not charge them. Charging takes about 20 seconds by default.
 
-An <ItemLink id="eulogia_companion_stone" /> is crafted from 3 Lapis Lazuli and 2 colorless glass blocks. It uses the same charging height and charges in about 10 seconds by default in an inventory or on an offering table. Charged companion stones are required for all three simple pipe recipes.
+An <ItemLink id="eulogia_companion_stone" /> is crafted from 3 Lapis Lazuli and 2 colorless glass blocks. It charges at Y=64 or above by default, independently of the crystal and altar height, and takes about 10 seconds in an inventory or on an offering table. Servers can configure its height and duration separately. Charged companion stones are required for all three simple pipe recipes.
 
 <RecipeFor id="eulogia_companion_stone" fallbackText="The Eulogia Companion Stone recipe is unavailable." />
 

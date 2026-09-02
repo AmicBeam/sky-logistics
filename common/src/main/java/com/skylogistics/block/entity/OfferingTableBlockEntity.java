@@ -1,6 +1,5 @@
 package com.skylogistics.block.entity;
 
-import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.SkyChargeableItem;
 import com.skylogistics.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -22,7 +21,7 @@ public class OfferingTableBlockEntity extends SingleSlotDisplayBlockEntity {
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, OfferingTableBlockEntity table) {
-        if (!(level instanceof ServerLevel serverLevel) || pos.getY() < SkyLogisticsConfig.skyRitualMinY()) {
+        if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
         if (serverLevel.getGameTime() % CHARGE_INTERVAL_TICKS != 0L) {
@@ -30,7 +29,7 @@ public class OfferingTableBlockEntity extends SingleSlotDisplayBlockEntity {
         }
         ItemStack stack = table.getDisplayedItem();
         if (stack.isEmpty() || !(stack.getItem() instanceof SkyChargeableItem chargeable)
-                || chargeable.isStackCharged(stack)) {
+                || pos.getY() < chargeable.minimumChargeY() || chargeable.isStackCharged(stack)) {
             return;
         }
         boolean completed = chargeable.chargeStackOneSecond(stack);

@@ -8,6 +8,7 @@ item_ids:
   - skylogistics:configurator
   - skylogistics:speed_upgrade
   - skylogistics:dimension_upgrade
+  - skylogistics:force_extraction_upgrade
   - skylogistics:ordered_matching_upgrade
 ---
 
@@ -25,11 +26,13 @@ Per Slot Ordered Matching works on item extract or insert nodes, while Per Item 
 
 Per Slot follows `local slot + order offset = network position`. Sneak-scroll up/down raises/lowers the offset without changing the hotbar. Positive values skip leading network positions: offset `2` maps slot 0 to position 2. Negative values skip leading local slots: offset `-2` maps slot 2 to position 0. Extract nodes use this to match receiving endpoints; insert nodes reverse the same relation to match sources with inventory slots. Receivers cycle within the remaining positions by default; `orderedMatchingUpgrade.wrapTargets` disables that cycle.
 
-Per Item persists a receiver cursor for every extract face. Success advances the cursor normally; when the source has no transferable item and no detained assignment remains, the extract cursor additionally resets to 0. Order offsets do not apply. When the source count does not exceed the target count, one item moves; larger counts are batched into complete rounds plus a remainder. Every visited target consumes its own operation budget. If `endpointTargetAttempts` or the tick budget interrupts a batch, its original plan is cached and resumed on later ticks instead of being recalculated from the remainder. `continueAfterTargetFailure` defaults to true: a failed one-item extraction assignment enters a persistent per-face detention queue, remains in the source inventory, is excluded from fresh dispatch, and receives priority round-robin retries. `perItemDetentionQueueLength` defaults to 4; a full queue discards its oldest detained assignment before retaining the new failure so an old unavailable target cannot block dispatch indefinitely.
+Per Item makes extract nodes cycle receivers; insert nodes ignore this mode. For each source item, it first checks the receivers from the current cursor and keeps only those that can accept that item, then calculates and executes one batch across that accepting set. Both acceptance checks and actual transfers consume operation budget, so either phase can resume on a later tick. Targets that no longer accept during execution are skipped without creating a persistent owed assignment; remaining items stay at the source and are reconsidered by a later batch. Equal-priority nodes remain separate positions.
 
 The network keeps independent source and receiver order lists for items, fluids, FE, chemicals, mana, and source. Membership depends only on whether that resource is enabled, not fullness or filter contents; equal-priority endpoints remain separate. The Sky Configurator displays connections using the same priority and stable-position order. This upgrade currently consumes the item lists.
 
 <RecipeFor id="ordered_matching_upgrade" fallbackText="The ordered matching upgrade recipe is unavailable." />
+
+Force Extraction Upgrades work only on item extract nodes. For devices whose mod ID appears in `transfers.integrations.forceExtractionUpgrade.deviceModIdWhitelist`, they bypass an external interface's 64-item return cap and request the amount the destination can actually accept; rejected moves restore the source slot. The whitelist contains `mekanism_extras` by default. If none of its configured mods are installed, or the list is empty, the item is hidden from the creative inventory and JEI and its tier 2 offering cannot start. The offering uses a Slot Parallel Upgrade on the altar plus 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap on offering tables.
 
 Dimension upgrades also go into node upgrade slots, but only affect extract faces. An extract face with a dimension upgrade can send to same-line insert faces in other loaded dimensions. Insert faces do not need dimension upgrades. This is not a chunk loader; unloaded dimensions or chunks are skipped.
 

@@ -1,0 +1,58 @@
+{
+  "input": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/block-texture-sources/chora_nectar_block_bottom.svg",
+  "active": "/Users/bytedance/projects/kubejs goety/sky-logistics/common/src/main/resources/assets/skylogistics/textures/block/chora_nectar_block_bottom.png",
+  "inactive": null,
+  "assetKind": "opaque-block-face",
+  "dimensions": "16x16",
+  "svgIntrinsicDimensions": "16x16",
+  "directLogicalRaster": true,
+  "preview": "/Users/bytedance/projects/kubejs goety/sky-logistics/assets/block-texture-sources/chora_nectar_block_bottom.preview.png",
+  "diffPreview": null,
+  "previewBackground": "#c6c6c6",
+  "edgePixels": 60,
+  "alpha": {
+    "transparentPixels": 0,
+    "partialAlphaPixels": 0,
+    "opaquePixels": 256
+  },
+  "palette": {
+    "uniqueColors": 7,
+    "topColors": [
+      {
+        "rgba": "#142b36ff",
+        "count": 104
+      },
+      {
+        "rgba": "#d9b449ff",
+        "count": 64
+      },
+      {
+        "rgba": "#f7d567ff",
+        "count": 36
+      },
+      {
+        "rgba": "#fff6aaff",
+        "count": 32
+      },
+      {
+        "rgba": "#b9fff4ff",
+        "count": 12
+      },
+      {
+        "rgba": "#a8f6ffff",
+        "count": 4
+      },
+      {
+        "rgba": "#d9ffffff",
+        "count": 4
+      }
+    ]
+  },
+  "reference": null,
+  "mask": null,
+  "boundary": null,
+  "foregroundMask": null,
+  "contrast": null,
+  "failures": [],
+  "warnings": []
+}
