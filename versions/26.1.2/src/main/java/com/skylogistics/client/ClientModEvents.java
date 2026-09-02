@@ -21,6 +21,8 @@ import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShapeRenderer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -39,6 +41,7 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
 import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public final class ClientModEvents {
     private static final VoxelShape DISTRIBUTOR_TARGET_OUTLINE = Shapes.box(
@@ -60,6 +63,7 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onExtractBlockOutline);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onAttackInput);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onKleisEndpointEdit);
         NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::render);
     }
 
@@ -177,6 +181,29 @@ public final class ClientModEvents {
         event.setCanceled(true);
         if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
             ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
+    }
+
+    private static void onKleisEndpointEdit(PlayerInteractEvent.RightClickBlock event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || minecraft.player == null || minecraft.level == null
+                || !minecraft.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                || !minecraft.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || minecraft.level.getBlockEntity(event.getPos()) instanceof com.skylogistics.block.entity.SkyNodeBlockEntity) {
+            return;
+        }
+        com.skylogistics.network.KleisOverlayPacket.Entry endpoint =
+                ClientKleisOverlays.entryAt(event.getPos(), event.getFace());
+        if (endpoint == null) return;
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        if (minecraft.player.isShiftKeyDown()) {
+            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), true);
+        } else if (ConfiguratorItem.isPasteMode(minecraft.player.getMainHandItem())) {
+            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), false);
+        } else {
+            ModNetworking.openKleisEndpoint(endpoint.pos(), endpoint.face());
         }
     }
 

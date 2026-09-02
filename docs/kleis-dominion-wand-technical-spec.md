@@ -658,12 +658,10 @@ endpointRevision
   - `CURRENT_LINE`：客户端主手持杖且副手配置器有线路时请求当前维度、当前线路附近端点
   - `EDIT_NEARBY`：客户端主手配置器、副手持杖时请求当前维度附近所有有权查看的端点
   - 服务端必须从实际双手物品与配置器重新推导模式和 lineId，不能信任客户端声明
-- `KleisDominionWandCopyEndpointPacket`
-  - 配置器主手、杖副手时潜行右击覆盖面复制
-  - 字段：dimension、pos、face、expectedRevision
-- `KleisDominionWandPasteEndpointPacket`
-  - 配置器主手、杖副手时普通右击覆盖面粘贴
-  - 字段：dimension、pos、face、expectedRevision
+- `KleisEndpointEditPacket`
+  - `COPY`：配置器主手、杖副手时潜行右击覆盖面复制
+  - `PASTE`：配置器主手、杖副手时普通右击覆盖面粘贴
+  - 字段：pos、face、expectedRevision、action；维度由服务端玩家当前位置确定
   - 不携带 `ToolConfig`；服务端从主手配置器物品栈读取
 
 ### S2C

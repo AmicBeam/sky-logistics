@@ -904,7 +904,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
             itemLimitByItems.put(direction, false);
             runtimeChanged = true;
         }
-        if (config.hasCopiedFaces() && applyFaceFilters(direction, face)) {
+        if (applyFaceFilters(direction, face)) {
             runtimeChanged = true;
         }
         refreshGlobalToggles();
@@ -1069,9 +1069,15 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity {
         installCopiedUpgrades(config, player);
     }
 
+    public void applySingleEndpointToolConfig(ConfiguratorItem.ToolConfig config, Player player) {
+        applyPlacementToolConfig(config, true);
+        installCopiedUpgrades(config, player);
+    }
+
     private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
         for (ItemStack requested : config.upgrades()) {
-            if (!isUpgradeItem(requested)) {
+            if (!isUpgradeItem(requested)
+                    || isVirtualEndpoint() && requested.is(ModItems.DIMENSION_UPGRADE.get())) {
                 continue;
             }
             int targetCount = Math.min(requested.getCount(), maxUpgradeStackSize(requested));

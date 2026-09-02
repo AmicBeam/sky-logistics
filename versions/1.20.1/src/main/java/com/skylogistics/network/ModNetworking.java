@@ -11,7 +11,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetworking {
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(SkyLogistics.MOD_ID, "main"),
@@ -59,6 +59,8 @@ public final class ModNetworking {
                 KleisOverlayPacket::decode, KleisOverlayPacket::handle);
         CHANNEL.registerMessage(17, KleisMenuActionPacket.class, KleisMenuActionPacket::encode,
                 KleisMenuActionPacket::decode, KleisMenuActionPacket::handle);
+        CHANNEL.registerMessage(18, KleisEndpointEditPacket.class, KleisEndpointEditPacket::encode,
+                KleisEndpointEditPacket::decode, KleisEndpointEditPacket::handle);
     }
 
     public static void sendMenuAction(int action) {
@@ -89,7 +91,12 @@ public final class ModNetworking {
         CHANNEL.sendToServer(new KleisOpenMenuPacket(pos, face));
     }
 
-    public static void requestKleisOverlays() { CHANNEL.sendToServer(new KleisOverlayRequestPacket()); }
+    public static void requestKleisOverlays(boolean editNearby) {
+        CHANNEL.sendToServer(new KleisOverlayRequestPacket(editNearby));
+    }
+    public static void editKleisEndpoint(BlockPos pos, net.minecraft.core.Direction face, int revision, boolean copy) {
+        CHANNEL.sendToServer(new KleisEndpointEditPacket(pos, face, revision, copy));
+    }
     public static void sendKleisMenuAction(int action) { CHANNEL.sendToServer(new KleisMenuActionPacket(action)); }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {

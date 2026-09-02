@@ -21,13 +21,16 @@ public record KleisOpenMenuPacket(BlockPos pos, Direction face) implements Custo
                     buffer -> new KleisOpenMenuPacket(buffer.readBlockPos(), buffer.readEnum(Direction.class)));
     public static void handle(KleisOpenMenuPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player)
-                    || !player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    || !player.getOffhandItem().is(ModItems.CONFIGURATOR.get())
-                    || player.distanceToSqr(packet.pos.getX() + .5, packet.pos.getY() + .5, packet.pos.getZ() + .5) > 64) return;
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                    && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                    && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+            if (!wandMode && !editMode) return;
             KleisEndpointSavedData.Key key = new KleisEndpointSavedData.Key(player.level().dimension(), packet.pos, packet.face);
-            KleisVirtualNodeBlockEntity node = KleisEndpointSavedData.get(player.getServer()).runtimeNode(key);
-            if (node == null) return;
+            KleisEndpointSavedData data = KleisEndpointSavedData.get(player.getServer());
+            KleisVirtualNodeBlockEntity node = data.runtimeNode(key);
+            if (node == null || !data.canView(player, key) || !data.isReachable(player, key)) return;
             int mask = (node.isItemsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 1 : 0)
                     | (node.isFluidsEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 2 : 0)
                     | (node.isEnergyEnabled(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION) ? 4 : 0);

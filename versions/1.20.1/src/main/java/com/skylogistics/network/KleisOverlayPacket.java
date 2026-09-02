@@ -13,24 +13,42 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
-public record KleisOverlayPacket(UUID lineId, List<Entry> entries) {
-    public record Entry(BlockPos pos, Direction face, NodeFaceMode mode) {}
-    public static KleisOverlayPacket from(UUID lineId, List<KleisEndpointSavedData.Snapshot> snapshots) {
-        return new KleisOverlayPacket(lineId, snapshots.stream().limit(512)
-                .map(s -> new Entry(s.pos(), s.face(), s.mode())).toList());
+public record KleisOverlayPacket(boolean editNearby, UUID selectedLineId, List<Entry> entries) {
+    public record Entry(BlockPos pos, Direction face, NodeFaceMode mode, UUID lineId, int revision) {}
+
+    public static KleisOverlayPacket from(boolean editNearby, UUID selectedLineId,
+            List<KleisEndpointSavedData.Snapshot> snapshots) {
+        return new KleisOverlayPacket(editNearby, selectedLineId, snapshots.stream().limit(512)
+                .map(snapshot -> new Entry(snapshot.pos(), snapshot.face(), snapshot.mode(),
+                        snapshot.lineId(), snapshot.revision())).toList());
     }
+
     public static void encode(KleisOverlayPacket packet, FriendlyByteBuf buffer) {
-        buffer.writeUUID(packet.lineId); buffer.writeVarInt(packet.entries.size());
-        for (Entry e : packet.entries) { buffer.writeBlockPos(e.pos); buffer.writeEnum(e.face); buffer.writeEnum(e.mode); }
+        buffer.writeBoolean(packet.editNearby);
+        buffer.writeBoolean(packet.selectedLineId != null);
+        if (packet.selectedLineId != null) buffer.writeUUID(packet.selectedLineId);
+        buffer.writeVarInt(packet.entries.size());
+        for (Entry entry : packet.entries) {
+            buffer.writeBlockPos(entry.pos); buffer.writeEnum(entry.face); buffer.writeEnum(entry.mode);
+            buffer.writeUUID(entry.lineId); buffer.writeVarInt(entry.revision);
+        }
     }
+
     public static KleisOverlayPacket decode(FriendlyByteBuf buffer) {
-        UUID line = buffer.readUUID(); int size = Math.min(512, buffer.readVarInt()); List<Entry> entries = new ArrayList<>(size);
-        for (int i=0;i<size;i++) entries.add(new Entry(buffer.readBlockPos(), buffer.readEnum(Direction.class), buffer.readEnum(NodeFaceMode.class)));
-        return new KleisOverlayPacket(line, List.copyOf(entries));
+        boolean editNearby = buffer.readBoolean();
+        UUID selected = buffer.readBoolean() ? buffer.readUUID() : null;
+        int size = Math.max(0, Math.min(512, buffer.readVarInt()));
+        List<Entry> entries = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) entries.add(new Entry(buffer.readBlockPos(),
+                buffer.readEnum(Direction.class), buffer.readEnum(NodeFaceMode.class),
+                buffer.readUUID(), buffer.readVarInt()));
+        return new KleisOverlayPacket(editNearby, selected, List.copyOf(entries));
     }
+
     public static void handle(KleisOverlayPacket packet, Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
-        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientKleisOverlays.apply(packet)));
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> ClientKleisOverlays.apply(packet)));
         context.setPacketHandled(true);
     }
 }

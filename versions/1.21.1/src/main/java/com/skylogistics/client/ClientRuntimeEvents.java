@@ -3,6 +3,7 @@ package com.skylogistics.client;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.UpgradeCardItem;
+import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModItems;
@@ -12,6 +13,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -21,6 +24,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 @EventBusSubscriber(modid = SkyLogistics.MOD_ID, value = Dist.CLIENT)
 public final class ClientRuntimeEvents {
@@ -54,6 +58,29 @@ public final class ClientRuntimeEvents {
         event.setCanceled(true);
         if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
             ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onKleisEndpointEdit(PlayerInteractEvent.RightClickBlock event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || minecraft.player == null || minecraft.level == null
+                || !minecraft.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                || !minecraft.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || minecraft.level.getBlockEntity(event.getPos()) instanceof com.skylogistics.block.entity.SkyNodeBlockEntity) {
+            return;
+        }
+        KleisOverlayPacket.Entry endpoint = ClientKleisOverlays.entryAt(event.getPos(), event.getFace());
+        if (endpoint == null) return;
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        if (minecraft.player.isShiftKeyDown()) {
+            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), true);
+        } else if (ConfiguratorItem.isPasteMode(minecraft.player.getMainHandItem())) {
+            ModNetworking.editKleisEndpoint(endpoint.pos(), endpoint.face(), endpoint.revision(), false);
+        } else {
+            ModNetworking.openKleisEndpoint(endpoint.pos(), endpoint.face());
         }
     }
 

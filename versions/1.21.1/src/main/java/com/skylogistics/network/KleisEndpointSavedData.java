@@ -24,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.phys.BlockHitResult;
 
 public final class KleisEndpointSavedData extends SavedData {
     private static final String DATA_NAME = "skylogistics_kleis_dominion_wand_endpoints";
@@ -80,6 +81,7 @@ public final class KleisEndpointSavedData extends SavedData {
             ItemStack configurator) {
         Key key = new Key(player.level().dimension(), pos.immutable(), face);
         if (entries.containsKey(key)) {
+            if (!canModify(player, key) || !isReachable(player, key)) return ToggleResult.EDIT_DENIED;
             removeRuntime(key);
             entries.remove(key);
             setDirty();
@@ -91,6 +93,8 @@ public final class KleisEndpointSavedData extends SavedData {
             return ToggleResult.INVALID_TARGET;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(configurator, player);
+        UUID lineOwner = SkyPlayerLines.ownerOf(player.getServer(), config.lineId());
+        if (lineOwner != null && !lineOwner.equals(player.getUUID())) return ToggleResult.EDIT_DENIED;
         KleisVirtualNodeBlockEntity node = new KleisVirtualNodeBlockEntity(pos, face);
         node.setLevel(level);
         node.setSuppressChanges(true);
@@ -114,30 +118,103 @@ public final class KleisEndpointSavedData extends SavedData {
         return runtime.get(key);
     }
 
-    public List<Snapshot> snapshots(ResourceKey<Level> dimension, UUID lineId, BlockPos center, int range) {
+    public List<Snapshot> snapshots(ServerPlayer viewer, ResourceKey<Level> dimension, UUID lineId,
+            BlockPos center, int range) {
         long distance = (long) range * range;
         List<Snapshot> result = new ArrayList<>();
         for (Map.Entry<Key, KleisVirtualNodeBlockEntity> mapEntry : runtime.entrySet()) {
             Key key = mapEntry.getKey();
             if (!key.dimension().equals(dimension) || !mapEntry.getValue().getLineId().equals(lineId)
-                    || key.pos().distSqr(center) > distance) continue;
+                    || key.pos().distSqr(center) > distance || !canView(viewer, key)) continue;
+            Entry saved = entries.get(key);
+            if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
                     mapEntry.getValue().getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION),
-                    mapEntry.getValue().getLineId()));
+                    mapEntry.getValue().getLineId(), saved.revision()));
         }
         return List.copyOf(result);
+    }
+
+    public List<Snapshot> snapshotsNearby(ServerPlayer viewer, ResourceKey<Level> dimension,
+            BlockPos center, int range) {
+        long distance = (long) range * range;
+        List<Snapshot> result = new ArrayList<>();
+        for (Map.Entry<Key, KleisVirtualNodeBlockEntity> mapEntry : runtime.entrySet()) {
+            Key key = mapEntry.getKey();
+            if (!key.dimension().equals(dimension) || key.pos().distSqr(center) > distance
+                    || !canView(viewer, key)) continue;
+            Entry saved = entries.get(key);
+            if (saved == null) continue;
+            result.add(new Snapshot(key.pos(), key.face(),
+                    mapEntry.getValue().getFaceMode(KleisVirtualNodeBlockEntity.ENDPOINT_DIRECTION),
+                    mapEntry.getValue().getLineId(), saved.revision()));
+        }
+        return List.copyOf(result);
+    }
+
+    public EditResult copyToConfigurator(ServerPlayer player, Key key, int expectedRevision,
+            ItemStack configurator) {
+        Entry saved = entries.get(key);
+        KleisVirtualNodeBlockEntity node = runtime.get(key);
+        if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
+        if (!canView(player, key) || !isReachable(player, key)) return EditResult.DENIED;
+        ConfiguratorItem.writeConfig(configurator, ConfiguratorItem.ToolConfig.fromSingleEndpoint(node),
+                node.getAssignedLineName());
+        ConfiguratorItem.setPasteMode(configurator, true);
+        player.inventoryMenu.broadcastChanges();
+        return EditResult.COPIED;
+    }
+
+    public EditResult pasteFromConfigurator(ServerPlayer player, Key key, int expectedRevision,
+            ItemStack configurator) {
+        Entry saved = entries.get(key);
+        KleisVirtualNodeBlockEntity node = runtime.get(key);
+        if (saved == null || node == null || saved.revision() != expectedRevision) return EditResult.STALE;
+        if (!canModify(player, key) || !isReachable(player, key)) return EditResult.DENIED;
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(configurator);
+        if (!ConfiguratorItem.isPasteMode(configurator) || config == null) return EditResult.NO_CONFIG;
+        UUID lineOwner = SkyPlayerLines.ownerOf(player.getServer(), config.lineId());
+        if (lineOwner != null && !lineOwner.equals(player.getUUID())) return EditResult.DENIED;
+        node.applySingleEndpointToolConfig(config, player);
+        SkyPlayerLines.claimOwner(player.getServer(), node.getLineId(), player);
+        player.inventoryMenu.broadcastChanges();
+        return EditResult.PASTED;
+    }
+
+    public boolean canView(ServerPlayer player, Key key) {
+        Entry saved = entries.get(key);
+        return saved != null && saved.owner().equals(player.getUUID());
+    }
+
+    public boolean canModify(ServerPlayer player, Key key) {
+        return canView(player, key);
+    }
+
+    public boolean isReachable(ServerPlayer player, Key key) {
+        if (!player.level().dimension().equals(key.dimension())
+                || player.distanceToSqr(key.pos().getX() + .5D, key.pos().getY() + .5D,
+                        key.pos().getZ() + .5D) > 64.0D
+                || !player.level().hasChunkAt(key.pos())) return false;
+        if (!(player.pick(8.0D, 1.0F, false) instanceof BlockHitResult hit)) return false;
+        return hit.getBlockPos().equals(key.pos()) && hit.getDirection() == key.face();
     }
 
     public void syncVisibleOverlays(MinecraftServer server, ResourceKey<Level> dimension, BlockPos changedPos) {
         for (ServerPlayer viewer : server.getPlayerList().getPlayers()) {
             if (!viewer.level().dimension().equals(dimension)
-                    || viewer.blockPosition().distSqr(changedPos) > 64L * 64L
-                    || !viewer.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    || !viewer.getOffhandItem().is(ModItems.CONFIGURATOR.get())) continue;
-            UUID selectedLine = ConfiguratorItem.readLineId(viewer.getOffhandItem());
-            if (selectedLine != null) {
-                ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(selectedLine,
-                        snapshots(dimension, selectedLine, viewer.blockPosition(), 64)));
+                    || viewer.blockPosition().distSqr(changedPos) > 64L * 64L) continue;
+            boolean editNearby = viewer.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                    && viewer.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+            boolean currentLine = viewer.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                    && viewer.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            if (editNearby) {
+                UUID selectedLine = ConfiguratorItem.readLineId(viewer.getMainHandItem());
+                ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(true, selectedLine,
+                        snapshotsNearby(viewer, dimension, viewer.blockPosition(), 64)));
+            } else if (currentLine) {
+                UUID selectedLine = ConfiguratorItem.readLineId(viewer.getOffhandItem());
+                if (selectedLine != null) ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(false,
+                        selectedLine, snapshots(viewer, dimension, selectedLine, viewer.blockPosition(), 64)));
             }
         }
     }
@@ -204,12 +281,22 @@ public final class KleisEndpointSavedData extends SavedData {
 
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}
     public record Entry(UUID owner, int revision, CompoundTag nodeData) {}
-    public record Snapshot(BlockPos pos, Direction face, com.skylogistics.util.NodeFaceMode mode, UUID lineId) {}
+    public record Snapshot(BlockPos pos, Direction face, com.skylogistics.util.NodeFaceMode mode,
+                           UUID lineId, int revision) {}
+
+    public enum EditResult {
+        COPIED,
+        PASTED,
+        NO_CONFIG,
+        STALE,
+        DENIED
+    }
 
     public enum ToggleResult {
         CREATED_INSERT,
         CREATED_EXTRACT,
         REMOVED,
-        INVALID_TARGET
+        INVALID_TARGET,
+        EDIT_DENIED
     }
 }

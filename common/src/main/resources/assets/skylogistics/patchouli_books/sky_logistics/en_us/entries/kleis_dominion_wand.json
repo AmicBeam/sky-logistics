@@ -1,0 +1,20 @@
+{
+  "name": "Kleis Dominion Wand",
+  "icon": "skylogistics:kleis_dominion_wand",
+  "category": "skylogistics:tools",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Kleis Dominion Wand turns a machine face into a wireless virtual logistics endpoint without placing a node. Hold the wand in the main hand and a configured Sky Configurator in the offhand. Right-click creates an insert face, sneak-right-click creates an extract face, and right-clicking an existing virtual face removes it. Virtual endpoints can route across loaded dimensions without a Dimension Upgrade."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Copy and Paste",
+      "text": "Swap hands so the configurator is in the main hand and the wand is in the offhand. Nearby virtual faces are highlighted. Sneak-right-click a highlighted face to copy its single-face settings and enter paste mode. Right-click another highlighted face to paste. You can also copy a real logistics node and paste its active-face settings to a virtual face, or copy a virtual face and paste it to a real node."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The copied settings include line, extract/insert mode, enabled resources, redstone behavior, priority, limits, filters, and supported upgrades. Pasting never creates free upgrades. A virtual endpoint ignores Dimension Upgrades because cross-dimensional routing is built in. Only loaded machine faces operate; the wand never loads chunks."
+    }
+  ]
+}

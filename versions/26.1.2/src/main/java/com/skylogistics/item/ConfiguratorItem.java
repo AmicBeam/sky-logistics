@@ -881,6 +881,26 @@ public class ConfiguratorItem extends Item {
                     upgrades);
         }
 
+        public static ToolConfig fromSingleEndpoint(SkyNodeBlockEntity node) {
+            Direction direction = node.getTargetDirection();
+            ArrayList<ItemStack> filters = new ArrayList<>(SkyNodeBlockEntity.FACE_FILTER_SLOTS);
+            for (int slot = 0; slot < SkyNodeBlockEntity.FACE_FILTER_SLOTS; slot++) {
+                filters.add(node.getFaceFilter(direction, slot));
+            }
+            FaceConfig placement = new FaceConfig(node.getFaceMode(direction), node.isItemsEnabled(direction),
+                    node.isFluidsEnabled(direction), node.isEnergyEnabled(direction), false,
+                    node.getRedstoneControl(direction), node.getPriority(direction),
+                    node.getItemSlotLimit(direction), filters);
+            ArrayList<ItemStack> upgrades = new ArrayList<>(SkyNodeBlockEntity.UPGRADE_SLOTS);
+            for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
+                ItemStack upgrade = node.getUpgrade(slot);
+                if (!upgrade.isEmpty() && !upgrade.is(ModItems.DIMENSION_UPGRADE.get())) {
+                    upgrades.add(upgrade.copy());
+                }
+            }
+            return new ToolConfig(node.getLineId(), node.getLineName(), placement, defaultFaces(), false, upgrades);
+        }
+
         public ToolConfig {
             faces = new EnumMap<>(faces);
             upgrades = upgrades.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();

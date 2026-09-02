@@ -22,6 +22,7 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 public final class ClientKleisOverlays {
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
+    private static boolean editNearby;
     private static long lastRequest = Long.MIN_VALUE;
     private static final Map<KleisOverlayPacket.Entry, Long> animationStarts = new HashMap<>();
     private ClientKleisOverlays() {}
@@ -35,34 +36,59 @@ public final class ClientKleisOverlays {
         }
         animationStarts.clear();
         animationStarts.putAll(nextStarts);
-        lineId = packet.lineId();
+        lineId = packet.selectedLineId();
+        editNearby = packet.editNearby();
         entries = packet.entries();
     }
-    public static void clear() { lineId = null; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE; }
+    public static void clear() {
+        lineId = null; editNearby = false; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE;
+    }
+
+    public static KleisOverlayPacket.Entry entryAt(BlockPos pos, Direction face) {
+        for (KleisOverlayPacket.Entry entry : entries) {
+            if (entry.pos().equals(pos) && entry.face() == face) return entry;
+        }
+        return null;
+    }
 
     public static void render(RenderLevelStageEvent.AfterTranslucentParticles event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || !mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                || !mc.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) { clear(); return; }
-        UUID selected = ConfiguratorItem.readLineId(mc.player.getOffhandItem());
-        if (selected == null) { clear(); return; }
+        if (mc.level == null || mc.player == null) { clear(); return; }
+        boolean edit = mc.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                && mc.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        boolean currentLine = mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                && mc.player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        if (!edit && !currentLine) { clear(); return; }
+        UUID selected = ConfiguratorItem.readLineId(edit
+                ? mc.player.getMainHandItem() : mc.player.getOffhandItem());
+        if (!edit && selected == null) { clear(); return; }
         long now = mc.level.getGameTime();
-        if (!selected.equals(lineId)) { lineId = selected; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE; }
-        if (lastRequest == Long.MIN_VALUE || now - lastRequest >= 20) { lastRequest = now; ModNetworking.requestKleisOverlays(); }
+        if (edit != editNearby || !edit && !java.util.Objects.equals(selected, lineId)) {
+            editNearby = edit; lineId = selected; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE;
+        } else if (edit) {
+            lineId = selected;
+        }
+        if (lastRequest == Long.MIN_VALUE || now - lastRequest >= 20) {
+            lastRequest = now; ModNetworking.requestKleisOverlays(edit);
+        }
         Vec3 camera = event.getLevelRenderState().cameraRenderState.pos;
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderTypes.lines());
+        net.minecraft.world.phys.BlockHitResult hit = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit
+                ? blockHit : null;
         for (KleisOverlayPacket.Entry entry : entries) {
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
+            boolean focused = hit != null && hit.getBlockPos().equals(entry.pos()) && hit.getDirection() == entry.face();
+            float alphaScale = edit && !focused && lineId != null && !lineId.equals(entry.lineId()) ? 0.45F : 1.0F;
             for (int ring = 1; ring <= 7; ring++) {
-                draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F);
+                draw(event, lines, faceBox(entry.pos(), entry.face(), ring / 16.0D), camera, r, g, b, 0.10F * alphaScale);
             }
-            draw(event, lines, faceBox(entry.pos(), entry.face(), 0), camera, r, g, b, 0.85F);
+            draw(event, lines, faceBox(entry.pos(), entry.face(), 0), camera, r, g, b, 0.85F * alphaScale);
             int phase = (int)(Math.floorMod(now - animationStarts.getOrDefault(entry, now), 50L)) / 5;
             if (phase < 8) {
                 int size = extract ? 2 + phase * 2 : 16 - phase * 2;
-                draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F);
+                draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F * alphaScale);
             }
         }
         mc.renderBuffers().bufferSource().endBatch(RenderTypes.lines());

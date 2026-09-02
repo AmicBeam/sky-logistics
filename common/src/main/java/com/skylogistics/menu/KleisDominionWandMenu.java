@@ -1,11 +1,13 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.KleisVirtualNodeBlockEntity;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.NodeFaceMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
 
 /** The normal node menu bound to a remembered Kleis endpoint instead of a placed node block. */
@@ -29,6 +31,15 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
 
     public Direction targetFace() {
         return targetFace;
+    }
+
+    @Override
+    public boolean stillValid(Player player) {
+        boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        return (wandMode || editMode) && super.stillValid(player);
     }
 
     /** Compatibility for clients that still have the first implementation's compact action packet. */
