@@ -1,6 +1,5 @@
 package com.skylogistics.compat.botania;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashSet;
@@ -8,8 +7,6 @@ import java.util.Set;
 
 final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
     private static final int UNKNOWN_RECEIVE_SPACE = 1000;
-    private static final String MANA_POOL_BLOCK_ENTITY =
-            "vazkii.botania.common.block.block_entity.mana.ManaPoolBlockEntity";
 
     private final Object receiver;
     private final Object sparkAttachable;
@@ -18,11 +15,9 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
     private final Method receiveMana;
     private final Method getMaxMana;
     private final Method getAvailableSpaceForMana;
-    private final boolean creativeManaPool;
 
     private ReflectiveManaHandlerBridge(Object receiver, Object sparkAttachable, Method getCurrentMana,
-            Method isFull, Method receiveMana, Method getMaxMana, Method getAvailableSpaceForMana,
-            boolean creativeManaPool) {
+            Method isFull, Method receiveMana, Method getMaxMana, Method getAvailableSpaceForMana) {
         this.receiver = receiver;
         this.sparkAttachable = sparkAttachable;
         this.getCurrentMana = getCurrentMana;
@@ -30,7 +25,6 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
         this.receiveMana = receiveMana;
         this.getMaxMana = getMaxMana;
         this.getAvailableSpaceForMana = getAvailableSpaceForMana;
-        this.creativeManaPool = creativeManaPool;
     }
 
     static ManaHandlerBridge create(Object receiver, Object sparkAttachable) {
@@ -45,8 +39,7 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
         }
         return new ReflectiveManaHandlerBridge(receiver, sparkAttachable, getCurrentMana, isFull, receiveMana,
                 findMethod(receiver.getClass(), "getMaxMana"),
-                sparkAttachable == null ? null : findMethod(sparkAttachable.getClass(), "getAvailableSpaceForMana"),
-                isCreativeManaPool(receiver));
+                sparkAttachable == null ? null : findMethod(sparkAttachable.getClass(), "getAvailableSpaceForMana"));
     }
 
     @Override
@@ -91,11 +84,7 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
         if (!receiveMana(-requested)) {
             return 0;
         }
-        int extracted = Math.min(requested, Math.max(0, before - getCurrentMana()));
-        // Botania creative pools intentionally keep getCurrentMana() pinned at their capacity.
-        // Their void receiveMana API therefore has no observable before/after delta even though
-        // Botania treats the requested mana as supplied.
-        return extracted > 0 || !creativeManaPool ? extracted : requested;
+        return Math.min(requested, Math.max(0, before - getCurrentMana()));
     }
 
     @Override
@@ -157,55 +146,6 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
         }
     }
 
-    private static boolean isCreativeManaPool(Object receiver) {
-        if (!hasTypeName(receiver.getClass(), MANA_POOL_BLOCK_ENTITY)) {
-            return false;
-        }
-        Object state = invokeObject(receiver, findMethod(receiver.getClass(), "getBlockState"));
-        Object block = state == null ? null : invokeObject(state, findMethod(state.getClass(), "getBlock"));
-        if (block == null) {
-            return false;
-        }
-        Method isCreative = findMethod(block.getClass(), "isCreative");
-        if (isCreative != null) {
-            return invokeBoolean(block, isCreative, false);
-        }
-        Object variant = readField(block, "variant");
-        return variant instanceof Enum<?> value && "CREATIVE".equals(value.name());
-    }
-
-    private static boolean hasTypeName(Class<?> type, String name) {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-            if (name.equals(current.getName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static Object invokeObject(Object target, Method method) {
-        if (method == null) {
-            return null;
-        }
-        try {
-            return method.invoke(target);
-        } catch (IllegalAccessException | InvocationTargetException | RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private static Object readField(Object target, String name) {
-        Field field = findField(target.getClass(), name);
-        if (field == null) {
-            return null;
-        }
-        try {
-            return field.get(target);
-        } catch (IllegalAccessException | RuntimeException ignored) {
-            return null;
-        }
-    }
-
     private static int invokeInt(Object target, Method method, int fallback) {
         try {
             Object result = method.invoke(target);
@@ -246,21 +186,6 @@ final class ReflectiveManaHandlerBridge implements ManaHandlerBridge {
             }
         }
         return findMethod(type.getSuperclass(), name, parameterTypes, visited);
-    }
-
-    private static Field findField(Class<?> type, String name) {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-            try {
-                Field field = current.getDeclaredField(name);
-                field.setAccessible(true);
-                return field;
-            } catch (NoSuchFieldException ignored) {
-                // Try the superclass below.
-            } catch (RuntimeException ignored) {
-                return null;
-            }
-        }
-        return null;
     }
 
     private static int saturatingAdd(int left, int right) {
