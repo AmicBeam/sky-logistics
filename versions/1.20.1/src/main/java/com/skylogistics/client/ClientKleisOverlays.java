@@ -29,7 +29,7 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
 public final class ClientKleisOverlays {
-    private static final RenderType XRAY_CENTER = XrayRenderType.createCenter();
+    private static RenderType xrayCenter;
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -117,7 +117,8 @@ public final class ClientKleisOverlays {
 
     private static void renderXrayCenters(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
-        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(XRAY_CENTER);
+        RenderType type = xrayCenter();
+        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         centerModes.clear();
         Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
@@ -140,7 +141,12 @@ public final class ClientKleisOverlays {
             drawCenterCube(event.getPoseStack().last().pose(), consumer, pos, camera,
                     r, g, b, 0.50F * alphaScale);
         }
-        mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
+        mc.renderBuffers().bufferSource().endBatch(type);
+    }
+
+    private static RenderType xrayCenter() {
+        if (xrayCenter == null) xrayCenter = XrayRenderType.createCenter();
+        return xrayCenter;
     }
 
     private static void renderAnimation(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,

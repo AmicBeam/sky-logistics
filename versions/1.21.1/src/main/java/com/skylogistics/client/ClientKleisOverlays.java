@@ -29,17 +29,7 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
 public final class ClientKleisOverlays {
-    private static final RenderType XRAY_CENTER = RenderType.create("skylogistics_kleis_xray_center",
-            DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS, 65536, false, false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(net.minecraft.client.renderer.RenderStateShard.POSITION_COLOR_SHADER)
-                    .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                    .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
-                    .setLightmapState(net.minecraft.client.renderer.RenderStateShard.NO_LIGHTMAP)
-                    .setDepthTestState(net.minecraft.client.renderer.RenderStateShard.GREATER_DEPTH_TEST)
-                    .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
-                    .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
-                    .createCompositeState(false));
+    private static RenderType xrayCenter;
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -127,7 +117,8 @@ public final class ClientKleisOverlays {
 
     private static void renderXrayCenters(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
-        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(XRAY_CENTER);
+        RenderType type = xrayCenter();
+        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         centerModes.clear();
         Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
@@ -150,7 +141,24 @@ public final class ClientKleisOverlays {
             drawCenterCube(event.getPoseStack().last().pose(), consumer, pos, camera,
                     r, g, b, 0.50F * alphaScale);
         }
-        mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
+        mc.renderBuffers().bufferSource().endBatch(type);
+    }
+
+    private static RenderType xrayCenter() {
+        if (xrayCenter == null) {
+            xrayCenter = RenderType.create("skylogistics_kleis_xray_center",
+                    DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS, 65536, false, false,
+                    RenderType.CompositeState.builder()
+                            .setShaderState(net.minecraft.client.renderer.RenderStateShard.POSITION_COLOR_SHADER)
+                            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+                            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+                            .setLightmapState(net.minecraft.client.renderer.RenderStateShard.NO_LIGHTMAP)
+                            .setDepthTestState(net.minecraft.client.renderer.RenderStateShard.GREATER_DEPTH_TEST)
+                            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+                            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
+                            .createCompositeState(false));
+        }
+        return xrayCenter;
     }
 
     private static void renderAnimation(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,

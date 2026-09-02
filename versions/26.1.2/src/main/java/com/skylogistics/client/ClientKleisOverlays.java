@@ -32,13 +32,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 public final class ClientKleisOverlays {
-    private static final RenderPipeline XRAY_CENTER_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation("pipeline/skylogistics_kleis_xray_center")
-            .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN, false))
-            .withCull(false)
-            .build();
-    private static final RenderType XRAY_CENTER = RenderType.create("skylogistics_kleis_xray_center",
-            RenderSetup.builder(XRAY_CENTER_PIPELINE).createRenderSetup());
+    private static RenderType xrayCenter;
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -122,7 +116,8 @@ public final class ClientKleisOverlays {
 
     private static void renderXrayCenters(RenderLevelStageEvent.AfterTranslucentParticles event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
-        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(XRAY_CENTER);
+        RenderType type = xrayCenter();
+        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         centerModes.clear();
         Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
@@ -144,7 +139,20 @@ public final class ClientKleisOverlays {
             float alphaScale = edit && !focused && lineId != null && !current ? 0.45F : 1.0F;
             drawCenterCube(event.getPoseStack().last(), consumer, pos, camera, r, g, b, 0.50F * alphaScale);
         }
-        mc.renderBuffers().bufferSource().endBatch(XRAY_CENTER);
+        mc.renderBuffers().bufferSource().endBatch(type);
+    }
+
+    private static RenderType xrayCenter() {
+        if (xrayCenter == null) {
+            RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+                    .withLocation("pipeline/skylogistics_kleis_xray_center")
+                    .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN, false))
+                    .withCull(false)
+                    .build();
+            xrayCenter = RenderType.create("skylogistics_kleis_xray_center",
+                    RenderSetup.builder(pipeline).createRenderSetup());
+        }
+        return xrayCenter;
     }
 
     private static void renderAnimation(RenderLevelStageEvent.AfterTranslucentParticles event, Minecraft mc, Vec3 camera,
