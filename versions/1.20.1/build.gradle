@@ -253,6 +253,9 @@ dependencies {
 }
 
 tasks.named('jar', Jar).configure {
+    from('LICENSE') {
+        rename { "${it}_${mod_id}" }
+    }
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,

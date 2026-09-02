@@ -127,4 +127,4 @@ The `common` directory contains shared source and resource files. Version-specif
 
 ## License
 
-MIT. See the `LICENSE` file in each version directory.
+GNU General Public License v3.0 only (`GPL-3.0-only`). See the root `LICENSE` file; each version directory also carries a copy for packaged artifacts.
