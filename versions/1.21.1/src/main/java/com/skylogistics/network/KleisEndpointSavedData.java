@@ -21,6 +21,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.BlockHitResult;
@@ -32,11 +33,14 @@ public final class KleisEndpointSavedData extends SavedData {
 
     private final Map<Key, Entry> entries = new HashMap<>();
     private final Map<Key, KleisRuntimeEndpoint> runtime = new HashMap<>();
-    private long lastRefreshTick = Long.MIN_VALUE;
+    private final KleisChunkIndex<ResourceKey<Level>, Key> entriesByChunk = new KleisChunkIndex<>();
+    private boolean runtimeInitialized;
 
     public static KleisEndpointSavedData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(
+        KleisEndpointSavedData data = server.overworld().getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(KleisEndpointSavedData::new, KleisEndpointSavedData::load, null), DATA_NAME);
+        data.initializeRuntime(server);
+        return data;
     }
 
     public static KleisEndpointSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
@@ -52,7 +56,7 @@ public final class KleisEndpointSavedData extends SavedData {
             if (dimensionId == null || face == null || !saved.hasUUID("Owner")) continue;
             Key key = new Key(ResourceKey.create(Registries.DIMENSION, dimensionId),
                     BlockPos.of(saved.getLong("Pos")), face);
-            data.entries.put(key, new Entry(saved.getUUID("Owner"), saved.getInt("Revision"),
+            data.storeEntry(key, new Entry(saved.getUUID("Owner"), saved.getInt("Revision"),
                     saved.getCompound("Node").copy()));
         }
         return data;
@@ -82,7 +86,7 @@ public final class KleisEndpointSavedData extends SavedData {
         if (entries.containsKey(key)) {
             if (!canModify(player, key) || !isReachable(player, key)) return ToggleResult.EDIT_DENIED;
             removeRuntime(key);
-            entries.remove(key);
+            removeEntry(key);
             setDirty();
             closeMenus(player.getServer(), key);
             return ToggleResult.REMOVED;
@@ -96,8 +100,9 @@ public final class KleisEndpointSavedData extends SavedData {
         if (lineOwner != null && !lineOwner.equals(player.getUUID())) return ToggleResult.EDIT_DENIED;
         KleisRuntimeEndpoint node = new KleisRuntimeEndpoint(level, pos, face, player.getUUID(), config,
                 extracting ? com.skylogistics.util.NodeFaceMode.INPUT : com.skylogistics.util.NodeFaceMode.OUTPUT);
+        if (!node.hasEnabledTargetCapability()) return ToggleResult.INVALID_TARGET;
         Entry entry = new Entry(player.getUUID(), 1, node.save());
-        entries.put(key, entry);
+        storeEntry(key, entry);
         attachRuntime(key, entry, node);
         SkyPlayerLines.claimOwner(player.getServer(), node.getLineId(), player);
         setDirty();
@@ -116,15 +121,14 @@ public final class KleisEndpointSavedData extends SavedData {
             BlockPos center, int range) {
         long distance = (long) range * range;
         List<Snapshot> result = new ArrayList<>();
-        for (Map.Entry<Key, KleisRuntimeEndpoint> mapEntry : runtime.entrySet()) {
-            Key key = mapEntry.getKey();
-            if (!key.dimension().equals(dimension) || !mapEntry.getValue().getLineId().equals(lineId)
+        for (Key key : nearbyKeys(dimension, center, range)) {
+            KleisRuntimeEndpoint node = runtime.get(key);
+            if (node == null || !node.getLineId().equals(lineId)
                     || key.pos().distSqr(center) > distance || !canView(viewer, key)) continue;
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    mapEntry.getValue().getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION),
-                    mapEntry.getValue().getLineId(), saved.revision()));
+                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(), saved.revision()));
         }
         return List.copyOf(result);
     }
@@ -133,17 +137,26 @@ public final class KleisEndpointSavedData extends SavedData {
             BlockPos center, int range) {
         long distance = (long) range * range;
         List<Snapshot> result = new ArrayList<>();
-        for (Map.Entry<Key, KleisRuntimeEndpoint> mapEntry : runtime.entrySet()) {
-            Key key = mapEntry.getKey();
-            if (!key.dimension().equals(dimension) || key.pos().distSqr(center) > distance
+        for (Key key : nearbyKeys(dimension, center, range)) {
+            KleisRuntimeEndpoint node = runtime.get(key);
+            if (node == null || key.pos().distSqr(center) > distance
                     || !canView(viewer, key)) continue;
             Entry saved = entries.get(key);
             if (saved == null) continue;
             result.add(new Snapshot(key.pos(), key.face(),
-                    mapEntry.getValue().getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION),
-                    mapEntry.getValue().getLineId(), saved.revision()));
+                    node.getFaceMode(KleisRuntimeEndpoint.ENDPOINT_DIRECTION), node.getLineId(), saved.revision()));
         }
         return List.copyOf(result);
+    }
+
+    private List<Key> nearbyKeys(ResourceKey<Level> dimension, BlockPos center, int range) {
+        List<Key> result = new ArrayList<>();
+        for (int chunkX = (center.getX() - range) >> 4; chunkX <= (center.getX() + range) >> 4; chunkX++) {
+            for (int chunkZ = (center.getZ() - range) >> 4; chunkZ <= (center.getZ() + range) >> 4; chunkZ++) {
+                result.addAll(entriesByChunk.entries(dimension, chunkX, chunkZ));
+            }
+        }
+        return result;
     }
 
     public EditResult copyToConfigurator(ServerPlayer player, Key key, int expectedRevision,
@@ -169,6 +182,7 @@ public final class KleisEndpointSavedData extends SavedData {
         if (!ConfiguratorItem.isPasteMode(configurator) || config == null) return EditResult.NO_CONFIG;
         UUID lineOwner = SkyPlayerLines.ownerOf(player.getServer(), config.lineId());
         if (lineOwner != null && !lineOwner.equals(player.getUUID())) return EditResult.DENIED;
+        if (!node.supportsToolConfig(config)) return EditResult.INVALID_TARGET;
         node.applySingleEndpointToolConfig(config, player);
         SkyPlayerLines.claimOwner(player.getServer(), node.getLineId(), player);
         player.inventoryMenu.broadcastChanges();
@@ -213,22 +227,26 @@ public final class KleisEndpointSavedData extends SavedData {
         }
     }
 
-    public void refresh(MinecraftServer server) {
-        long now = server.overworld().getGameTime();
-        if (lastRefreshTick != Long.MIN_VALUE && now - lastRefreshTick < 20L) return;
-        lastRefreshTick = now;
+    private void initializeRuntime(MinecraftServer server) {
+        if (runtimeInitialized) return;
+        runtimeInitialized = true;
         for (Map.Entry<Key, Entry> mapEntry : entries.entrySet()) {
             Key key = mapEntry.getKey();
             ServerLevel level = server.getLevel(key.dimension());
-            if (level == null || !level.hasChunkAt(key.pos())) {
-                removeRuntime(key);
-                continue;
-            }
-            if (!runtime.containsKey(key)) {
-                KleisRuntimeEndpoint node = KleisRuntimeEndpoint.fromSavedData(level, key.pos(), key.face(),
-                        mapEntry.getValue().owner(), mapEntry.getValue().nodeData().copy());
-                attachRuntime(key, mapEntry.getValue(), node);
-            }
+            if (level != null && level.hasChunkAt(key.pos())) attachSavedRuntime(level, key, mapEntry.getValue());
+        }
+    }
+
+    public void onChunkLoaded(ServerLevel level, ChunkPos chunkPos) {
+        for (Key key : entriesByChunk.entries(level.dimension(), chunkPos.x, chunkPos.z)) {
+            Entry entry = entries.get(key);
+            if (entry != null) attachSavedRuntime(level, key, entry);
+        }
+    }
+
+    public void onChunkUnloaded(ServerLevel level, ChunkPos chunkPos) {
+        for (Key key : entriesByChunk.entries(level.dimension(), chunkPos.x, chunkPos.z)) {
+            removeRuntime(key);
         }
     }
 
@@ -236,7 +254,24 @@ public final class KleisEndpointSavedData extends SavedData {
         for (Map.Entry<Key, KleisRuntimeEndpoint> entry : List.copyOf(runtime.entrySet())) {
             removeRuntime(entry.getKey());
         }
-        lastRefreshTick = Long.MIN_VALUE;
+        runtimeInitialized = false;
+    }
+
+    private void attachSavedRuntime(ServerLevel level, Key key, Entry entry) {
+        if (runtime.containsKey(key)) return;
+        KleisRuntimeEndpoint node = KleisRuntimeEndpoint.fromSavedData(level, key.pos(), key.face(),
+                entry.owner(), entry.nodeData().copy());
+        attachRuntime(key, entry, node);
+    }
+
+    private void storeEntry(Key key, Entry entry) {
+        entries.put(key, entry);
+        entriesByChunk.add(key.dimension(), key.pos().getX() >> 4, key.pos().getZ() >> 4, key);
+    }
+
+    private void removeEntry(Key key) {
+        entries.remove(key);
+        entriesByChunk.remove(key.dimension(), key.pos().getX() >> 4, key.pos().getZ() >> 4, key);
     }
 
     private void attachRuntime(Key key, Entry entry, KleisRuntimeEndpoint node) {
@@ -276,7 +311,8 @@ public final class KleisEndpointSavedData extends SavedData {
         PASTED,
         NO_CONFIG,
         STALE,
-        DENIED
+        DENIED,
+        INVALID_TARGET
     }
 
     public enum ToggleResult {

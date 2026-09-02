@@ -44,6 +44,7 @@ public record KleisEndpointEditPacket(BlockPos pos, Direction face, int revision
                 case NO_CONFIG -> Component.translatable("message.skylogistics.kleis_dominion_wand.no_paste_config");
                 case STALE -> Component.translatable("message.skylogistics.kleis_dominion_wand.stale_endpoint");
                 case DENIED -> Component.translatable("message.skylogistics.kleis_dominion_wand.edit_denied");
+                case INVALID_TARGET -> Component.translatable("message.skylogistics.kleis_dominion_wand.invalid_target");
             };
             player.sendOverlayMessage(message);
             data.syncVisibleOverlays(player.level().getServer(), player.level().dimension(), packet.pos);

@@ -135,7 +135,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
                 @Override
                 public boolean isActive() {
-                    return faceFilterSlotsActive;
+                    return faceFilterSlotsActive && (!singleEndpoint || slotIndex == 0);
                 }
             });
         }

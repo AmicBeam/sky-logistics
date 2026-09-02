@@ -41,6 +41,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.minecraft.util.TriState;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -86,6 +87,8 @@ public class SkyLogistics {
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onLeftClickBlock);
         NeoForge.EVENT_BUS.addListener(this::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(this::onChunkUnload);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
@@ -111,6 +114,18 @@ public class SkyLogistics {
 
     private void onBlockBreak(BreakBlockEvent event) {
         if (event.getPlayer().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) event.setCanceled(true);
+    }
+
+    private void onChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkLoaded(level, event.getChunk().getPos());
+        }
+    }
+
+    private void onChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkUnloaded(level, event.getChunk().getPos());
+        }
     }
 
     private static boolean isNodeOrSimplePipe(ItemStack stack) {

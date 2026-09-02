@@ -23,7 +23,9 @@ public final class ClientKleisOverlays {
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
-    private static long lastRequest = Long.MIN_VALUE;
+    private static Object lastRequestLevel;
+    private static int lastRequestChunkX = Integer.MIN_VALUE;
+    private static int lastRequestChunkZ = Integer.MIN_VALUE;
     private static final Map<KleisOverlayPacket.Entry, Long> animationStarts = new HashMap<>();
     private ClientKleisOverlays() {}
 
@@ -41,7 +43,7 @@ public final class ClientKleisOverlays {
         entries = packet.entries();
     }
     public static void clear() {
-        lineId = null; editNearby = false; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE;
+        lineId = null; editNearby = false; entries = List.of(); animationStarts.clear(); resetRequestLocation();
     }
 
     public static KleisOverlayPacket.Entry entryAt(BlockPos pos, Direction face) {
@@ -65,12 +67,15 @@ public final class ClientKleisOverlays {
         if (!edit && selected == null) { clear(); return; }
         long now = mc.level.getGameTime();
         if (edit != editNearby || !edit && !java.util.Objects.equals(selected, lineId)) {
-            editNearby = edit; lineId = selected; entries = List.of(); animationStarts.clear(); lastRequest = Long.MIN_VALUE;
+            editNearby = edit; lineId = selected; entries = List.of(); animationStarts.clear(); resetRequestLocation();
         } else if (edit) {
             lineId = selected;
         }
-        if (lastRequest == Long.MIN_VALUE || now - lastRequest >= 20) {
-            lastRequest = now; ModNetworking.requestKleisOverlays(edit);
+        int chunkX = mc.player.blockPosition().getX() >> 4;
+        int chunkZ = mc.player.blockPosition().getZ() >> 4;
+        if (lastRequestLevel != mc.level || chunkX != lastRequestChunkX || chunkZ != lastRequestChunkZ) {
+            lastRequestLevel = mc.level; lastRequestChunkX = chunkX; lastRequestChunkZ = chunkZ;
+            ModNetworking.requestKleisOverlays(edit);
         }
         Vec3 camera = event.getCamera().getPosition();
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
@@ -93,6 +98,12 @@ public final class ClientKleisOverlays {
             }
         }
         mc.renderBuffers().bufferSource().endBatch(RenderType.lines());
+    }
+
+    private static void resetRequestLocation() {
+        lastRequestLevel = null;
+        lastRequestChunkX = Integer.MIN_VALUE;
+        lastRequestChunkZ = Integer.MIN_VALUE;
     }
 
     private static void draw(RenderLevelStageEvent event, VertexConsumer consumer, AABB box, Vec3 camera,

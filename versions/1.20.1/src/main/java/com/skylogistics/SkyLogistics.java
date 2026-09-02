@@ -36,6 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -75,6 +76,8 @@ public class SkyLogistics {
         MinecraftForge.EVENT_BUS.addListener(this::onRightClickBlock);
         MinecraftForge.EVENT_BUS.addListener(this::onLeftClickBlock);
         MinecraftForge.EVENT_BUS.addListener(this::onBlockBreak);
+        MinecraftForge.EVENT_BUS.addListener(this::onChunkLoad);
+        MinecraftForge.EVENT_BUS.addListener(this::onChunkUnload);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
@@ -101,6 +104,18 @@ public class SkyLogistics {
     private void onBlockBreak(BlockEvent.BreakEvent event) {
         if (event.getPlayer().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) {
             event.setCanceled(true);
+        }
+    }
+
+    private void onChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkLoaded(level, event.getChunk().getPos());
+        }
+    }
+
+    private void onChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkUnloaded(level, event.getChunk().getPos());
         }
     }
 

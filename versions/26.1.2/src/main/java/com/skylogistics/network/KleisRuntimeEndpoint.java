@@ -286,8 +286,22 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
     @Override public TransferResource firstEnabledTransferResource(Direction direction) {
         if (direction != ENDPOINT_DIRECTION || !hasConfigurableTarget(direction)) return null;
         BlockEntity target = level.getBlockEntity(targetPos);
-        if (itemsEnabled && target != null && TransferCompat.itemHandler(level.getCapability(Capabilities.Item.BLOCK, targetPos, targetFace)) != null) return TransferResource.ITEMS;
-        if (fluidsEnabled && target != null && TransferCompat.fluidHandler(level.getCapability(Capabilities.Fluid.BLOCK, targetPos, targetFace)) != null) return TransferResource.FLUIDS;
+        if (target instanceof SkyDistributorBlockEntity distributor) {
+            if (itemsEnabled && distributor.hasItemTargets(targetFace)) return TransferResource.ITEMS;
+            if (fluidsEnabled && distributor.hasFluidTargets(targetFace)) return TransferResource.FLUIDS;
+            if (fluidsEnabled && SkyLogisticsConfig.allowFluidChemicalTransfer()
+                    && distributor.hasChemicalTargets(targetFace)) return TransferResource.CHEMICALS;
+            if (energyEnabled && distributor.hasEnergyTargets(targetFace)) return TransferResource.ENERGY;
+            if (energyEnabled && SkyLogisticsConfig.allowEnergyManaTransfer()
+                    && distributor.hasManaTargets(targetFace)) return TransferResource.MANA;
+            if (energyEnabled && SkyLogisticsConfig.allowEnergySourceTransfer()
+                    && distributor.hasSourceTargets(targetFace)) return TransferResource.SOURCE;
+            return null;
+        }
+        ItemHandler itemHandler = TransferCompat.itemHandler(level.getCapability(Capabilities.Item.BLOCK, targetPos, targetFace));
+        if (itemsEnabled && itemHandler != null && itemHandler.getSlots() > 0) return TransferResource.ITEMS;
+        FluidHandler fluidHandler = TransferCompat.fluidHandler(level.getCapability(Capabilities.Fluid.BLOCK, targetPos, targetFace));
+        if (fluidsEnabled && fluidHandler != null && fluidHandler.getTanks() > 0) return TransferResource.FLUIDS;
         if (fluidsEnabled && supportsChemicalEndpoint(direction)) return TransferResource.CHEMICALS;
         if (energyEnabled && target != null && TransferCompat.energyStorage(level.getCapability(Capabilities.Energy.BLOCK, targetPos, targetFace)) != null) return TransferResource.ENERGY;
         if (energyEnabled && supportsManaEndpoint(direction)) return TransferResource.MANA;
@@ -342,6 +356,18 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
         applyPlacementToolConfig(config, true);
         installCopiedUpgrades(config, player);
     }
+    public boolean hasEnabledTargetCapability() {
+        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        return KleisEndpointPolicy.hasEnabledCapability(itemsEnabled, fluidsEnabled, energyEnabled,
+                capabilities.items(), capabilities.fluids(), capabilities.energy());
+    }
+    public boolean supportsToolConfig(ConfiguratorItem.ToolConfig config) {
+        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        ConfiguratorItem.FaceConfig face = config.placement();
+        return KleisEndpointPolicy.supportsConfiguration(face.autoDetectResources(),
+                face.itemsEnabled(), face.fluidsEnabled(), face.energyEnabled(),
+                capabilities.items(), capabilities.fluids(), capabilities.energy());
+    }
     private void installCopiedUpgrades(ConfiguratorItem.ToolConfig config, Player player) {
         for (ItemStack requested : config.upgrades()) {
             if (!canAcceptKleisUpgrade(requested)) continue;
@@ -394,10 +420,10 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
         if(notify)changed();
     }
     private void detectResources() {
-        BlockEntity target=level.getBlockEntity(targetPos);
-        itemsEnabled=TransferCompat.itemHandler(level.getCapability(Capabilities.Item.BLOCK,targetPos,targetFace))!=null;
-        fluidsEnabled=TransferCompat.fluidHandler(level.getCapability(Capabilities.Fluid.BLOCK,targetPos,targetFace))!=null||supportsChemicalEndpoint(ENDPOINT_DIRECTION);
-        energyEnabled=TransferCompat.energyStorage(level.getCapability(Capabilities.Energy.BLOCK,targetPos,targetFace))!=null||supportsManaEndpoint(ENDPOINT_DIRECTION)||supportsSourceEndpoint(ENDPOINT_DIRECTION);
+        KleisTargetCapabilities capabilities = KleisTargetCapabilities.detect(level, targetPos, targetFace);
+        itemsEnabled = capabilities.items();
+        fluidsEnabled = capabilities.fluids();
+        energyEnabled = capabilities.energy();
     }
     @Override public void setChanged() { changed(); }
     private void changed() { changeListener.run(); }
