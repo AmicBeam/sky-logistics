@@ -40,6 +40,11 @@ public final class KleisEndpointPolicy {
 
     public static boolean canOpenEndpointFromHands(boolean mainHandWand, boolean offhandConfigurator,
             boolean mainHandConfigurator, boolean offhandWand) {
-        return mainHandWand && offhandConfigurator || mainHandConfigurator && offhandWand;
+        return mainHandWand && offhandConfigurator
+                || isConfiguratorEditMode(mainHandConfigurator, offhandWand);
+    }
+
+    public static boolean isConfiguratorEditMode(boolean mainHandConfigurator, boolean offhandWand) {
+        return mainHandConfigurator && offhandWand;
     }
 }

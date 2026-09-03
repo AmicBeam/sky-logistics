@@ -12,6 +12,7 @@ import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.network.KleisEndpointSavedData;
+import com.skylogistics.network.KleisEndpointPolicy;
 import com.skylogistics.network.SkyOfferingRecipesPacket;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
@@ -27,6 +28,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -102,6 +104,9 @@ public class SkyLogistics {
     }
 
     private void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (suppressVanillaKleisEndpointEdit(event)) {
+            return;
+        }
         if (tryDismantleWithWrench(event)) {
             return;
         }
@@ -111,6 +116,24 @@ public class SkyLogistics {
             event.setUseBlock(TriState.FALSE);
             event.setUseItem(TriState.TRUE);
         }
+    }
+
+    private boolean suppressVanillaKleisEndpointEdit(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || !(event.getEntity() instanceof ServerPlayer player)
+                || !KleisEndpointPolicy.isConfiguratorEditMode(
+                        player.getMainHandItem().is(ModItems.CONFIGURATOR.get()),
+                        player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get()))
+                || event.getLevel().getBlockEntity(event.getPos()) instanceof SkyNodeBlockEntity) {
+            return false;
+        }
+        KleisEndpointSavedData data = KleisEndpointSavedData.get(player.level().getServer());
+        KleisEndpointSavedData.Key key = new KleisEndpointSavedData.Key(
+                player.level().dimension(), event.getPos(), event.getFace());
+        if (!data.canView(player, key)) return false;
+        event.setUseBlock(TriState.FALSE);
+        event.setUseItem(TriState.FALSE);
+        return true;
     }
 
     private void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {

@@ -54,4 +54,11 @@ class KleisEndpointPolicyTest {
         assertFalse(KleisEndpointPolicy.canOpenEndpointFromHands(true, false, false, false));
         assertFalse(KleisEndpointPolicy.canOpenEndpointFromHands(false, true, true, false));
     }
+
+    @Test
+    void configuratorEditModeRequiresConfiguratorMainHandAndWandOffhand() {
+        assertTrue(KleisEndpointPolicy.isConfiguratorEditMode(true, true));
+        assertFalse(KleisEndpointPolicy.isConfiguratorEditMode(true, false));
+        assertFalse(KleisEndpointPolicy.isConfiguratorEditMode(false, true));
+    }
 }
