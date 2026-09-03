@@ -25,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
@@ -39,6 +40,8 @@ public final class ClientKleisOverlays {
     private static int lastRequestChunkX = Integer.MIN_VALUE;
     private static int lastRequestChunkZ = Integer.MIN_VALUE;
     private static final Map<BlockPos, Integer> centerModes = new HashMap<>();
+    private static BlockPos configuratorTarget;
+    private static Object configuratorTargetLevel;
     private ClientKleisOverlays() {}
 
     public static void apply(KleisOverlayPacket packet) {
@@ -48,7 +51,16 @@ public final class ClientKleisOverlays {
     }
     public static void clear() {
         lineId = null; editNearby = false; active = false; entries = List.of(); centerModes.clear();
+        configuratorTarget = null; configuratorTargetLevel = null;
         snapshotLevel = null; resetRequestLocation();
+    }
+
+    public static void focusConfiguratorTarget(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+        configuratorTarget = pos.immutable();
+        configuratorTargetLevel = mc.level;
+        mc.player.lookAt(EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(pos));
     }
 
     public static KleisOverlayPacket.Entry entryAt(BlockPos pos, Direction face) {
@@ -67,6 +79,8 @@ public final class ClientKleisOverlays {
             entries = List.of();
             ModNetworking.requestKleisOverlays(true);
         }
+        Vec3 camera = event.getCamera().getPosition();
+        renderConfiguratorTarget(event, mc, camera);
         boolean edit = mc.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                 && mc.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
         boolean currentLine = mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
@@ -88,12 +102,31 @@ public final class ClientKleisOverlays {
             lastRequestLevel = mc.level; lastRequestChunkX = chunkX; lastRequestChunkZ = chunkZ;
             ModNetworking.requestKleisOverlays(edit);
         }
-        Vec3 camera = event.getCamera().getPosition();
         net.minecraft.world.phys.BlockHitResult hit = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit
                 ? blockHit : null;
         renderMasks(event, mc, camera, hit, edit);
         renderXrayCenters(event, mc, camera, hit, edit);
         renderAnimation(event, mc, camera, hit, edit, now);
+    }
+
+    private static void renderConfiguratorTarget(RenderLevelStageEvent event, Minecraft mc, Vec3 camera) {
+        if (configuratorTarget == null) return;
+        if (configuratorTargetLevel != mc.level) {
+            configuratorTarget = null;
+            configuratorTargetLevel = null;
+            return;
+        }
+        if (!mc.level.isLoaded(configuratorTarget)) return;
+        RenderType xray = xrayCenter();
+        VertexConsumer fill = mc.renderBuffers().bufferSource().getBuffer(xray);
+        drawCube(event.getPoseStack().last().pose(), fill, configuratorTarget, camera,
+                0.0625F, 1.0F, 1.0F, 1.0F, 0.45F);
+        mc.renderBuffers().bufferSource().endBatch(xray);
+        RenderType outline = RenderType.lines();
+        VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(outline);
+        draw(event, lines, new AABB(configuratorTarget).inflate(0.002D), camera,
+                1.0F, 1.0F, 1.0F, 1.0F);
+        mc.renderBuffers().bufferSource().endBatch(outline);
     }
 
     private static void renderMasks(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
@@ -209,8 +242,14 @@ public final class ClientKleisOverlays {
 
     private static void drawCenterCube(Matrix4f matrix, VertexConsumer consumer, BlockPos pos, Vec3 camera,
             float r, float g, float b, float a) {
-        float x0=(float)(pos.getX()-camera.x)+.25F, y0=(float)(pos.getY()-camera.y)+.25F, z0=(float)(pos.getZ()-camera.z)+.25F;
-        float x1=x0+.5F, y1=y0+.5F, z1=z0+.5F;
+        drawCube(matrix, consumer, pos, camera, 0.25F, r, g, b, a);
+    }
+
+    private static void drawCube(Matrix4f matrix, VertexConsumer consumer, BlockPos pos, Vec3 camera,
+            float inset, float r, float g, float b, float a) {
+        float x0=(float)(pos.getX()-camera.x)+inset, y0=(float)(pos.getY()-camera.y)+inset,
+                z0=(float)(pos.getZ()-camera.z)+inset;
+        float size=1.0F-inset*2.0F, x1=x0+size, y1=y0+size, z1=z0+size;
         quad(consumer,matrix,x0,y0,z0,x1,y0,z0,x1,y0,z1,x0,y0,z1,r,g,b,a,0,-1,0);
         quad(consumer,matrix,x0,y1,z1,x1,y1,z1,x1,y1,z0,x0,y1,z0,r,g,b,a,0,1,0);
         quad(consumer,matrix,x0,y0,z0,x0,y1,z0,x1,y1,z0,x1,y0,z0,r,g,b,a,0,0,-1);

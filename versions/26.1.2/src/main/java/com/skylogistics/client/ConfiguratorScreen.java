@@ -306,7 +306,24 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             lineNameEdit.setFocused(false);
             setFocused(null);
         }
+        if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && doubleClick) {
+            ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailLocation(mouseX, mouseY);
+            if (entry != null) {
+                focusDetailTarget(entry);
+                return true;
+            }
+        }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private void focusDetailTarget(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (minecraft == null || minecraft.level == null || minecraft.player == null
+                || isSkyNecklaceEntry(entry)
+                || !minecraft.level.dimension().identifier().toString().equals(entry.dimension())) {
+            return;
+        }
+        onClose();
+        ClientKleisOverlays.focusConfiguratorTarget(entry.targetPos());
     }
 
     @Override

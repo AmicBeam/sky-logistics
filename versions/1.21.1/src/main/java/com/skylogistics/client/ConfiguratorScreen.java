@@ -29,6 +29,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -75,6 +76,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
     private static final int SLOT_LIMIT_UP_X = 145;
     private static final int BOTTOM_GROUP_Y = 216;
+    private static final long DOUBLE_CLICK_INTERVAL_MS = 250L;
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -87,6 +89,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private List<ConfiguratorLineDetailsPacket.Entry> detailEntries = List.of();
     private final Map<ConfiguratorLineDetailsPacket.Entry, ItemStack> detailIconCache = new HashMap<>();
     private int detailScroll;
+    private ConfiguratorLineDetailsPacket.Entry lastCoordinateClick;
+    private long lastCoordinateClickMillis;
 
     public ConfiguratorScreen(ConfiguratorMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -311,7 +315,32 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
             lineNameEdit.setFocused(false);
             setFocused(null);
         }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailLocation(mouseX, mouseY);
+            if (entry != null) {
+                long now = Util.getMillis();
+                if (entry.equals(lastCoordinateClick)
+                        && now - lastCoordinateClickMillis <= DOUBLE_CLICK_INTERVAL_MS) {
+                    lastCoordinateClick = null;
+                    focusDetailTarget(entry);
+                } else {
+                    lastCoordinateClick = entry;
+                    lastCoordinateClickMillis = now;
+                }
+                return true;
+            }
+        }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void focusDetailTarget(ConfiguratorLineDetailsPacket.Entry entry) {
+        if (minecraft == null || minecraft.level == null || minecraft.player == null
+                || isSkyNecklaceEntry(entry)
+                || !minecraft.level.dimension().location().toString().equals(entry.dimension())) {
+            return;
+        }
+        onClose();
+        ClientKleisOverlays.focusConfiguratorTarget(entry.targetPos());
     }
 
     @Override
