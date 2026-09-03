@@ -10,7 +10,7 @@
     {
       "type": "patchouli:text",
       "title": "Copy and Paste",
-      "text": "Swap hands so the configurator is in the main hand and the wand is in the offhand. Nearby virtual faces are highlighted. Sneak-right-click a highlighted face to copy its single-face settings and enter paste mode. Right-click another highlighted face to paste. You can also copy a real logistics node and paste its active-face settings to a virtual face, or copy a virtual face and paste it to a real node."
+      "text": "Swap hands so the configurator is in the main hand and the wand is in the offhand. Nearby virtual faces are highlighted. Sneak-right-click a highlighted face to copy its single-face settings and enter paste mode. Right-click another highlighted face to paste, or left-click it to open its GUI. You can also copy a real logistics node and paste its active-face settings to a virtual face, or copy a virtual face and paste it to a real node."
     },
     {
       "type": "patchouli:text",

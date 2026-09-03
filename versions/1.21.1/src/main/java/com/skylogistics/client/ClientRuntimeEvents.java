@@ -3,6 +3,7 @@ package com.skylogistics.client;
 import com.skylogistics.SkyLogistics;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.UpgradeCardItem;
+import com.skylogistics.network.KleisEndpointPolicy;
 import com.skylogistics.network.KleisOverlayPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlocks;
@@ -54,10 +55,17 @@ public final class ClientRuntimeEvents {
     public static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (!event.isAttack() || minecraft.player == null
-                || !minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
                 || !(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        boolean mainHandWand = minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        boolean offhandConfigurator = minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        boolean mainHandConfigurator = minecraft.player.getMainHandItem().is(ModItems.CONFIGURATOR.get());
+        boolean offhandWand = minecraft.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        boolean canOpen = KleisEndpointPolicy.canOpenEndpointFromHands(mainHandWand, offhandConfigurator,
+                mainHandConfigurator, offhandWand);
+        if (!mainHandWand && !canOpen) return;
+        if (mainHandConfigurator && ClientKleisOverlays.entryAt(hit.getBlockPos(), hit.getDirection()) == null) return;
         event.setCanceled(true);
-        if (minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get())) {
+        if (canOpen) {
             ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
         }
     }

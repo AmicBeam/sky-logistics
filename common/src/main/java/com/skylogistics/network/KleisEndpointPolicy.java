@@ -37,4 +37,9 @@ public final class KleisEndpointPolicy {
     public static boolean sameLine(UUID existingLineId, UUID selectedLineId) {
         return existingLineId.equals(selectedLineId);
     }
+
+    public static boolean canOpenEndpointFromHands(boolean mainHandWand, boolean offhandConfigurator,
+            boolean mainHandConfigurator, boolean offhandWand) {
+        return mainHandWand && offhandConfigurator || mainHandConfigurator && offhandWand;
+    }
 }
