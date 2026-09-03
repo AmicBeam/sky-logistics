@@ -33,6 +33,7 @@ import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 public final class ClientKleisOverlays {
+    private static final long CONFIGURATOR_TARGET_DURATION_NANOS = 5_000_000_000L;
     private static RenderType xrayCenter;
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
@@ -45,6 +46,7 @@ public final class ClientKleisOverlays {
     private static final Map<BlockPos, Integer> centerModes = new HashMap<>();
     private static BlockPos configuratorTarget;
     private static Object configuratorTargetLevel;
+    private static long configuratorTargetExpiresAtNanos;
     private ClientKleisOverlays() {}
 
     public static void apply(KleisOverlayPacket packet) {
@@ -54,7 +56,7 @@ public final class ClientKleisOverlays {
     }
     public static void clear() {
         lineId = null; editNearby = false; active = false; entries = List.of(); centerModes.clear();
-        configuratorTarget = null; configuratorTargetLevel = null;
+        configuratorTarget = null; configuratorTargetLevel = null; configuratorTargetExpiresAtNanos = 0L;
         snapshotLevel = null; resetRequestLocation();
     }
 
@@ -63,6 +65,7 @@ public final class ClientKleisOverlays {
         if (mc.level == null || mc.player == null) return;
         configuratorTarget = pos.immutable();
         configuratorTargetLevel = mc.level;
+        configuratorTargetExpiresAtNanos = System.nanoTime() + CONFIGURATOR_TARGET_DURATION_NANOS;
         mc.player.lookAt(EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(pos));
     }
 
@@ -114,9 +117,10 @@ public final class ClientKleisOverlays {
     private static void renderConfiguratorTarget(RenderLevelStageEvent.AfterTranslucentParticles event,
             Minecraft mc, Vec3 camera) {
         if (configuratorTarget == null) return;
-        if (configuratorTargetLevel != mc.level) {
+        if (configuratorTargetLevel != mc.level || System.nanoTime() >= configuratorTargetExpiresAtNanos) {
             configuratorTarget = null;
             configuratorTargetLevel = null;
+            configuratorTargetExpiresAtNanos = 0L;
             return;
         }
         if (!mc.level.isLoaded(configuratorTarget)) return;
@@ -137,6 +141,7 @@ public final class ClientKleisOverlays {
         RenderType type = RenderTypes.debugQuads();
         VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
         for (KleisOverlayPacket.Entry entry : entries) {
+            if (entry.pos().equals(configuratorTarget)) continue;
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
@@ -155,6 +160,7 @@ public final class ClientKleisOverlays {
         centerModes.clear();
         Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
+            if (entry.pos().equals(configuratorTarget)) continue;
             centerModes.merge(entry.pos(), entry.mode() == NodeFaceMode.INPUT ? 1 : 2,
                     (mask, ignored) -> KleisEndpointPolicy.addEndpointMode(mask,
                             entry.mode() == NodeFaceMode.INPUT));
@@ -194,6 +200,7 @@ public final class ClientKleisOverlays {
         VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderTypes.lines());
         int phase = (int)(Math.floorMod(now, 50L)) / 5;
         for (KleisOverlayPacket.Entry entry : entries) {
+            if (entry.pos().equals(configuratorTarget)) continue;
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
             boolean extract = entry.mode() == NodeFaceMode.INPUT;
             float r = extract ? 1.0F : 0.25F, g = extract ? 0.62F : 0.86F, b = extract ? 0.22F : 0.94F;
