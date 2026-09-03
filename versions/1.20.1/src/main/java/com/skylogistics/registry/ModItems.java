@@ -92,7 +92,7 @@ public final class ModItems {
                     SkyLogisticsConfig::eulogiaCompanionStoneMinY,
                     SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final RegistryObject<Item> CHORA_NECTAR = ITEMS.register("chora_nectar",
-            () -> new ChoraNectarItem(new Item.Properties()));
+            () -> new ChoraNectarItem(new Item.Properties().fireResistant()));
     public static final RegistryObject<Item> SKY_LOGISTICS_MANUAL = ITEMS.register("sky_logistics_manual",
             () -> new SkyLogisticsManualItem(new Item.Properties().stacksTo(1)));
 

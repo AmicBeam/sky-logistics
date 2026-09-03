@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -35,6 +36,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -54,6 +56,8 @@ public class SkyLogistics {
             new ResourceLocation("forge", "tools/wrench"));
     private static final TagKey<Item> COMMON_TOOLS_WRENCH = TagKey.create(Registries.ITEM,
             new ResourceLocation("c", "tools/wrench"));
+    private static final TagKey<Item> PROTECTED_DROPS = TagKey.create(Registries.ITEM,
+            new ResourceLocation(MOD_ID, "protected_drops"));
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public SkyLogistics() {
@@ -78,6 +82,7 @@ public class SkyLogistics {
         MinecraftForge.EVENT_BUS.addListener(this::onBlockBreak);
         MinecraftForge.EVENT_BUS.addListener(this::onChunkLoad);
         MinecraftForge.EVENT_BUS.addListener(this::onChunkUnload);
+        MinecraftForge.EVENT_BUS.addListener(this::onEntityJoinLevel);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
@@ -186,6 +191,14 @@ public class SkyLogistics {
     private static boolean isSkyLogisticsBlock(BlockState state) {
         ResourceLocation id = ForgeRegistries.BLOCKS.getKey(state.getBlock());
         return id != null && MOD_ID.equals(id.getNamespace());
+    }
+
+    private void onEntityJoinLevel(EntityJoinLevelEvent event) {
+        if (!event.getLevel().isClientSide && event.getEntity() instanceof ItemEntity itemEntity
+                && itemEntity.getItem().is(PROTECTED_DROPS)) {
+            itemEntity.setUnlimitedLifetime();
+            itemEntity.setInvulnerable(true);
+        }
     }
 
     private void onServerStopping(ServerStoppingEvent event) {

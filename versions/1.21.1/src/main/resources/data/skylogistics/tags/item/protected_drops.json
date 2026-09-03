@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "skylogistics:kleis_dominion_wand",
+    "skylogistics:chora_nectar",
+    "skylogistics:chora_nectar_block",
+    "skylogistics:item_vault",
+    "skylogistics:fluid_vault"
+  ]
+}
