@@ -4,8 +4,11 @@ import com.skylogistics.network.KleisEndpointSavedData;
 import com.skylogistics.registry.ModItems;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -16,6 +19,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.Vec3;
 
 public final class KleisDominionWandItem extends Item {
     public KleisDominionWandItem(Properties properties) {
@@ -51,12 +56,33 @@ public final class KleisDominionWandItem extends Item {
 
     @Override
     public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
-        if (!player.level().isClientSide() && player instanceof ServerPlayer) {
-            double x = entity.getX();
-            double z = entity.getZ();
-            entity.teleportTo(x, 256.0D, z);
+        if (!player.level().isClientSide() && player instanceof ServerPlayer
+                && entity.level() instanceof ServerLevel level) {
+            teleportWithEffects(level, entity);
         }
         return true;
+    }
+
+    private static void teleportWithEffects(ServerLevel level, Entity entity) {
+        Vec3 origin = entity.position();
+        double targetY = 256.0D;
+        entity.teleportTo(origin.x, targetY, origin.z);
+        if (entity.level() != level || entity.distanceToSqr(origin.x, targetY, origin.z) > 0.01D) return;
+        level.gameEvent(GameEvent.TELEPORT, origin, GameEvent.Context.of(entity));
+        if (!entity.isSilent()) {
+            level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.ENDERMAN_TELEPORT,
+                    entity.getSoundSource(), 1.0F, 1.0F);
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ENDERMAN_TELEPORT,
+                    entity.getSoundSource(), 1.0F, 1.0F);
+        }
+        sendTeleportParticles(level, origin.x, origin.y, origin.z, entity);
+        sendTeleportParticles(level, entity.getX(), entity.getY(), entity.getZ(), entity);
+    }
+
+    private static void sendTeleportParticles(ServerLevel level, double x, double y, double z, Entity entity) {
+        level.sendParticles(ParticleTypes.PORTAL, x, y + entity.getBbHeight() * 0.5D, z, 32,
+                Math.max(0.2D, entity.getBbWidth() * 0.5D), Math.max(0.3D, entity.getBbHeight() * 0.5D),
+                Math.max(0.2D, entity.getBbWidth() * 0.5D), 0.15D);
     }
 
     @Override
