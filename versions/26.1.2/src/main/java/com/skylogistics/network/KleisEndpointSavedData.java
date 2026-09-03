@@ -319,6 +319,7 @@ public final class KleisEndpointSavedData extends SavedData {
         Entry previous = entries.get(key);
         if (previous == null) return;
         entries.put(key, new Entry(previous.owner(), previous.revision() + 1, node.save()));
+        SkyNetworkRegistry.markVirtualDirty((ServerLevel) node.getLevel(), node);
         setDirty();
         syncVisibleOverlays(node.getLevel().getServer(), key.dimension(), key.pos());
     }
