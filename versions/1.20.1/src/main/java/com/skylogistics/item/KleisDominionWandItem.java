@@ -1,5 +1,6 @@
 package com.skylogistics.item;
 
+import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.network.KleisEndpointSavedData;
 import com.skylogistics.registry.ModItems;
 import java.util.List;
@@ -55,7 +56,8 @@ public final class KleisDominionWandItem extends Item {
 
     @Override
     public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
-        if (!player.level().isClientSide && player instanceof ServerPlayer
+        if (SkyLogisticsConfig.enableKleisDominionWandEntityTeleport()
+                && !player.level().isClientSide && player instanceof ServerPlayer
                 && entity.level() instanceof ServerLevel level) {
             teleportWithEffects(level, entity);
         }
@@ -64,7 +66,7 @@ public final class KleisDominionWandItem extends Item {
 
     private static void teleportWithEffects(ServerLevel level, Entity entity) {
         Vec3 origin = entity.position();
-        double targetY = 256.0D;
+        double targetY = SkyLogisticsConfig.kleisDominionWandTeleportY();
         entity.teleportTo(origin.x, targetY, origin.z);
         if (entity.level() != level || entity.distanceToSqr(origin.x, targetY, origin.z) > 0.01D) return;
         level.gameEvent(GameEvent.TELEPORT, origin, GameEvent.Context.of(entity));

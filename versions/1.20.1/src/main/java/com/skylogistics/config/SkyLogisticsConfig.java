@@ -483,6 +483,14 @@ public final class SkyLogisticsConfig {
         return SERVER.eulogiaCompanionStoneChargeSeconds.get();
     }
 
+    public static boolean enableKleisDominionWandEntityTeleport() {
+        return SERVER.enableKleisDominionWandEntityTeleport.get();
+    }
+
+    public static int kleisDominionWandTeleportY() {
+        return SERVER.kleisDominionWandTeleportY.get();
+    }
+
     public static boolean renderConfiguratorPlayerHeads() {
         return CLIENT.renderConfiguratorPlayerHeads.get();
     }
@@ -539,6 +547,8 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue eulogiaCrystalChargeSeconds;
         public final ForgeConfigSpec.IntValue eulogiaCompanionStoneMinY;
         public final ForgeConfigSpec.IntValue eulogiaCompanionStoneChargeSeconds;
+        public final ForgeConfigSpec.BooleanValue enableKleisDominionWandEntityTeleport;
+        public final ForgeConfigSpec.IntValue kleisDominionWandTeleportY;
         public final ForgeConfigSpec.LongValue skyContainerTransferLimit;
         public final ForgeConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ForgeConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
@@ -951,6 +961,17 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum logistics endpoints one Sky Necklace may visit during one work interval (outputs while extracting, inputs while inserting).",
                             "一条天穹项链每次工作最多访问的物流端点数（抽取时访问输出端，插入时访问输入端）。")
                     .defineInRange("skyNecklaceTargetAttemptsPerWork", 1, 1, 1_000_000);
+            builder.pop();
+
+            builder.push("kleisDominionWand");
+            enableKleisDominionWandEntityTeleport = builder
+                    .comment("Whether the Kleis Dominion Wand teleports left-clicked entities.",
+                            "克莱斯支配之杖左击实体时是否启用传送功能。")
+                    .define("enableEntityTeleport", true);
+            kleisDominionWandTeleportY = builder
+                    .comment("Target Y coordinate used when the Kleis Dominion Wand teleports an entity.",
+                            "克莱斯支配之杖传送实体时使用的目标 Y 坐标。")
+                    .defineInRange("teleportY", 256, -20_000_000, 20_000_000);
             builder.pop();
 
             builder.push("rituals");

@@ -187,7 +187,7 @@ EndpointKey = dimension + targetPos + targetFace
 
 ```text
 targetX = entity.getX()
-targetY = 256.0
+targetY = serverConfig.kleisDominionWand.teleportY（默认 256）
 targetZ = entity.getZ()
 ```
 
@@ -202,9 +202,10 @@ targetZ = entity.getZ()
 - 若目标已移除、死亡、传送事件被取消、位置不合法或对应实体 API 拒绝传送，则不产生效果并返回失败反馈。
 - 乘客／载具关系不递归处理；只尝试传送被点击实体。API 不允许时按失败处理。
 - 每次物理点击最多尝试一次，不增加额外连发计时器或自定义冷却。
+- `kleisDominionWand.enableEntityTeleport` 为 `false` 时不执行传送及后续音效、粒子和游戏事件，但支配之杖仍取消原版实体攻击。
 - 传送调用后以同一 `ServerLevel` 和目标坐标误差不超过 `0.1` 方块作为轻量成功判断；成功时在起点与终点各播放一次末影人传送音效，并各发送一组传送门粒子，同时触发 `GameEvent.TELEPORT`。失败时不播放音效或粒子。
 
-`Y=256` 是固定目标值，不根据维度建筑高度自动钳制；无法接受该坐标的维度按“尝试失败”处理。
+目标 Y 默认是 `256`，可由服务端配置为 `-20,000,000` 至 `20,000,000`；不根据维度建筑高度自动钳制，无法接受该坐标的维度按“尝试失败”处理。
 
 ### 6.5 移除端点
 
@@ -1013,6 +1014,8 @@ L5：峰值
 
 建议服务器配置：
 
+- `kleisDominionWand.enableEntityTeleport`：实体传送开关，默认 `true`
+- `kleisDominionWand.teleportY`：实体传送目标 Y，默认 `256`
 - `enableKleisDominionWand`：总开关，默认 `true`
 - `kleisDominionWandMaxEndpointsPerPlayer`：默认 `256`
 - `kleisDominionWandMaxEndpointsPerChunk`：默认 `64`
@@ -1399,7 +1402,7 @@ L5：峰值
 
 以下产品决策已经冻结，不再作为实施阻塞项：
 
-1. 左击实体不攻击，改为尝试在同维度传送到 `Y=256`，X/Z 不变。
+1. 左击实体不攻击；传送功能默认开启，尝试在同维度传送到服务端配置的目标 Y（默认 `256`），X/Z 不变。
 2. 使用端点所属线路右击已绑定面直接删除端点且不二次确认；其它线路不得顶替，并在 action bar 报错。
 3. 世界覆盖动画采用 50 tick／2.5 秒周期，只保留半透明面和 alpha 0.50 的动画框，不绘制常驻外框或辅助细线环。
 4. 主手杖模式下，没有副手配置器或配置器没有当前线路时不显示覆盖层。
