@@ -64,7 +64,8 @@ public final class ModItems {
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, KleisDominionWandItem> KLEIS_DOMINION_WAND =
-            ITEMS.register("kleis_dominion_wand", () -> new KleisDominionWandItem(new Item.Properties().rarity(Rarity.EPIC)));
+            ITEMS.register("kleis_dominion_wand", () -> new KleisDominionWandItem(
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
     public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
             () -> new Item(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",

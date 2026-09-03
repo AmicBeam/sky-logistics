@@ -44,6 +44,7 @@
 - 物品 ID：`skylogistics:kleis_dominion_wand`
 - Java 类名：`KleisDominionWandItem`
 - SavedData 名称：`skylogistics_kleis_dominion_wand_endpoints`
+- 物品属性：史诗稀有度、最大堆叠数 1、`fireResistant`；掉入火焰或熔岩时不被烧毁，与柯拉甘露块物品一致。
 
 当前仓库只有美术资产，没有对应物品类、注册项、模型、语言条目、配方或交互逻辑。已有资产包括：
 
