@@ -7,6 +7,6 @@ public final class AdvancementDataPackHandler {
     private AdvancementDataPackHandler() {}
 
     public static void onServerStarted(ServerStartedEvent event) {
-        AdvancementDataPackRuntime.rebuild(event.getServer(), 101, false);
+        AdvancementDataPackRuntime.rebuild(event.getServer(), 101, 1, false);
     }
 }

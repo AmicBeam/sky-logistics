@@ -87,6 +87,7 @@ public class SkyLogistics {
         NeoForge.EVENT_BUS.addListener(SkyNecklaceTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(SkyNetworkTicker::onServerTick);
         NeoForge.EVENT_BUS.addListener(SkyOfferingRecipesPacket::onDatapackSync);
+        NeoForge.EVENT_BUS.addListener(SkyOfferingRecipesPacket::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onAdvancementEarned);
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(AdvancementDataPackHandler::onServerStarted);

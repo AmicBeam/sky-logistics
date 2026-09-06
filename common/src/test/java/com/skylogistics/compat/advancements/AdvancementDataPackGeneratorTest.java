@@ -1,5 +1,6 @@
 package com.skylogistics.compat.advancements;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,6 +39,16 @@ class AdvancementDataPackGeneratorTest {
         assertTrue(AdvancementDataPackGenerator.generate(temporaryDirectory, 48, false, entries.subList(0, 1)));
         assertFalse(Files.exists(secondEntry));
         assertFalse(AdvancementDataPackGenerator.generate(temporaryDirectory, 48, false, entries.subList(0, 1)));
+    }
+
+    @Test
+    void writesMinorPackFormatRange() throws Exception {
+        AdvancementDataPackGenerator.generate(temporaryDirectory, 101, 1, false,
+                List.of(entry("minecraft:iron_ingot", 16L)));
+
+        String metadata = Files.readString(temporaryDirectory.resolve("skylogistics_progression/pack.mcmeta"));
+        assertEquals("{\"pack\":{\"min_format\":[101,1],\"max_format\":101,"
+                + "\"description\":\"Sky Logistics configured progression\"}}", metadata);
     }
 
     private static AdvancementDisplayEntry entry(String icon, long itemRate) {

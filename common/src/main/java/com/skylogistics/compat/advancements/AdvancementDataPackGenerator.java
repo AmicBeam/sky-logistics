@@ -18,6 +18,21 @@ public final class AdvancementDataPackGenerator {
     /** Returns whether the generated datapack contents changed. */
     public static boolean generate(Path datapacksDirectory, int packFormat, boolean legacyIconFormat,
             List<AdvancementDisplayEntry> entries) throws IOException {
+        return generate(datapacksDirectory,
+                "\"pack_format\":" + packFormat,
+                legacyIconFormat, entries);
+    }
+
+    /** Returns whether generated contents changed for a pack format with a minor version. */
+    public static boolean generate(Path datapacksDirectory, int packFormat, int packFormatMinor,
+            boolean legacyIconFormat, List<AdvancementDisplayEntry> entries) throws IOException {
+        return generate(datapacksDirectory,
+                "\"min_format\":[" + packFormat + "," + packFormatMinor + "],\"max_format\":" + packFormat,
+                legacyIconFormat, entries);
+    }
+
+    private static boolean generate(Path datapacksDirectory, String formatDeclaration, boolean legacyIconFormat,
+            List<AdvancementDisplayEntry> entries) throws IOException {
         Path pack = datapacksDirectory.resolve(PACK_DIRECTORY);
         Path nodes = pack.resolve("data/skylogistics/")
                 .resolve(legacyIconFormat ? "advancements" : "advancement")
@@ -37,7 +52,7 @@ public final class AdvancementDataPackGenerator {
                 }
             }
         }
-        String metadata = "{\"pack\":{\"pack_format\":" + packFormat
+        String metadata = "{\"pack\":{" + formatDeclaration
                 + ",\"description\":\"Sky Logistics configured progression\"}}";
         changed |= writeIfChanged(pack.resolve("pack.mcmeta"), metadata);
         for (int index = 0; index < entries.size(); index++) {
