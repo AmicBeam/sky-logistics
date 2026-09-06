@@ -51,6 +51,16 @@ class AdvancementDataPackGeneratorTest {
                 + "\"description\":\"Sky Logistics configured progression\"}}", metadata);
     }
 
+    @Test
+    void keepsLegacyPackFormatForOlderVersions() throws Exception {
+        AdvancementDataPackGenerator.generate(temporaryDirectory, 48, false,
+                List.of(entry("minecraft:iron_ingot", 16L)));
+
+        String metadata = Files.readString(temporaryDirectory.resolve("skylogistics_progression/pack.mcmeta"));
+        assertEquals("{\"pack\":{\"pack_format\":48,"
+                + "\"description\":\"Sky Logistics configured progression\"}}", metadata);
+    }
+
     private static AdvancementDisplayEntry entry(String icon, long itemRate) {
         return new AdvancementDisplayEntry("minecraft:story/smelt_iron", icon,
                 "advancements.story.smelt_iron.title", "task",
