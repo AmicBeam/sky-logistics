@@ -299,11 +299,11 @@ public final class ClientKleisOverlays {
         line(c,pose,x0,y1,z0,x1,y1,z0,r,g,blue,a); line(c,pose,x1,y1,z0,x1,y1,z1,r,g,blue,a);
         line(c,pose,x1,y1,z1,x0,y1,z1,r,g,blue,a); line(c,pose,x0,y1,z1,x0,y1,z0,r,g,blue,a);
     }
-    private static void line(VertexConsumer c, PoseStack.Pose pose, double x0,double y0,double z0,double x1,double y1,double z1,float r,float g,float b,float a) {
+    static void line(VertexConsumer c, PoseStack.Pose pose, double x0,double y0,double z0,double x1,double y1,double z1,float r,float g,float b,float a) {
         float dx=(float)(x1-x0),dy=(float)(y1-y0),dz=(float)(z1-z0),len=net.minecraft.util.Mth.sqrt(dx*dx+dy*dy+dz*dz);
         if(len<=0)return; dx/=len;dy/=len;dz/=len;
-        c.addVertex(pose,(float)x0,(float)y0,(float)z0).setColor(r,g,b,a).setNormal(pose,dx,dy,dz);
-        c.addVertex(pose,(float)x1,(float)y1,(float)z1).setColor(r,g,b,a).setNormal(pose,dx,dy,dz);
+        c.addVertex(pose,(float)x0,(float)y0,(float)z0).setColor(r,g,b,a).setNormal(pose,dx,dy,dz).setLineWidth(1.0F);
+        c.addVertex(pose,(float)x1,(float)y1,(float)z1).setColor(r,g,b,a).setNormal(pose,dx,dy,dz).setLineWidth(1.0F);
     }
 
     private static AABB faceBox(BlockPos pos, Direction face, double inset) {
