@@ -1,0 +1,11 @@
+{
+  "asset_kind": "transparent-icon",
+  "logical_frame_size": {"width": 32, "height": 32},
+  "unique_frames": 6,
+  "atlas_size": {"width": 32, "height": 192},
+  "protected_rule": "all pixels except exact cyan #79dce9 and amber #ffd56f remain byte-identical",
+  "alpha_geometry_identical": true,
+  "interpolate": false,
+  "sequence": [0, 1, 2, 3, 4, 5, 4, 3, 2, 1],
+  "frametime": 3
+}

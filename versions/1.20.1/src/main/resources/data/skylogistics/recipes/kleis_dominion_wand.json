@@ -1,0 +1,19 @@
+{
+  "type": "skylogistics:sky_offering",
+  "duration": 9600,
+  "altar_tier": 3,
+  "main": {
+    "item": "skylogistics:eulogia_crystal",
+    "count": 32,
+    "charged": true
+  },
+  "offerings": [
+    { "item": "skylogistics:chora_nectar_block", "count": 1 },
+    { "item": "skylogistics:dimension_upgrade", "count": 1 },
+    { "item": "minecraft:end_rod", "count": 2 },
+    { "item": "skylogistics:celestial_glass", "count": 16 }
+  ],
+  "result": {
+    "item": "skylogistics:kleis_dominion_wand"
+  }
+}

@@ -5,6 +5,7 @@ import com.skylogistics.SkyLogistics;
 import com.skylogistics.block.SimplePipeBlock;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.UpgradeCardItem;
+import com.skylogistics.network.KleisEndpointPolicy;
 import com.skylogistics.recipe.OfferingRecipe;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModBlockEntities;
@@ -21,6 +22,8 @@ import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShapeRenderer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -28,6 +31,7 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent;
@@ -38,6 +42,7 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.model.standalone.SimpleUnbakedStandaloneModel;
 import net.neoforged.neoforge.client.model.standalone.StandaloneModelKey;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public final class ClientModEvents {
     private static final VoxelShape DISTRIBUTOR_TARGET_OUTLINE = Shapes.box(
@@ -58,11 +63,16 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onLoggingOut);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onExtractBlockOutline);
         NeoForge.EVENT_BUS.addListener(ClientModEvents::onMouseScroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onAttackInput);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ClientModEvents::onKleisEndpointEdit);
+        NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::render);
+        NeoForge.EVENT_BUS.addListener(ClientKleisOverlays::renderHud);
     }
 
     private static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.CONFIGURATOR.get(), ConfiguratorScreen::new);
-        event.register(ModMenus.SKY_NODE.get(), SkyNodeScreen::new);
+        event.register(ModMenus.SKY_NODE.get(), SkyNodeMainScreen::new);
+        event.register(ModMenus.KLEIS_DOMINION_WAND.get(), KleisDominionWandScreen::new);
         event.register(ModMenus.SKY_NECKLACE.get(), SkyNecklaceScreen::new);
         event.register(ModMenus.FILTER_LIST.get(), FilterListScreen::new);
         event.register(ModMenus.TAG_FILTER_LIST.get(), TagFilterListScreen::new);
@@ -152,6 +162,7 @@ public final class ClientModEvents {
         ClientOfferingRecipes.clear();
         ClientLineNames.clear();
         ClientDistributorHighlights.clear();
+        ClientKleisOverlays.clear();
     }
 
     private static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
@@ -162,6 +173,47 @@ public final class ClientModEvents {
                 || UpgradeCardItem.orderedMatchingMode(stack) != OrderedMatchingMode.PER_SLOT) return;
         ModNetworking.sendOrderedMatchingOffset(event.getScrollDeltaY() > 0.0D);
         event.setCanceled(true);
+    }
+
+    private static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.isAttack() || minecraft.player == null
+                || !(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) return;
+        boolean mainHandWand = minecraft.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        boolean offhandConfigurator = minecraft.player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        boolean mainHandConfigurator = minecraft.player.getMainHandItem().is(ModItems.CONFIGURATOR.get());
+        boolean offhandWand = minecraft.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
+        boolean canOpen = KleisEndpointPolicy.canOpenEndpointFromHands(mainHandWand, offhandConfigurator,
+                mainHandConfigurator, offhandWand);
+        if (!mainHandWand && !canOpen) return;
+        if (mainHandConfigurator && ClientKleisOverlays.entryAt(hit.getBlockPos(), hit.getDirection()) == null) return;
+        event.setCanceled(true);
+        if (canOpen) {
+            ModNetworking.openKleisEndpoint(hit.getBlockPos(), hit.getDirection());
+        }
+    }
+
+    private static void onKleisEndpointEdit(PlayerInteractEvent.RightClickBlock event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || minecraft.player == null || minecraft.level == null
+                || !minecraft.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
+                || !minecraft.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
+                || minecraft.level.getBlockEntity(event.getPos()) instanceof com.skylogistics.block.entity.SkyNodeBlockEntity) {
+            return;
+        }
+        com.skylogistics.network.KleisOverlayPacket.Entry endpoint =
+                ClientKleisOverlays.entryAt(event.getPos(), event.getFace());
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        int revision = endpoint == null ? -1 : endpoint.revision();
+        if (minecraft.player.isShiftKeyDown()) {
+            ModNetworking.editKleisEndpoint(event.getPos(), event.getFace(), revision, true);
+        } else if (ConfiguratorItem.isPasteMode(minecraft.player.getMainHandItem())) {
+            ModNetworking.editKleisEndpoint(event.getPos(), event.getFace(), revision, false);
+        } else {
+            ModNetworking.openKleisEndpoint(event.getPos(), event.getFace());
+        }
     }
 
     private static void onExtractBlockOutline(ExtractBlockOutlineRenderStateEvent event) {

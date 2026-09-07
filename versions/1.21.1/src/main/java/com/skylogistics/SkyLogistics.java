@@ -10,6 +10,8 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyNetworkTicker;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.ModNetworking;
+import com.skylogistics.network.KleisEndpointSavedData;
+import com.skylogistics.network.KleisEndpointPolicy;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModBlocks;
 import com.skylogistics.registry.ModCreativeTabs;
@@ -23,9 +25,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -36,6 +40,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -54,6 +61,8 @@ public class SkyLogistics {
             ResourceLocation.fromNamespaceAndPath("c", "tools/wrench"));
     private static final TagKey<Item> FORGE_TOOLS_WRENCH = TagKey.create(Registries.ITEM,
             ResourceLocation.fromNamespaceAndPath("forge", "tools/wrench"));
+    private static final TagKey<Item> PROTECTED_DROPS = TagKey.create(Registries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "protected_drops"));
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public SkyLogistics(IEventBus modBus, ModContainer container) {
@@ -74,6 +83,11 @@ public class SkyLogistics {
         NeoForge.EVENT_BUS.addListener(ManualGiftHandler::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(AdvancementDataPackHandler::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onRightClickBlock);
+        NeoForge.EVENT_BUS.addListener(this::onLeftClickBlock);
+        NeoForge.EVENT_BUS.addListener(this::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(this::onChunkUnload);
+        NeoForge.EVENT_BUS.addListener(this::onEntityJoinLevel);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
@@ -82,13 +96,55 @@ public class SkyLogistics {
     }
 
     private void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (suppressVanillaKleisEndpointEdit(event)) {
+            return;
+        }
         if (tryDismantleWithWrench(event)) {
             return;
         }
         if (event.getHand() == InteractionHand.MAIN_HAND
-                && isNodeOrSimplePipe(event.getItemStack())) {
+                && (isNodeOrSimplePipe(event.getItemStack())
+                        || event.getItemStack().is(ModItems.KLEIS_DOMINION_WAND.get()))) {
             event.setUseBlock(TriState.FALSE);
             event.setUseItem(TriState.TRUE);
+        }
+    }
+
+    private boolean suppressVanillaKleisEndpointEdit(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide() || event.getHand() != InteractionHand.MAIN_HAND
+                || !(event.getEntity() instanceof ServerPlayer player)
+                || !KleisEndpointPolicy.isConfiguratorEditMode(
+                        player.getMainHandItem().is(ModItems.CONFIGURATOR.get()),
+                        player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get()))
+                || event.getLevel().getBlockEntity(event.getPos()) instanceof SkyNodeBlockEntity) {
+            return false;
+        }
+        KleisEndpointSavedData data = KleisEndpointSavedData.get(player.getServer());
+        KleisEndpointSavedData.Key key = new KleisEndpointSavedData.Key(
+                player.level().dimension(), event.getPos(), event.getFace());
+        if (!data.canView(player, key)) return false;
+        event.setUseBlock(TriState.FALSE);
+        event.setUseItem(TriState.FALSE);
+        return true;
+    }
+
+    private void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        if (event.getEntity().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) event.setCanceled(true);
+    }
+
+    private void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (event.getPlayer().getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())) event.setCanceled(true);
+    }
+
+    private void onChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkLoaded(level, event.getChunk().getPos());
+        }
+    }
+
+    private void onChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level) {
+            KleisEndpointSavedData.get(level.getServer()).onChunkUnloaded(level, event.getChunk().getPos());
         }
     }
 
@@ -161,7 +217,16 @@ public class SkyLogistics {
         return MOD_ID.equals(id.getNamespace());
     }
 
+    private void onEntityJoinLevel(EntityJoinLevelEvent event) {
+        if (!event.getLevel().isClientSide && event.getEntity() instanceof ItemEntity itemEntity
+                && itemEntity.getItem().is(PROTECTED_DROPS)) {
+            itemEntity.setUnlimitedLifetime();
+            itemEntity.setInvulnerable(true);
+        }
+    }
+
     private void onServerStopping(ServerStoppingEvent event) {
+        if (event.getServer().overworld() != null) KleisEndpointSavedData.get(event.getServer()).clearRuntime();
         SkyNetworkRegistry.clear();
         SkyNetworkTicker.clear();
         SkyNecklaceTicker.clear();

@@ -5,6 +5,7 @@ import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.FilterListMenu;
 import com.skylogistics.menu.FluidVaultMenu;
 import com.skylogistics.menu.ItemVaultMenu;
+import com.skylogistics.menu.KleisDominionWandMenu;
 import com.skylogistics.menu.SkyNodeMenu;
 import com.skylogistics.menu.SkyNecklaceMenu;
 import com.skylogistics.menu.TagFilterListMenu;
@@ -26,6 +27,12 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<SkyNodeMenu>> SKY_NODE = MENUS.register("sky_node",
             () -> IMenuTypeExtension.create((id, inventory, buffer) -> new SkyNodeMenu(id, inventory, buffer.readBlockPos(),
                     buffer.readBoolean(), buffer.readEnum(net.minecraft.world.InteractionHand.class))));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<KleisDominionWandMenu>> KLEIS_DOMINION_WAND =
+            MENUS.register("kleis_dominion_wand", () -> IMenuTypeExtension.create((id, inventory, buffer) ->
+                    new KleisDominionWandMenu(id, inventory, buffer.readBlockPos(), buffer.readEnum(net.minecraft.core.Direction.class),
+                            buffer.readUtf(48), buffer.readEnum(com.skylogistics.util.NodeFaceMode.class),
+                            buffer.readUnsignedByte(), buffer.readInt())));
 
     public static final DeferredHolder<MenuType<?>, MenuType<FilterListMenu>> FILTER_LIST = MENUS.register("filter_list",
             () -> IMenuTypeExtension.create((id, inventory, buffer) ->

@@ -71,7 +71,14 @@ function paintSegment(canvas, ax, ay, bx, by, radius, color) {
 function generate(size, noOutline = false) {
   if (size === 16) return generate16(noOutline);
   const canvas = createCanvas(size);
-  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
+  const material = size === 32 ? {
+    ...C,
+    navy: "#23406a",
+    blueDark: "#2d6794",
+    bronzeDark: "#87562e",
+    orangeDark: "#bc6c28",
+  } : C;
+  const neutralEdge = noOutline ? material.bronzeDark : C.outline;
   const scale = size / 64;
   const u = { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
   const p = { x: Math.SQRT1_2, y: Math.SQRT1_2 };
@@ -88,13 +95,13 @@ function generate(size, noOutline = false) {
 
   // Long diagonal silhouette and lower-left leather grip.
   paintSegment(canvas, gripStart.x, gripStart.y, connector.x, connector.y,
-    Math.max(1.15, 2.55 * scale), neutralEdge);
+    size === 32 ? 1.65 : Math.max(1.15, 2.55 * scale), neutralEdge);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
-    Math.max(0.7, 1.65 * scale), C.bronzeDark);
+    size === 32 ? 1.15 : Math.max(0.7, 1.65 * scale), material.bronzeDark);
   paintSegment(canvas, gripEnd.x, gripEnd.y, connector.x, connector.y,
-    Math.max(0.35, 0.75 * scale), C.gold);
+    size === 32 ? 0.55 : Math.max(0.35, 0.75 * scale), C.gold);
   paintSegment(canvas, gripStart.x, gripStart.y, gripEnd.x, gripEnd.y,
-    Math.max(1.1, 2.15 * scale), C.navy);
+    size === 32 ? 1.45 : Math.max(1.1, 2.15 * scale), material.navy);
 
   // Leather wrap bands are size-specific clusters rather than a scaled texture.
   const wrapCount = size >= 64 ? 7 : size >= 32 ? 3 : 2;
@@ -104,7 +111,7 @@ function generate(size, noOutline = false) {
     const cy = gripStart.y + (gripEnd.y - gripStart.y) * t;
     paintSegment(canvas, cx - p.x * 2.2 * scale, cy - p.y * 2.2 * scale,
       cx + p.x * 2.2 * scale, cy + p.y * 2.2 * scale,
-      Math.max(0.35, 0.55 * scale), C.blueDark);
+      size === 32 ? 0.45 : Math.max(0.35, 0.55 * scale), material.blueDark);
   }
 
   // Pommel and centered connector.
@@ -139,7 +146,7 @@ function generate(size, noOutline = false) {
       const energyWidth = size === 32 ? 1.35 : 2.4 * scale;
       let color;
       if (edgeDistance < edgeWidth) color = noOutline
-        ? (blueSide ? C.blueDark : C.orangeDark)
+        ? (blueSide ? material.blueDark : material.orangeDark)
         : C.outline;
       else if (size === 32 && radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
@@ -149,7 +156,7 @@ function generate(size, noOutline = false) {
       else if (radius < inner + energyWidth) {
         color = blueSide ? C.cyan : C.orangeHi;
       } else {
-        color = blueSide ? C.blueDark : C.orangeDark;
+        color = blueSide ? material.blueDark : material.orangeDark;
       }
       canvas[y][x] = color;
     }
@@ -204,7 +211,7 @@ function generate(size, noOutline = false) {
       const cx = side < 0 ? 18 : 25;
       const cy = side < 0 ? 6 : 13;
       const outward = side;
-      const materialEdge = side < 0 ? C.blueDark : C.orangeDark;
+      const materialEdge = side < 0 ? material.blueDark : material.orangeDark;
       paintDiamond(canvas, cx + 0.5, cy + 0.5, 2.2, materialEdge);
       paintDiamond(canvas, cx + 0.5, cy + 0.5, 1.25, C.gold);
       setPixel(canvas, cx, cy, accent);
@@ -227,35 +234,62 @@ function generate(size, noOutline = false) {
 
 function generate16(noOutline = false) {
   const canvas = createCanvas(16);
-  const neutralEdge = noOutline ? C.bronzeDark : C.outline;
   const put = (color, coordinates) => {
     for (const [x, y] of coordinates) setPixel(canvas, x, y, color);
   };
 
-  // Two-pixel diagonal body: navy grip at lower-left, bronze shaft toward the ring gap.
-  put(neutralEdge, [
-    [1, 13], [2, 12], [2, 13], [3, 11], [3, 12], [4, 10], [4, 11],
-    [5, 9], [5, 10], [6, 8], [6, 9], [7, 7], [7, 8], [8, 6], [8, 7],
+  // Use the vanilla diamond-pickaxe handle grammar: a three-pixel staircase
+  // with two dark edge cells and one alternating highlight cell. Preserve the
+  // 32px wand's navy grip and bronze/gold shaft instead of borrowing its colors.
+  const gripEdge = noOutline ? C.navy : C.outline;
+  const shaftEdge = noOutline ? C.bronzeDark : C.outline;
+  put(gripEdge, [
+    [1, 13], [2, 13], [3, 13], [2, 12], [3, 12], [4, 12],
+    [3, 11], [4, 11], [5, 11], [4, 10], [5, 10], [6, 10],
   ]);
-  put(C.navy, [[2, 12], [3, 11], [4, 10], [3, 12], [4, 11], [5, 10]]);
-  put(C.bronze, [[5, 9], [6, 8], [7, 7], [6, 9], [7, 8], [8, 7]]);
-  put(C.gold, [[1, 13], [2, 13], [8, 6]]);
+  put(C.blueDark, [[2, 13], [3, 12], [4, 11], [5, 10]]);
+  put(shaftEdge, [
+    [5, 9], [6, 9], [7, 9], [6, 8], [7, 8], [8, 8],
+    [7, 7], [8, 7], [9, 7],
+  ]);
+  put(C.bronze, [[6, 9], [8, 7]]);
+  put(C.gold, [[7, 8]]);
+  put(C.bronzeDark, [[1, 14]]);
+  put(C.gold, [[2, 14]]);
 
-  // Dark backing establishes the open ring before the two color ramps are applied.
-  put(neutralEdge, [
-    [9, 1], [10, 1], [11, 1], [12, 1], [8, 2], [9, 2], [12, 2], [13, 2],
-    [7, 3], [8, 3], [13, 3], [14, 3], [7, 4], [8, 4], [13, 4], [14, 4],
-    [7, 5], [8, 5], [12, 5], [13, 5], [8, 6], [9, 6], [11, 6], [12, 6],
-    [9, 7], [10, 7], [11, 7],
-  ]);
-  put(C.blue, [[9, 1], [10, 1], [8, 2], [9, 2], [7, 3], [8, 3], [7, 4], [8, 4], [7, 5], [8, 5], [8, 6], [9, 6]]);
+  // At 16px the two arc gaps collapse into color transitions. Preserve the
+  // complete circular silhouette and its readable inner hole; a literal open
+  // north-east gap makes the head read as pliers rather than a ritual ring.
+  const blueRing = [
+    [9, 1], [10, 1], [11, 1], [8, 2], [9, 2], [7, 3], [8, 3],
+    [7, 4], [8, 4], [7, 5], [8, 5], [8, 6], [9, 6],
+  ];
+  const orangeRing = [
+    [12, 1], [12, 2], [13, 2], [13, 3], [14, 3], [13, 4], [14, 4],
+    [13, 5], [14, 5], [12, 6], [13, 6], [9, 7], [10, 7], [11, 7], [12, 7],
+  ];
+  put(noOutline ? C.blueDark : C.outline, blueRing);
+  put(C.blue, [[9, 1], [8, 2], [7, 3], [7, 4], [7, 5], [8, 6]]);
   put(C.cyan, [[10, 1], [9, 2], [8, 3], [8, 4], [8, 5], [9, 6]]);
-  put(C.orange, [[12, 2], [13, 2], [13, 3], [14, 3], [13, 4], [14, 4], [12, 5], [13, 5], [11, 6], [12, 6], [10, 7], [11, 7]]);
-  put(C.orangeHi, [[12, 2], [13, 3], [13, 4], [12, 5], [11, 6], [10, 7]]);
 
-  // One bright cell per side stands in for the paired hubs at inventory scale.
-  put(C.cyanHi, [[8, 3]]);
-  put(C.goldHi, [[13, 5]]);
+  put(noOutline ? C.orangeDark : C.outline, orangeRing);
+  put(C.orange, [[13, 2], [14, 3], [14, 4], [14, 5], [13, 6], [12, 7]]);
+  put(C.orangeHi, [[12, 2], [13, 3], [13, 4], [13, 5], [12, 6], [11, 7]]);
+
+  // Gold transition cells preserve the 32px structural band without breaking the loop.
+  put(C.gold, [[11, 1], [10, 7]]);
+
+  // Preserve every identifiable head detail as a minimal cluster: each arc
+  // keeps one outward key tooth, one gold-set jewel, and one inward ward tip.
+  put(C.blueDark, [[7, 1]]);
+  put(C.gold, [[8, 2], [9, 3]]);
+  put(C.cyanHi, [[10, 3]]);
+  put(C.cyan, [[10, 4]]);
+
+  put(C.orangeDark, [[14, 7]]);
+  put(C.gold, [[13, 6], [12, 5]]);
+  put(C.goldHi, [[11, 5]]);
+  put(C.orangeHi, [[11, 4]]);
   return canvas;
 }
 

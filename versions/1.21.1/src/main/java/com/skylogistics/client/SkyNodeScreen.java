@@ -1,6 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.network.ConfigurableLogisticsEndpoint;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.menu.MenuAction;
@@ -25,7 +26,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.lwjgl.glfw.GLFW;
 
-public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
+public class SkyNodeScreen<M extends SkyNodeMenu> extends AbstractContainerScreen<M> {
     private static final int LINE_PANEL_X = 5;
     private static final int LINE_PANEL_Y = 20;
     private static final int LINE_PANEL_WIDTH = 244;
@@ -100,7 +101,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     private int tagFilterRejectedSlot = -1;
     private ItemStack tagFilterRejectedPrevious = ItemStack.EMPTY;
 
-    public SkyNodeScreen(SkyNodeMenu menu, Inventory inventory, Component title) {
+    public SkyNodeScreen(M menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 254;
         imageHeight = menu.isSingleEndpoint()
@@ -117,7 +118,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         typeButtons.clear();
         modeButtons.clear();
         advancedButtons.clear();
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         boolean singleEndpoint = node != null && node.usesSingleEndpoint();
         selectedFace = node == null ? Direction.NORTH : firstSelectableFace(node);
         menu.selectFace(selectedFace);
@@ -199,7 +200,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         if (node == null) {
             return;
         }
@@ -268,7 +269,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         ConfigPanel.drawContentPanel(graphics, leftPos + LINE_PANEL_X, topPos + LINE_PANEL_Y,
                 LINE_PANEL_WIDTH, 24);
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         ConfigPanel.drawFieldset(graphics, leftPos + RESOURCE_GROUP_X, topPos + menu.screenY(RESOURCE_GROUP_Y),
                 RESOURCE_MODE_GROUP_WIDTH, font.width(Component.translatable("screen.skylogistics.resources")));
         ConfigPanel.drawFieldset(graphics, leftPos + MODE_GROUP_X, topPos + menu.screenY(RESOURCE_GROUP_Y),
@@ -298,7 +299,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         graphics.drawString(font, title, 10, 7, ConfigPanel.TEXT, false);
         if (node == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.missing_node"),
@@ -348,7 +349,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     @Override
     protected void renderTooltip(GuiGraphics graphics, int x, int y) {
         FaceButton button = hoveredFaceButton(x, y);
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         if (button != null && node != null) {
             graphics.renderComponentTooltip(font, List.of(targetName(node, button.direction)), x, y);
             return;
@@ -402,7 +403,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         super.removed();
     }
 
-    private void refreshLineNameEdit(SkyNodeBlockEntity node) {
+    private void refreshLineNameEdit(ConfigurableLogisticsEndpoint node) {
         if (lineNameEdit == null) {
             return;
         }
@@ -428,7 +429,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private void refreshMaintainAmount(SkyNodeBlockEntity node) {
+    private void refreshMaintainAmount(ConfigurableLogisticsEndpoint node) {
         if (maintainAmountEdit == null) return;
         maintainAmountEdit.visible = node != null;
         maintainAmountEdit.active = node != null && node.canConfigureFace(selectedFace);
@@ -462,7 +463,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         if (lineNameEdit == null) {
             return;
         }
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         if (node == null) {
             return;
         }
@@ -477,7 +478,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private String displayLineName(SkyNodeBlockEntity node) {
+    private String displayLineName(ConfigurableLogisticsEndpoint node) {
         return ClientLineNames.displayName(node.getLineId(), node.getLineName());
     }
 
@@ -490,7 +491,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return null;
     }
 
-    private Component externalExtractHint(SkyNodeBlockEntity node, Direction face) {
+    private Component externalExtractHint(ConfigurableLogisticsEndpoint node, Direction face) {
         if (!node.hasTagFaceFilterRestriction(face)) {
             return null;
         }
@@ -503,7 +504,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
     }
 
     private void updateTagFilterWarningFromClick(double mouseX, double mouseY, boolean shiftDown) {
-        SkyNodeBlockEntity node = node();
+        ConfigurableLogisticsEndpoint node = node();
         if (node == null || !node.hasTagFaceFilterRestriction(selectedFace)) {
             return;
         }
@@ -527,7 +528,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         refreshTagFilterWarning(node, selectedFace, targetSlot, attempted);
     }
 
-    private void refreshTagFilterWarning(SkyNodeBlockEntity node, Direction face, int slot, ItemStack attempted) {
+    private void refreshTagFilterWarning(ConfigurableLogisticsEndpoint node, Direction face, int slot, ItemStack attempted) {
         if (TagFilterListItem.isTagFilterList(attempted)) {
             tagFilterRejectedFace = face;
             tagFilterRejectedSlot = slot;
@@ -537,7 +538,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
     }
 
-    private boolean shouldClearTagFilterWarning(SkyNodeBlockEntity node) {
+    private boolean shouldClearTagFilterWarning(ConfigurableLogisticsEndpoint node) {
         if (tagFilterRejectedFace == null) {
             return false;
         }
@@ -605,7 +606,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         };
     }
 
-    private Direction firstSelectableFace(SkyNodeBlockEntity node) {
+    private Direction firstSelectableFace(ConfigurableLogisticsEndpoint node) {
         if (node.usesSingleEndpoint()) {
             return node.getSingleEndpointDirection();
         }
@@ -622,26 +623,26 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return node.getTargetDirection();
     }
 
-    private boolean isPreferredFace(SkyNodeBlockEntity node, Direction direction) {
+    private boolean isPreferredFace(ConfigurableLogisticsEndpoint node, Direction direction) {
         return hasTargetBlock(node, direction)
                 && node.getFaceMode(direction) != NodeFaceMode.NONE
                 && (node.isItemsEnabled(direction) || node.isFluidsEnabled(direction)
                         || node.isEnergyEnabled(direction));
     }
 
-    private boolean hasTargetBlock(SkyNodeBlockEntity node, Direction direction) {
+    private boolean hasTargetBlock(ConfigurableLogisticsEndpoint node, Direction direction) {
         return node.hasConfigurableTarget(direction);
     }
 
-    private NodeFaceMode modeFor(SkyNodeBlockEntity node, Direction direction) {
+    private NodeFaceMode modeFor(ConfigurableLogisticsEndpoint node, Direction direction) {
         return localFaceModes.getOrDefault(direction, node.getFaceMode(direction));
     }
 
-    private ItemStack iconFor(SkyNodeBlockEntity node, Direction direction) {
+    private ItemStack iconFor(ConfigurableLogisticsEndpoint node, Direction direction) {
         return node.getTargetIcon(direction);
     }
 
-    private Component targetName(SkyNodeBlockEntity node, Direction direction) {
+    private Component targetName(ConfigurableLogisticsEndpoint node, Direction direction) {
         return node.getTargetName(direction);
     }
 
@@ -653,15 +654,15 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         return Component.translatable("screen.skylogistics.face_short." + direction.getSerializedName());
     }
 
-    private boolean itemsEnabled(SkyNodeBlockEntity node) {
+    private boolean itemsEnabled(ConfigurableLogisticsEndpoint node) {
         return localItemsEnabled == null ? node.isItemsEnabled(selectedFace) : localItemsEnabled;
     }
 
-    private boolean fluidsEnabled(SkyNodeBlockEntity node) {
+    private boolean fluidsEnabled(ConfigurableLogisticsEndpoint node) {
         return localFluidsEnabled == null ? node.isFluidsEnabled(selectedFace) : localFluidsEnabled;
     }
 
-    private boolean energyEnabled(SkyNodeBlockEntity node) {
+    private boolean energyEnabled(ConfigurableLogisticsEndpoint node) {
         return localEnergyEnabled == null ? node.isEnergyEnabled(selectedFace) : localEnergyEnabled;
     }
 
@@ -676,12 +677,8 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         });
     }
 
-    private SkyNodeBlockEntity node() {
-        if (Minecraft.getInstance().level == null) {
-            return null;
-        }
-        BlockEntity blockEntity = Minecraft.getInstance().level.getBlockEntity(menu.getPos());
-        return blockEntity instanceof SkyNodeBlockEntity node ? node : null;
+    private ConfigurableLogisticsEndpoint node() {
+        return menu.endpointNode();
     }
 
     private void borderedBox(GuiGraphics graphics, int x, int y, int width, int height, int fill, int border) {
@@ -710,7 +707,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             boolean selected = direction == selectedFace;
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
                     isHovered(), selected, FACE_SELECTED_MARK);
@@ -796,7 +793,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             boolean selected = node != null && modeFor(node, selectedFace) == mode;
             int accent = mode == NodeFaceMode.INPUT ? ConfigPanel.EXTRACT_ACCENT
                     : mode == NodeFaceMode.OUTPUT ? ConfigPanel.INSERT_ACCENT : ConfigPanel.BORDER_ACTIVE;
@@ -822,17 +819,17 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             super(x, y, width, height, message);
         }
 
-        protected boolean canUse(SkyNodeBlockEntity node) {
+        protected boolean canUse(ConfigurableLogisticsEndpoint node) {
             return true;
         }
 
-        protected Component dynamicMessage(SkyNodeBlockEntity node) {
+        protected Component dynamicMessage(ConfigurableLogisticsEndpoint node) {
             return getMessage();
         }
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             Component message = node == null ? getMessage() : dynamicMessage(node);
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
             ConfigPanel.drawCenteredButtonText(graphics, font, message, getX() + width / 2, getY() + (height - 8) / 2,
@@ -849,6 +846,10 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         private RedstoneButton(int x, int y) {
             super(x, y, ADVANCED_CONTROL_WIDTH, ConfigPanel.STEPPER_HEIGHT,
                     Component.translatable("screen.skylogistics.redstone"));
+            if (node() != null && !node().supportsRedstoneControl()) {
+                setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable(
+                        "tooltip.skylogistics.kleis_dominion_wand.redstone_disabled")));
+            }
         }
 
         @Override
@@ -859,13 +860,18 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
 
         @Override
-        protected Component dynamicMessage(SkyNodeBlockEntity node) {
+        protected boolean canUse(ConfigurableLogisticsEndpoint node) {
+            return node.supportsRedstoneControl();
+        }
+
+        @Override
+        protected Component dynamicMessage(ConfigurableLogisticsEndpoint node) {
             return Component.translatable(node.getRedstoneControl(selectedFace).translationKey());
         }
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
             if (node == null) {
                 return;
@@ -911,7 +917,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
         }
 
         @Override
-        protected Component dynamicMessage(SkyNodeBlockEntity node) {
+        protected Component dynamicMessage(ConfigurableLogisticsEndpoint node) {
             return Component.translatable(node.isItemLimitByItems(selectedFace)
                     ? "screen.skylogistics.sky_necklace.unit.items"
                     : "screen.skylogistics.sky_necklace.unit.slots");
@@ -943,7 +949,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             if (!active) {
                 return;
             }
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node == null) {
                 return;
             }
@@ -965,7 +971,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             boolean enabled = node != null && active && isEnabled(node);
             ConfigPanel.drawImageButtonChrome(graphics, getX(), getY(), width, height, active,
                     isHovered(), enabled, ConfigPanel.ACCENT);
@@ -982,7 +988,7 @@ public class SkyNodeScreen extends AbstractContainerScreen<SkyNodeMenu> {
             };
         }
 
-        private boolean isEnabled(SkyNodeBlockEntity node) {
+        private boolean isEnabled(ConfigurableLogisticsEndpoint node) {
             return switch (type) {
                 case ITEMS -> itemsEnabled(node);
                 case FLUIDS -> fluidsEnabled(node);

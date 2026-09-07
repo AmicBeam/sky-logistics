@@ -98,6 +98,8 @@ public class SkyLogisticsJeiPlugin implements IModPlugin {
             runtime.getRecipeManager().hideRecipes(skyOfferingType(), registeredRuntimeRecipes);
         }
         if (!recipes.isEmpty()) {
+            runtime.getRecipeManager().unhideRecipeCategory(skyOfferingType());
+            runtime.getRecipeManager().unhideRecipes(skyOfferingType(), recipes);
             SkyLogistics.LOGGER.info("Adding {} synced sky offering recipes to active JEI runtime.", recipes.size());
             runtime.getRecipeManager().addRecipes(skyOfferingType(), recipes);
         }

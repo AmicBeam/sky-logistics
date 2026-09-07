@@ -11,7 +11,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ModNetworking {
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "2";
 
     private ModNetworking() {
     }
@@ -43,6 +43,12 @@ public final class ModNetworking {
                 TagFilterEditPacket::handle);
         registrar.playToServer(DistributorTargetsRequestPacket.TYPE, DistributorTargetsRequestPacket.STREAM_CODEC,
                 DistributorTargetsRequestPacket::handle);
+        registrar.playToServer(KleisOpenMenuPacket.TYPE, KleisOpenMenuPacket.STREAM_CODEC, KleisOpenMenuPacket::handle);
+        registrar.playToServer(KleisOverlayRequestPacket.TYPE, KleisOverlayRequestPacket.STREAM_CODEC, KleisOverlayRequestPacket::handle);
+        registrar.playToClient(KleisOverlayPacket.TYPE, KleisOverlayPacket.STREAM_CODEC, KleisOverlayPacket::handle);
+        registrar.playToServer(KleisMenuActionPacket.TYPE, KleisMenuActionPacket.STREAM_CODEC, KleisMenuActionPacket::handle);
+        registrar.playToServer(KleisEndpointEditPacket.TYPE, KleisEndpointEditPacket.STREAM_CODEC,
+                KleisEndpointEditPacket::handle);
         registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
                 DistributorTargetsPacket::handle);
     }
@@ -74,6 +80,17 @@ public final class ModNetworking {
     public static void requestDistributorTargets(BlockPos distributorPos) {
         ClientPacketDistributor.sendToServer(new DistributorTargetsRequestPacket(distributorPos));
     }
+
+    public static void openKleisEndpoint(BlockPos pos, net.minecraft.core.Direction face) {
+        ClientPacketDistributor.sendToServer(new KleisOpenMenuPacket(pos, face));
+    }
+    public static void requestKleisOverlays(boolean editNearby) {
+        ClientPacketDistributor.sendToServer(new KleisOverlayRequestPacket(editNearby));
+    }
+    public static void editKleisEndpoint(BlockPos pos, net.minecraft.core.Direction face, int revision, boolean copy) {
+        ClientPacketDistributor.sendToServer(new KleisEndpointEditPacket(pos, face, revision, copy));
+    }
+    public static void sendKleisMenuAction(int action) { ClientPacketDistributor.sendToServer(new KleisMenuActionPacket(action)); }
 
     public static void sendFilterGhostItem(int slot, ItemStack stack) {
         ClientPacketDistributor.sendToServer(FilterGhostPacket.item(slot, stack));

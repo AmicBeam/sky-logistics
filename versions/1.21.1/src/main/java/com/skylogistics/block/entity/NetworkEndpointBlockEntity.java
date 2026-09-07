@@ -11,6 +11,7 @@ import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
+import com.skylogistics.network.LogisticsEndpoint;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.Arrays;
@@ -28,7 +29,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
 /** Minimal scheduler-facing state shared by configurable nodes and simple pipes. */
-public abstract class NetworkEndpointBlockEntity extends BlockEntity {
+public abstract class NetworkEndpointBlockEntity extends BlockEntity implements LogisticsEndpoint {
     public static final int ITEM_SLOT_LIMIT_UNLIMITED = 0;
     public enum TargetResource { ITEM, FLUID, CHEMICAL, SOUL, ENERGY, MANA, SOURCE }
     private int itemCursor;

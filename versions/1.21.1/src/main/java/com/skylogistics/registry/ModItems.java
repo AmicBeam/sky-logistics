@@ -5,6 +5,7 @@ import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ChoraNectarItem;
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.KleisDominionWandItem;
 import com.skylogistics.item.EulogiaCrystalItem;
 import com.skylogistics.item.OfferingAltarBlockItem;
 import com.skylogistics.item.SkyLogisticsManualItem;
@@ -15,6 +16,7 @@ import com.skylogistics.item.UpgradeCardItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -61,6 +63,9 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, ConfiguratorItem> CONFIGURATOR = ITEMS.register("configurator",
             () -> new ConfiguratorItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredHolder<Item, KleisDominionWandItem> KLEIS_DOMINION_WAND =
+            ITEMS.register("kleis_dominion_wand", () -> new KleisDominionWandItem(
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
     public static final DeferredHolder<Item, Item> SKY_WRENCH = ITEMS.register("sky_wrench",
             () -> new Item(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, FilterListItem> FILTER_LIST = ITEMS.register("filter_list",
@@ -88,7 +93,7 @@ public final class ModItems {
                     SkyLogisticsConfig::eulogiaCompanionStoneMinY,
                     SkyLogisticsConfig::eulogiaCompanionStoneChargeSeconds, "eulogia_companion_stone"));
     public static final DeferredHolder<Item, ChoraNectarItem> CHORA_NECTAR = ITEMS.register("chora_nectar",
-            () -> new ChoraNectarItem(new Item.Properties()));
+            () -> new ChoraNectarItem(new Item.Properties().fireResistant()));
     public static final DeferredHolder<Item, SkyLogisticsManualItem> SKY_LOGISTICS_MANUAL = ITEMS.register(
             "sky_logistics_manual", () -> new SkyLogisticsManualItem(new Item.Properties().stacksTo(1)));
 

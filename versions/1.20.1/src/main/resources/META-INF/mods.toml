@@ -1,6 +1,6 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
-license="MIT"
+license="GPL-3.0-only"
 
 [[mods]]
 modId="skylogistics"

@@ -1,6 +1,7 @@
 package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.network.ConfigurableLogisticsEndpoint;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModMenus;
@@ -19,6 +20,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
@@ -43,6 +45,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     private final int verticalShift;
     private final NodeUpgradeContainer upgradeContainer;
     private final FaceFilterContainer faceFilterContainer;
+    private final ConfigurableLogisticsEndpoint endpointNode;
     private Direction selectedFace = Direction.NORTH;
     private boolean faceFilterSlotsActive;
     private int lineIndex;
@@ -54,15 +57,22 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     public SkyNodeMenu(int containerId, Inventory inventory, BlockPos pos, boolean openedWithConfigurator,
             InteractionHand ignoredConfiguratorHand) {
-        super(ModMenus.SKY_NODE.get(), containerId);
+        this(ModMenus.SKY_NODE.get(), containerId, inventory, pos, openedWithConfigurator, null);
+    }
+
+    protected SkyNodeMenu(MenuType<?> menuType, int containerId, Inventory inventory, BlockPos pos,
+            boolean openedWithConfigurator, ConfigurableLogisticsEndpoint endpointNode) {
+        super(menuType, containerId);
         this.pos = pos;
         this.player = inventory.player;
         this.openedWithConfigurator = openedWithConfigurator;
-        this.upgradeContainer = new NodeUpgradeContainer(inventory.player, pos);
-        this.faceFilterContainer = new FaceFilterContainer(inventory.player, pos, this);
-        this.singleEndpoint = usesSingleEndpoint(inventory.player, pos);
+        this.endpointNode = endpointNode;
+        this.upgradeContainer = new NodeUpgradeContainer(this);
+        this.faceFilterContainer = new FaceFilterContainer(inventory.player, this);
+        ConfigurableLogisticsEndpoint node = endpointNode();
+        this.singleEndpoint = node != null && node.usesSingleEndpoint();
         this.verticalShift = singleEndpoint ? SINGLE_ENDPOINT_VERTICAL_SHIFT : 0;
-        this.selectedFace = initialSelectedFace(inventory.player, pos);
+        this.selectedFace = initialSelectedFace(node);
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
@@ -159,9 +169,15 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         return selectedFace;
     }
 
+    public ConfigurableLogisticsEndpoint endpointNode() {
+        if (endpointNode != null) return endpointNode;
+        BlockEntity blockEntity = player.level().getBlockEntity(pos);
+        return blockEntity instanceof ConfigurableLogisticsEndpoint node ? node : null;
+    }
+
     public void setExactQuantity(Player player, int amount) {
-        if (player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity node
-                && node.canConfigureFace(selectedFace)) {
+        ConfigurableLogisticsEndpoint node = endpointNode();
+        if (node != null && node.canConfigureFace(selectedFace)) {
             node.setItemSlotLimit(selectedFace, amount);
             broadcastChanges();
         }
@@ -177,7 +193,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return player.level().getBlockEntity(pos) instanceof SkyNodeBlockEntity
+        return endpointNode() != null
                 && player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
     }
 
@@ -244,8 +260,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     public void applyAction(Player player, int action) {
-        BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+        ConfigurableLogisticsEndpoint node = endpointNode();
+        if (node == null) {
             return;
         }
         Direction face = faceForAction(action, MenuAction.FACE_NONE_BASE);
@@ -409,8 +425,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     public void renameCurrentLine(Player player, String lineName) {
-        BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+        ConfigurableLogisticsEndpoint node = endpointNode();
+        if (node == null) {
             return;
         }
         if (!player.level().isClientSide() && player.level().getServer() != null) {
@@ -430,8 +446,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
-        BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        if (blockEntity instanceof SkyNodeBlockEntity node) {
+        ConfigurableLogisticsEndpoint node = endpointNode();
+        if (node != null) {
             SkyPlayerLines.LineSelection selection = SkyPlayerLines.selection(player.level().getServer(), player,
                     node.getLineId(), node.getAssignedLineName(), node.getLineName());
             lineIndex = selection.index();
@@ -442,13 +458,13 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
     }
 
-    private void selectPlayerLine(SkyNodeBlockEntity node, SkyPlayerLines.LineSelection selection) {
+    private void selectPlayerLine(ConfigurableLogisticsEndpoint node, SkyPlayerLines.LineSelection selection) {
         lineIndex = selection.index();
         lineCount = selection.count();
         node.selectPlayerLine(selection.lineId(), selection.assignedName(), selection.displayName());
     }
 
-    private boolean currentLineInUse(SkyNodeBlockEntity node) {
+    private boolean currentLineInUse(ConfigurableLogisticsEndpoint node) {
         if (player.level().isClientSide() || player.level().getServer() == null) {
             return false;
         }
@@ -465,40 +481,34 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         return values[ordinal];
     }
 
-    private static Direction initialSelectedFace(Player player, BlockPos pos) {
-        BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
+    private static Direction initialSelectedFace(ConfigurableLogisticsEndpoint node) {
+        if (node == null) {
             return Direction.NORTH;
         }
         if (node.usesSingleEndpoint()) {
             return node.getSingleEndpointDirection();
         }
         for (Direction direction : FACE_ORDER) {
-            if (isPreferredFace(player, node, direction)) {
+            if (isPreferredFace(node, direction)) {
                 return direction;
             }
         }
         for (Direction direction : FACE_ORDER) {
-            if (hasTargetBlock(player, node, direction)) {
+            if (node.hasConfigurableTarget(direction)) {
                 return direction;
             }
         }
         return node.getTargetDirection();
     }
 
-    private static boolean usesSingleEndpoint(Player player, BlockPos pos) {
-        BlockEntity blockEntity = player.level().getBlockEntity(pos);
-        return blockEntity instanceof SkyNodeBlockEntity node && node.usesSingleEndpoint();
-    }
-
-    private static boolean isPreferredFace(Player player, SkyNodeBlockEntity node, Direction direction) {
-        return hasTargetBlock(player, node, direction)
+    private static boolean isPreferredFace(ConfigurableLogisticsEndpoint node, Direction direction) {
+        return node.hasConfigurableTarget(direction)
                 && node.getFaceMode(direction) != NodeFaceMode.NONE
                 && (node.isItemsEnabled(direction) || node.isFluidsEnabled(direction)
                         || node.isEnergyEnabled(direction));
     }
 
-    private static boolean hasTargetBlock(Player player, SkyNodeBlockEntity node, Direction direction) {
+    private static boolean hasTargetBlock(Player player, ConfigurableLogisticsEndpoint node, Direction direction) {
         return node.hasConfigurableTarget(direction);
     }
 
@@ -514,12 +524,10 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     private static final class NodeUpgradeContainer implements Container {
-        private final Player player;
-        private final BlockPos pos;
+        private final SkyNodeMenu menu;
 
-        private NodeUpgradeContainer(Player player, BlockPos pos) {
-            this.player = player;
-            this.pos = pos;
+        private NodeUpgradeContainer(SkyNodeMenu menu) {
+            this.menu = menu;
         }
 
         @Override
@@ -539,7 +547,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
         @Override
         public ItemStack getItem(int slot) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             return node == null ? ItemStack.EMPTY : node.getUpgrade(slot);
         }
 
@@ -548,7 +556,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (amount <= 0) {
                 return ItemStack.EMPTY;
             }
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node == null || node.getUpgrade(slot).isEmpty()) {
                 return ItemStack.EMPTY;
             }
@@ -564,20 +572,20 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
         @Override
         public void setItem(int slot, ItemStack stack) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node != null) {
                 node.setUpgrade(slot, stack);
             }
         }
 
         private boolean canPlace(int slot, ItemStack stack) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             return node != null && node.canAcceptUpgrade(slot, stack);
         }
 
         @Override
         public void setChanged() {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node != null) {
                 node.setChanged();
             }
@@ -595,20 +603,17 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             }
         }
 
-        private SkyNodeBlockEntity node() {
-            BlockEntity blockEntity = player.level().getBlockEntity(pos);
-            return blockEntity instanceof SkyNodeBlockEntity node ? node : null;
+        private ConfigurableLogisticsEndpoint node() {
+            return menu.endpointNode();
         }
     }
 
     private static final class FaceFilterContainer implements Container {
         private final Player player;
-        private final BlockPos pos;
         private final SkyNodeMenu menu;
 
-        private FaceFilterContainer(Player player, BlockPos pos, SkyNodeMenu menu) {
+        private FaceFilterContainer(Player player, SkyNodeMenu menu) {
             this.player = player;
-            this.pos = pos;
             this.menu = menu;
         }
 
@@ -629,7 +634,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
         @Override
         public ItemStack getItem(int slot) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             return node == null ? ItemStack.EMPTY : node.getFaceFilter(menu.selectedFace(), slot);
         }
 
@@ -638,7 +643,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             if (amount <= 0) {
                 return ItemStack.EMPTY;
             }
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node == null || node.getFaceFilter(menu.selectedFace(), slot).isEmpty()) {
                 return ItemStack.EMPTY;
             }
@@ -657,7 +662,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
         }
 
         private boolean setGhost(int slot, ItemStack stack) {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node == null) {
                 return false;
             }
@@ -675,7 +680,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
         @Override
         public void setChanged() {
-            SkyNodeBlockEntity node = node();
+            ConfigurableLogisticsEndpoint node = node();
             if (node != null) {
                 node.setChanged();
             }
@@ -693,9 +698,8 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             }
         }
 
-        private SkyNodeBlockEntity node() {
-            BlockEntity blockEntity = player.level().getBlockEntity(pos);
-            return blockEntity instanceof SkyNodeBlockEntity node ? node : null;
+        private ConfigurableLogisticsEndpoint node() {
+            return menu.endpointNode();
         }
     }
 }

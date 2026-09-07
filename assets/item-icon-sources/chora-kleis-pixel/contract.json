@@ -23,6 +23,23 @@
       "replace each detailed hub with one mirrored 3x3 jewel, one short inward spear, and one short outward tooth",
       "reduce leather wrap bands",
       "keep one continuous gold structural band per arc"
+    ],
+    "current_adjustments": [
+      "widen the full handle silhouette, navy grip, bronze shaft, and gold core by roughly one pixel tier",
+      "lighten the handle navy and raise the bronze shadow to #87562e while keeping it below the #9b622c midtone",
+      "lighten the head arc's deep blue and deep brown-orange material-edge clusters"
+    ]
+  },
+  "focused_16_design": {
+    "reference": "chora_kleis_32_no_outline.svg",
+    "master": "chora_kleis_16_no_outline.svg",
+    "output": "chora_kleis_16_refined.png",
+    "edge_style": "material-local",
+    "simplifications": [
+      "collapse the arc gaps into color transitions so the 16px silhouette remains a complete ring with a clear inner hole",
+      "reduce each energy hub to a gold-set highlight cluster",
+      "retain one inward ward tip and one outward key tooth on each colored arc",
+      "render the grip and shaft as a three-pixel stepped diagonal following the vanilla diamond-pickaxe handle grammar"
     ]
   },
   "render_mode": "pixel-grid",

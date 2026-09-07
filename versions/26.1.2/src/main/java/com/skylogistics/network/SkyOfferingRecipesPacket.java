@@ -16,6 +16,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record SkyOfferingRecipesPacket(List<RecipeHolder<OfferingRecipe>> recipes) implements CustomPacketPayload {
@@ -56,6 +57,12 @@ public record SkyOfferingRecipesPacket(List<RecipeHolder<OfferingRecipe>> recipe
         List<RecipeHolder<OfferingRecipe>> recipes = skyOfferingRecipes(
                 event.getPlayerList().getServer().getRecipeManager());
         event.getRelevantPlayers().forEach(player -> sendToPlayer(player, recipes));
+    }
+
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            sendToPlayer(player);
+        }
     }
 
     public static void sendToPlayer(ServerPlayer player) {
