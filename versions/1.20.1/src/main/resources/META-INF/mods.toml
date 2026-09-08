@@ -42,6 +42,13 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.skylogistics]]
+modId="sophisticatedbackpacks"
+mandatory=false
+versionRange="[0,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.skylogistics]]
 modId="sophisticatedstorage"
 mandatory=false
 versionRange="[0,)"
