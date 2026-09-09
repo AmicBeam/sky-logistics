@@ -111,7 +111,7 @@ public final class KleisEndpointSavedData extends SavedData {
             return ToggleResult.INVALID_TARGET;
         }
         UUID lineOwner = SkyPlayerLines.ownerOf(player.level().getServer(), config.lineId());
-        if (lineOwner != null && !lineOwner.equals(player.getUUID())) return ToggleResult.EDIT_DENIED;
+        if (!SkyLineAccess.canUse(player, config.lineId())) return ToggleResult.EDIT_DENIED;
         KleisRuntimeEndpoint node = new KleisRuntimeEndpoint(level, pos, face, player.getUUID(), config,
                 extracting ? com.skylogistics.util.NodeFaceMode.INPUT : com.skylogistics.util.NodeFaceMode.OUTPUT);
         if (!node.hasEnabledTargetCapability()) return ToggleResult.INVALID_TARGET;
@@ -206,7 +206,7 @@ public final class KleisEndpointSavedData extends SavedData {
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(configurator);
         if (!ConfiguratorItem.isPasteMode(configurator) || config == null) return EditResult.NO_CONFIG;
         UUID lineOwner = SkyPlayerLines.ownerOf(player.level().getServer(), config.lineId());
-        if (lineOwner != null && !lineOwner.equals(player.getUUID())) return EditResult.DENIED;
+        if (!SkyLineAccess.canUse(player, config.lineId())) return EditResult.DENIED;
         if (!node.supportsToolConfig(config)) return EditResult.INVALID_TARGET;
         node.applySingleEndpointToolConfig(config, player);
         SkyPlayerLines.claimOwner(player.level().getServer(), node.getLineId(), player);
@@ -216,7 +216,8 @@ public final class KleisEndpointSavedData extends SavedData {
 
     public boolean canView(ServerPlayer player, Key key) {
         Entry saved = entries.get(key);
-        return saved != null && saved.owner().equals(player.getUUID());
+        KleisRuntimeEndpoint node = saved == null ? null : runtimeFor(player, key, saved);
+        return node != null && SkyLineAccess.canUse(player, node.getLineId());
     }
 
     public boolean canModify(ServerPlayer player, Key key) {

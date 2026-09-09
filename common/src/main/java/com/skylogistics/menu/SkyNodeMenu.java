@@ -181,6 +181,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     public void setExactQuantity(Player player, int amount) {
+        if (!stillValid(player)) return;
         ConfigurableLogisticsEndpoint node = endpointNode();
         if (node != null && node.canConfigureFace(selectedFace)) {
             node.setItemSlotLimit(selectedFace, amount);
@@ -199,11 +200,13 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return endpointNode() != null
+                && com.skylogistics.network.SkyLineAccess.canUse(player, endpointNode().getLineId())
                 && player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
     }
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (!stillValid(player)) return;
         if (isFaceFilterSlot(slotId)) {
             int slot = slotId - SkyNodeBlockEntity.UPGRADE_SLOTS;
             ItemStack carried = getCarried();
@@ -219,6 +222,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
+        if (!stillValid(player)) return ItemStack.EMPTY;
         if (index < 0 || index >= slots.size()) {
             return ItemStack.EMPTY;
         }
@@ -265,6 +269,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     public void applyAction(Player player, int action) {
+        if (!stillValid(player)) return;
         ConfigurableLogisticsEndpoint node = endpointNode();
         if (node == null) {
             return;
@@ -430,6 +435,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
     }
 
     public void renameCurrentLine(Player player, String lineName) {
+        if (!stillValid(player)) return;
         ConfigurableLogisticsEndpoint node = endpointNode();
         if (node == null) {
             return;
@@ -452,7 +458,7 @@ public class SkyNodeMenu extends AbstractContainerMenu {
             return;
         }
         ConfigurableLogisticsEndpoint node = endpointNode();
-        if (node != null) {
+        if (node != null && com.skylogistics.network.SkyLineAccess.canUse(player, node.getLineId())) {
             SkyPlayerLines.LineSelection selection = SkyPlayerLines.selection(player.level().getServer(), player,
                     node.getLineId(), node.getAssignedLineName(), node.getLineName());
             lineIndex = selection.index();

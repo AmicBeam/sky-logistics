@@ -11,7 +11,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetworking {
-    private static final String PROTOCOL = "2";
+    private static final String PROTOCOL = "3";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(SkyLogistics.MOD_ID, "main"),
@@ -23,6 +23,9 @@ public final class ModNetworking {
     }
 
     public static void register() {
+        CHANNEL.registerMessage(19, PermissionActionPacket.class, PermissionActionPacket::encode, PermissionActionPacket::decode, PermissionActionPacket::handle, java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(20, PermissionSnapshotPacket.class, PermissionSnapshotPacket::encode, PermissionSnapshotPacket::decode, PermissionSnapshotPacket::handle, java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+
         CHANNEL.registerMessage(0, MenuActionPacket.class, MenuActionPacket::encode, MenuActionPacket::decode,
                 MenuActionPacket::handle);
         CHANNEL.registerMessage(1, ItemVaultSnapshotPacket.class, ItemVaultSnapshotPacket::encode,
@@ -61,6 +64,10 @@ public final class ModNetworking {
                 KleisMenuActionPacket::decode, KleisMenuActionPacket::handle);
         CHANNEL.registerMessage(18, KleisEndpointEditPacket.class, KleisEndpointEditPacket::encode,
                 KleisEndpointEditPacket::decode, KleisEndpointEditPacket::handle);
+    }
+
+    public static void sendPermissionAction(int containerId, int action, String query, int page, java.util.UUID target) {
+        CHANNEL.sendToServer(new PermissionActionPacket(containerId, action, query, page, target));
     }
 
     public static void sendMenuAction(int action) {

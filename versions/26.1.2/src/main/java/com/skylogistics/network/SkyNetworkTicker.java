@@ -91,6 +91,7 @@ public final class SkyNetworkTicker {
             return;
         }
         long gameTime = server.overworld().getGameTime();
+        if (gameTime % 20 == 0) SkyLineAccess.rememberPlayers(server);
         int serverOpsPerTick = SkyLogisticsConfig.serverOpsPerTick();
         int lineOpsPerTick = SkyLogisticsConfig.lineOpsPerTick();
         int operations = 0;

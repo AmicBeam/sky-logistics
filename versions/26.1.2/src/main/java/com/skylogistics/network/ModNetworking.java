@@ -11,13 +11,16 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ModNetworking {
-    private static final String PROTOCOL = "2";
+    private static final String PROTOCOL = "3";
 
     private ModNetworking() {
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("skylogistics").versioned(PROTOCOL);
+        registrar.playToServer(PermissionActionPacket.TYPE, PermissionActionPacket.STREAM_CODEC, PermissionActionPacket::handle);
+        registrar.playToClient(PermissionSnapshotPacket.TYPE, PermissionSnapshotPacket.STREAM_CODEC, PermissionSnapshotPacket::handle);
+
         registrar.playToServer(MenuActionPacket.TYPE, MenuActionPacket.STREAM_CODEC, MenuActionPacket::handle);
         registrar.playToServer(ExactQuantityPacket.TYPE, ExactQuantityPacket.STREAM_CODEC, ExactQuantityPacket::handle);
         registrar.playToServer(OrderedMatchingOffsetPacket.TYPE, OrderedMatchingOffsetPacket.STREAM_CODEC,
@@ -51,6 +54,10 @@ public final class ModNetworking {
                 KleisEndpointEditPacket::handle);
         registrar.playToClient(DistributorTargetsPacket.TYPE, DistributorTargetsPacket.STREAM_CODEC,
                 DistributorTargetsPacket::handle);
+    }
+
+    public static void sendPermissionAction(int containerId, int action, String query, int page, java.util.UUID target) {
+        ClientPacketDistributor.sendToServer(new PermissionActionPacket(containerId, action, query, page, target));
     }
 
     public static void sendMenuAction(int action) {

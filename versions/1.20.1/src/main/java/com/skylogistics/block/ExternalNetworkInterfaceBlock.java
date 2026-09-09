@@ -47,7 +47,9 @@ public class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
             return;
         }
         ItemStack offhand = placer.getOffhandItem();
-        if (offhand.getItem() instanceof ConfiguratorItem) {
+        if (offhand.getItem() instanceof ConfiguratorItem
+                && placer instanceof Player placingPlayer
+                && com.skylogistics.network.SkyLineAccess.check(placingPlayer, ConfiguratorItem.readOrCreate(offhand, placingPlayer).lineId())) {
             node.applyPlacementToolConfig(ConfiguratorItem.readOrCreate(offhand,
                     placer instanceof Player player ? player : null), true);
         } else {
@@ -76,6 +78,7 @@ public class ExternalNetworkInterfaceBlock extends BaseEntityBlock {
         }
         if (player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            if (!com.skylogistics.network.SkyLineAccess.check(player, node.getLineId())) return InteractionResult.FAIL;
             node.claimDefaultLineName(player);
             NetworkHooks.openScreen(serverPlayer,
                     new SimpleMenuProvider((id, inventory, ignored) -> new SkyNodeMenu(id, inventory, pos),

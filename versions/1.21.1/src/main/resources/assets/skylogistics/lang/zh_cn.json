@@ -316,5 +316,17 @@
   "screen.skylogistics.configurator.line": "线路",
   "screen.skylogistics.configurator.connection_overview": "线路连接一览",
   "block.skylogistics.sky_distributor": "天穹分配器",
-  "item.skylogistics.sky_distributor": "天穹分配器"
+  "item.skylogistics.sky_distributor": "天穹分配器",
+  "screen.skylogistics.permissions.title": "权限管理 · 我的全部线路",
+  "screen.skylogistics.permissions.search": "搜索玩家（留空显示授权名单）",
+  "screen.skylogistics.permissions.loading": "正在加载…",
+  "screen.skylogistics.permissions.granted": "已授权玩家：%s",
+  "screen.skylogistics.permissions.results": "搜索结果：%s",
+  "screen.skylogistics.permissions.public": "线路公开：开（所有玩家可复制和修改）",
+  "screen.skylogistics.permissions.private": "线路公开：关（仅自己和授权玩家）",
+  "screen.skylogistics.permissions.add": "+ 添加",
+  "screen.skylogistics.permissions.remove": "− 移除",
+  "message.skylogistics.permission.denied": "你没有该玩家线路的权限，无法复制或修改配置。",
+  "screen.skylogistics.permissions.mode": "权限",
+  "screen.skylogistics.permissions.line_mode": "线路"
 }

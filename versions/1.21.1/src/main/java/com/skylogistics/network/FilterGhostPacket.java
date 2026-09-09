@@ -56,6 +56,7 @@ public record FilterGhostPacket(int slot, ItemStack item, FluidStack fluid, bool
             if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
+            if (!player.containerMenu.stillValid(player)) return;
             if (player.containerMenu instanceof FilterListMenu menu) {
                 if (packet.fluidEntry) {
                     menu.setGhostFluid(packet.slot, packet.fluid);

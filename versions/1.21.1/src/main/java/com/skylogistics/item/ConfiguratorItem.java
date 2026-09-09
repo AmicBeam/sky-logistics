@@ -93,6 +93,7 @@ public class ConfiguratorItem extends Item {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
+        if (!com.skylogistics.network.SkyLineAccess.check(player, node.getLineId())) return InteractionResult.FAIL;
         node.claimDefaultLineName(player);
 
         if (player != null && player.isShiftKeyDown()) {
@@ -104,6 +105,7 @@ public class ConfiguratorItem extends Item {
         }
 
         if (isPasteMode(stack)) {
+            if (!com.skylogistics.network.SkyLineAccess.check(player, readOrCreate(stack, player).lineId())) return InteractionResult.FAIL;
             node.applyCopiedToolConfig(readOrCreate(stack, player), player);
             if (player != null) {
                 player.displayClientMessage(Component.translatable("message.skylogistics.configurator.pasted",
@@ -205,6 +207,7 @@ public class ConfiguratorItem extends Item {
             return config;
         }
         config = ToolConfig.createDefault(createLine(StackData.getOrEmpty(stack), prefix, List.of()));
+        if (player != null) com.skylogistics.network.SkyPlayerLines.claimOwner(player.level().getServer(), config.lineId(), player);
         writeConfig(stack, config);
         return config;
     }
