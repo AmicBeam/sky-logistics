@@ -1003,7 +1003,7 @@ public final class SkyLogisticsConfig {
             eulogiaCompanionStoneChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above eulogiaCompanionStoneMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽配石在 eulogiaCompanionStoneMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
-                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 10, 1, 3600);
+                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 6, 1, 3600);
             builder.pop();
         }
 
