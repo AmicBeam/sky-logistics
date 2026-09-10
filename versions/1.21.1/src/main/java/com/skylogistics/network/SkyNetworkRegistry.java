@@ -551,6 +551,10 @@ public final class SkyNetworkRegistry {
             index.dirty = false;
             return;
         }
+        // A newly encountered dimension starts with fullRebuild=true without passing
+        // through markTopologyDirty(index). Publish its rebuilt lines to both caches.
+        runtimeCachesDirty = true;
+        globalOutputsDirty = true;
         Map<UUID, Long> retryAfterByLine = new HashMap<>();
         Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
         for (LineIndex line : index.lines.values()) {
