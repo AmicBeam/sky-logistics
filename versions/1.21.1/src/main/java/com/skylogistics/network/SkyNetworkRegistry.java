@@ -89,23 +89,10 @@ public final class SkyNetworkRegistry {
     private static final List<LineIndex> ACTIVE_LINE_SNAPSHOT = new ArrayList<>();
     private static final TreeMap<Long, Set<LineIndex>> WAKE_BUCKETS = new TreeMap<>();
     private static final Map<LineIndex, Long> SCHEDULED_WAKE = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ITEM_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_FLUID_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_CHEMICAL_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_SOUL_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_ENERGY_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_MANA_OUTPUTS = new HashMap<>();
-    private static final Map<UUID, List<CachedEndpoint>> GLOBAL_SOURCE_OUTPUTS = new HashMap<>();
-    // Keep a resource index warm once requested; upgrade/config churn must not recreate it.
-    private static final Set<UUID> GLOBAL_ITEM_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_FLUID_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_CHEMICAL_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_SOUL_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_ENERGY_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_MANA_OUTPUT_LINES = new HashSet<>();
-    private static final Set<UUID> GLOBAL_SOURCE_OUTPUT_LINES = new HashSet<>();
-    private static boolean runtimeCachesDirty = true;
-    private static boolean globalOutputsDirty = true;
+    private enum RouteQuery {
+        ITEM_INPUT, ITEM_OUTPUT, FLUID_OUTPUT, CHEMICAL_OUTPUT, SOUL_OUTPUT, ENERGY_OUTPUT, MANA_OUTPUT, SOURCE_OUTPUT
+    }
+    private static final LineRouteCache<UUID, RouteQuery, CachedEndpoint> GLOBAL_ROUTES = new LineRouteCache<>();
     private static boolean activeLineSnapshotDirty = true;
     private static int activeLineCursor;
 
@@ -138,27 +125,38 @@ public final class SkyNetworkRegistry {
             }
             index.nodes.remove(pos);
             index.loadedEndpoints.remove(pos);
-            if (index.nodes.isEmpty()) {
-                DIMENSIONS.remove(level.dimension());
-                runtimeCachesDirty = true;
-                globalOutputsDirty = true;
+            if (index.nodes.isEmpty() && index.virtualEndpoints.isEmpty()) {
+                removeDimension(level.dimension(), index);
             }
         }
     }
 
+    private static void removeDimension(ResourceKey<Level> dimension, DimensionIndex index) {
+        Set<UUID> changedLines = new HashSet<>(index.lines.keySet());
+        for (LineIndex line : index.lines.values()) detachRuntimeLine(line);
+        DIMENSIONS.remove(dimension);
+        publishLineChanges(changedLines);
+    }
+
     public static synchronized void registerVirtual(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.computeIfAbsent(level.dimension(), ignored -> new DimensionIndex());
-        if (index.virtualEndpoints.add(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
+        if (index.virtualEndpoints.add(endpoint)) markTopologyDirty(index);
     }
 
     public static synchronized void unregisterVirtual(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.get(level.dimension());
-        if (index != null && index.virtualEndpoints.remove(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
+        if (index != null && index.virtualEndpoints.remove(endpoint)) {
+            if (index.nodes.isEmpty() && index.virtualEndpoints.isEmpty()) {
+                removeDimension(level.dimension(), index);
+            } else {
+                markTopologyDirty(index);
+            }
+        }
     }
 
     public static synchronized void markVirtualDirty(ServerLevel level, LogisticsEndpoint endpoint) {
         DimensionIndex index = DIMENSIONS.get(level.dimension());
-        if (index != null && index.virtualEndpoints.contains(endpoint)) { index.fullRebuild = true; markTopologyDirty(index); }
+        if (index != null && index.virtualEndpoints.contains(endpoint)) markTopologyDirty(index);
     }
 
     public static synchronized void markDirty(ServerLevel level) {
@@ -208,7 +206,7 @@ public final class SkyNetworkRegistry {
         LineIndex line = findLine(level, pos);
         if (line != null) {
             line.rebuildPriorityOutputs();
-            refreshGlobalLineIds(Set.of(line.lineId()));
+            publishLineChanges(Set.of(line.lineId()));
         }
     }
 
@@ -223,63 +221,41 @@ public final class SkyNetworkRegistry {
 
     public static synchronized ReadyLines readyLines(MinecraftServer server, long gameTime) {
         rebuildDirty(server);
-        if (runtimeCachesDirty) {
-            rebuildRuntimeCaches(server);
-            runtimeCachesDirty = false;
-            globalOutputsDirty = true;
-        }
-        if (globalOutputsDirty) {
-            rebuildGlobalOutputs();
-            globalOutputsDirty = false;
-        }
         promoteDueWakes(gameTime);
         return activeLinesView();
     }
 
     public static synchronized List<CachedEndpoint> globalItemOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, lineId,
-                LineIndex::priorityItemOutputs);
+        return globalEndpoints(lineId, RouteQuery.ITEM_OUTPUT, LineIndex::priorityItemOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalItemInputs(MinecraftServer server, UUID lineId) {
         rebuildDirty(server);
-        List<CachedEndpoint> result = new ArrayList<>();
-        for (DimensionIndex index : DIMENSIONS.values()) {
-            LineIndex line = index.lines.get(lineId);
-            if (line != null) result.addAll(line.itemInputsView());
-        }
-        sortByPriority(result);
-        return result;
+        return globalEndpoints(lineId, RouteQuery.ITEM_INPUT, LineIndex::itemInputsView);
     }
 
     public static synchronized List<CachedEndpoint> globalFluidOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
-                LineIndex::priorityFluidOutputs);
+        return globalEndpoints(lineId, RouteQuery.FLUID_OUTPUT, LineIndex::priorityFluidOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalChemicalOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS, lineId,
-                LineIndex::priorityChemicalOutputs);
+        return globalEndpoints(lineId, RouteQuery.CHEMICAL_OUTPUT, LineIndex::priorityChemicalOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalSoulOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_SOUL_OUTPUT_LINES, GLOBAL_SOUL_OUTPUTS, lineId,
-                LineIndex::prioritySoulOutputs);
+        return globalEndpoints(lineId, RouteQuery.SOUL_OUTPUT, LineIndex::prioritySoulOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalEnergyOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, lineId,
-                LineIndex::priorityEnergyOutputs);
+        return globalEndpoints(lineId, RouteQuery.ENERGY_OUTPUT, LineIndex::priorityEnergyOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalManaOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, lineId,
-                LineIndex::priorityManaOutputs);
+        return globalEndpoints(lineId, RouteQuery.MANA_OUTPUT, LineIndex::priorityManaOutputs);
     }
 
     public static synchronized List<CachedEndpoint> globalSourceOutputs(UUID lineId) {
-        return activateGlobalOutputs(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, lineId,
-                LineIndex::prioritySourceOutputs);
+        return globalEndpoints(lineId, RouteQuery.SOURCE_OUTPUT, LineIndex::prioritySourceOutputs);
     }
 
     public static synchronized LineStats lineStats(MinecraftServer server, UUID lineId) {
@@ -482,22 +458,7 @@ public final class SkyNetworkRegistry {
         ACTIVE_LINE_SNAPSHOT.clear();
         WAKE_BUCKETS.clear();
         SCHEDULED_WAKE.clear();
-        GLOBAL_ITEM_OUTPUTS.clear();
-        GLOBAL_FLUID_OUTPUTS.clear();
-        GLOBAL_CHEMICAL_OUTPUTS.clear();
-        GLOBAL_SOUL_OUTPUTS.clear();
-        GLOBAL_ENERGY_OUTPUTS.clear();
-        GLOBAL_MANA_OUTPUTS.clear();
-        GLOBAL_SOURCE_OUTPUTS.clear();
-        GLOBAL_ITEM_OUTPUT_LINES.clear();
-        GLOBAL_FLUID_OUTPUT_LINES.clear();
-        GLOBAL_CHEMICAL_OUTPUT_LINES.clear();
-        GLOBAL_SOUL_OUTPUT_LINES.clear();
-        GLOBAL_ENERGY_OUTPUT_LINES.clear();
-        GLOBAL_MANA_OUTPUT_LINES.clear();
-        GLOBAL_SOURCE_OUTPUT_LINES.clear();
-        runtimeCachesDirty = true;
-        globalOutputsDirty = true;
+        GLOBAL_ROUTES.clear();
         activeLineSnapshotDirty = true;
         activeLineCursor = 0;
     }
@@ -505,8 +466,6 @@ public final class SkyNetworkRegistry {
     private static void markTopologyDirty(DimensionIndex index) {
         index.fullRebuild = true;
         index.dirty = true;
-        runtimeCachesDirty = true;
-        globalOutputsDirty = true;
     }
 
     private static void markNodeTopologyDirty(DimensionIndex index, BlockPos pos) {
@@ -551,14 +510,11 @@ public final class SkyNetworkRegistry {
             index.dirty = false;
             return;
         }
-        // A newly encountered dimension starts with fullRebuild=true without passing
-        // through markTopologyDirty(index). Publish its rebuilt lines to both caches.
-        runtimeCachesDirty = true;
-        globalOutputsDirty = true;
-        Map<UUID, Long> retryAfterByLine = new HashMap<>();
+        Set<UUID> changedLineIds = new HashSet<>(index.lines.keySet());
         Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
         for (LineIndex line : index.lines.values()) {
-            retryAfterByLine.put(line.lineId(), line.retryAfter);
+            detachRuntimeLine(line);
+
             for (CachedEndpoint endpoint : line.inputs()) {
                 reusableEndpoints.put(new EndpointKey(endpoint.node(), endpoint.direction()), endpoint);
             }
@@ -593,11 +549,7 @@ public final class SkyNetworkRegistry {
         for (Map.Entry<BlockPos, NetworkEndpointBlockEntity> entry : loadedNodes.entrySet()) {
             BlockPos pos = entry.getKey();
             NetworkEndpointBlockEntity node = entry.getValue();
-            LineIndex line = index.lines.computeIfAbsent(node.getLineId(), lineId -> {
-                LineIndex created = new LineIndex(lineId);
-                created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
-                return created;
-            });
+            LineIndex line = index.lines.computeIfAbsent(node.getLineId(), LineIndex::new);
             line.nodeCount++;
             index.lineByNode.put(pos, line);
             index.lineMembers.computeIfAbsent(node.getLineId(), ignored -> new HashSet<>()).add(pos);
@@ -613,11 +565,7 @@ public final class SkyNetworkRegistry {
             }
         }
         for (LogisticsEndpoint node : index.virtualEndpoints) {
-            LineIndex line = index.lines.computeIfAbsent(node.getLineId(), lineId -> {
-                LineIndex created = new LineIndex(lineId);
-                created.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
-                return created;
-            });
+            LineIndex line = index.lines.computeIfAbsent(node.getLineId(), LineIndex::new);
             line.nodeCount++;
             for (Direction direction : Direction.values()) {
                 NodeFaceMode mode = node.getFaceMode(direction);
@@ -632,6 +580,8 @@ public final class SkyNetworkRegistry {
         index.dirtyNodeLines.clear();
         index.fullRebuild = false;
         index.dirty = false;
+        changedLineIds.addAll(index.lines.keySet());
+        publishLineChanges(changedLineIds);
     }
 
     private static CachedEndpoint reusableEndpoint(Map<EndpointKey, CachedEndpoint> reusableEndpoints,
@@ -661,7 +611,6 @@ public final class SkyNetworkRegistry {
         }
 
         Set<BlockPos> affectedPositions = new HashSet<>(index.dirtyNodePositions);
-        Map<UUID, Long> retryAfterByLine = new HashMap<>();
         Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
         for (UUID lineId : oldLineIds) {
             Set<BlockPos> members = index.lineMembers.remove(lineId);
@@ -670,7 +619,7 @@ public final class SkyNetworkRegistry {
             }
             LineIndex oldLine = index.lines.remove(lineId);
             if (oldLine == null) continue;
-            retryAfterByLine.put(lineId, oldLine.retryAfter);
+
             detachRuntimeLine(oldLine);
             for (CachedEndpoint endpoint : oldLine.inputs()) {
                 if (!index.dirtyNodePositions.contains(endpoint.node().getBlockPos())) {
@@ -699,7 +648,7 @@ public final class SkyNetworkRegistry {
         for (Map.Entry<UUID, Set<BlockPos>> entry : rebuiltMembers.entrySet()) {
             UUID lineId = entry.getKey();
             LineIndex line = new LineIndex(lineId);
-            line.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
+
             for (BlockPos pos : entry.getValue()) {
                 NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
                 if (node == null) continue;
@@ -717,11 +666,10 @@ public final class SkyNetworkRegistry {
             line.rebuildPriorityOutputs();
             index.lineMembers.put(lineId, entry.getValue());
             index.lines.put(lineId, line);
-            attachRuntimeLine(line);
         }
         index.dirtyNodePositions.clear();
         index.dirtyNodeLines.clear();
-        refreshGlobalLineIds(changedLineIds);
+        publishLineChanges(changedLineIds);
     }
 
     private static void rebuildDirtyNodePositions(DimensionIndex index) {
@@ -765,10 +713,9 @@ public final class SkyNetworkRegistry {
                 continue;
             }
             line.refreshResourceMasks();
-            attachRuntimeLine(line);
         }
         index.dirtyNodePositions.clear();
-        refreshGlobalLineIds(changedLineIds);
+        publishLineChanges(changedLineIds);
     }
 
     private static void rebuildPipeTopology(ServerLevel level, DimensionIndex index) {
@@ -785,7 +732,6 @@ public final class SkyNetworkRegistry {
             if (lineId != null) oldLineIds.add(lineId);
         }
         Set<BlockPos> affectedPositions = new HashSet<>(index.dirtyPipePositions);
-        Map<UUID, Long> retryAfterByLine = new HashMap<>();
         Map<EndpointKey, CachedEndpoint> reusableEndpoints = new HashMap<>();
         for (UUID lineId : oldLineIds) {
             index.lineMembers.remove(lineId);
@@ -793,7 +739,7 @@ public final class SkyNetworkRegistry {
             if (members != null) affectedPositions.addAll(members);
             LineIndex oldLine = index.lines.remove(lineId);
             if (oldLine == null) continue;
-            retryAfterByLine.put(lineId, oldLine.retryAfter);
+
             detachRuntimeLine(oldLine);
             for (CachedEndpoint endpoint : oldLine.inputs()) {
                 if (!index.dirtyPipePositions.contains(endpoint.node().getBlockPos())) {
@@ -822,7 +768,7 @@ public final class SkyNetworkRegistry {
             Set<BlockPos> members = index.pipeMembers.get(lineId);
             if (members == null) continue;
             LineIndex line = new LineIndex(lineId);
-            line.retryAfter = retryAfterByLine.getOrDefault(lineId, 0L);
+
             for (BlockPos pos : members) {
                 NetworkEndpointBlockEntity node = index.loadedEndpoints.get(pos);
                 if (node == null) continue;
@@ -840,9 +786,8 @@ public final class SkyNetworkRegistry {
             line.rebuildPriorityOutputs();
             index.lineMembers.put(lineId, new HashSet<>(members));
             index.lines.put(lineId, line);
-            attachRuntimeLine(line);
         }
-        refreshGlobalLineIds(changedLineIds);
+        publishLineChanges(changedLineIds);
     }
 
     private static void detachRuntimeLine(LineIndex line) {
@@ -850,32 +795,11 @@ public final class SkyNetworkRegistry {
         removeScheduledWake(line);
     }
 
-    private static void attachRuntimeLine(LineIndex line) {
-        if (!line.hasProcessableInputs()) return;
-        if (line.retryAfter <= 0L) {
-            if (ACTIVE_LINES.add(line)) activeLineSnapshotDirty = true;
-        } else {
-            scheduleWake(line, line.retryAfter);
-        }
-    }
-
-    private static void refreshGlobalLineIds(Set<UUID> lineIds) {
+    /** Publish every completed topology/priority change through the same path. */
+    private static void publishLineChanges(Set<UUID> lineIds) {
         for (UUID lineId : lineIds) {
+            GLOBAL_ROUTES.invalidate(lineId);
             resetTargetScans(lineId);
-            refreshGlobalOutputIfActive(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, lineId,
-                    LineIndex::priorityItemOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, lineId,
-                    LineIndex::priorityFluidOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS, lineId,
-                    LineIndex::priorityChemicalOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_SOUL_OUTPUT_LINES, GLOBAL_SOUL_OUTPUTS, lineId,
-                    LineIndex::prioritySoulOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, lineId,
-                    LineIndex::priorityEnergyOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, lineId,
-                    LineIndex::priorityManaOutputs);
-            refreshGlobalOutputIfActive(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, lineId,
-                    LineIndex::prioritySourceOutputs);
         }
     }
 
@@ -1046,76 +970,17 @@ public final class SkyNetworkRegistry {
         return y != 0 ? y : Integer.compare(left.getZ(), right.getZ());
     }
 
-    private static void rebuildRuntimeCaches(MinecraftServer server) {
-        ACTIVE_LINES.clear();
-        WAKE_BUCKETS.clear();
-        SCHEDULED_WAKE.clear();
-        activeLineSnapshotDirty = true;
-        activeLineCursor = 0;
-        for (Map.Entry<ResourceKey<Level>, DimensionIndex> entry : DIMENSIONS.entrySet()) {
-            if (server.getLevel(entry.getKey()) == null) {
-                continue;
+    private static List<CachedEndpoint> globalEndpoints(UUID lineId, RouteQuery query,
+            Function<LineIndex, List<CachedEndpoint>> select) {
+        return GLOBAL_ROUTES.get(lineId, query, () -> {
+            List<CachedEndpoint> endpoints = new ArrayList<>();
+            for (DimensionIndex dimension : DIMENSIONS.values()) {
+                LineIndex line = dimension.lines.get(lineId);
+                if (line != null) endpoints.addAll(select.apply(line));
             }
-            DimensionIndex index = entry.getValue();
-            for (LineIndex line : index.lines.values()) {
-                if (line.hasProcessableInputs()) {
-                    if (line.retryAfter <= 0L) {
-                        ACTIVE_LINES.add(line);
-                    } else {
-                        scheduleWake(line, line.retryAfter);
-                    }
-                }
-            }
-        }
-    }
-
-    private static void rebuildGlobalOutputs() {
-        refreshGlobalOutputs(GLOBAL_ITEM_OUTPUT_LINES, GLOBAL_ITEM_OUTPUTS, LineIndex::priorityItemOutputs);
-        refreshGlobalOutputs(GLOBAL_FLUID_OUTPUT_LINES, GLOBAL_FLUID_OUTPUTS, LineIndex::priorityFluidOutputs);
-        refreshGlobalOutputs(GLOBAL_CHEMICAL_OUTPUT_LINES, GLOBAL_CHEMICAL_OUTPUTS,
-                LineIndex::priorityChemicalOutputs);
-        refreshGlobalOutputs(GLOBAL_SOUL_OUTPUT_LINES, GLOBAL_SOUL_OUTPUTS, LineIndex::prioritySoulOutputs);
-        refreshGlobalOutputs(GLOBAL_ENERGY_OUTPUT_LINES, GLOBAL_ENERGY_OUTPUTS, LineIndex::priorityEnergyOutputs);
-        refreshGlobalOutputs(GLOBAL_MANA_OUTPUT_LINES, GLOBAL_MANA_OUTPUTS, LineIndex::priorityManaOutputs);
-        refreshGlobalOutputs(GLOBAL_SOURCE_OUTPUT_LINES, GLOBAL_SOURCE_OUTPUTS, LineIndex::prioritySourceOutputs);
-    }
-
-    private static List<CachedEndpoint> activateGlobalOutputs(Set<UUID> activeLines,
-            Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
-            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
-        if (activeLines.add(lineId)) {
-            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
-        }
-        return globalOutputs.get(lineId);
-    }
-
-    private static void refreshGlobalOutputs(Set<UUID> activeLines,
-            Map<UUID, List<CachedEndpoint>> globalOutputs,
-            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
-        for (UUID lineId : activeLines) {
-            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
-        }
-    }
-
-    private static void refreshGlobalOutputIfActive(Set<UUID> activeLines,
-            Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
-            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
-        if (activeLines.contains(lineId)) {
-            refreshGlobalOutput(globalOutputs, lineId, outputSelector);
-        }
-    }
-
-    private static void refreshGlobalOutput(Map<UUID, List<CachedEndpoint>> globalOutputs, UUID lineId,
-            Function<LineIndex, List<CachedEndpoint>> outputSelector) {
-        List<CachedEndpoint> outputs = globalOutputs.computeIfAbsent(lineId, ignored -> new ArrayList<>());
-        outputs.clear();
-        for (DimensionIndex dimension : DIMENSIONS.values()) {
-            LineIndex line = dimension.lines.get(lineId);
-            if (line != null) {
-                outputs.addAll(outputSelector.apply(line));
-            }
-        }
-        sortByPriority(outputs);
+            sortByPriority(endpoints);
+            return endpoints;
+        });
     }
 
     private static void sortByPriority(List<CachedEndpoint> endpoints) {

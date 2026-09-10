@@ -319,10 +319,7 @@ public final class SkyNetworkTicker {
 
     private static List<CachedEndpoint> targetsFor(boolean globalEnabled, List<CachedEndpoint> localOutputs,
             List<CachedEndpoint> globalOutputs) {
-        if (globalEnabled && globalOutputs != null && !globalOutputs.isEmpty()) {
-            return globalOutputs;
-        }
-        return localOutputs;
+        return globalEnabled ? globalOutputs : localOutputs;
     }
 
     private static long nextInputWake(CachedEndpoint input, LogisticsEndpoint node, long gameTime,
