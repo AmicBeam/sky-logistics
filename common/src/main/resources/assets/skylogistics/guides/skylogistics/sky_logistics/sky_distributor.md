@@ -10,16 +10,54 @@ item_ids:
 
 # Celestial Distributor
 
-The Celestial Distributor is a zero-buffer routing proxy for items, fluids, FE, and supported optional resources such as Mekanism chemicals, used only by Sky Logistics simple pipes and logistics nodes. Chemicals use fluid pipes; supported mana-like resources use energy pipes. It exposes no general Forge/NeoForge capabilities, so vanilla hoppers and third-party pipes do not connect. By default it starts from all six neighbors. Right-clicking with a compatible wrench changes it between all-sides and six directional states using the same face selection, rotation sequence, and arrow display as an ME Pattern Provider. Every hop of a directional discovery continues in a straight line along the selected direction. It can traverse another distributor on that line without treating it as a resource target, but that distributor consumes one target slot. Changing direction immediately abandons the previous bound path and starts a fresh discovery. Every real bound container is queried through the same face used by the pipe or node to access the distributor; discovery paths and cursors never change that access face. Air, ordinary blocks, and blocks without a usable capability on the inherited face stop the search. It exposes at most 32 targets by default; servers can set `[distributor].maxTargets` from 1 to 64.
+## Purpose and setup
 
-Incoming resources are divided as evenly as possible among targets that can accept them. While the distributor receives a redstone signal, it switches to sequential insertion: starting at the rotating cursor, it fills each target as far as possible before continuing to the next. Removing the signal immediately restores balanced insertion. Jade shows the current mode when installed. Extraction aggregates every target without requiring an even split.
+Connect several touching containers to one logistics node or simple pipe. Use it to feed a row of machines or collect their products.
 
-Nodes pass item maintenance and per-slot matching parameters to the distributor, which returns an accepted amount and executes that plan. Balanced mode maintains each accepting machine and treats the matched position as its local slot; redstone sequential mode maintains the bound machines in aggregate and treats that position as the machine index.
+Attach your node or pipe to the distributor, then place chests, tanks, or machines next to one another. The distributor stores nothing itself. Resources that cannot be accepted stay at the source.
 
-Each actually connected face has its own target cache. Placement prewarms only faces that already have an adjacent Sky Logistics pipe or node; other faces scan lazily on first use, avoiding six unconditional BFS runs. Neighbor changes invalidate every face cache, while a 100-tick lazy safety validation handles capability changes. An unchanged scan preserves routes, heat tiers, and balanced cursors exactly. A changed scan migrates surviving machine state by block position and access face, initializes only added machines, and drops only removed machines. An unfinished scan resumes on later ticks without making the connected face disappear. Logistics endpoints that encounter an unfinished index defer only that distributor resource for `distributor.indexingRetryTicks` (20 ticks by default), without recording a transfer failure or rebuilding unrelated lines. Changing faces discards face-specific transient plans without resetting the distributor's shared per-tick transfer budget. Maintained insertions apply the target independently to every accepting device in balanced mode and to the aggregate in redstone sequential mode for items, fluids, chemicals, FE, Mana, Source, and Souls where supported. Item, fluid, and energy proxying can each be disabled in the server config; the independent optional-integration switches also disable chemical, mana, or Source proxying.
+## Choose a pipe
 
-Item, fluid, and chemical routing follow the same hierarchy as a logistics line: the line routes an exact resource key to the distributor, then the distributor routes that same key to internal machines. Each resource type retains its own bank of 64 `resource key → machine` routes per connected face by default. Previously successful machines are tried first, while unknown or rejected machines are rediscovered incrementally under the operation budget, so many strict-input devices stop causing a full machine scan for every product after warm-up. Balanced shares use the number of machines already confirmed to accept that exact key and resume after the last machine that actually received the previous batch; with 4 accepting machines and batches of 2, allocation alternates between `1/1/0/0` and `0/0/1/1`. Extraction stores the same tiered backoff per machine. Success promotes a target to hot; consecutive failures demote it through 1, 5, 20, and 40 tick intervals, with three misses per demotion by default. The three resource types share the legacy-named `itemTarget...` timing values but have separate `enableAdaptiveItemTargetProbes`, `enableAdaptiveFluidTargetProbes`, and `enableAdaptiveChemicalTargetProbes` switches. A never-successful `key × machine` pair enters the 40-tick fallback immediately after a complete rejection, but remains periodically discoverable. Multi-slot item machines retain their own successful local slots. Insertion simulation builds a bounded plan and execution reuses it. Distributor transfer probes consume the active logistics line's `lineOpsPerTick`; exhausting it defers work instead of falsely recording an empty machine and triggering a 20/40-tick backoff. `[distributor].scanOpsPerTick` remains an independent BFS-discovery budget and does not consume line operations. Unused resources remain at the source for a later tick.
+Use item pipes for items, fluid pipes for fluids, and energy pipes for FE. With the relevant integrations installed, chemicals use fluid pipes; Mana and Source use energy pipes.
 
-Hold a Celestial Configurator and aim at the distributor to outline every target in its current cache in cyan. The client requests a snapshot immediately when the aimed distributor changes, then once every 20 ticks while aiming; rendering never scans containers every frame.
+Connect using Sky Logistics nodes or simple pipes. Vanilla hoppers and other mods' pipes cannot connect directly.
 
-Craft it with Prismarine in the four corners, Lapis Lazuli on all four sides, and a Redstone Comparator in the center. No altar, Eulogia Crystal, or Celestial Stone is required.
+## Choose a direction
+
+Right-click with a Sky Configurator or compatible wrench to change direction without opening the configurator screen.
+
+All-sides mode connects nearby touching containers. Directional mode follows a straight row along the arrow. Starting in all-sides mode, clicks on the same face cycle between pointing away from it, pointing toward it, and all sides.
+
+## Connection range
+
+Keep containers touching. Gaps, ordinary blocks, and machines that cannot transfer through the required side break the connection.
+
+The default limit is 32 targets; servers can change it. Directional connections can pass through other distributors on the same straight line. Each of those distributors also counts toward the limit.
+
+## Check machine sides
+
+Machine input and output settings matter. For example, connecting to the top of the distributor also requires access through the top of each target machine.
+
+Hold a Sky Configurator and aim at the distributor to highlight connected targets in cyan. After placing or adjusting machines, allow a moment for the highlights to update.
+
+## Redstone modes
+
+Without redstone, incoming resources are shared as evenly as possible among machines that accept them. Apply redstone to fill machines one after another instead. Remove the signal to restore balanced filling.
+
+Jade can show the current mode. Extraction can draw from all connected targets without taking equal amounts from each.
+
+## Node maintenance
+
+With a maintenance value on the inserting node, balanced mode counts each machine separately. Redstone sequential mode counts all targets together.
+
+For example, maintaining 64 items by count means 64 in each accepting machine in balanced mode, or 64 across all targets in sequential mode.
+
+## Per-slot matching
+
+With an item per-slot matching upgrade, balanced mode uses the matched position as a slot inside each machine. Redstone sequential mode uses it to select a machine.
+
+An out-of-range position prevents insertion. If a machine receives nothing, check its input sides, filters, maintenance value, and matching position.
+
+## Crafting
+
+Craft it with Prismarine in the corners, Lapis Lazuli on all four sides, and a Redstone Comparator in the center.
