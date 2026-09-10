@@ -24,7 +24,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "三阶祭坛按 tierThreeAltarWorkSpeedMultiplier 推进工作。服务器默认倍率为 4，可在 1–64 之间调整；三阶可以运行所有祭坛等级要求不高于三阶的供奉。"
+      "text": "三阶祭坛默认以 4 倍速度完成供奉，也能制作一阶和二阶祭坛的配方。实际速度以服务器设置为准。"
     },
     {
       "type": "patchouli:text",

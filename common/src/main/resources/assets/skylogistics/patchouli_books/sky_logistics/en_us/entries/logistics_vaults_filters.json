@@ -23,7 +23,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Sky Filter Lists store exact item, fluid, and supported chemical samples in 18 ghost slots, with whitelist or blacklist, data/component, and durability toggles. Tag Filter Lists switch between item tags, fluid tags, and mod rules; mod rules match the resource ID namespace. FE uses the virtual mod ID forge."
+      "text": "Sky Filter Lists store exact item, fluid, and supported chemical samples in 18 ghost slots, with whitelist or blacklist, data/component, and durability toggles. Tag Filter Lists switch between item tags, fluid tags, and mod rules; mod rules select resources by their mod ID. To filter FE, enter forge."
     },
     {
       "type": "patchouli:text",

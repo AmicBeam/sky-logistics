@@ -12,7 +12,7 @@
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "Sky ME Interface",
-      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. Optional add-ons enable FE, chemicals, mana, Source, or Warden Souls. On 1.21.1, Soulplied Energistics supplies the Soul Key; AppliedSoul cells use that same key and are supported directly."
+      "text": "The $(item)Sky ME Interface$() exposes an AE2 network as a Sky endpoint for items and fluids. Optional add-ons enable FE, chemicals, mana, Source, or Warden Souls. On 1.21.1, Soulplied Energistics enables Warden Soul transfers, including storage in AppliedSoul cells."
     },
     {
       "type": "patchouli:crafting",
@@ -30,7 +30,7 @@
       "type": "patchouli:crafting",
       "flag": "mod:refinedstorage",
       "recipe": "skylogistics:sky_rs_interface",
-      "text": "The interface has no intermediate buffer. If a target refuses a transfer, the resource remains in its original network."
+      "text": "The interface stores nothing itself. Resources that cannot be accepted stay in their original network."
     },
     {
       "type": "patchouli:text",
@@ -46,7 +46,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "Extracting items from an external network requires a whitelist containing at least one concrete item, preventing unbounded scans of the entire network. Tag and mod filters cannot replace that enumerable whitelist. Dimension Upgrades do not load chunks; unloaded dimensions and chunks are still skipped."
+      "text": "Extracting items from an external network requires a whitelist containing at least one concrete item. Add the items you want to extract to that whitelist; tag or mod rules alone are not enough. Dimension Upgrades do not load chunks; unloaded dimensions and chunks are still skipped."
     }
   ]
 }

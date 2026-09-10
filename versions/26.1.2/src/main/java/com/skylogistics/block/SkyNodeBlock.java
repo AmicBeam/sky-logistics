@@ -223,7 +223,8 @@ public class SkyNodeBlock extends BaseEntityBlock {
                     placer instanceof Player player ? player : null), false);
         } else {
             if (placer instanceof Player player) {
-                if (!com.skylogistics.network.SkyLineAccess.check(player, node.getLineId())) return;
+                // Line-0 is only a fresh node's placeholder, not an existing line to authorize.
+                // Assign the player's line first; ownership is registered below.
                 node.claimDefaultLineName(player);
             }
             node.configureTargetResourcesFromCapabilities();

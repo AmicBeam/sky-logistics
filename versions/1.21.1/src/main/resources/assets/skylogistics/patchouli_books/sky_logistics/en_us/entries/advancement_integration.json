@@ -5,11 +5,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Servers can progressively unlock per-operation transfer amounts according to Minecraft advancements completed by the line owner and provide a Sky Logistics advancement tab. No extra mod is required. This feature is disabled by default; enable it at $(thing)transfers.advancements.enabled$()."
+      "text": "Servers can use Minecraft advancements to unlock larger transfer amounts and provide a Sky Logistics advancement tab. No extra mod is needed. The feature is off by default; your server decides whether to enable it and which advancements unlock improvements."
     },
     {
       "type": "patchouli:text",
-      "text": "Each advancementRates entry contains a full advancement ID and optional resource limits. Completed configured advancements unlock the highest value per resource above initialRates; device and other enabled limits still apply. Offline or unknown owners use the initial rates."
+      "text": "Unlocks follow the line owner. Completing several relevant advancements gives each resource its highest unlocked allowance, while device limits still apply. Offline or unknown owners use the base allowance."
     }
   ]
 }
