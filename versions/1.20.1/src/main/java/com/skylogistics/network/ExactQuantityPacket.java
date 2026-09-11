@@ -15,6 +15,7 @@ public record ExactQuantityPacket(int amount) {
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
             if (player == null) return;
+            if (!player.containerMenu.stillValid(player)) return;
             if (player.containerMenu instanceof SkyNecklaceMenu menu) {
                 menu.setExactQuantity(player, packet.amount);
             } else if (player.containerMenu instanceof SkyNodeMenu menu) {

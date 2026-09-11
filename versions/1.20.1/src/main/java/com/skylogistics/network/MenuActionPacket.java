@@ -26,6 +26,7 @@ public record MenuActionPacket(int action) {
             if (player == null) {
                 return;
             }
+            if (!player.containerMenu.stillValid(player)) return;
             if (player.containerMenu instanceof ConfiguratorMenu menu) {
                 menu.applyAction(player, packet.action);
             } else if (player.containerMenu instanceof SkyNodeMenu menu) {

@@ -77,6 +77,13 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int SLOT_LIMIT_UP_X = 145;
     private static final int BOTTOM_GROUP_Y = 216;
     private static final long DOUBLE_CLICK_INTERVAL_MS = 250L;
+    private boolean permissionMode;
+    private EditBox playerSearch;
+    private PermissionButton publicButton;
+    private final List<PermissionButton> playerButtons = new ArrayList<>();
+    private int permissionPage;
+    private int searchDelay;
+
     private final List<LineButton> lineButtons = new ArrayList<>();
     private final List<TypeToggleButton> typeButtons = new ArrayList<>();
     private final List<PriorityButton> priorityButtons = new ArrayList<>();
@@ -106,6 +113,51 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         typeButtons.clear();
         priorityButtons.clear();
         slotLimitButtons.clear();
+        playerButtons.clear();
+        addRenderableWidget(new PermissionButton(leftPos - 24, topPos + 6, 22,
+                Component.translatable(permissionMode ? "screen.skylogistics.permissions.line_mode" : "screen.skylogistics.permissions.mode"), () -> {
+                    if (!permissionMode) commitLineNameEdit();
+                    permissionMode = !permissionMode;
+                    rebuildWidgets();
+                }));
+        if (permissionMode) {
+            playerSearch = new EditBox(font, leftPos + 12, topPos + 55, 236, 18,
+                    Component.translatable("screen.skylogistics.permissions.search"));
+            playerSearch.setMaxLength(48);
+            addRenderableWidget(playerSearch);
+            publicButton = addRenderableWidget(new PermissionButton(leftPos + 12, topPos + 24, 236,
+                    Component.empty(), () -> {
+                        var snapshot = menu.permissions();
+                        if (snapshot != null) requestPermissions(snapshot.publicAccess() ? 2 : 1, null);
+                    }));
+            for (int i = 0; i < 7; i++) {
+                final int row = i;
+                playerButtons.add(addRenderableWidget(new PermissionButton(leftPos + 12, topPos + 87 + i * 20, 236,
+                        Component.empty(), () -> {
+                            var snapshot = menu.permissions();
+                            if (snapshot != null && row < snapshot.entries().size()) {
+                                var entry = snapshot.entries().get(row);
+                                requestPermissions(entry.granted() ? 4 : 3, entry.id());
+                            }
+                        })));
+            }
+            addRenderableWidget(new PermissionButton(leftPos + 12, topPos + 229, 30, Component.literal("<"), () -> {
+                permissionPage = Math.max(0, permissionPage - 1); requestPermissions(0, null);
+            }));
+            addRenderableWidget(new PermissionButton(leftPos + 218, topPos + 229, 30, Component.literal(">"), () -> {
+                var snapshot = menu.permissions();
+                if (snapshot != null && (permissionPage + 1) * 7 < snapshot.total()) permissionPage++;
+                requestPermissions(0, null);
+            }));
+            playerSearch.setResponder(value -> { permissionPage = 0; searchDelay = 5; });
+            permissionPage = 0;
+            menu.acceptPermissions(null);
+            refreshPermissions();
+            requestPermissions(0, null);
+            return;
+        }
+        playerSearch = null;
+
         addLineButton(leftPos + 160, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
         addLineButton(leftPos + 177, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
         addLineButton(leftPos + 194, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
@@ -157,6 +209,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void containerTick() {
         super.containerTick();
+        if (permissionMode) {
+            if (searchDelay > 0 && --searchDelay == 0) requestPermissions(0, null);
+            refreshPermissions();
+            return;
+        }
         ItemStack stack = stack();
         ConfiguratorItem.ToolConfig currentConfig = config();
         UUID currentLine = currentConfig == null ? null : currentConfig.lineId();
@@ -173,16 +230,16 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         refreshLineNameEdit(currentConfig);
         for (TypeToggleButton button : typeButtons) {
-            button.active = config() != null;
+            button.active = config() != null && menu.canEditCurrentLine();
         }
         for (PriorityButton button : priorityButtons) {
-            button.active = config() != null;
+            button.active = config() != null && menu.canEditCurrentLine();
         }
         for (SlotLimitButton button : slotLimitButtons) {
-            button.active = config() != null;
+            button.active = config() != null && menu.canEditCurrentLine();
         }
         if (redstoneButton != null) {
-            redstoneButton.active = config() != null;
+            redstoneButton.active = config() != null && menu.canEditCurrentLine();
         }
     }
 
@@ -195,6 +252,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int x, int y) {
+        if (permissionMode) return;
         ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailIcon(x, y);
         if (entry != null) {
             graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry)), x, y);
@@ -213,6 +271,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        if (permissionMode) return;
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
         drawStatPanels(graphics);
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + DETAIL_Y,
@@ -225,6 +284,18 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (permissionMode) {
+            graphics.drawString(font, Component.translatable("screen.skylogistics.permissions.title"), 10, 7, ConfigPanel.TEXT, false);
+            graphics.drawString(font, Component.translatable("screen.skylogistics.permissions.search"), 12, 45, ConfigPanel.MUTED, false);
+            var snapshot = menu.permissions();
+            Component label = snapshot == null ? Component.translatable("screen.skylogistics.permissions.loading")
+                    : Component.translatable(playerSearch.getValue().isBlank() ? "screen.skylogistics.permissions.granted" : "screen.skylogistics.permissions.results", snapshot.total());
+            graphics.drawString(font, label, 12, 77, ConfigPanel.MUTED, false);
+            if (snapshot != null) ConfigPanel.drawCenteredText(graphics, font,
+                    Component.literal((snapshot.page() + 1) + " / " + Math.max(1, (snapshot.total() + 6) / 7)), 130, 233, ConfigPanel.TEXT);
+            return;
+        }
+
         ConfiguratorItem.ToolConfig config = config();
         graphics.drawString(font, title, 10, 7, ConfigPanel.TEXT, false);
         if (config == null) {
@@ -284,7 +355,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         ConfiguratorItem.ToolConfig config = config();
-        if (config != null && isOverDetails(mouseX, mouseY)) {
+        if (!permissionMode && config != null && isOverDetails(mouseX, mouseY)) {
             int maxScroll = maxDetailScroll(config.lineId());
             if (maxScroll > 0) {
                 detailScroll = Mth.clamp(detailScroll - (int) Math.signum(scrollY), 0, maxScroll);
@@ -296,9 +367,12 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (lineNameEdit != null && lineNameEdit.isFocused()
+        if (permissionMode && playerSearch != null && playerSearch.isFocused()
                 && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
-        if (lineNameEdit != null && lineNameEdit.isFocused()
+
+        if (!permissionMode && lineNameEdit != null && lineNameEdit.isFocused()
+                && minecraft.options.keyInventory.matches(keyCode, scanCode)) return true;
+        if (!permissionMode && lineNameEdit != null && lineNameEdit.isFocused()
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
@@ -310,7 +384,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
+        if (!permissionMode && lineNameEdit != null && lineNameEdit.isFocused() && !lineNameEdit.isMouseOver(mouseX, mouseY)) {
             commitLineNameEdit();
             lineNameEdit.setFocused(false);
             setFocused(null);
@@ -361,7 +435,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         lineNameEditWasFocused = focused;
         lineNameEdit.visible = currentConfig != null;
-        lineNameEdit.active = currentConfig != null;
+        lineNameEdit.active = currentConfig != null && menu.canEditCurrentLine();
+        lineNameEdit.setEditable(menu.canEditCurrentLine());
         if (currentConfig == null) {
             lineNameEditLine = null;
             lineNameEdit.setValue("");
@@ -376,6 +451,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void commitLineNameEdit() {
+        if (permissionMode || !menu.canEditCurrentLine()) return;
         if (lineNameEdit == null) {
             return;
         }
@@ -506,6 +582,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ConfiguratorLineDetailsPacket.Entry hoveredDetailIcon(double mouseX, double mouseY) {
+        if (permissionMode) return null;
         ConfiguratorItem.ToolConfig config = config();
         if (config == null) {
             return null;
@@ -526,6 +603,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ConfiguratorLineDetailsPacket.Entry hoveredDetailLocation(double mouseX, double mouseY) {
+        if (permissionMode) return null;
         ConfiguratorItem.ToolConfig config = config();
         if (config == null) return null;
         List<ConfiguratorLineDetailsPacket.Entry> entries = lineDetailEntries(config.lineId());
@@ -691,6 +769,43 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         return slotLimit == com.skylogistics.block.entity.SkyNodeBlockEntity.ITEM_SLOT_LIMIT_UNLIMITED
                 ? Component.translatable("screen.skylogistics.slot_limit.unlimited")
                 : Component.literal(String.valueOf(slotLimit));
+    }
+
+    private void requestPermissions(int action, UUID target) {
+        ModNetworking.sendPermissionAction(menu.containerId, action, playerSearch.getValue(), permissionPage, target);
+    }
+
+    private void refreshPermissions() {
+        var snapshot = menu.permissions();
+        boolean current = snapshot != null && snapshot.query().equals(playerSearch.getValue());
+        publicButton.active = current;
+        publicButton.setMessage(Component.translatable(snapshot != null && snapshot.publicAccess()
+                ? "screen.skylogistics.permissions.public" : "screen.skylogistics.permissions.private"));
+        for (int i = 0; i < playerButtons.size(); i++) {
+            PermissionButton button = playerButtons.get(i);
+            button.visible = current && i < snapshot.entries().size();
+            button.active = button.visible;
+            if (button.visible) {
+                var entry = snapshot.entries().get(i);
+                button.setMessage(Component.literal(font.plainSubstrByWidth(entry.name(), 165) + "  ")
+                        .append(Component.translatable(entry.granted() ? "screen.skylogistics.permissions.remove" : "screen.skylogistics.permissions.add")));
+            }
+        }
+        if (current) permissionPage = snapshot.page();
+    }
+
+    private final class PermissionButton extends AbstractButton {
+        private final Runnable pressed;
+        private PermissionButton(int x, int y, int width, Component label, Runnable pressed) {
+            super(x, y, width, 18, label);
+            this.pressed = pressed;
+        }
+        @Override public void onPress() { if (active) pressed.run(); }
+        @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            ConfigPanel.drawButtonChrome(graphics, getX(), getY(), width, height, active, isHovered());
+            ConfigPanel.drawCenteredButtonText(graphics, font, getMessage(), getX() + width / 2, getY() + 5, active);
+        }
+        @Override protected void updateWidgetNarration(NarrationElementOutput output) { defaultButtonNarrationText(output); }
     }
 
     private final class LineButton extends AbstractButton {

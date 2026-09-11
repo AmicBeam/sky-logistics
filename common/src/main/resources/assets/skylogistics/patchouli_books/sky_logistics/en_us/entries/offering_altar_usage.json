@@ -24,7 +24,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "A tier 3 altar advances work at tierThreeAltarWorkSpeedMultiplier. The server default is 4x, configurable from 1x to 64x. Tier 3 can run every offering allowed by its required altar tier."
+      "text": "A tier 3 altar completes offerings four times as fast by default and can also craft tier 1 and tier 2 recipes. Server settings may change its speed."
     },
     {
       "type": "patchouli:text",

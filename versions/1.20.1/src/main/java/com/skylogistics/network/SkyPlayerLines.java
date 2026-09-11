@@ -28,6 +28,10 @@ public final class SkyPlayerLines extends SavedData {
     private static final String COMPLETED_ADVANCEMENTS = "CompletedAdvancements";
     private static final String ADVANCEMENT_ID = "AdvancementId";
 
+    private PlayerLinePermissions permissions = new PlayerLinePermissions();
+
+    public PlayerLinePermissions permissions() { return permissions; }
+
     private final Map<UUID, PlayerLines> players = new HashMap<>();
     private final Map<UUID, UUID> lineOwners = new HashMap<>();
     private final Map<UUID, Set<String>> advancementSnapshots = new HashMap<>();
@@ -135,6 +139,8 @@ public final class SkyPlayerLines extends SavedData {
 
     private PlayerLines playerLines(Player player) {
         PlayerLines lines = players.computeIfAbsent(player.getUUID(), ignored -> new PlayerLines());
+        if (lines.lines.removeIf(line -> lineOwners.containsKey(line.lineId())
+                && !permissions.allows(lineOwners.get(line.lineId()), player.getUUID()))) setDirty();
         if (lines.lines.isEmpty()) {
             LineEntry line = createLine(player, List.of());
             lines.lines.add(line);
@@ -151,6 +157,8 @@ public final class SkyPlayerLines extends SavedData {
             setDirty();
         }
         UUID lineId = currentLineId;
+        if (lineId != null && lineOwners.containsKey(lineId)
+                && !permissions.allows(lineOwners.get(lineId), player.getUUID())) lineId = null;
         String assignedName = validLineName(assignedFallback, displayFallback);
         if (lineId == null) {
             LineEntry first = playerLines.lines.get(0);
@@ -205,6 +213,7 @@ public final class SkyPlayerLines extends SavedData {
             playerTags.add(playerTag);
         }
         tag.put(PLAYERS, playerTags);
+        tag.putString("Permissions", permissions.save());
         ListTag ownerTags = new ListTag();
         for (Map.Entry<UUID, UUID> owner : lineOwners.entrySet()) {
             CompoundTag ownerTag = new CompoundTag();
@@ -232,6 +241,7 @@ public final class SkyPlayerLines extends SavedData {
 
     private static SkyPlayerLines load(CompoundTag tag) {
         SkyPlayerLines data = new SkyPlayerLines();
+        data.permissions = PlayerLinePermissions.load(tag.getString("Permissions"));
         if (!tag.contains(PLAYERS, Tag.TAG_LIST)) {
             return data;
         }

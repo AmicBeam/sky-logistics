@@ -139,6 +139,7 @@ public class SkyNodeBlock extends BaseEntityBlock {
         }
         if (player instanceof ServerPlayer serverPlayer) {
             if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+                if (!com.skylogistics.network.SkyLineAccess.check(player, node.getLineId())) return InteractionResult.FAIL;
                 node.claimDefaultLineName(player);
             }
             NetworkHooks.openScreen(serverPlayer,
@@ -157,6 +158,7 @@ public class SkyNodeBlock extends BaseEntityBlock {
         if (!player.isShiftKeyDown() || !(level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node)) {
             return false;
         }
+        if (!com.skylogistics.network.SkyLineAccess.check(player, node.getLineId())) return true;
         if (SkyNodeBlockEntity.isUpgradeItem(stack)) {
             if (!level.isClientSide) {
                 if (!node.addSingleUpgrade(stack)) {
@@ -200,7 +202,9 @@ public class SkyNodeBlock extends BaseEntityBlock {
         Direction targetDirection = state.getValue(TARGET);
         node.setMode(placementMode);
         ItemStack offhand = placer.getOffhandItem();
-        if (offhand.getItem() instanceof ConfiguratorItem) {
+        if (offhand.getItem() instanceof ConfiguratorItem
+                && placer instanceof Player placingPlayer
+                && com.skylogistics.network.SkyLineAccess.check(placingPlayer, ConfiguratorItem.readOrCreate(offhand, placingPlayer).lineId())) {
             node.applyPlacementToolConfig(ConfiguratorItem.readOrCreate(offhand,
                     placer instanceof Player player ? player : null), false);
         } else {

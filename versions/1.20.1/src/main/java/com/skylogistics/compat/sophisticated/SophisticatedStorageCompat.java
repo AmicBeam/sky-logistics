@@ -11,10 +11,12 @@ import net.minecraftforge.fml.ModList;
 public final class SophisticatedStorageCompat {
     private static final String MOD_ID = "sophisticatedstorage";
     private static final String PACKAGE_PREFIX = "net.p3pp3rf1y.sophisticatedstorage.";
+    private static final String BACKPACKS_MOD_ID = "sophisticatedbackpacks";
+    private static final String BACKPACKS_PACKAGE_PREFIX = "net.p3pp3rf1y.sophisticatedbackpacks.";
     private static boolean initialized;
     private static boolean directAccessAvailable;
     private static boolean warned;
-    private static Class<?> storageBlockEntityClass;
+    private static Class<?> controllableStorageClass;
     private static Method getStorageWrapper;
     private static Method getInventoryHandler;
     private static Method getUpgradeHandler;
@@ -34,10 +36,15 @@ public final class SophisticatedStorageCompat {
     }
 
     public static boolean supports(BlockEntity blockEntity) {
-        return blockEntity != null
-                && SkyLogisticsConfig.allowSophisticatedStorageStackUpgradeTransfer()
-                && ModList.get().isLoaded(MOD_ID)
-                && blockEntity.getClass().getName().startsWith(PACKAGE_PREFIX);
+        if (blockEntity == null) return false;
+        String className = blockEntity.getClass().getName();
+        if (className.startsWith(PACKAGE_PREFIX)) {
+            return SkyLogisticsConfig.allowSophisticatedStorageStackUpgradeTransfer()
+                    && ModList.get().isLoaded(MOD_ID);
+        }
+        return className.startsWith(BACKPACKS_PACKAGE_PREFIX)
+                && SkyLogisticsConfig.allowSophisticatedBackpacksStackUpgradeTransfer()
+                && ModList.get().isLoaded(BACKPACKS_MOD_ID);
     }
 
     public static ItemStack fullSlotCandidate(BlockEntity blockEntity, int slot, ItemStack simulated,
@@ -101,7 +108,7 @@ public final class SophisticatedStorageCompat {
     }
 
     private static DirectInventory directInventory(BlockEntity blockEntity, int slot) {
-        if (!supports(blockEntity) || !initDirectAccess() || !storageBlockEntityClass.isInstance(blockEntity)) {
+        if (!supports(blockEntity) || !initDirectAccess() || !controllableStorageClass.isInstance(blockEntity)) {
             return null;
         }
         try {
@@ -127,10 +134,10 @@ public final class SophisticatedStorageCompat {
     private static boolean initDirectAccess() {
         if (initialized) return directAccessAvailable;
         initialized = true;
-        if (!ModList.get().isLoaded(MOD_ID)) return false;
+        if (!ModList.get().isLoaded(MOD_ID) && !ModList.get().isLoaded(BACKPACKS_MOD_ID)) return false;
         try {
-            storageBlockEntityClass = Class.forName(
-                    "net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity");
+            controllableStorageClass = Class.forName(
+                    "net.p3pp3rf1y.sophisticatedcore.controller.IControllableStorage");
             Class<?> storageWrapperClass = Class.forName(
                     "net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper");
             Class<?> inventoryHandlerClass = Class.forName(
@@ -143,7 +150,7 @@ public final class SophisticatedStorageCompat {
                     "net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler");
             extractResponseUpgradeClass = Class.forName(
                     "net.p3pp3rf1y.sophisticatedcore.upgrades.IExtractResponseUpgrade");
-            getStorageWrapper = storageBlockEntityClass.getMethod("getStorageWrapper");
+            getStorageWrapper = controllableStorageClass.getMethod("getStorageWrapper");
             getInventoryHandler = storageWrapperClass.getMethod("getInventoryHandler");
             getUpgradeHandler = storageWrapperClass.getMethod("getUpgradeHandler");
             getExtractResponseUpgrades = upgradeHandlerClass.getMethod(
@@ -172,7 +179,7 @@ public final class SophisticatedStorageCompat {
     private static void warnOnce(Throwable error) {
         if (warned) return;
         warned = true;
-        SkyLogistics.LOGGER.warn("Sophisticated Storage atomic slot transfer disabled; API lookup failed.", error);
+        SkyLogistics.LOGGER.warn("Sophisticated Storage/Backpacks atomic slot transfer disabled; API lookup failed.", error);
     }
 
     public record DirectExtraction(ItemStack stack, boolean supported) {

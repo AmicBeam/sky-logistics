@@ -94,6 +94,7 @@ public final class SkyNetworkTicker {
             return;
         }
         long gameTime = server.overworld().getGameTime();
+        if (gameTime % 20 == 0) SkyLineAccess.rememberPlayers(server);
         int serverOpsPerTick = SkyLogisticsConfig.serverOpsPerTick();
         int lineOpsPerTick = SkyLogisticsConfig.lineOpsPerTick();
         int operations = 0;
@@ -318,10 +319,7 @@ public final class SkyNetworkTicker {
 
     private static List<CachedEndpoint> targetsFor(boolean globalEnabled, List<CachedEndpoint> localOutputs,
             List<CachedEndpoint> globalOutputs) {
-        if (globalEnabled && globalOutputs != null && !globalOutputs.isEmpty()) {
-            return globalOutputs;
-        }
-        return localOutputs;
+        return globalEnabled ? globalOutputs : localOutputs;
     }
 
     private static long nextInputWake(CachedEndpoint input, LogisticsEndpoint node, long gameTime,

@@ -36,11 +36,18 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private UUID lastDetailLine;
     private long lastDetailSyncTime = Long.MIN_VALUE;
     private boolean initialStackSynced;
+    private boolean lineEditable;
+
+    public boolean canEditCurrentLine() { return lineEditable; }
 
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
         super(ModMenus.CONFIGURATOR.get(), containerId);
         this.hand = hand;
         this.player = inventory.player;
+        addDataSlot(new DataSlot() {
+            @Override public int get() { return lineEditable ? 1 : 0; }
+            @Override public void set(int value) { lineEditable = value != 0; }
+        });
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
@@ -98,6 +105,38 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         });
     }
 
+    private com.skylogistics.network.PermissionSnapshotPacket permissions;
+    public com.skylogistics.network.PermissionSnapshotPacket permissions() { return permissions; }
+    public void acceptPermissions(com.skylogistics.network.PermissionSnapshotPacket packet) { permissions = packet; }
+
+    public void permissionAction(Player actor, int action, String query, int requestedPage, UUID target) {
+        if (!(actor instanceof ServerPlayer serverPlayer) || actor != player || !stillValid(actor)) return;
+        var server = actor.level().getServer();
+        if (server == null || action < 0 || action > 4) return;
+        com.skylogistics.network.SkyLineAccess.rememberPlayers(server);
+        var data = SkyPlayerLines.get(server);
+        var access = data.permissions();
+        UUID owner = actor.getUUID(); // Never trust an owner UUID supplied by the client.
+        if (action == 1 || action == 2) { access.setPublic(owner, action == 1); data.setDirty(); }
+        if ((action == 3 || action == 4) && target != null && !target.equals(owner)
+                && (access.knownPlayers().containsKey(target) || access.granted(owner, target))) {
+            access.setGranted(owner, target, action == 3); data.setDirty();
+        }
+        String search = query.strip().toLowerCase(java.util.Locale.ROOT);
+        var candidates = search.isEmpty() ? access.grantedPlayers(owner) : access.knownPlayers().keySet();
+        var entries = candidates.stream().filter(id -> !id.equals(owner))
+                .filter(id -> search.isEmpty() || access.name(id).toLowerCase(java.util.Locale.ROOT).contains(search)
+                        || id.toString().equals(search))
+                .sorted(java.util.Comparator.comparing((UUID id) -> access.name(id), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(UUID::toString))
+                .map(id -> new com.skylogistics.network.PermissionSnapshotPacket.Entry(id, access.name(id), access.granted(owner, id)))
+                .toList();
+        int page = Math.max(0, Math.min(requestedPage, Math.max(0, (entries.size() - 1) / 7)));
+        ModNetworking.sendToPlayer(serverPlayer, new com.skylogistics.network.PermissionSnapshotPacket(
+                containerId, access.isPublic(owner), query, page, entries.size(),
+                entries.subList(page * 7, Math.min(entries.size(), page * 7 + 7))));
+    }
+
     public InteractionHand getHand() {
         return hand;
     }
@@ -138,6 +177,13 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        boolean navigation = action == MenuAction.NEW_LINE || action == MenuAction.LINE_FIRST
+                || action == MenuAction.LINE_PREVIOUS || action == MenuAction.LINE_NEXT_OR_CREATE
+                || action == MenuAction.LINE_LAST || action == MenuAction.LINE_REMOVE_CURRENT;
+        if (!navigation && !com.skylogistics.network.SkyLineAccess.check(player, config.lineId())) {
+            syncHeldStack(stack);
+            return;
+        }
         switch (action) {
             case MenuAction.NEW_LINE, MenuAction.LINE_NEXT_OR_CREATE -> config = selectConfigLine(config,
                     SkyPlayerLines.selectNextOrCreate(player.level().getServer(), player, config.lineId(),
@@ -195,6 +241,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        if (!com.skylogistics.network.SkyLineAccess.check(player, config.lineId())) return;
         if (!player.level().isClientSide && player.level().getServer() != null) {
             SkyNetworkRegistry.renameLine(player.level().getServer(), config.lineId(), lineName,
                     playerLineSelection(config).assignedName());
@@ -206,6 +253,8 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
 
     @Override
     public void broadcastChanges() {
+        var config = ConfiguratorItem.read(player.getItemInHand(hand));
+        lineEditable = config != null && com.skylogistics.network.SkyLineAccess.canUse(player, config.lineId());
         syncPlayerLineSelection();
         refreshLineStats();
         syncInitialHeldStack();

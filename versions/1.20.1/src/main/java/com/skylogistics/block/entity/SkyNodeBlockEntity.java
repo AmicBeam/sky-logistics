@@ -954,6 +954,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
     }
 
     public void applyCopiedToolConfig(ConfiguratorItem.ToolConfig config, Player player) {
+        if (player != null && (!com.skylogistics.network.SkyLineAccess.check(player, getLineId())
+                || !com.skylogistics.network.SkyLineAccess.check(player, config.lineId()))) return;
         if (!config.hasCopiedFaces()) {
             applyPlacementToolConfig(config, true);
             installCopiedUpgrades(config, player);
@@ -1004,6 +1006,8 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
     }
 
     public void applySingleEndpointToolConfig(ConfiguratorItem.ToolConfig config, Player player) {
+        if (player != null && (!com.skylogistics.network.SkyLineAccess.check(player, getLineId())
+                || !com.skylogistics.network.SkyLineAccess.check(player, config.lineId()))) return;
         applyPlacementToolConfig(config, true);
         installCopiedUpgrades(config, player);
     }

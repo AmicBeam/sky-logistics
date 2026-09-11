@@ -3,6 +3,7 @@ package com.skylogistics.block;
 import com.mojang.serialization.MapCodec;
 import com.skylogistics.block.entity.SkyDistributorBlockEntity;
 import com.skylogistics.registry.ModBlockEntities;
+import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.DistributorPushDirection;
 import com.skylogistics.util.InteractionResults;
 import net.minecraft.core.BlockPos;
@@ -52,12 +53,12 @@ public class SkyDistributorBlock extends BaseEntityBlock {
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        if (player.isShiftKeyDown() || !isWrench(stack)) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        if (player.isShiftKeyDown() || !isDirectionTool(stack)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         if (!level.isClientSide()) setSide(level, pos, hit.getDirection());
         return InteractionResults.sidedSuccess(level.isClientSide());
     }
-    private static boolean isWrench(ItemStack stack) {
-        return stack.is(FORGE_WRENCHES) || stack.is(COMMON_WRENCHES);
+    private static boolean isDirectionTool(ItemStack stack) {
+        return stack.is(ModItems.CONFIGURATOR.get()) || stack.is(FORGE_WRENCHES) || stack.is(COMMON_WRENCHES);
     }
     public void setSide(Level level, BlockPos pos, Direction clickedFace) {
         BlockState currentState = level.getBlockState(pos);

@@ -5,7 +5,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Sky Configurator stores a line name, line ID, and resource toggles. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
+      "text": "The Sky Configurator stores the selected line and resource settings. Right-click air to open the configurator screen; right-click a node to open its node screen. Holding the configurator in the offhand while placing a node makes the new node inherit its line and resource toggles."
     },
     {
       "type": "patchouli:crafting",
@@ -38,11 +38,11 @@
     {
       "type": "patchouli:text",
       "title": "Force Extraction",
-      "text": "Install it only on extract nodes. For server-whitelisted devices, it bypasses the external interface's 64-item return limit.$(br2)It extracts the amount the target can actually accept. A rejected transfer restores the source slot."
+      "text": "Install it only on extract nodes. For devices allowed by the server, it can move more than one stack at a time.$(br2)It extracts the amount the target can actually accept. Items that the target cannot accept remain at the source."
     },
     {
       "type": "patchouli:text",
-      "text": "The device whitelist defaults to mekanism_extras. When none of its configured mod IDs are installed, the upgrade is hidden from creative inventory and JEI, and its offering cannot start. An empty list also disables it.$(br2)Tier 2 offering: put a Slot Parallel Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
+      "text": "By default, compatible devices from Mekanism Extras are supported. Servers may change the supported devices. Without the required mods or server support, this upgrade is hidden from creative inventory and JEI and cannot be made through an offering.$(br2)Tier 2 offering: put a Slot Parallel Upgrade on the altar, then offer 4 Blaze Rods, 4 Magma Creams, 4 Crying Obsidian, and 1 Netherite Scrap."
     },
     {
       "type": "patchouli:crafting",
@@ -57,7 +57,7 @@
     {
       "type": "patchouli:text",
       "title": "Per Item",
-      "text": "Extract nodes cycle receivers; insert nodes ignore Per Item. The mode first checks receivers from the cursor, keeps only those that accept the item, then batch-distributes across that set.$(br2)Checks and transfers both cost budget and may continue next tick. A target that stops accepting is skipped without creating an owed assignment; leftovers remain at the source for a later batch.$(br2)Equal priorities remain separate."
+      "text": "Per Item works on extract nodes only. It shares the current item among receivers that can accept it, skipping full or unavailable targets. Any leftovers stay at the source for the next transfer. Receivers with equal priorities still participate separately."
     }
   ]
 }

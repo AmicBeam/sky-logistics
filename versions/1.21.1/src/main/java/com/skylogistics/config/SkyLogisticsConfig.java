@@ -342,6 +342,10 @@ public final class SkyLogisticsConfig {
         return SERVER.allowSophisticatedStorageStackUpgradeTransfer.get();
     }
 
+    public static boolean allowSophisticatedBackpacksStackUpgradeTransfer() {
+        return SERVER.allowSophisticatedBackpacksStackUpgradeTransfer.get();
+    }
+
     public static boolean skyWrenchAvailable() {
         return SERVER_SPEC.isLoaded() && (!SERVER.hideSkyWrenchWhenAe2OrRefinedStorageLoaded.get()
                 || (!ModList.get().isLoaded("ae2") && !ModList.get().isLoaded("refinedstorage")));
@@ -570,6 +574,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.LongValue skyContainerTransferLimit;
         public final ModConfigSpec.BooleanValue allowAe2ItemTransfer;
         public final ModConfigSpec.BooleanValue allowSophisticatedStorageStackUpgradeTransfer;
+        public final ModConfigSpec.BooleanValue allowSophisticatedBackpacksStackUpgradeTransfer;
         public final ModConfigSpec.BooleanValue hideSkyWrenchWhenAe2OrRefinedStorageLoaded;
         public final ModConfigSpec.ConfigValue<List<? extends Object>> forceExtractionDeviceModIdWhitelist;
         public final ModConfigSpec.BooleanValue allowAe2FluidTransfer;
@@ -788,6 +793,10 @@ public final class SkyLogisticsConfig {
                     .comment("Whether transfers treat a Sophisticated Storage stack-upgraded slot as one transportable slot.",
                             "传输时是否将 Sophisticated Storage 堆叠升级后的槽位视为一个可搬运槽位。")
                     .define("allowSophisticatedStorageStackUpgradeTransfer", true);
+            allowSophisticatedBackpacksStackUpgradeTransfer = builder
+                    .comment("Whether transfers treat a placed Sophisticated Backpack's stack-upgraded slot as one transportable slot. Carried backpack access is unaffected.",
+                            "传输时是否将放置后的 Sophisticated Backpack 堆叠升级槽位视为一个可搬运槽位；不影响随身背包访问。")
+                    .define("allowSophisticatedBackpacksStackUpgradeTransfer", true);
             hideSkyWrenchWhenAe2OrRefinedStorageLoaded = builder
                     .comment("Whether the Celestial Wrench is hidden when AE2 or Refined Storage is installed. The item remains registered for world compatibility.",
                             "安装 AE2 或精致存储时是否隐藏天穹扳手。物品会保持注册，以兼容已有世界。")
@@ -1027,7 +1036,7 @@ public final class SkyLogisticsConfig {
             eulogiaCompanionStoneChargeSeconds = builder
                     .comment("Seconds an uncharged Eulogia Companion Stone must spend at or above eulogiaCompanionStoneMinY before it becomes charged. One second is 20 ticks.",
                             "未充能尤洛伽配石在 eulogiaCompanionStoneMinY 或更高处完成充能所需的秒数；1 秒为 20 tick。")
-                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 10, 1, 3600);
+                    .defineInRange("eulogiaCompanionStoneChargeSeconds", 6, 1, 3600);
             builder.pop();
         }
 

@@ -29,6 +29,7 @@ public record LineRenamePacket(String lineName) implements CustomPacketPayload {
             if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
+            if (!player.containerMenu.stillValid(player)) return;
             if (player.containerMenu instanceof ConfiguratorMenu menu) {
                 menu.renameCurrentLine(player, packet.lineName);
             } else if (player.containerMenu instanceof SkyNodeMenu menu) {

@@ -31,6 +31,7 @@ public record MenuActionPacket(int action) implements CustomPacketPayload {
             if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
+            if (!player.containerMenu.stillValid(player)) return;
             if (player.containerMenu instanceof ConfiguratorMenu menu) {
                 menu.applyAction(player, packet.action);
             } else if (player.containerMenu instanceof SkyNodeMenu menu) {

@@ -157,6 +157,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (!canEditLine(player)) return;
         if (slotId == FILTER_SLOT) {
             setFilter(getCarried());
             return;
@@ -166,6 +167,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
+        if (!canEditLine(player)) return ItemStack.EMPTY;
         if (index < 0 || index >= slots.size()) {
             return ItemStack.EMPTY;
         }
@@ -198,12 +200,21 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
+    private boolean canEditLine(Player player) {
+        ConfiguratorItem.ToolConfig config = ConfiguratorItem.read(necklace());
+        return config == null || com.skylogistics.network.SkyLineAccess.check(player, config.lineId());
+    }
+
     public void applyAction(Player player, int action) {
         ItemStack stack = necklace();
         if (!stack.is(ModItems.SKY_NECKLACE.get())) {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        boolean navigation = action == MenuAction.NEW_LINE || action == MenuAction.LINE_FIRST
+                || action == MenuAction.LINE_PREVIOUS || action == MenuAction.LINE_NEXT_OR_CREATE
+                || action == MenuAction.LINE_LAST || action == MenuAction.LINE_REMOVE_CURRENT;
+        if (!navigation && !com.skylogistics.network.SkyLineAccess.check(player, config.lineId())) return;
         switch (action) {
             case MenuAction.LINE_FIRST -> config = selectConfigLine(config,
                     SkyPlayerLines.selectFirst(player.level().getServer(), player, config.lineId(),
@@ -251,6 +262,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        if (!com.skylogistics.network.SkyLineAccess.check(player, config.lineId())) return;
         if (!player.level().isClientSide && player.level().getServer() != null) {
             SkyNetworkRegistry.renameLine(player.level().getServer(), config.lineId(), lineName,
                     playerLineSelection(config).assignedName());
@@ -259,6 +271,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
     }
 
     public void setExactQuantity(Player player, int amount) {
+        if (!canEditLine(player)) return;
         ItemStack stack = necklace();
         SkyNecklaceItem.setMaintainAmount(stack, amount);
         syncHeldStack(stack);

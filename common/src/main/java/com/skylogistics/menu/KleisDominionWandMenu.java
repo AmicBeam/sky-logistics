@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 /** The normal node menu bound to a remembered Kleis endpoint instead of a placed node block. */
 public final class KleisDominionWandMenu extends SkyNodeMenu {
     private final Direction targetFace;
+    private final Player menuPlayer;
 
     public KleisDominionWandMenu(int containerId, Inventory inventory, BlockPos pos, Direction face,
             String lineName, NodeFaceMode mode, int resourceMask, int priority) {
@@ -25,6 +26,7 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
             KleisRuntimeEndpoint endpoint) {
         super(ModMenus.KLEIS_DOMINION_WAND.get(), containerId, inventory, pos, false, endpoint);
         this.targetFace = face;
+        this.menuPlayer = inventory.player;
         addDataSlot(endpointState(endpoint));
         addDataSlot(resourceState(endpoint));
         addDataSlot(priorityState(endpoint));
@@ -45,6 +47,7 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
 
     /** Compatibility for clients that still have the first implementation's compact action packet. */
     public void handleAction(int action) {
+        if (!stillValid(menuPlayer)) return;
         KleisRuntimeEndpoint endpoint = (KleisRuntimeEndpoint) endpointNode();
         Direction face = KleisRuntimeEndpoint.ENDPOINT_DIRECTION;
         switch (action) {

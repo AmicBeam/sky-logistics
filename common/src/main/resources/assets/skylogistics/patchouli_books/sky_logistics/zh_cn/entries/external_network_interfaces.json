@@ -12,7 +12,7 @@
       "type": "patchouli:text",
       "flag": "mod:ae2",
       "title": "天穹 ME 接口",
-      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；附属模组还可启用 FE、化学品、mana、Source 或坚守者灵魂。1.21.1 由 Soulplied Energistics 提供 Soul Key，AppliedSoul 灵魂元件复用同一 Key，可直接支持。"
+      "text": "$(item)天穹 ME 接口$()把 AE2 网络作为天穹端点，可搬运物品和流体；附属模组还可启用 FE、化学品、mana、Source 或坚守者灵魂。在 1.21.1 中，安装 Soulplied Energistics 后可搬运坚守者灵魂，也支持 AppliedSoul 的灵魂存储元件。"
     },
     {
       "type": "patchouli:crafting",
@@ -30,7 +30,7 @@
       "type": "patchouli:crafting",
       "flag": "mod:refinedstorage",
       "recipe": "skylogistics:sky_rs_interface",
-      "text": "接口本身没有中间缓存；目标拒收时，资源仍留在原网络中。"
+      "text": "接口本身不储存资源；目标无法接收时，资源仍留在原网络中。"
     },
     {
       "type": "patchouli:text",
@@ -46,7 +46,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "从外部网络抽取物品时，必须配置至少包含一个具体物品的白名单，避免无界扫描整个网络；标签或模组过滤不能代替这份可枚举白名单。维度升级不是区块加载器，未加载的维度和区块仍会被跳过。"
+      "text": "从外部网络抽取物品时，必须配置至少包含一个具体物品的白名单；请把想抽取的物品加入白名单，仅填写标签或模组名称不能代替具体物品。维度升级不是区块加载器，未加载的维度和区块仍会被跳过。"
     }
   ]
 }

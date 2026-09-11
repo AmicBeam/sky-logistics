@@ -8,14 +8,17 @@ import java.util.Collection;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 public final class SophisticatedStorageCompat {
     private static final String MOD_ID = "sophisticatedstorage";
     private static final String PACKAGE_PREFIX = "net.p3pp3rf1y.sophisticatedstorage.";
+    private static final String BACKPACKS_MOD_ID = "sophisticatedbackpacks";
+    private static final String BACKPACKS_PACKAGE_PREFIX = "net.p3pp3rf1y.sophisticatedbackpacks.";
     private static boolean initialized;
     private static boolean directAccessAvailable;
     private static boolean warned;
-    private static Class<?> storageBlockEntityClass;
+    private static Class<?> controllableStorageClass;
     private static Method getStorageWrapper;
     private static Method getInventoryHandler;
     private static Method getUpgradeHandler;
@@ -23,7 +26,7 @@ public final class SophisticatedStorageCompat {
     private static Method getSlots;
     private static Method getStackInSlot;
     private static Method setStackInSlot;
-    private static Method getStackLimit;
+    private static Method getCapacityAsLong;
     private static Method isSlotAccessible;
     private static Method isInfinite;
     private static Method getInventoryPartitioner;
@@ -35,10 +38,15 @@ public final class SophisticatedStorageCompat {
     }
 
     public static boolean supports(BlockEntity blockEntity) {
-        return blockEntity != null
-                && SkyLogisticsConfig.allowSophisticatedStorageStackUpgradeTransfer()
-                && ModList.get().isLoaded(MOD_ID)
-                && blockEntity.getClass().getName().startsWith(PACKAGE_PREFIX);
+        if (blockEntity == null) return false;
+        String className = blockEntity.getClass().getName();
+        if (className.startsWith(PACKAGE_PREFIX)) {
+            return SkyLogisticsConfig.allowSophisticatedStorageStackUpgradeTransfer()
+                    && ModList.get().isLoaded(MOD_ID);
+        }
+        return className.startsWith(BACKPACKS_PACKAGE_PREFIX)
+                && SkyLogisticsConfig.allowSophisticatedBackpacksStackUpgradeTransfer()
+                && ModList.get().isLoaded(BACKPACKS_MOD_ID);
     }
 
     public static ItemStack fullSlotCandidate(BlockEntity blockEntity, int slot, ItemStack simulated,
@@ -48,7 +56,7 @@ public final class SophisticatedStorageCompat {
         try {
             ItemStack stored = (ItemStack) getStackInSlot.invoke(direct.inventory(), slot);
             if (stored.isEmpty() || !StackData.sameItemAndComponents(stored, simulated)
-                    || stored.getCount() > (int) getStackLimit.invoke(direct.inventory(), slot, stored)) {
+                    || stored.getCount() > (long) getCapacityAsLong.invoke(direct.inventory(), slot, ItemResource.of(stored))) {
                 return simulated;
             }
             int count = Math.min(stored.getCount(), transferLimit);
@@ -92,7 +100,7 @@ public final class SophisticatedStorageCompat {
             if (!current.isEmpty() && !StackData.sameItemAndComponents(current, stack)) return false;
             int restoredCount = current.getCount() + stack.getCount();
             ItemStack restored = stack.copyWithCount(restoredCount);
-            if (restoredCount > (int) getStackLimit.invoke(direct.inventory(), slot, restored)) return false;
+            if (restoredCount > (long) getCapacityAsLong.invoke(direct.inventory(), slot, ItemResource.of(restored))) return false;
             setStackInSlot.invoke(direct.inventory(), slot, restored);
             return sameStack((ItemStack) getStackInSlot.invoke(direct.inventory(), slot), restored);
         } catch (ReflectiveOperationException | RuntimeException error) {
@@ -102,7 +110,7 @@ public final class SophisticatedStorageCompat {
     }
 
     private static DirectInventory directInventory(BlockEntity blockEntity, int slot) {
-        if (!supports(blockEntity) || !initDirectAccess() || !storageBlockEntityClass.isInstance(blockEntity)) {
+        if (!supports(blockEntity) || !initDirectAccess() || !controllableStorageClass.isInstance(blockEntity)) {
             return null;
         }
         try {
@@ -128,10 +136,10 @@ public final class SophisticatedStorageCompat {
     private static boolean initDirectAccess() {
         if (initialized) return directAccessAvailable;
         initialized = true;
-        if (!ModList.get().isLoaded(MOD_ID)) return false;
+        if (!ModList.get().isLoaded(MOD_ID) && !ModList.get().isLoaded(BACKPACKS_MOD_ID)) return false;
         try {
-            storageBlockEntityClass = Class.forName(
-                    "net.p3pp3rf1y.sophisticatedstorage.block.StorageBlockEntity");
+            controllableStorageClass = Class.forName(
+                    "net.p3pp3rf1y.sophisticatedcore.controller.IControllableStorage");
             Class<?> storageWrapperClass = Class.forName(
                     "net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper");
             Class<?> inventoryHandlerClass = Class.forName(
@@ -144,15 +152,15 @@ public final class SophisticatedStorageCompat {
                     "net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeHandler");
             extractResponseUpgradeClass = Class.forName(
                     "net.p3pp3rf1y.sophisticatedcore.upgrades.IExtractResponseUpgrade");
-            getStorageWrapper = storageBlockEntityClass.getMethod("getStorageWrapper");
+            getStorageWrapper = controllableStorageClass.getMethod("getStorageWrapper");
             getInventoryHandler = storageWrapperClass.getMethod("getInventoryHandler");
             getUpgradeHandler = storageWrapperClass.getMethod("getUpgradeHandler");
             getExtractResponseUpgrades = upgradeHandlerClass.getMethod(
                     "getWrappersThatImplementFromMainStorage", Class.class);
-            getSlots = inventoryHandlerClass.getMethod("getSlots");
+            getSlots = inventoryHandlerClass.getMethod("size");
             getStackInSlot = inventoryHandlerClass.getMethod("getStackInSlot", int.class);
             setStackInSlot = inventoryHandlerClass.getMethod("setStackInSlot", int.class, ItemStack.class);
-            getStackLimit = inventoryHandlerClass.getMethod("getStackLimit", int.class, ItemStack.class);
+            getCapacityAsLong = inventoryHandlerClass.getMethod("getCapacityAsLong", int.class, ItemResource.class);
             isSlotAccessible = inventoryHandlerClass.getMethod("isSlotAccessible", int.class);
             isInfinite = inventoryHandlerClass.getMethod("isInfinite", int.class);
             getInventoryPartitioner = inventoryHandlerClass.getMethod("getInventoryPartitioner");
@@ -173,7 +181,7 @@ public final class SophisticatedStorageCompat {
     private static void warnOnce(Throwable error) {
         if (warned) return;
         warned = true;
-        SkyLogistics.LOGGER.warn("Sophisticated Storage atomic slot transfer disabled; API lookup failed.", error);
+        SkyLogistics.LOGGER.warn("Sophisticated Storage/Backpacks atomic slot transfer disabled; API lookup failed.", error);
     }
 
     public record DirectExtraction(ItemStack stack, boolean supported) {
