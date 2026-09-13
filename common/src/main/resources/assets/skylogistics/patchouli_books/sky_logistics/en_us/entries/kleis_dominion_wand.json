@@ -15,6 +15,11 @@
     {
       "type": "patchouli:text",
       "text": "The copied settings include line, extract/insert mode, enabled resources, priority, limits, filters, and supported upgrades. Virtual faces always ignore redstone, and their redstone button is disabled. Pasting never creates free upgrades. A virtual endpoint ignores Dimension Upgrades because cross-dimensional routing is built in. Only loaded machine faces operate; the wand never loads chunks."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Upgrades and Refunds",
+      "text": "Each upgrade type may occupy only one upgrade slot. Slot Parallel Upgrades can stack in that slot up to the configured limit. To remove a virtual face, hold the wand in your main hand and the configurator in your offhand, select its original line, and right-click it again. All installed upgrades return to your inventory; any overflow drops at your feet. Filters are configuration copies and do not return physical items."
     }
   ]
 }

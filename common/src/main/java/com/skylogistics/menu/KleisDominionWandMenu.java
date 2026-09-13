@@ -38,6 +38,12 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
 
     @Override
     public boolean stillValid(Player player) {
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            var data = com.skylogistics.network.KleisEndpointSavedData.get(serverPlayer.level().getServer());
+            var key = new com.skylogistics.network.KleisEndpointSavedData.Key(
+                    player.level().dimension(), getPos(), targetFace);
+            if (data.runtimeNode(key) != endpointNode()) return false;
+        }
         boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
                 && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
         boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())

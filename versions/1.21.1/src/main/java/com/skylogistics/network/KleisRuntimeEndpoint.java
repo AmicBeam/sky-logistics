@@ -320,15 +320,35 @@ public final class KleisRuntimeEndpoint implements ConfigurableLogisticsEndpoint
 
     @Override public ItemStack getUpgrade(int slot) { return slot >= 0 && slot < upgrades.length ? upgrades[slot] : ItemStack.EMPTY; }
     @Override public boolean canAcceptUpgrade(int slot, ItemStack stack) {
+        if (slot < 0 || slot >= upgrades.length) return false;
         if (stack.isEmpty()) return true;
-        return slot >= 0 && slot < upgrades.length && (stack.is(ModItems.SPEED_UPGRADE.get())
-                || stack.is(ModItems.FORCE_EXTRACTION_UPGRADE.get()));
+        if (!canAcceptKleisUpgrade(stack)) return false;
+        for (int i = 0; i < upgrades.length; i++) {
+            if (i != slot && !upgrades[i].isEmpty() && ItemStack.isSameItem(upgrades[i], stack)) return false;
+        }
+        return true;
     }
     @Override public void setUpgrade(int slot, ItemStack stack) {
         if (slot < 0 || slot >= upgrades.length) return;
-        ItemStack next = canAcceptUpgrade(slot, stack) ? stack.copy() : ItemStack.EMPTY;
-        if (!next.isEmpty()) next.setCount(Math.min(next.getCount(), SkyNodeBlockEntity.maxUpgradeStackSize(next)));
+        // Allow old duplicate/over-limit stacks to be withdrawn without deleting their remainder.
+        boolean reducing = !stack.isEmpty() && ItemStack.isSameItem(upgrades[slot], stack)
+                && stack.getCount() <= upgrades[slot].getCount();
+        if (!reducing && !canAcceptUpgrade(slot, stack)) return;
+        ItemStack next = stack.copy();
+        if (!reducing && !next.isEmpty()) {
+            next.setCount(Math.min(next.getCount(), SkyNodeBlockEntity.maxUpgradeStackSize(next)));
+        }
         upgrades[slot] = next; changed();
+    }
+    /** Transfer ownership of every installed stack exactly once, including legacy duplicates. */
+    public List<ItemStack> takeUpgrades() {
+        List<ItemStack> returned = new ArrayList<>();
+        for (int slot = 0; slot < upgrades.length; slot++) {
+            if (!upgrades[slot].isEmpty()) returned.add(upgrades[slot].copy());
+            upgrades[slot] = ItemStack.EMPTY;
+        }
+        changed();
+        return returned;
     }
     private int speedUpgradeCount() { return Arrays.stream(upgrades).filter(s -> s.is(ModItems.SPEED_UPGRADE.get())).mapToInt(ItemStack::getCount).sum(); }
     @Override public boolean rejectsTagFaceFilter(Direction direction, ItemStack stack) { return false; }

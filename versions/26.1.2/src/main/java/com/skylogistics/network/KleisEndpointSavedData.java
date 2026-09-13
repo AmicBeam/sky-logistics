@@ -104,6 +104,9 @@ public final class KleisEndpointSavedData extends SavedData {
             removeEntry(key);
             setDirty();
             closeMenus(player.level().getServer(), key);
+            for (ItemStack upgrade : existingNode.takeUpgrades()) {
+                player.getInventory().placeItemBackInInventory(upgrade);
+            }
             return ToggleResult.REMOVED;
         }
         if (!(player.level() instanceof ServerLevel level) || !level.hasChunkAt(pos)
@@ -335,7 +338,10 @@ public final class KleisEndpointSavedData extends SavedData {
 
     private void removeRuntime(Key key) {
         KleisRuntimeEndpoint node = runtime.remove(key);
-        if (node != null) SkyNetworkRegistry.unregisterVirtual((ServerLevel) node.getLevel(), node);
+        if (node != null) {
+            node.setChangeListener(() -> {});
+            SkyNetworkRegistry.unregisterVirtual((ServerLevel) node.getLevel(), node);
+        }
     }
 
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}
