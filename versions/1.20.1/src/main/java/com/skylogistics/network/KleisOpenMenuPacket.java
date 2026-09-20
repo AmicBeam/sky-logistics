@@ -25,8 +25,7 @@ public record KleisOpenMenuPacket(BlockPos pos, Direction face) {
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
             if (player == null) return;
-            boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                     && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             if (!wandMode && !editMode) return;

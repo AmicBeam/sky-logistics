@@ -21,8 +21,7 @@ public record KleisOverlayRequestPacket(boolean editNearby) implements CustomPac
             if (!(context.player() instanceof ServerPlayer player)) return;
             boolean actualEdit = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                     && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
-            boolean currentLine = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            boolean currentLine = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             boolean prefetch = packet.editNearby && !actualEdit && !currentLine;
             if (!prefetch && (packet.editNearby != actualEdit || !actualEdit && !currentLine)) return;
             KleisEndpointSavedData data = KleisEndpointSavedData.get(player.level().getServer());
@@ -31,7 +30,7 @@ public record KleisOverlayRequestPacket(boolean editNearby) implements CustomPac
                 ModNetworking.sendToPlayer(player, KleisOverlayPacket.from(true, selected,
                         data.snapshotsNearby(player, player.level().dimension(), player.blockPosition(), 64)));
             } else {
-                UUID selected = ConfiguratorItem.readLineId(player.getOffhandItem());
+                UUID selected = ConfiguratorItem.readLineId(com.skylogistics.item.KleisDominionWandItem.configurationStack(player));
                 if (selected != null) ModNetworking.sendToPlayer(player, KleisOverlayPacket.from(false, selected,
                         data.snapshots(player, player.level().dimension(), selected, player.blockPosition(), 64)));
             }

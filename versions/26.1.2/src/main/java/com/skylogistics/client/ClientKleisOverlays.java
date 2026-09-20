@@ -88,11 +88,10 @@ public final class ClientKleisOverlays {
         renderConfiguratorTarget(event, mc, camera);
         boolean edit = mc.player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                 && mc.player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
-        boolean currentLine = mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                && mc.player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        boolean currentLine = mc.player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
         if (!edit && !currentLine) { active = false; resetRequestLocation(); return; }
         UUID selected = ConfiguratorItem.readLineId(edit
-                ? mc.player.getMainHandItem() : mc.player.getOffhandItem());
+                ? mc.player.getMainHandItem() : com.skylogistics.item.KleisDominionWandItem.configurationStack(mc.player));
         if (!edit && selected == null) { active = false; resetRequestLocation(); return; }
         if (!active) { active = true; resetRequestLocation(); }
         long now = mc.level.getGameTime();

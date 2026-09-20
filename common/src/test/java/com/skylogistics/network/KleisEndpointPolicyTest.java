@@ -48,10 +48,10 @@ class KleisEndpointPolicyTest {
     }
 
     @Test
-    void endpointGuiCanBeOpenedInEitherSupportedDualWieldOrder() {
+    void endpointGuiCanBeOpenedWithStandaloneWandOrEitherDualWieldOrder() {
         assertTrue(KleisEndpointPolicy.canOpenEndpointFromHands(true, true, false, false));
         assertTrue(KleisEndpointPolicy.canOpenEndpointFromHands(false, false, true, true));
-        assertFalse(KleisEndpointPolicy.canOpenEndpointFromHands(true, false, false, false));
+        assertTrue(KleisEndpointPolicy.canOpenEndpointFromHands(true, false, false, false));
         assertFalse(KleisEndpointPolicy.canOpenEndpointFromHands(false, true, true, false));
     }
 

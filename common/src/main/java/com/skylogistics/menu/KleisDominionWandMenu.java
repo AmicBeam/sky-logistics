@@ -44,8 +44,7 @@ public final class KleisDominionWandMenu extends SkyNodeMenu {
                     player.level().dimension(), getPos(), targetFace);
             if (data.runtimeNode(key) != endpointNode()) return false;
         }
-        boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+        boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
         boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                 && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
         return (wandMode || editMode) && super.stillValid(player);

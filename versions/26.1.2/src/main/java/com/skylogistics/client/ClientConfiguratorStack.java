@@ -1,7 +1,7 @@
 package com.skylogistics.client;
 
 import com.skylogistics.menu.ConfiguratorMenu;
-import com.skylogistics.registry.ModItems;
+import com.skylogistics.item.ConfiguratorItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -15,7 +15,7 @@ public final class ClientConfiguratorStack {
         if (minecraft.player == null
                 || !(minecraft.player.containerMenu instanceof ConfiguratorMenu menu)
                 || menu.getHand() != hand
-                || !stack.is(ModItems.CONFIGURATOR.get())) {
+                || !ConfiguratorItem.isConfigurationTool(stack)) {
             return;
         }
         minecraft.player.setItemInHand(hand, stack);

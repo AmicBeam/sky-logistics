@@ -1,6 +1,7 @@
 package com.skylogistics.item;
 
 import com.skylogistics.config.SkyLogisticsConfig;
+import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.network.KleisEndpointSavedData;
 import com.skylogistics.registry.ModItems;
 import java.util.List;
@@ -12,6 +13,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -27,18 +30,37 @@ public final class KleisDominionWandItem extends Item {
         super(properties.stacksTo(1));
     }
 
+    /** An offhand configurator overrides the wand's own saved settings. */
+    public static InteractionHand configurationHand(Player player) {
+        return player.getOffhandItem().is(ModItems.CONFIGURATOR.get())
+                ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+    }
+
+    public static ItemStack configurationStack(Player player) {
+        return player.getItemInHand(configurationHand(player));
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResultHolder.pass(player.getItemInHand(hand));
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            InteractionHand configHand = configurationHand(player);
+            ConfiguratorItem.setPasteMode(configurationStack(player), false);
+            ConfiguratorItem.readOrCreate(configurationStack(player), player);
+            serverPlayer.openMenu(
+                    new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, configHand),
+                            Component.translatable(configHand == InteractionHand.OFF_HAND
+                                    ? "menu.skylogistics.configurator" : "item.skylogistics.kleis_dominion_wand")),
+                    buffer -> buffer.writeEnum(configHand));
+        }
+        return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
+    }
+
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Player player = context.getPlayer();
         if (player == null || context.getHand() != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
-        ItemStack configurator = player.getOffhandItem();
-        if (!configurator.is(ModItems.CONFIGURATOR.get())) {
-            if (!context.getLevel().isClientSide) {
-                player.displayClientMessage(Component.translatable(
-                        "message.skylogistics.kleis_dominion_wand.configurator_required"), true);
-            }
-            return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
-        }
+        ItemStack configurator = configurationStack(player);
         if (context.getLevel().isClientSide) return InteractionResult.SUCCESS;
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.CONSUME;
         KleisEndpointSavedData.ToggleResult result = KleisEndpointSavedData.get(serverPlayer.getServer()).toggle(

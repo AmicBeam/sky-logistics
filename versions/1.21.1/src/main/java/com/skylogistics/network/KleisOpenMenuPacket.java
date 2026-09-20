@@ -22,8 +22,7 @@ public record KleisOpenMenuPacket(BlockPos pos, Direction face) implements Custo
     public static void handle(KleisOpenMenuPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
-            boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    && player.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            boolean wandMode = player.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             boolean editMode = player.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                     && player.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             if (!wandMode && !editMode) return;
