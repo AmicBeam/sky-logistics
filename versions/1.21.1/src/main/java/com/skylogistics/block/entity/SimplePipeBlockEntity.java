@@ -63,6 +63,15 @@ public class SimplePipeBlockEntity extends NetworkEndpointBlockEntity {
         for (Direction direction : Direction.values()) endpointFilters.put(direction, ItemStack.EMPTY);
     }
 
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level instanceof ServerLevel serverLevel) {
+            // Reconcile saved connections after the neighboring block entities have loaded.
+            serverLevel.scheduleTick(worldPosition, getBlockState().getBlock(), 1);
+        }
+    }
+
     public static boolean hasCapability(Level level, BlockPos pos, Direction side, SimplePipeType type) {
         if (level.getBlockEntity(pos) instanceof SkyDistributorBlockEntity distributor) {
             return switch (type) {

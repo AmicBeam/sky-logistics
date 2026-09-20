@@ -9,6 +9,8 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.SimplePipeConnection;
+import com.skylogistics.util.SimplePipeRecoveryPolicy;
+import com.skylogistics.util.SimplePipeRecoveryPolicy.Neighbor;
 import com.skylogistics.util.SimplePipeGeometry;
 import com.skylogistics.util.SimplePipeEndpointTargeting;
 import com.skylogistics.util.SimplePipeType;
@@ -24,6 +26,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -187,22 +190,51 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (!(level instanceof Level actualLevel)) {
             return state;
         }
-        if (actualLevel.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity
-                && pipeEntity.isSideDisconnected(direction)) {
-            return withConnection(state, direction, SimplePipeConnection.NONE);
+        return refreshConnection(state, actualLevel, pos, direction);
+    }
+
+    private BlockState refreshConnection(BlockState state, Level level, BlockPos pos, Direction direction) {
+        if (!(level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity)) return state;
+        boolean disconnected = pipeEntity.isSideDisconnected(direction);
+        BlockPos target = pos.relative(direction);
+        Neighbor neighbor = Neighbor.OTHER;
+        if (!disconnected) {
+            if (!level.isLoaded(target)) {
+                neighbor = Neighbor.UNLOADED;
+            } else {
+                BlockState targetState = level.getBlockState(target);
+                if (targetState.getBlock() instanceof SimplePipeBlock pipe) {
+                    neighbor = pipe.pipeType != pipeType ? Neighbor.OTHER
+                            : level.getBlockEntity(target) instanceof SimplePipeBlockEntity other
+                            && other.isSideDisconnected(direction.getOpposite())
+                            ? Neighbor.BLOCKED_PIPE : Neighbor.PIPE;
+                } else if (SimplePipeBlockEntity.hasCapability(level, target, direction.getOpposite(), pipeType)) {
+                    neighbor = Neighbor.CONTAINER;
+                } else if (targetState.hasBlockEntity()) {
+                    // A loaded machine may publish its capability only after its own onLoad/tick.
+                    neighbor = Neighbor.PENDING_CONTAINER;
+                }
+            }
         }
-        SimplePipeConnection existing = connectionFromState(actualLevel, pos, state, direction);
-        SimplePipeConnection containerDefault = existing.isContainer() ? existing : SimplePipeConnection.INSERT;
-        SimplePipeConnection next = connectionAt(actualLevel, pos, direction, containerDefault);
-        if (!next.isContainer()
-                && actualLevel.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipeEntity) {
-            pipeEntity.setExtracting(direction, false);
+        var result = SimplePipeRecoveryPolicy.resolve(disconnected, pipeEntity.isExtracting(direction),
+                state.getValue(connectionProperty(direction)), neighbor);
+        if (result.retry() && level instanceof ServerLevel serverLevel) {
+            serverLevel.scheduleTick(pos, this, SkyLogisticsConfig.simplePipeConnectionRetryTicks());
         }
-        BlockState updated = withConnection(state, direction, next);
-        if (!updated.equals(state) && actualLevel instanceof ServerLevel serverLevel) {
+        BlockState updated = withConnection(state, direction, result.connection());
+        if (!updated.equals(state) && level instanceof ServerLevel serverLevel) {
             SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
         }
         return updated;
+    }
+
+    @Override
+    public void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        BlockState updated = state;
+        for (Direction direction : Direction.values()) {
+            updated = refreshConnection(updated, level, pos, direction);
+        }
+        if (!updated.equals(state)) level.setBlock(pos, updated, Block.UPDATE_ALL);
     }
 
     private SimplePipeConnection connectionAt(Level level, BlockPos pos, Direction direction,

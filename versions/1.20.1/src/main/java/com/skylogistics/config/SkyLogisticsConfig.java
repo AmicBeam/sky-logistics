@@ -288,6 +288,10 @@ public final class SkyLogisticsConfig {
         return SERVER.simpleSourcePipeTransferRate.get();
     }
 
+    public static int simplePipeConnectionRetryTicks() {
+        return SERVER.simplePipeConnectionRetryTicks.get();
+    }
+
     public static int simplePipeMaxConnectedBlocks() {
         return enforceSimplePipeConnectionLimit()
                 ? SERVER.simplePipeMaxConnectedBlocks.get()
@@ -601,6 +605,7 @@ public final class SkyLogisticsConfig {
         public final ForgeConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ForgeConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ForgeConfigSpec.IntValue simplePipeMaxConnectedBlocks;
+        public final ForgeConfigSpec.IntValue simplePipeConnectionRetryTicks;
         public final ForgeConfigSpec.IntValue maxSpeedUpgradesPerNode;
         public final OrderedMatchingUpgrade orderedMatchingUpgrade;
 
@@ -706,6 +711,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.",
                             "每个抽取型简易能量管道每 tick 最多搬运的 Ars Nouveau 源质。")
                     .defineInRange("simpleSourcePipeTransferRate", 50, 1, Integer.MAX_VALUE);
+            simplePipeConnectionRetryTicks = builder
+                    .comment("Ticks between repeated connection recovery checks while a saved pipe target is unavailable. Stops after recovery; does not change transfer speed.",
+                            "已保存的管道目标尚未就绪时，重复检查连接恢复的间隔（tick）。恢复后停止，不影响正常传输速度。")
+                    .defineInRange("simplePipeConnectionRetryTicks", 40, 1, Integer.MAX_VALUE);
             enforceSimplePipeConnectionLimit = builder
                     .comment("Whether new simple pipe connections are rejected when they would exceed simplePipeMaxConnectedBlocks.",
                             "新建简易管道连接超过 simplePipeMaxConnectedBlocks 时，是否拒绝该连接。")
