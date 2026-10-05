@@ -9,6 +9,7 @@ import com.skylogistics.compat.botania.BotaniaCompat;
 import com.skylogistics.compat.botania.ManaHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalHandlerBridge;
 import com.skylogistics.compat.mekanism.ChemicalStackView;
+import com.skylogistics.util.MultiblockResourceDetectionPolicy;
 import com.skylogistics.compat.mekanism.MekanismCompat;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
@@ -31,6 +32,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
@@ -40,12 +42,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -137,6 +139,62 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
     public void onLoad() {
         super.onLoad();
         updateVisualState();
+        scheduleMultiblockResourceDetection();
+    }
+
+    public void scheduleMultiblockResourceDetection() {
+        if (level instanceof ServerLevel serverLevel && getBlockState().getBlock() instanceof SkyNodeBlock) {
+            serverLevel.scheduleTick(worldPosition, getBlockState().getBlock(), 1);
+        }
+    }
+
+    /** Only disabled, whitelisted resources are probed. No chunk is force-loaded. */
+    public void recoverMultiblockResources() {
+        if (level == null || level.isClientSide || !SkyLogisticsConfig.enableMultiblockResourceDetection()) return;
+        boolean changed = false;
+        boolean retry = false;
+        for (Direction direction : Direction.values()) {
+            if (getFaceMode(direction) == NodeFaceMode.NONE) continue;
+            int enabled = MultiblockResourceDetectionPolicy.mask(isItemsEnabled(direction),
+                    isFluidsEnabled(direction), isEnergyEnabled(direction));
+            int configured = MultiblockResourceDetectionPolicy.mask(
+                    !SkyLogisticsConfig.multiblockItemDetectionBlockWhitelist().isEmpty(),
+                    !SkyLogisticsConfig.multiblockFluidDetectionBlockWhitelist().isEmpty(),
+                    !SkyLogisticsConfig.multiblockEnergyDetectionBlockWhitelist().isEmpty()) & ~enabled;
+            if (configured == 0) continue;
+            BlockPos targetPos = getTargetPos(direction);
+            if (!level.isLoaded(targetPos)) {
+                // The target may become a whitelisted multiblock when the neighboring chunk loads.
+                retry = true;
+                continue;
+            }
+            String blockId = BuiltInRegistries.BLOCK.getKey(level.getBlockState(targetPos).getBlock()).toString();
+            int eligible = MultiblockResourceDetectionPolicy.mask(
+                    SkyLogisticsConfig.multiblockItemDetectionBlockWhitelist().contains(blockId),
+                    SkyLogisticsConfig.multiblockFluidDetectionBlockWhitelist().contains(blockId),
+                    SkyLogisticsConfig.multiblockEnergyDetectionBlockWhitelist().contains(blockId)) & ~enabled;
+            if (eligible == 0) continue;
+            LogisticsTargetCapabilities capabilities = LogisticsTargetCapabilities.detect(level, targetPos,
+                    getAccessSide(direction));
+            int detected = MultiblockResourceDetectionPolicy.mask(capabilities.items(), capabilities.fluids(),
+                    capabilities.energy());
+            int recovered = MultiblockResourceDetectionPolicy.recover(enabled, detected, eligible);
+            if (recovered != enabled) {
+                faceItemsEnabled.put(direction, (recovered & MultiblockResourceDetectionPolicy.ITEMS) != 0);
+                faceFluidsEnabled.put(direction, (recovered & MultiblockResourceDetectionPolicy.FLUIDS) != 0);
+                faceEnergyEnabled.put(direction, (recovered & MultiblockResourceDetectionPolicy.ENERGY) != 0);
+                changed = true;
+            }
+            retry |= (eligible & ~recovered) != 0;
+        }
+        if (changed) {
+            refreshGlobalToggles();
+            markTopologyChanged();
+        }
+        if (retry && level instanceof ServerLevel serverLevel) {
+            serverLevel.scheduleTick(worldPosition, getBlockState().getBlock(),
+                    SkyLogisticsConfig.multiblockResourceDetectionIntervalTicks());
+        }
     }
 
     public UUID getLineId() {
@@ -1778,6 +1836,7 @@ public class SkyNodeBlockEntity extends NetworkEndpointBlockEntity
     }
 
     protected void markTopologyChanged() {
+        scheduleMultiblockResourceDetection();
         markChanged(ChangeKind.TOPOLOGY);
     }
 

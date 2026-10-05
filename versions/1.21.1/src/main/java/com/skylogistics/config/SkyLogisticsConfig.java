@@ -380,6 +380,26 @@ public final class SkyLogisticsConfig {
         return SERVER.allowRefinedStorageFluidTransfer.get();
     }
 
+    public static boolean enableMultiblockResourceDetection() {
+        return SERVER.enableMultiblockResourceDetection.get();
+    }
+
+    public static List<? extends String> multiblockItemDetectionBlockWhitelist() {
+        return SERVER.multiblockItemDetectionBlockWhitelist.get();
+    }
+
+    public static List<? extends String> multiblockFluidDetectionBlockWhitelist() {
+        return SERVER.multiblockFluidDetectionBlockWhitelist.get();
+    }
+
+    public static List<? extends String> multiblockEnergyDetectionBlockWhitelist() {
+        return SERVER.multiblockEnergyDetectionBlockWhitelist.get();
+    }
+
+    public static int multiblockResourceDetectionIntervalTicks() {
+        return SERVER.multiblockResourceDetectionIntervalTicks.get();
+    }
+
     public static boolean allowFluidChemicalTransfer() {
         return SERVER.allowFluidChemicalTransfer.get();
     }
@@ -584,6 +604,11 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
+        public final ModConfigSpec.BooleanValue enableMultiblockResourceDetection;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockItemDetectionBlockWhitelist;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockFluidDetectionBlockWhitelist;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockEnergyDetectionBlockWhitelist;
+        public final ModConfigSpec.IntValue multiblockResourceDetectionIntervalTicks;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowFluidSoulTransfer;
         public final ModConfigSpec.BooleanValue allowEnergyManaTransfer;
@@ -829,6 +854,37 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky RS Interfaces may transfer fluids stored in Refined Storage networks.",
                             "天穹 RS 接口是否可传输 Refined Storage 网络中存储的流体。")
                     .define("allowRefinedStorageFluidTransfer", true);
+            builder.push("multiblockResourceDetection");
+            enableMultiblockResourceDetection = builder
+                    .comment("Probe disabled resource types on whitelisted multiblock targets after load or formation, enabling them when a real capability appears.",
+                            "加载或成型后，检测白名单目标尚未开启的资源类型，有实际接口时补开对应开关。")
+                    .define("enabled", true);
+            multiblockItemDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for item resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当物品开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("itemBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.ITEMS),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockFluidDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for fluid resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当流体（含 MEK 化学品）开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("fluidBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.FLUIDS),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockEnergyDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for energy resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当能量开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("energyBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.ENERGY),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockResourceDetectionIntervalTicks = builder
+                    .comment("Ticks between multiblock resource detection retries; only loaded targets are queried.",
+                            "多方块资源检测重试间隔（tick），仅查询已加载目标。")
+                    .defineInRange("intervalTicks", 20, 1, 1200);
+            builder.pop();
             allowFluidChemicalTransfer = builder
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.",
                             "启用流体的物流面是否也可传输 Mekanism 化学品。")
