@@ -14,6 +14,7 @@ import mekanism.api.chemical.pigment.IPigmentHandler;
 import mekanism.api.chemical.slurry.ISlurryHandler;
 import mekanism.api.chemical.slurry.SlurryStack;
 import mekanism.common.capabilities.Capabilities;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -21,6 +22,19 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 final class MekanismChemicalCompat {
     private MekanismChemicalCompat() {
+    }
+
+    static ChemicalHandlerBridge chemicalHandler(ItemStack stack) {
+        List<Delegate> delegates = new ArrayList<>(4);
+        stack.getCapability(Capabilities.GAS_HANDLER)
+                .ifPresent(handler -> addDelegate(delegates, Kind.GAS, handler));
+        stack.getCapability(Capabilities.INFUSION_HANDLER)
+                .ifPresent(handler -> addDelegate(delegates, Kind.INFUSION, handler));
+        stack.getCapability(Capabilities.PIGMENT_HANDLER)
+                .ifPresent(handler -> addDelegate(delegates, Kind.PIGMENT, handler));
+        stack.getCapability(Capabilities.SLURRY_HANDLER)
+                .ifPresent(handler -> addDelegate(delegates, Kind.SLURRY, handler));
+        return delegates.isEmpty() ? null : new Handler(delegates);
     }
 
     static ChemicalHandlerBridge chemicalHandler(Level level, BlockPos pos, Direction side) {

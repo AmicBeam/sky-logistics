@@ -6,7 +6,6 @@ import com.skylogistics.network.ModNetworking;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
-import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
@@ -163,7 +162,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return player.getItemInHand(hand).is(ModItems.CONFIGURATOR.get());
+        return ConfiguratorItem.isConfigurationTool(player.getItemInHand(hand));
     }
 
     @Override
@@ -173,7 +172,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
 
     public void applyAction(Player player, int action) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+        if (!ConfiguratorItem.isConfigurationTool(stack)) {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
@@ -237,7 +236,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
 
     public void renameCurrentLine(Player player, String lineName) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+        if (!ConfiguratorItem.isConfigurationTool(stack)) {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
@@ -368,7 +367,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             return;
         }
         ItemStack stack = player.getItemInHand(hand);
-        if (!stack.is(ModItems.CONFIGURATOR.get())) {
+        if (!ConfiguratorItem.isConfigurationTool(stack)) {
             return;
         }
         // The configurator menu has no inventory slots, so opening-time NBT needs an explicit sync.

@@ -347,10 +347,10 @@ public final class SkyNecklaceTicker {
         } else if (current > configured) {
             tryExtract(player, necklace, lineId, itemWhitelist, gameTime, true,
                     exact ? current - configured : Integer.MAX_VALUE, remainingBudget, true);
-            INVENTORY_COUNT_SCANS.remove(player.getUUID());
-        } else {
-            INVENTORY_COUNT_SCANS.remove(player.getUUID());
         }
+        // A completed maintenance decision must not survive into the next inventory scan,
+        // even when insertion has no sources or stops before transferring anything.
+        INVENTORY_COUNT_SCANS.remove(player.getUUID());
     }
 
     private static long handlerSlotAt(List<ItemHandler> sources, int flatIndex) {

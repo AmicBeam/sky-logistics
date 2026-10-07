@@ -11,7 +11,9 @@ import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -235,11 +237,19 @@ public class SkyNodeBlock extends BaseEntityBlock {
     }
 
     @Override
+    public void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
+            node.recoverMultiblockResources();
+        }
+    }
+
+    @Override
     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
             boolean moving) {
         super.neighborChanged(state, level, pos, block, fromPos, moving);
         if (level.getBlockEntity(pos) instanceof SkyNodeBlockEntity node) {
             node.onRedstoneNeighborChanged();
+            node.scheduleMultiblockResourceDetection();
         }
     }
 

@@ -30,6 +30,7 @@ NeoForge 26.1.2 public test build for celestial wireless logistics.
   - The model is smaller than a full block and shows a larger connector ring in extract mode.
   - Server tick dispatcher transfers items, fluids and energy wirelessly between matching extract/insert faces on the same line.
   - Fluid-enabled faces can also transfer Mekanism chemicals; energy-enabled faces can also transfer Botania mana and Ars Nouveau Source when the matching optional mods and server config toggles are enabled.
+  - Disabled resource types on whitelisted multiblock targets are probed after loading and neighbor/configuration changes. Separate item, fluid/chemical, and energy block whitelists cover Mekanism multiblock families by default; real interfaces are required, and enabled resources are preserved. Configure `transfers.integrations.multiblockResourceDetection` to change or disable this fallback.
   - A dimension upgrade on an extract node lets it send to matching insert faces on the same line in other dimensions.
   - The dispatcher keeps a dirty-rebuilt line index, a ready-line wake queue, cached cross-dimensional outputs, target capability caches and idle/failed endpoint backoff.
   - Right-click opens a lightweight node GUI.

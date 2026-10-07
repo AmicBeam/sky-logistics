@@ -64,6 +64,11 @@ def cachedJeiApiJars = fileTree(
 def jeiApiJar = jeiApiPath ? file(jeiApiPath)
         : (defaultJeiApiJar.exists() ? defaultJeiApiJar
         : (!cachedJeiApiJars.isEmpty() ? cachedJeiApiJars.last() : defaultJeiApiJar))
+def cachedEmiApiJars = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/maven.modrinth/emi/${emi_version}",
+        include: "**/emi-${emi_version}.jar"
+).files.toList().sort { it.absolutePath }
+def emiApiJar = cachedEmiApiJars.isEmpty() ? null : cachedEmiApiJars.last()
 def includeJadeCompat = true
 def includeJeiCompat = true
 
@@ -116,6 +121,7 @@ if (jeiApiPath && !jeiApiJar.exists()) {
 }
 
 sourceSets.main.java.srcDir 'src/jei/java'
+sourceSets.main.java.srcDir 'src/emi/java'
 
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
@@ -150,6 +156,10 @@ minecraft {
 }
 
 repositories {
+    maven {
+        name = 'TerraformersMC'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
     def offlineRepo = System.getProperty('skylogistics.offlineRepo') ?: System.getenv('SKYLOGISTICS_OFFLINE_REPO')
     if (offlineRepo) {
         maven {
@@ -220,6 +230,11 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     compileOnly "mekanism:Mekanism:${mekanism_version}"
+    if (emiApiJar != null) {
+        compileOnly files(emiApiJar)
+    } else {
+        compileOnly fg.deobf("maven.modrinth:emi:${emi_version}")
+    }
     if (ae2CompatJar != null && ae2CompatJar.exists()) {
         compileOnly files(ae2CompatJar)
     } else {

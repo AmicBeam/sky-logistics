@@ -71,6 +71,10 @@ public class ConfiguratorItem extends Item {
         super(properties);
     }
 
+    public static boolean isConfigurationTool(ItemStack stack) {
+        return stack.is(ModItems.CONFIGURATOR.get()) || stack.is(ModItems.KLEIS_DOMINION_WAND.get());
+    }
+
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();

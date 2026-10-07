@@ -104,6 +104,9 @@ public final class KleisEndpointSavedData extends SavedData {
             removeEntry(key);
             setDirty();
             closeMenus(player.level().getServer(), key);
+            for (ItemStack upgrade : existingNode.takeUpgrades()) {
+                player.getInventory().placeItemBackInInventory(upgrade);
+            }
             return ToggleResult.REMOVED;
         }
         if (!(player.level() instanceof ServerLevel level) || !level.hasChunkAt(pos)
@@ -239,14 +242,13 @@ public final class KleisEndpointSavedData extends SavedData {
                     || viewer.blockPosition().distSqr(changedPos) > 64L * 64L) continue;
             boolean editNearby = viewer.getMainHandItem().is(ModItems.CONFIGURATOR.get())
                     && viewer.getOffhandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
-            boolean currentLine = viewer.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get())
-                    && viewer.getOffhandItem().is(ModItems.CONFIGURATOR.get());
+            boolean currentLine = viewer.getMainHandItem().is(ModItems.KLEIS_DOMINION_WAND.get());
             if (editNearby) {
                 UUID selectedLine = ConfiguratorItem.readLineId(viewer.getMainHandItem());
                 ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(true, selectedLine,
                         snapshotsNearby(viewer, dimension, viewer.blockPosition(), 64)));
             } else if (currentLine) {
-                UUID selectedLine = ConfiguratorItem.readLineId(viewer.getOffhandItem());
+                UUID selectedLine = ConfiguratorItem.readLineId(com.skylogistics.item.KleisDominionWandItem.configurationStack(viewer));
                 if (selectedLine != null) ModNetworking.sendToPlayer(viewer, KleisOverlayPacket.from(false,
                         selectedLine, snapshots(viewer, dimension, selectedLine, viewer.blockPosition(), 64)));
             }
@@ -335,7 +337,10 @@ public final class KleisEndpointSavedData extends SavedData {
 
     private void removeRuntime(Key key) {
         KleisRuntimeEndpoint node = runtime.remove(key);
-        if (node != null) SkyNetworkRegistry.unregisterVirtual((ServerLevel) node.getLevel(), node);
+        if (node != null) {
+            node.setChangeListener(() -> {});
+            SkyNetworkRegistry.unregisterVirtual((ServerLevel) node.getLevel(), node);
+        }
     }
 
     public record Key(ResourceKey<Level> dimension, BlockPos pos, Direction face) {}

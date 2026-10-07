@@ -292,6 +292,10 @@ public final class SkyLogisticsConfig {
         return SERVER.simpleSourcePipeTransferRate.get();
     }
 
+    public static int simplePipeConnectionRetryTicks() {
+        return SERVER.simplePipeConnectionRetryTicks.get();
+    }
+
     public static int simplePipeMaxConnectedBlocks() {
         return enforceSimplePipeConnectionLimit()
                 ? SERVER.simplePipeMaxConnectedBlocks.get()
@@ -372,6 +376,26 @@ public final class SkyLogisticsConfig {
         return SERVER.allowRefinedStorageFluidTransfer.get();
     }
 
+    public static boolean enableMultiblockResourceDetection() {
+        return SERVER.enableMultiblockResourceDetection.get();
+    }
+
+    public static List<? extends String> multiblockItemDetectionBlockWhitelist() {
+        return SERVER.multiblockItemDetectionBlockWhitelist.get();
+    }
+
+    public static List<? extends String> multiblockFluidDetectionBlockWhitelist() {
+        return SERVER.multiblockFluidDetectionBlockWhitelist.get();
+    }
+
+    public static List<? extends String> multiblockEnergyDetectionBlockWhitelist() {
+        return SERVER.multiblockEnergyDetectionBlockWhitelist.get();
+    }
+
+    public static int multiblockResourceDetectionIntervalTicks() {
+        return SERVER.multiblockResourceDetectionIntervalTicks.get();
+    }
+
     public static boolean allowFluidChemicalTransfer() {
         return SERVER.allowFluidChemicalTransfer.get();
     }
@@ -426,6 +450,14 @@ public final class SkyLogisticsConfig {
 
     public static int targetItemInsertionCursorCount() {
         return SERVER.targetItemInsertionCursorCount.get();
+    }
+
+    public static boolean allowFilterContainerFluids() {
+        return SERVER.allowFilterContainerFluids.get();
+    }
+
+    public static boolean allowFilterContainerChemicals() {
+        return SERVER.allowFilterContainerChemicals.get();
     }
 
     public static boolean fillMaintainedItemSlots() {
@@ -528,6 +560,8 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
         public final ModConfigSpec.BooleanValue fillMaintainedItemSlots;
+        public final ModConfigSpec.BooleanValue allowFilterContainerFluids;
+        public final ModConfigSpec.BooleanValue allowFilterContainerChemicals;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ModConfigSpec.IntValue targetItemInsertionCursorCount;
         public final ModConfigSpec.IntValue rejectedAcceptCacheSize;
@@ -562,6 +596,11 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.BooleanValue allowAe2FluidTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageItemTransfer;
         public final ModConfigSpec.BooleanValue allowRefinedStorageFluidTransfer;
+        public final ModConfigSpec.BooleanValue enableMultiblockResourceDetection;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockItemDetectionBlockWhitelist;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockFluidDetectionBlockWhitelist;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> multiblockEnergyDetectionBlockWhitelist;
+        public final ModConfigSpec.IntValue multiblockResourceDetectionIntervalTicks;
         public final ModConfigSpec.BooleanValue allowFluidChemicalTransfer;
         public final ModConfigSpec.BooleanValue allowEnergyManaTransfer;
         public final ModConfigSpec.BooleanValue allowEnergySourceTransfer;
@@ -600,6 +639,7 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue simpleSourcePipeTransferRate;
         public final ModConfigSpec.BooleanValue enforceSimplePipeConnectionLimit;
         public final ModConfigSpec.IntValue simplePipeMaxConnectedBlocks;
+        public final ModConfigSpec.IntValue simplePipeConnectionRetryTicks;
         public final ModConfigSpec.IntValue maxSpeedUpgradesPerNode;
         public final OrderedMatchingUpgrade orderedMatchingUpgrade;
 
@@ -705,6 +745,10 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum Ars Nouveau source moved by each extracting simple energy pipe per tick.",
                             "每个抽取型简易能量管道每 tick 最多搬运的 Ars Nouveau 源质。")
                     .defineInRange("simpleSourcePipeTransferRate", 50, 1, Integer.MAX_VALUE);
+            simplePipeConnectionRetryTicks = builder
+                    .comment("Ticks between repeated connection recovery checks while a saved pipe target is unavailable. Stops after recovery; does not change transfer speed.",
+                            "已保存的管道目标尚未就绪时，重复检查连接恢复的间隔（tick）。恢复后停止，不影响正常传输速度。")
+                    .defineInRange("simplePipeConnectionRetryTicks", 40, 1, Integer.MAX_VALUE);
             enforceSimplePipeConnectionLimit = builder
                     .comment("Whether new simple pipe connections are rejected when they would exceed simplePipeMaxConnectedBlocks.",
                             "新建简易管道连接超过 simplePipeMaxConnectedBlocks 时，是否拒绝该连接。")
@@ -750,6 +794,14 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum maintained storage-unit count configurable on a logistics face. Face value 0 still means unlimited.",
                             "物流面可配置的维持存储单元数上限；面配置值 0 仍表示无限制。")
                     .defineInRange("maxItemSlotLimit", 256, 1, 999);
+            allowFilterContainerFluids = builder
+                    .comment("Allow right-clicking filter slots to sample fluids from carried containers.",
+                            "允许右击标记格子读取鼠标所持容器中的流体。")
+                    .define("allowFilterContainerFluids", true);
+            allowFilterContainerChemicals = builder
+                    .comment("Allow right-clicking filter slots to sample chemicals on Mekanism-capable versions.",
+                            "在支持 Mekanism 的版本中，允许右击标记格子读取容器中的化学品。")
+                    .define("allowFilterContainerChemicals", true);
             fillMaintainedItemSlots = builder
                     .comment("Whether slot-count maintenance keeps filling occupied storage units after the configured unit count has been reached. Native amount maintenance is unaffected.",
                             "按槽数维持任意资源时，达到配置存储单元数后是否继续填满已有匹配单元。按原生数量维持不受影响。")
@@ -792,6 +844,37 @@ public final class SkyLogisticsConfig {
                     .comment("Whether Sky RS Interfaces may transfer fluids stored in Refined Storage networks.",
                             "天穹 RS 接口是否可传输 Refined Storage 网络中存储的流体。")
                     .define("allowRefinedStorageFluidTransfer", true);
+            builder.push("multiblockResourceDetection");
+            enableMultiblockResourceDetection = builder
+                    .comment("Probe disabled resource types on whitelisted multiblock targets after load or formation, enabling them when a real capability appears.",
+                            "加载或成型后，检测白名单目标尚未开启的资源类型，有实际接口时补开对应开关。")
+                    .define("enabled", true);
+            multiblockItemDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for item resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当物品开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("itemBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.ITEMS),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockFluidDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for fluid resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当流体（含 MEK 化学品）开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("fluidBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.FLUIDS),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockEnergyDetectionBlockWhitelist = builder
+                    .comment("Exact target block IDs eligible for energy resource recovery when that resource is disabled. Empty list disables this resource's recovery.",
+                            "当能量开关关闭时，允许兜底检测的目标方块 ID 白名单；空列表禁用此类资源兜底。")
+                    .defineListAllowEmpty("energyBlockWhitelist",
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy.defaultBlockWhitelist(
+                                    com.skylogistics.util.MultiblockResourceDetectionPolicy.ENERGY),
+                            com.skylogistics.util.MultiblockResourceDetectionPolicy::validBlockId);
+            multiblockResourceDetectionIntervalTicks = builder
+                    .comment("Ticks between multiblock resource detection retries; only loaded targets are queried.",
+                            "多方块资源检测重试间隔（tick），仅查询已加载目标。")
+                    .defineInRange("intervalTicks", 20, 1, 1200);
+            builder.pop();
             allowFluidChemicalTransfer = builder
                     .comment("Whether fluid-enabled logistics faces may also transfer Mekanism chemicals.",
                             "启用流体的物流面是否也可传输 Mekanism 化学品。")
