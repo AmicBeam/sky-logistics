@@ -1,5 +1,6 @@
 package com.skylogistics.client;
 
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
@@ -32,6 +34,8 @@ import org.joml.Matrix4f;
 public final class ClientKleisOverlays {
     private static final long CONFIGURATOR_TARGET_DURATION_NANOS = 5_000_000_000L;
     private static RenderType xrayCenter;
+    private static ByteBufferBuilder overlayBuffer;
+    private static MultiBufferSource.BufferSource overlayBuffers;
     private static List<KleisOverlayPacket.Entry> entries = List.of();
     private static UUID lineId;
     private static boolean editNearby;
@@ -55,6 +59,24 @@ public final class ClientKleisOverlays {
         lineId = null; editNearby = false; active = false; entries = List.of(); centerModes.clear();
         configuratorTarget = null; configuratorTargetLevel = null; configuratorTargetExpiresAtNanos = 0L;
         snapshotLevel = null; resetRequestLocation();
+        releaseOverlayBuffers();
+    }
+
+    // Oculus/Iris can replace the global source and ignore endBatch(RenderType).
+    // Keep camera-relative vertices in our own reusable source and flush them this frame.
+    private static MultiBufferSource.BufferSource overlayBuffers() {
+        if (overlayBuffers == null) {
+            overlayBuffer = new ByteBufferBuilder(65536);
+            overlayBuffers = MultiBufferSource.immediate(overlayBuffer);
+        }
+        return overlayBuffers;
+    }
+
+    private static void releaseOverlayBuffers() {
+        if (overlayBuffer == null) return;
+        overlayBuffer.close();
+        overlayBuffer = null;
+        overlayBuffers = null;
     }
 
     public static void focusConfiguratorTarget(BlockPos pos) {
@@ -121,21 +143,21 @@ public final class ClientKleisOverlays {
         }
         if (!mc.level.isLoaded(configuratorTarget)) return;
         RenderType xray = xrayCenter();
-        VertexConsumer fill = mc.renderBuffers().bufferSource().getBuffer(xray);
+        VertexConsumer fill = overlayBuffers().getBuffer(xray);
         drawCube(event.getPoseStack().last().pose(), fill, configuratorTarget, camera,
                 0.0625F, 1.0F, 1.0F, 1.0F, 0.45F);
-        mc.renderBuffers().bufferSource().endBatch(xray);
+        overlayBuffers().endBatch(xray);
         RenderType outline = RenderType.lines();
-        VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(outline);
+        VertexConsumer lines = overlayBuffers().getBuffer(outline);
         draw(event, lines, new AABB(configuratorTarget).inflate(0.002D), camera,
                 1.0F, 1.0F, 1.0F, 1.0F);
-        mc.renderBuffers().bufferSource().endBatch(outline);
+        overlayBuffers().endBatch(outline);
     }
 
     private static void renderMasks(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
         RenderType type = RenderType.debugFilledBox();
-        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
+        VertexConsumer consumer = overlayBuffers().getBuffer(type);
         for (KleisOverlayPacket.Entry entry : entries) {
             if (entry.pos().equals(configuratorTarget)) continue;
             if (!mc.level.isLoaded(entry.pos()) || mc.level.getBlockState(entry.pos()).isAir()) continue;
@@ -149,13 +171,13 @@ public final class ClientKleisOverlays {
                     mask.maxX-camera.x, mask.maxY-camera.y, mask.maxZ-camera.z,
                     r, g, b, 0.22F * alphaScale);
         }
-        mc.renderBuffers().bufferSource().endBatch(type);
+        overlayBuffers().endBatch(type);
     }
 
     private static void renderXrayCenters(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit) {
         RenderType type = xrayCenter();
-        VertexConsumer consumer = mc.renderBuffers().bufferSource().getBuffer(type);
+        VertexConsumer consumer = overlayBuffers().getBuffer(type);
         centerModes.clear();
         Set<BlockPos> currentLineBlocks = new HashSet<>();
         for (KleisOverlayPacket.Entry entry : entries) {
@@ -179,7 +201,7 @@ public final class ClientKleisOverlays {
             drawCenterCube(event.getPoseStack().last().pose(), consumer, pos, camera,
                     r, g, b, 0.50F * alphaScale);
         }
-        mc.renderBuffers().bufferSource().endBatch(type);
+        overlayBuffers().endBatch(type);
     }
 
     private static RenderType xrayCenter() {
@@ -201,7 +223,7 @@ public final class ClientKleisOverlays {
 
     private static void renderAnimation(RenderLevelStageEvent event, Minecraft mc, Vec3 camera,
             net.minecraft.world.phys.BlockHitResult hit, boolean edit, long now) {
-        VertexConsumer lines = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
+        VertexConsumer lines = overlayBuffers().getBuffer(RenderType.lines());
         int phase = (int)(Math.floorMod(now, 50L)) / 5;
         for (KleisOverlayPacket.Entry entry : entries) {
             if (entry.pos().equals(configuratorTarget)) continue;
@@ -215,7 +237,7 @@ public final class ClientKleisOverlays {
                 draw(event, lines, faceBox(entry.pos(), entry.face(), (16 - size) / 32.0D), camera, r, g, b, 0.50F * alphaScale);
             }
         }
-        mc.renderBuffers().bufferSource().endBatch(RenderType.lines());
+        overlayBuffers().endBatch(RenderType.lines());
     }
 
     private static void resetRequestLocation() {
