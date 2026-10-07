@@ -218,7 +218,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setCount(1);
             }
             FilterListItem.setFilter(stack(), slot, ghost);
-            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
+            FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFluidFilter(stack(), slot, FluidStack.EMPTY);
             }
@@ -231,7 +231,7 @@ public class FilterListMenu extends AbstractContainerMenu {
                 ghost.setAmount(1);
             }
             FilterListItem.setFluidFilter(stack(), slot, ghost);
-            if (!ghost.isEmpty()) FilterListItem.setChemicalFilter(stack(), slot, "");
+            FilterListItem.setChemicalFilter(stack(), slot, "");
             if (ghost.isEmpty()) {
                 FilterListItem.setFilter(stack(), slot, ItemStack.EMPTY);
             }
