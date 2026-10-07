@@ -468,6 +468,14 @@ public final class SkyLogisticsConfig {
         return SERVER.targetItemInsertionCursorCount.get();
     }
 
+    public static boolean allowFilterContainerFluids() {
+        return SERVER.allowFilterContainerFluids.get();
+    }
+
+    public static boolean allowFilterContainerChemicals() {
+        return SERVER.allowFilterContainerChemicals.get();
+    }
+
     public static boolean fillMaintainedItemSlots() {
         return SERVER.fillMaintainedItemSlots.get();
     }
@@ -570,6 +578,8 @@ public final class SkyLogisticsConfig {
         public final ModConfigSpec.IntValue sourceSearchAttemptsPerEndpoint;
         public final ModConfigSpec.IntValue maxItemSlotLimit;
         public final ModConfigSpec.BooleanValue fillMaintainedItemSlots;
+        public final ModConfigSpec.BooleanValue allowFilterContainerFluids;
+        public final ModConfigSpec.BooleanValue allowFilterContainerChemicals;
         public final ModConfigSpec.IntValue preferredItemSlotCacheSize;
         public final ModConfigSpec.IntValue targetItemInsertionCursorCount;
         public final ModConfigSpec.IntValue rejectedAcceptCacheSize;
@@ -812,6 +822,14 @@ public final class SkyLogisticsConfig {
                     .comment("Maximum maintained storage-unit count configurable on a logistics face. Face value 0 still means unlimited.",
                             "物流面可配置的维持存储单元数上限；面配置值 0 仍表示无限制。")
                     .defineInRange("maxItemSlotLimit", 256, 1, 999);
+            allowFilterContainerFluids = builder
+                    .comment("Allow right-clicking filter slots to sample fluids from carried containers.",
+                            "允许右击标记格子读取鼠标所持容器中的流体。")
+                    .define("allowFilterContainerFluids", true);
+            allowFilterContainerChemicals = builder
+                    .comment("Allow right-clicking filter slots to sample chemicals on Mekanism-capable versions.",
+                            "在支持 Mekanism 的版本中，允许右击标记格子读取容器中的化学品。")
+                    .define("allowFilterContainerChemicals", true);
             fillMaintainedItemSlots = builder
                     .comment("Whether slot-count maintenance keeps filling occupied storage units after the configured unit count has been reached. Native amount maintenance is unaffected.",
                             "按槽数维持任意资源时，达到配置存储单元数后是否继续填满已有匹配单元。按原生数量维持不受影响。")

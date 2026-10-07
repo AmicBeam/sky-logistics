@@ -4,12 +4,18 @@ import mekanism.api.Action;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalHandler;
 import mekanism.common.capabilities.Capabilities;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 
 final class MekanismChemicalCompat {
     private MekanismChemicalCompat() {
+    }
+
+    static ChemicalHandlerBridge chemicalHandler(ItemStack stack) {
+        IChemicalHandler handler = stack.getCapability(Capabilities.CHEMICAL.item());
+        return handler == null ? null : new Handler(handler);
     }
 
     static ChemicalHandlerBridge chemicalHandler(Level level, BlockPos pos, Direction side) {

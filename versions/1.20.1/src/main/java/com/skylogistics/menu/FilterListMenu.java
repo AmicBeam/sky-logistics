@@ -1,5 +1,7 @@
 package com.skylogistics.menu;
 
+import com.skylogistics.compat.mekanism.MekanismCompat;
+import com.skylogistics.item.FilterContainerContents;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
@@ -106,6 +108,18 @@ public class FilterListMenu extends AbstractContainerMenu {
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
         if (slotId >= 0 && slotId < FilterListItem.FILTER_SLOTS) {
             ItemStack carried = getCarried();
+            if (button == 1 && clickType == ClickType.PICKUP && !carried.isEmpty()) {
+                FluidStack fluid = FilterContainerContents.fluid(carried);
+                if (!fluid.isEmpty()) {
+                    setGhostFluid(slotId, fluid);
+                    return;
+                }
+                String chemical = MekanismCompat.containerChemical(carried);
+                if (!chemical.isEmpty()) {
+                    setGhostChemical(slotId, chemical);
+                    return;
+                }
+            }
             setGhostItem(slotId, carried);
             return;
         }

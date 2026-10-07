@@ -206,6 +206,10 @@ tasks.register('checkJeiCompatPackaging') {
         def zip = new java.util.zip.ZipFile(archive)
         try {
             def pluginClass = 'com/skylogistics/compat/jei/SkyLogisticsJeiPlugin.class'
+            if (project.findProperty('emi_version') != null
+                    && zip.getEntry('com/skylogistics/compat/emi/SkyLogisticsEmiPlugin.class') == null) {
+                throw new GradleException('Release jar is missing the EMI plugin entrypoint')
+            }
             if (zip.getEntry(pluginClass) == null) {
                 throw new GradleException("Release jar is missing JEI plugin class: ${pluginClass}")
             }

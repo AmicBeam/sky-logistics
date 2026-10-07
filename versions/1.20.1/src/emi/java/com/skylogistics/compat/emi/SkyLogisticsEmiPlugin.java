@@ -15,7 +15,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidStack;
 
 @EmiEntrypoint
 public final class SkyLogisticsEmiPlugin implements EmiPlugin {
@@ -62,7 +62,7 @@ public final class SkyLogisticsEmiPlugin implements EmiPlugin {
                     ModNetworking.sendChemicalFilter(slot, chemical);
                 } else if (stack.getKey() instanceof Fluid type) {
                     FluidStack fluid = new FluidStack(type, 1);
-                    fluid.applyComponents(stack.getComponentChanges());
+                    fluid.setTag(stack.getNbt() == null ? null : stack.getNbt().copy());
                     if (fluid.isEmpty()) {
                         return false;
                     }
