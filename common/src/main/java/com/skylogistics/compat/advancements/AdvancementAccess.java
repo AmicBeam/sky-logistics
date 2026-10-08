@@ -1,7 +1,6 @@
 package com.skylogistics.compat.advancements;
 
 import java.lang.reflect.Method;
-import net.minecraft.server.level.ServerPlayer;
 
 /** Version-neutral reflective access to advancement APIs. */
 final class AdvancementAccess {
@@ -10,7 +9,6 @@ final class AdvancementAccess {
     private static final String[] IS_DONE_NAMES = {"isDone", "m_8193_"};
     private static final String[] AWARD_NAMES = {"award", "m_135988_"};
     private static final String[] REVOKE_NAMES = {"revoke", "m_135998_"};
-    private static final String[] FLUSH_NAMES = {"flushDirty", "m_135992_"};
 
     private AdvancementAccess() {
     }
@@ -48,11 +46,6 @@ final class AdvancementAccess {
         Method update = findCompatibleMethod(playerAdvancements.getClass(),
                 awarded ? AWARD_NAMES : REVOKE_NAMES, advancement.getClass(), String.class);
         if (update != null) update.invoke(playerAdvancements, advancement, "unlocked");
-    }
-
-    static void flush(Object playerAdvancements, ServerPlayer player) throws ReflectiveOperationException {
-        Method method = findCompatibleMethod(playerAdvancements.getClass(), FLUSH_NAMES, player.getClass());
-        if (method != null) method.invoke(playerAdvancements, player);
     }
 
     private static Object parseResourceId(Class<?> type, String value) throws ReflectiveOperationException {
