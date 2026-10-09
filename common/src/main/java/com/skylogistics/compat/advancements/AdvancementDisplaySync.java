@@ -33,7 +33,9 @@ public final class AdvancementDisplaySync {
                 setAwarded(manager, playerAdvancements, lookup,
                         "skylogistics:transfer_rates/entry_" + index, completed);
             }
-            AdvancementAccess.flush(playerAdvancements, player);
+            // Let the normal player tick send dirty progress after login has finished.
+            // Revelationary initializes its cloaking registry at the end of player login;
+            // sending progress here would reveal items before that registry cloaks them again.
         } catch (ReflectiveOperationException | LinkageError ignored) {
         } finally {
             SYNCING.remove(player.getUUID());
