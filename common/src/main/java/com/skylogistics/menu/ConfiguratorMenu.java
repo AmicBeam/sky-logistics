@@ -19,6 +19,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.item.ItemStack;
 
@@ -37,14 +39,22 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private boolean initialStackSynced;
     private boolean lineEditable;
     private boolean templateEditable;
+    private final ConfiguratorTemplateSlots templateSlots = new ConfiguratorTemplateSlots();
+    private boolean templatePage;
+    private Direction templateFace = Direction.DOWN;
 
     public boolean canEditCurrentLine() { return lineEditable; }
     public boolean canEditTemplate() { return templateEditable; }
+    public void showTemplatePage(boolean show) { templatePage = show; }
+    public Direction templateFace() { return templateFace; }
+    public void selectTemplateFace(Direction direction) { templateFace = direction; }
 
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
         super(ModMenus.CONFIGURATOR.get(), containerId);
         this.hand = hand;
         this.player = inventory.player;
+        templateSlots.add(inventory, this::addSlot, () -> templatePage, () -> templatePage && templateEditable,
+                () -> ConfiguratorItem.readPipeTemplate(player.getItemInHand(hand)) != null, this::boundSlot);
         addDataSlot(new DataSlot() {
             @Override public int get() { return templateEditable ? 1 : 0; }
             @Override public void set(int value) { templateEditable = value != 0; }
@@ -172,8 +182,78 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     }
 
     @Override
+    public void clicked(int slotId, int button, ClickType input, Player player) {
+        if (!templatePage || !stillValid(player)) return;
+        if (slotId >= 0 && slotId < ConfiguratorTemplateSlots.FIRST_PLAYER_SLOT) {
+            if (!player.level().isClientSide && input == ClickType.PICKUP && (button == 0 || button == 1)) {
+                editSample(player, slotId, getCarried(), button == 1);
+            }
+            return;
+        }
+        if (input == ClickType.SWAP && boundSlot(button)) return;
+        super.clicked(slotId, button, input, player);
+    }
+
+    @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        return ItemStack.EMPTY;
+        if (!templatePage || !stillValid(player)
+                || index < ConfiguratorTemplateSlots.FIRST_PLAYER_SLOT || index >= slots.size()) return ItemStack.EMPTY;
+        Slot slot = slots.get(index);
+        if (!slot.hasItem() || !slot.mayPickup(player)) return ItemStack.EMPTY;
+        ItemStack sample = slot.getItem();
+        if (com.skylogistics.item.FilterListItem.isFilterItem(sample)) {
+            if (!player.level().isClientSide) editSample(player, ConfiguratorTemplateSlots.FILTER, sample, false);
+            return ItemStack.EMPTY;
+        }
+        if (com.skylogistics.block.entity.SkyNodeBlockEntity.isUpgradeItem(sample)) {
+            if (!player.level().isClientSide) {
+                int free = -1;
+                for (int target = 0; target < ConfiguratorTemplateSlots.UPGRADES; target++) {
+                    ItemStack marker = slots.get(target).getItem();
+                    if (marker.is(sample.getItem())) {
+                        editSample(player, target, sample, false);
+                        return ItemStack.EMPTY;
+                    }
+                    if (marker.isEmpty() && free < 0) free = target;
+                }
+                if (free >= 0) editSample(player, free, sample, false);
+            }
+            return ItemStack.EMPTY;
+        }
+        int hotbar = ConfiguratorTemplateSlots.FIRST_PLAYER_SLOT + 27;
+        ItemStack original = sample.copy();
+        if (!moveItemStackTo(sample, index < hotbar ? hotbar : ConfiguratorTemplateSlots.FIRST_PLAYER_SLOT,
+                index < hotbar ? slots.size() : hotbar, false)) return ItemStack.EMPTY;
+        if (sample.isEmpty()) slot.set(ItemStack.EMPTY);
+        else slot.setChanged();
+        return original;
+    }
+
+    private boolean boundSlot(int index) {
+        return index == (hand == InteractionHand.OFF_HAND ? Inventory.SLOT_OFFHAND
+                : player.getInventory().selected);
+    }
+
+    private void editSample(Player player, int slot, ItemStack sample, boolean single) {
+        ItemStack tool = player.getItemInHand(hand);
+        if (ConfiguratorTemplateActions.canEdit(player, tool)
+                && ConfiguratorTemplateSlots.edit(tool, templateFace, slot, sample, single)) {
+            syncHeldStack(tool);
+            broadcastChanges();
+        }
+    }
+
+    private boolean applyTemplatePageAction(int action) {
+        if (action == MenuAction.CONFIG_TEMPLATE_PAGE_OPEN || action == MenuAction.CONFIG_TEMPLATE_PAGE_CLOSE) {
+            if (getCarried().isEmpty()) showTemplatePage(action == MenuAction.CONFIG_TEMPLATE_PAGE_OPEN);
+            return true;
+        }
+        int face = action - MenuAction.CONFIG_TEMPLATE_SELECT_FACE_BASE;
+        if (face >= 0 && face < Direction.values().length) {
+            if (templatePage) selectTemplateFace(Direction.values()[face]);
+            return true;
+        }
+        return false;
     }
 
     public void applyAction(Player player, int action) {
@@ -181,9 +261,14 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         if (!ConfiguratorItem.isConfigurationTool(stack)) {
             return;
         }
+        if (applyTemplatePageAction(action)) {
+            broadcastChanges();
+            return;
+        }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
         if (ConfiguratorTemplateActions.handles(action)) {
-            ConfiguratorTemplateActions.apply(player, hand, stack, config, action);
+            if (!templatePage) return;
+            ConfiguratorTemplateActions.apply(player, stack, config, action);
             syncHeldStack(stack);
             broadcastChanges();
             return;
@@ -267,6 +352,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         var config = ConfiguratorItem.read(player.getItemInHand(hand));
         lineEditable = config != null && com.skylogistics.network.SkyLineAccess.canUse(player, config.lineId());
         templateEditable = ConfiguratorTemplateActions.canEdit(player, player.getItemInHand(hand));
+        if (templatePage) templateSlots.refresh(player.getItemInHand(hand), templateFace, templateEditable);
         syncPlayerLineSelection();
         refreshLineStats();
         syncInitialHeldStack();

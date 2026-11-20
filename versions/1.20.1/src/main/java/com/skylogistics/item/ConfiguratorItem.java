@@ -279,7 +279,7 @@ public class ConfiguratorItem extends Item {
         }
         ListTag upgrades = new ListTag();
         for (ItemStack upgrade : config.upgrades()) {
-            upgrades.add(upgrade.save(new CompoundTag()));
+            upgrades.add(upgrade.isEmpty() ? new CompoundTag() : upgrade.save(new CompoundTag()));
         }
         tag.put(UPGRADES, upgrades);
         tag.remove(SPEED_UPGRADE_COUNT);
@@ -292,11 +292,8 @@ public class ConfiguratorItem extends Item {
         ArrayList<ItemStack> upgrades = new ArrayList<>();
         if (tag.contains(UPGRADES, Tag.TAG_LIST)) {
             ListTag saved = tag.getList(UPGRADES, Tag.TAG_COMPOUND);
-            for (int i = 0; i < saved.size(); i++) {
-                ItemStack upgrade = ItemStack.of(saved.getCompound(i));
-                if (!upgrade.isEmpty()) {
-                    upgrades.add(upgrade);
-                }
+            for (int slot = 0; slot < Math.min(saved.size(), SkyNodeBlockEntity.UPGRADE_SLOTS); slot++) {
+                upgrades.add(ItemStack.of(saved.getCompound(slot)));
             }
             return upgrades;
         }
@@ -938,10 +935,7 @@ public class ConfiguratorItem extends Item {
             }
             ArrayList<ItemStack> upgrades = new ArrayList<>(SkyNodeBlockEntity.UPGRADE_SLOTS);
             for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
-                ItemStack upgrade = node.getUpgrade(slot);
-                if (!upgrade.isEmpty()) {
-                    upgrades.add(upgrade.copy());
-                }
+                upgrades.add(node.getUpgrade(slot));
             }
             return new ToolConfig(node.getLineId(), node.getLineName(),
                     faces.getOrDefault(node.getTargetDirection(), FaceConfig.DEFAULT), faces, true,
@@ -961,16 +955,14 @@ public class ConfiguratorItem extends Item {
             ArrayList<ItemStack> upgrades = new ArrayList<>(SkyNodeBlockEntity.UPGRADE_SLOTS);
             for (int slot = 0; slot < SkyNodeBlockEntity.UPGRADE_SLOTS; slot++) {
                 ItemStack upgrade = node.getUpgrade(slot);
-                if (!upgrade.isEmpty() && !upgrade.is(ModItems.DIMENSION_UPGRADE.get())) {
-                    upgrades.add(upgrade.copy());
-                }
+                upgrades.add(upgrade.is(ModItems.DIMENSION_UPGRADE.get()) ? ItemStack.EMPTY : upgrade);
             }
             return new ToolConfig(node.getLineId(), node.getLineName(), placement, defaultFaces(), false, upgrades);
         }
 
         public ToolConfig {
             faces = EnumMaps.copyOf(Direction.class, faces);
-            upgrades = upgrades.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();
+            upgrades = upgrades.stream().limit(SkyNodeBlockEntity.UPGRADE_SLOTS).map(ItemStack::copy).toList();
         }
 
         public int speedUpgradeCount() {
