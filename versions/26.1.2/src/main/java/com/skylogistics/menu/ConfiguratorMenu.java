@@ -42,23 +42,36 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private boolean templateEditable;
     private final ConfiguratorTemplateSlots templateSlots = new ConfiguratorTemplateSlots();
     private boolean templatePage;
-    private Direction templateFace = Direction.DOWN;
+    private final Direction templateFace;
+    private boolean openedFromCopy;
 
     public boolean canEditCurrentLine() { return lineEditable; }
     public boolean canEditTemplate() { return templateEditable; }
     public void showTemplatePage(boolean show) { templatePage = show; }
-    public Direction templateFace() { return templateFace; }
-    public void selectTemplateFace(Direction direction) { templateFace = direction; }
+    public boolean showsCopiedUpgrades() {
+        return openedFromCopy && ConfiguratorItem.readPipeTemplate(player.getItemInHand(hand)) == null;
+    }
 
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
+        this(containerId, inventory, hand, false);
+    }
+
+    public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand, boolean openedFromCopy) {
         super(ModMenus.CONFIGURATOR.get(), containerId);
         this.hand = hand;
         this.player = inventory.player;
+        this.openedFromCopy = openedFromCopy;
+        this.templateFace = openedFromCopy ? ConfiguratorTemplateSlots.firstCopiedFace(player.getItemInHand(hand)) : null;
         templateSlots.add(inventory, this::addSlot, () -> templatePage, () -> templatePage && templateEditable,
-                () -> ConfiguratorItem.readPipeTemplate(player.getItemInHand(hand)) != null, this::boundSlot);
+                this::showsCopiedUpgrades, this::boundSlot);
         addDataSlot(new DataSlot() {
-            @Override public int get() { return templateEditable ? 1 : 0; }
-            @Override public void set(int value) { templateEditable = value != 0; }
+            @Override public int get() {
+                return (templateEditable ? 1 : 0) | (ConfiguratorMenu.this.openedFromCopy ? 2 : 0);
+            }
+            @Override public void set(int value) {
+                templateEditable = (value & 1) != 0;
+                ConfiguratorMenu.this.openedFromCopy = (value & 2) != 0;
+            }
         });
         addDataSlot(new DataSlot() {
             @Override public int get() { return lineEditable ? 1 : 0; }
@@ -206,7 +219,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             if (!player.level().isClientSide()) editSample(player, ConfiguratorTemplateSlots.FILTER, sample, false);
             return ItemStack.EMPTY;
         }
-        if (com.skylogistics.block.entity.SkyNodeBlockEntity.isUpgradeItem(sample)) {
+        if (showsCopiedUpgrades() && com.skylogistics.block.entity.SkyNodeBlockEntity.isUpgradeItem(sample)) {
             if (!player.level().isClientSide()) {
                 int free = -1;
                 for (int target = 0; target < ConfiguratorTemplateSlots.UPGRADES; target++) {
@@ -237,8 +250,8 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
 
     private void editSample(Player player, int slot, ItemStack sample, boolean single) {
         ItemStack tool = player.getItemInHand(hand);
-        if (ConfiguratorTemplateActions.canEdit(player, tool)
-                && ConfiguratorTemplateSlots.edit(tool, templateFace, slot, sample, single)) {
+        if (ConfiguratorTemplateSlots.canEdit(player, tool, openedFromCopy)
+                && ConfiguratorTemplateSlots.edit(tool, templateFace, openedFromCopy, slot, sample, single)) {
             syncHeldStack(tool);
             broadcastChanges();
         }
@@ -247,11 +260,6 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private boolean applyTemplatePageAction(int action) {
         if (action == MenuAction.CONFIG_TEMPLATE_PAGE_OPEN || action == MenuAction.CONFIG_TEMPLATE_PAGE_CLOSE) {
             if (getCarried().isEmpty()) showTemplatePage(action == MenuAction.CONFIG_TEMPLATE_PAGE_OPEN);
-            return true;
-        }
-        int face = action - MenuAction.CONFIG_TEMPLATE_SELECT_FACE_BASE;
-        if (face >= 0 && face < Direction.values().length) {
-            if (templatePage) selectTemplateFace(Direction.values()[face]);
             return true;
         }
         return false;
@@ -267,13 +275,6 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
-        if (ConfiguratorTemplateActions.handles(action)) {
-            if (!templatePage) return;
-            ConfiguratorTemplateActions.apply(player, stack, config, action);
-            syncHeldStack(stack);
-            broadcastChanges();
-            return;
-        }
         boolean navigation = action == MenuAction.NEW_LINE || action == MenuAction.LINE_FIRST
                 || action == MenuAction.LINE_PREVIOUS || action == MenuAction.LINE_NEXT_OR_CREATE
                 || action == MenuAction.LINE_LAST || action == MenuAction.LINE_REMOVE_CURRENT;
@@ -352,8 +353,8 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     public void broadcastChanges() {
         var config = ConfiguratorItem.read(player.getItemInHand(hand));
         lineEditable = config != null && com.skylogistics.network.SkyLineAccess.canUse(player, config.lineId());
-        templateEditable = ConfiguratorTemplateActions.canEdit(player, player.getItemInHand(hand));
-        if (templatePage) templateSlots.refresh(player.getItemInHand(hand), templateFace, templateEditable);
+        templateEditable = ConfiguratorTemplateSlots.canEdit(player, player.getItemInHand(hand), openedFromCopy);
+        if (templatePage) templateSlots.refresh(player.getItemInHand(hand), templateFace, openedFromCopy, templateEditable);
         syncPlayerLineSelection();
         refreshLineStats();
         syncInitialHeldStack();

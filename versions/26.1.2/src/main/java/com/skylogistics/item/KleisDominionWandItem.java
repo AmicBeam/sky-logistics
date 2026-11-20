@@ -45,10 +45,10 @@ public final class KleisDominionWandItem extends Item {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             InteractionHand configHand = configurationHand(player);
-            ConfiguratorItem.setPasteMode(configurationStack(player), false);
+            boolean copied = ConfiguratorItem.exitPasteMode(configurationStack(player));
             ConfiguratorItem.readOrCreate(configurationStack(player), player);
             serverPlayer.openMenu(
-                    new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, configHand),
+                    new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, configHand, copied),
                             Component.translatable(configHand == InteractionHand.OFF_HAND
                                     ? "menu.skylogistics.configurator" : "item.skylogistics.kleis_dominion_wand")),
                     buffer -> buffer.writeEnum(configHand));

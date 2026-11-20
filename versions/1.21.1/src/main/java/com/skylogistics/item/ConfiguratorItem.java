@@ -144,7 +144,7 @@ public class ConfiguratorItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide) {
-            setPasteMode(stack, false);
+            boolean copied = exitPasteMode(stack);
             if (player.isShiftKeyDown()) {
                 player.displayClientMessage(Component.translatable("message.skylogistics.configurator.paste_off"), true);
                 return InteractionResultHolder.consume(stack);
@@ -152,7 +152,7 @@ public class ConfiguratorItem extends Item {
             readOrCreate(stack, player);
             if (player instanceof ServerPlayer serverPlayer) {
                 serverPlayer.openMenu(
-                        new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, hand),
+                        new SimpleMenuProvider((id, inventory, ignored) -> new ConfiguratorMenu(id, inventory, hand, copied),
                                 Component.translatable("menu.skylogistics.configurator")),
                         buffer -> buffer.writeEnum(hand));
             }
@@ -417,6 +417,12 @@ public class ConfiguratorItem extends Item {
     private static boolean pasteEnabled(ItemStack stack) {
         CompoundTag tag = StackData.get(stack);
         return tag != null && tag.getBoolean(PASTE_MODE);
+    }
+
+    public static boolean exitPasteMode(ItemStack stack) {
+        boolean copied = pasteEnabled(stack);
+        setPasteMode(stack, false);
+        return copied;
     }
 
     public static void setPasteMode(ItemStack stack, boolean enabled) {
@@ -1019,7 +1025,7 @@ public class ConfiguratorItem extends Item {
         }
 
         public ToolConfig withTemplateFilter(Direction direction, ItemStack filter) {
-            if (!hasCopiedFaces) return withPlacement(placement.withFilter(filter));
+            if (!hasCopiedFaces || direction == null) return withPlacement(placement.withFilter(filter));
             EnumMap<Direction, FaceConfig> updated = new EnumMap<>(Direction.class);
             updated.putAll(faces);
             updated.put(direction, face(direction).withFilter(filter));

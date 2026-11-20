@@ -43,7 +43,11 @@ class PipeTemplateTest {
         assertEquals(SimplePipeConnection.NONE, loaded.face(Direction.UP).connection());
         assertTrue(ConfiguratorItem.isPipePasteMode(tool));
         assertFalse(ConfiguratorItem.isPasteMode(tool));
+        assertTrue(ConfiguratorItem.exitPasteMode(tool));
+        assertFalse(ConfiguratorItem.isPipePasteMode(tool));
+        assertEquals(owner, ConfiguratorItem.readPipeTemplate(tool).owner());
 
+        ConfiguratorItem.setPasteMode(tool, true);
         ConfiguratorItem.writePipeTemplate(tool, null);
         assertNull(ConfiguratorItem.readPipeTemplate(tool));
         assertFalse(ConfiguratorItem.isPipePasteMode(tool));

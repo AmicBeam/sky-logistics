@@ -32,7 +32,7 @@ Right-click a machine-facing endpoint with the Sky Configurator to switch it bet
 
 Hold a configured Sky Filter List or Sky Tag Filter List in your offhand and place a pipe against a machine with your main hand. The filter is copied only to the clicked machine endpoint, without using up the list. Energy pipes accept tag filter lists only.
 
-Sneak-right-click a pipe with the configurator to copy its template. While pipe paste mode is active, right-click a pipe of the same type to set matching machine endpoints without changing pipe-to-pipe links. Right-click air to exit paste mode, or open the configurator's Upgrades page to inspect or edit the template and re-enable paste mode.
+You can also set an offhand placement filter on the configurator's Upgrades page and hold the configurator in your offhand. Sneak-right-click a pipe with the configurator to copy its template. While paste mode is active, right-click a pipe of the same type to set matching machine endpoints without changing pipe-to-pipe links. Opening the configurator exits paste mode, but its Upgrades page shows the first nonempty filter from that copy.
 
 ## Default Throughput
 

@@ -142,7 +142,13 @@ public class SimplePipeBlock extends BaseEntityBlock {
             }
             if (!level.isClientSide() && placementExtraction.copyOffhandFilter() && placer instanceof Player player
                     && connectionFromState(level, pos, state, direction).isContainer()) {
-                placedPipe.setEndpointFilter(direction, player.getOffhandItem());
+                ItemStack filter = player.getOffhandItem();
+                if (filter.getItem() instanceof ConfiguratorItem) {
+                    var preset = ConfiguratorItem.read(filter);
+                    filter = preset != null && SkyLineAccess.canUse(player, preset.lineId())
+                            ? preset.placement().filter(0) : ItemStack.EMPTY;
+                }
+                placedPipe.setEndpointFilter(direction, filter);
             }
         }
         if (level.isClientSide()) {

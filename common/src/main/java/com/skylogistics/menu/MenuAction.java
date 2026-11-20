@@ -55,13 +55,8 @@ public final class MenuAction {
     public static final int FACE_SLOT_LIMIT_DOWN_FAST_BASE = 220;
     public static final int FACE_SLOT_LIMIT_UP_FAST_BASE = 230;
     public static final int FACE_TOGGLE_LIMIT_UNIT_BASE = 240;
-    public static final int CONFIG_PIPE_MODE_BASE = 270;
-    public static final int CONFIG_PIPE_DISCONNECT_BASE = 280;
-    public static final int CONFIG_TEMPLATE_PASTE = 290;
-    public static final int CONFIG_FILTER_TOGGLE_MODE_BASE = 320;
     public static final int CONFIG_TEMPLATE_PAGE_OPEN = 330;
     public static final int CONFIG_TEMPLATE_PAGE_CLOSE = 331;
-    public static final int CONFIG_TEMPLATE_SELECT_FACE_BASE = 340;
 
     private MenuAction() {
     }
