@@ -1,4 +1,6 @@
 {
+  "tooltip.skylogistics.configurator.upgrade": "升级：%s ×%s",
+  "tooltip.skylogistics.configurator.filter": "过滤：%s",
   "screen.skylogistics.configurator.template_paste_on": "粘贴中",
   "screen.skylogistics.configurator.upgrade_tab": "升级",
   "screen.skylogistics.configurator.upgrade_title": "配置器升级",

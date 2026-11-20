@@ -2,6 +2,7 @@ package com.skylogistics.menu;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.ConfiguratorPreview;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.PipeTemplate;
 import com.skylogistics.item.TagFilterListItem;
@@ -55,22 +56,7 @@ final class ConfiguratorTemplateSlots {
     }
 
     static Direction firstCopiedFace(ItemStack tool) {
-        var pipe = ConfiguratorItem.readPipeTemplate(tool);
-        if (pipe != null) {
-            Direction firstEndpoint = null;
-            for (Direction direction : Direction.values()) {
-                var face = pipe.face(direction);
-                if (!face.filter().isEmpty()) return direction;
-                if (firstEndpoint == null && face.connection().isContainer()) firstEndpoint = direction;
-            }
-            return firstEndpoint;
-        }
-        var config = ConfiguratorItem.read(tool);
-        if (config == null || !config.hasCopiedFaces()) return null;
-        for (Direction direction : Direction.values()) {
-            if (!config.face(direction).filter(0).isEmpty()) return direction;
-        }
-        return null;
+        return ConfiguratorPreview.firstCopiedFace(ConfiguratorItem.read(tool), ConfiguratorItem.readPipeTemplate(tool));
     }
 
     static boolean canEdit(Player player, ItemStack tool, boolean copied) {
@@ -87,13 +73,7 @@ final class ConfiguratorTemplateSlots {
             samples.setItem(index, config != null && index < config.upgrades().size()
                     ? config.upgrades().get(index) : ItemStack.EMPTY);
         }
-        ItemStack filter = ItemStack.EMPTY;
-        if (pipe != null && face != null) {
-            filter = pipe.face(face).filter();
-        } else if (pipe == null && config != null) {
-            filter = (face == null ? config.placement() : config.face(face)).filter(0);
-        }
-        samples.setItem(FILTER, filter);
+        samples.setItem(FILTER, ConfiguratorPreview.filter(config, pipe, face));
     }
 
     static boolean edit(ItemStack tool, Direction face, boolean copied, int index, ItemStack sample, boolean single) {

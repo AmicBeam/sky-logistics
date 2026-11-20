@@ -187,7 +187,15 @@ public class ConfiguratorItem extends Item {
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.face",
                 Component.translatable(config.placement().redstoneControl().translationKey()),
                 config.placement().priority(), slotLimitDisplay(config.slotLimit())).withStyle(ChatFormatting.GRAY));
-        if (pasteEnabled(stack)) {
+        boolean copied = pasteEnabled(stack);
+        PipeTemplate pipe = copied ? readPipeTemplate(stack) : null;
+        Direction face = copied ? ConfiguratorPreview.firstCopiedFace(config, pipe) : null;
+        ConfiguratorPreview.appendUpgrades(config, tooltip::add);
+        ItemStack filter = ConfiguratorPreview.filter(config, pipe, face);
+        if (ConfiguratorPreview.appendFilterMode(filter, tooltip::add)) {
+            FilterListItem.appendFilterContentsOrHint(filter, tooltip, flag);
+        }
+        if (copied) {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.paste_mode").withStyle(ChatFormatting.GOLD));
         }
     }

@@ -191,7 +191,16 @@ public class ConfiguratorItem extends Item {
         tooltip.accept(Component.translatable("tooltip.skylogistics.configurator.face",
                 Component.translatable(config.placement().redstoneControl().translationKey()),
                 config.placement().priority(), slotLimitDisplay(config.slotLimit())).withStyle(ChatFormatting.GRAY));
-        if (pasteEnabled(stack)) {
+        boolean copied = pasteEnabled(stack);
+        PipeTemplate pipe = copied ? readPipeTemplate(stack) : null;
+        Direction face = copied ? ConfiguratorPreview.firstCopiedFace(config, pipe) : null;
+        ConfiguratorPreview.appendUpgrades(config, tooltip);
+        ItemStack filter = ConfiguratorPreview.filter(config, pipe, face);
+        if (ConfiguratorPreview.appendFilterMode(filter, tooltip)) {
+            FilterListItem.appendFilterContentsOrHint(filter, context == null || context.registries() == null
+                    ? StackData.builtinRegistries() : context.registries(), tooltip, flag);
+        }
+        if (copied) {
             tooltip.accept(Component.translatable("tooltip.skylogistics.configurator.paste_mode").withStyle(ChatFormatting.GOLD));
         }
     }

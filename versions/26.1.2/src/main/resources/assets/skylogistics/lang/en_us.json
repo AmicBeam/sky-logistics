@@ -1,4 +1,6 @@
 {
+  "tooltip.skylogistics.configurator.upgrade": "Upgrade: %s ×%s",
+  "tooltip.skylogistics.configurator.filter": "Filter: %s",
   "screen.skylogistics.configurator.template_paste_on": "Paste on",
   "screen.skylogistics.configurator.upgrade_tab": "Upg",
   "screen.skylogistics.configurator.upgrade_title": "Configurator upgrades",
