@@ -2,7 +2,6 @@ package com.skylogistics.menu;
 
 import com.skylogistics.item.ConfiguratorItem;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
-import com.skylogistics.network.ConfiguratorStackPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.network.SkyNecklaceTicker;
 import com.skylogistics.network.SkyNetworkRegistry;
@@ -14,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
@@ -482,7 +481,6 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         }
         int slot = hand == InteractionHand.OFF_HAND ? Inventory.SLOT_OFFHAND : player.getInventory().getSelectedSlot();
         player.getInventory().setChanged();
-        serverPlayer.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, slot, stack.copy()));
-        ModNetworking.sendToPlayer(serverPlayer, new ConfiguratorStackPacket(hand, stack.copy()));
+        serverPlayer.connection.send(new ClientboundSetPlayerInventoryPacket(slot, stack.copy()));
     }
 }

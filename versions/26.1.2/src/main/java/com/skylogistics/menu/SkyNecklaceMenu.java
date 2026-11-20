@@ -7,7 +7,7 @@ import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.network.SkyPlayerLines;
 import com.skylogistics.registry.ModItems;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
@@ -325,7 +325,7 @@ public class SkyNecklaceMenu extends AbstractContainerMenu {
         }
         int slot = hand == InteractionHand.OFF_HAND ? Inventory.SLOT_OFFHAND : player.getInventory().getSelectedSlot();
         player.getInventory().setChanged();
-        serverPlayer.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, slot, stack.copy()));
+        serverPlayer.connection.send(new ClientboundSetPlayerInventoryPacket(slot, stack.copy()));
     }
 
     private void addPlayerInventory(Inventory inventory, int x, int y) {
