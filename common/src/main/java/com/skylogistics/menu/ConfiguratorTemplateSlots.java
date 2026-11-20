@@ -6,6 +6,7 @@ import com.skylogistics.item.FilterListItem;
 import com.skylogistics.item.PipeTemplate;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyLineAccess;
+import com.skylogistics.util.ConfiguratorUpgradeLayout;
 import com.skylogistics.util.SimplePipeType;
 import java.util.ArrayList;
 import java.util.function.BooleanSupplier;
@@ -27,14 +28,16 @@ final class ConfiguratorTemplateSlots {
     void add(Inventory inventory, Consumer<Slot> addSlot, BooleanSupplier visible,
             BooleanSupplier editable, IntPredicate boundSlot) {
         for (int index = 0; index < UPGRADES; index++) {
-            addSlot.accept(sample(index, 47 + index * 20, 125, editable));
+            addSlot.accept(sample(index, ConfiguratorUpgradeLayout.sampleX(
+                    ConfiguratorUpgradeLayout.UPGRADE_GROUP_X, index, UPGRADES), ConfiguratorUpgradeLayout.SAMPLE_Y, editable));
         }
-        addSlot.accept(sample(FILTER, 181, 125, editable));
+        addSlot.accept(sample(FILTER, ConfiguratorUpgradeLayout.sampleX(ConfiguratorUpgradeLayout.FILTER_GROUP_X, 0, 1),
+                ConfiguratorUpgradeLayout.SAMPLE_Y, editable));
         for (int row = 0; row < 4; row++) {
             for (int column = 0; column < 9; column++) {
                 int index = row == 3 ? column : 9 + row * 9 + column;
-                int y = row == 3 ? 224 : 166 + row * 18;
-                addSlot.accept(new Slot(inventory, index, 50 + column * 18, y) {
+                int y = row == 3 ? ConfiguratorUpgradeLayout.HOTBAR_Y : ConfiguratorUpgradeLayout.INVENTORY_Y + row * 18;
+                addSlot.accept(new Slot(inventory, index, ConfiguratorUpgradeLayout.INVENTORY_X + column * 18, y) {
                     @Override public boolean isActive() { return visible.getAsBoolean(); }
                     @Override public boolean mayPickup(Player player) { return isActive() && !boundSlot.test(index); }
                     @Override public boolean mayPlace(ItemStack stack) { return isActive() && !boundSlot.test(index); }

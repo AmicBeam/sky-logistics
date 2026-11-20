@@ -11,6 +11,7 @@ import com.skylogistics.menu.MenuAction;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
 import com.skylogistics.network.ModNetworking;
 import com.skylogistics.registry.ModItems;
+import com.skylogistics.util.ConfiguratorUpgradeLayout;
 import com.skylogistics.util.NodeFaceMode;
 import com.skylogistics.util.RedstoneControl;
 import java.util.ArrayList;
@@ -77,10 +78,6 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int SLOT_LIMIT_VALUE_WIDTH = 29;
     private static final int SLOT_LIMIT_UP_X = 145;
     private static final int BOTTOM_GROUP_Y = 216;
-    private static final int SLOT_GROUP_Y = 118;
-    private static final int UPGRADE_GROUP_X = 5;
-    private static final int FILTER_GROUP_X = 129;
-    private static final int SLOT_GROUP_WIDTH = 120;
     private static final int SLOT_GROUP_HEIGHT = 27;
     private boolean permissionMode;
     private boolean upgradeMode;
@@ -195,7 +192,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addPriorityButton(leftPos + PRIORITY_UP_X, topPos + BOTTOM_CONTROL_Y + offset, 1, Component.literal("+"));
     }
     private int offhandOffset() {
-        return upgradeMode ? -132 : 0;
+        return upgradeMode ? -132 + ConfiguratorUpgradeLayout.DOWN_SHIFT : 0;
     }
 
     private boolean changeTemplatePage(boolean open) {
@@ -207,23 +204,24 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void renderTemplateLabels(GuiGraphicsExtractor graphics) {
-        graphics.text(font, Component.translatable("container.inventory"), 50, 155, ConfigPanel.TEXT, false);
+        graphics.text(font, Component.translatable("container.inventory"), ConfiguratorUpgradeLayout.INVENTORY_X,
+                ConfiguratorUpgradeLayout.INVENTORY_LABEL_Y, ConfigPanel.TEXT, false);
         if (!menu.canEditTemplate()) {
             graphics.text(font, Component.translatable("message.skylogistics.permission.denied"),
-                    10, SLOT_GROUP_Y + 6, ConfigPanel.MUTED, false);
+                    10, ConfiguratorUpgradeLayout.GROUP_Y + 6, ConfigPanel.MUTED, false);
             return;
         }
-        drawSlotGroupLabel(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
-        drawSlotGroupLabel(graphics, FILTER_GROUP_X, "screen.skylogistics.filter_slot");
+        drawSlotGroupLabel(graphics, ConfiguratorUpgradeLayout.UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
+        drawSlotGroupLabel(graphics, ConfiguratorUpgradeLayout.FILTER_GROUP_X, "screen.skylogistics.filter_slot");
     }
 
     private void drawSlotGroupLabel(GuiGraphicsExtractor graphics, int x, String key) {
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable(key),
-                x + SLOT_GROUP_WIDTH / 2, SLOT_GROUP_Y - 4, ConfigPanel.MUTED);
+                x + ConfiguratorUpgradeLayout.GROUP_WIDTH / 2, ConfiguratorUpgradeLayout.GROUP_Y - 4, ConfigPanel.MUTED);
     }
 
     private void drawSlotGroup(GuiGraphicsExtractor graphics, int x, String key) {
-        ConfigPanel.drawFieldset(graphics, leftPos + x, topPos + SLOT_GROUP_Y, SLOT_GROUP_WIDTH,
+        ConfigPanel.drawFieldset(graphics, leftPos + x, topPos + ConfiguratorUpgradeLayout.GROUP_Y, ConfiguratorUpgradeLayout.GROUP_WIDTH,
                 font.width(Component.translatable(key)), SLOT_GROUP_HEIGHT);
     }
 
@@ -319,8 +317,8 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
         if (upgradeMode) {
             if (menu.canEditTemplate()) {
-                drawSlotGroup(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
-                drawSlotGroup(graphics, FILTER_GROUP_X, "screen.skylogistics.filter_slot");
+                drawSlotGroup(graphics, ConfiguratorUpgradeLayout.UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
+                drawSlotGroup(graphics, ConfiguratorUpgradeLayout.FILTER_GROUP_X, "screen.skylogistics.filter_slot");
             }
             for (var slot : menu.slots) {
                 if (slot.isActive()) ConfigPanel.drawSlotBackground(graphics, leftPos + slot.x, topPos + slot.y);
