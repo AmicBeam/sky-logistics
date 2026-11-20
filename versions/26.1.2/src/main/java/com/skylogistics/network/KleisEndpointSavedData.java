@@ -192,6 +192,7 @@ public final class KleisEndpointSavedData extends SavedData {
         if (saved == null || node == null
                 || !KleisEndpointPolicy.revisionMatches(expectedRevision, saved.revision())) return EditResult.STALE;
         if (!canView(player, key) || !isReachable(player, key)) return EditResult.DENIED;
+        ConfiguratorItem.writePipeTemplate(configurator, null);
         ConfiguratorItem.writeConfig(configurator, ConfiguratorItem.ToolConfig.fromSingleEndpoint(node),
                 node.getAssignedLineName());
         ConfiguratorItem.setPasteMode(configurator, true);

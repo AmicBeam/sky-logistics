@@ -4,6 +4,10 @@ import com.mojang.serialization.MapCodec;
 import com.skylogistics.block.entity.SimplePipeBlockEntity;
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.PipeTemplate;
+import com.skylogistics.network.SkyLineAccess;
+import java.util.EnumMap;
 import com.skylogistics.item.TagFilterListItem;
 import com.skylogistics.network.SkyNetworkRegistry;
 import com.skylogistics.registry.ModBlockEntities;
@@ -101,11 +105,10 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 context.getLevel(), context.getClickedPos());
         Direction placementTarget = context.getClickedFace().getOpposite();
         boolean extractTarget = context.getPlayer() != null && context.getPlayer().isShiftKeyDown();
-        if (extractTarget) {
-            PLACEMENT_EXTRACTION.set(new PlacementExtraction(context.getClickedPos(), placementTarget));
-        } else {
-            PLACEMENT_EXTRACTION.remove();
-        }
+        boolean copyOffhandFilter = context.getHand() == InteractionHand.MAIN_HAND
+                && !context.replacingClickedOnBlock();
+        PLACEMENT_EXTRACTION.set(new PlacementExtraction(context.getClickedPos(), placementTarget, extractTarget,
+                copyOffhandFilter));
         for (Direction direction : Direction.values()) {
             BlockState neighbor = context.getLevel().getBlockState(context.getClickedPos().relative(direction));
             SimplePipeConnection connection;
@@ -133,7 +136,14 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (placementExtraction != null && placementExtraction.pos().equals(pos)
                 && level.getBlockEntity(pos) instanceof SimplePipeBlockEntity placedPipe
                 && state.getValue(connectionProperty(placementExtraction.direction()))) {
-            placedPipe.setExtracting(placementExtraction.direction(), true);
+            Direction direction = placementExtraction.direction();
+            if (placementExtraction.extracting()) {
+                placedPipe.setExtracting(direction, true);
+            }
+            if (!level.isClientSide() && placementExtraction.copyOffhandFilter() && placer instanceof Player player
+                    && connectionFromState(level, pos, state, direction).isContainer()) {
+                placedPipe.setEndpointFilter(direction, player.getOffhandItem());
+            }
         }
         if (level.isClientSide()) {
             return;
@@ -398,6 +408,11 @@ public class SimplePipeBlock extends BaseEntityBlock {
         if (!stack.is(ModItems.CONFIGURATOR.get())) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
+        if (player.isShiftKeyDown() || ConfiguratorItem.isPipePasteMode(stack)) {
+            if (level.isClientSide()) return InteractionResult.SUCCESS;
+            useTemplate(level, pos, player, stack);
+            return InteractionResult.SUCCESS;
+        }
         Direction direction = targetedDirection(state, level, pos, hit, false);
         if (direction == null) {
             return InteractionResult.PASS;
@@ -438,6 +453,70 @@ public class SimplePipeBlock extends BaseEntityBlock {
             }
         }
         return InteractionResult.PASS;
+    }
+
+    public InteractionResult useTemplate(Level level, BlockPos pos, Player player, ItemStack stack) {
+        if (level.isClientSide()) return InteractionResult.SUCCESS;
+        if (!(level.getBlockEntity(pos) instanceof SimplePipeBlockEntity pipe)) return InteractionResult.FAIL;
+        if (pipe.ownerId() != null && !SkyLineAccess.canUseOwner(player, pipe.ownerId())) {
+            player.sendSystemMessage(Component.translatable("message.skylogistics.permission.denied"));
+            return InteractionResult.FAIL;
+        }
+        BlockState state = level.getBlockState(pos);
+        if (player.isShiftKeyDown()) {
+            var config = ConfiguratorItem.readOrCreate(stack, player);
+            if (!SkyLineAccess.check(player, config.lineId())) return InteractionResult.FAIL;
+            EnumMap<Direction, PipeTemplate.Face> faces = new EnumMap<>(Direction.class);
+            for (Direction direction : Direction.values()) {
+                boolean disconnected = pipe.isSideDisconnected(direction);
+                SimplePipeConnection connection = disconnected
+                        ? connectionAt(level, pos, direction, pipe.rememberedContainerConnection(direction))
+                        : connectionFromState(level, pos, state, direction);
+                faces.put(direction, new PipeTemplate.Face(connection, disconnected, pipe.getFaceFilter(direction, 0)));
+            }
+            ConfiguratorItem.writePipeTemplate(stack, new PipeTemplate(pipeType, pipe.ownerId(), faces));
+            ConfiguratorItem.setPasteMode(stack, true);
+            player.sendSystemMessage(Component.translatable("message.skylogistics.configurator.pipe_copied"));
+            return InteractionResult.CONSUME;
+        }
+        PipeTemplate template = ConfiguratorItem.readPipeTemplate(stack);
+        if (template == null || template.type() != pipeType) {
+            player.sendSystemMessage(Component.translatable("message.skylogistics.configurator.pipe_type_mismatch"));
+            return InteractionResult.FAIL;
+        }
+        var config = ConfiguratorItem.read(stack);
+        if (config == null || !SkyLineAccess.check(player, config.lineId())) return InteractionResult.FAIL;
+        if (template.owner() != null && !SkyLineAccess.canUseOwner(player, template.owner())) {
+            player.sendSystemMessage(Component.translatable("message.skylogistics.permission.denied"));
+            return InteractionResult.FAIL;
+        }
+        BlockState updated = state;
+        boolean applied = false;
+        for (Direction direction : Direction.values()) {
+            PipeTemplate.Face face = template.face(direction);
+            if (!face.connection().isContainer()
+                    || !connectionAt(level, pos, direction, SimplePipeConnection.INSERT).isContainer()) continue;
+            if (face.disconnected()) {
+                pipe.setSideDisconnected(direction, true, face.connection());
+            } else {
+                if (pipe.isSideDisconnected(direction)) {
+                    pipe.setSideDisconnected(direction, false, SimplePipeConnection.INSERT);
+                }
+                pipe.setExtracting(direction, face.connection() == SimplePipeConnection.EXTRACT);
+            }
+            if (face.filter().isEmpty()) pipe.clearEndpointFilter(direction);
+            else pipe.setEndpointFilter(direction, face.filter());
+            updated = withConnection(updated, direction,
+                    face.disconnected() ? SimplePipeConnection.NONE : face.connection());
+            applied = true;
+        }
+        if (applied) {
+            level.setBlock(pos, updated, Block.UPDATE_ALL);
+            if (level instanceof ServerLevel serverLevel) SkyNetworkRegistry.markPipeTopologyDirty(serverLevel, pos);
+        }
+        player.sendSystemMessage(Component.translatable(applied ? "message.skylogistics.configurator.pipe_pasted"
+                : "message.skylogistics.configurator.pipe_no_endpoints"));
+        return InteractionResult.CONSUME;
     }
 
     public static Direction targetedContainerEndpoint(BlockState state, Level level, BlockPos pos,
@@ -638,7 +717,7 @@ public class SimplePipeBlock extends BaseEntityBlock {
                 : SimplePipeConnection.INSERT;
     }
 
-    private record PlacementExtraction(BlockPos pos, Direction direction) {
+    private record PlacementExtraction(BlockPos pos, Direction direction, boolean extracting, boolean copyOffhandFilter) {
     }
 
     @Override

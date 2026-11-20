@@ -30,6 +30,10 @@ Right-click a pipe connection with the Sky Wrench to disconnect or reconnect tha
 
 Right-click a machine-facing endpoint with the Sky Configurator to switch it between extract and insert without opening the configurator screen. An extract endpoint is shown with a wider collar.
 
+Hold a configured Sky Filter List or Sky Tag Filter List in your offhand and place a pipe against a machine with your main hand. The filter is copied only to the clicked machine endpoint, without using up the list. Energy pipes accept tag filter lists only.
+
+Sneak-right-click a pipe with the configurator to copy its template. While pipe paste mode is active, right-click a pipe of the same type to set matching machine endpoints without changing pipe-to-pipe links. Right-click air to exit paste mode, or open the configurator's Upgrades page to inspect or edit the template and re-enable paste mode.
+
 ## Default Throughput
 
 - Item: 64 items per extracting endpoint per tick. One transfer uses at most one source slot and one target slot.

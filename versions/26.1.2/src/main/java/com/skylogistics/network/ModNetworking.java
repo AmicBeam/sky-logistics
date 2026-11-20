@@ -11,7 +11,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ModNetworking {
-    private static final String PROTOCOL = "3";
+    private static final String PROTOCOL = "4";
 
     private ModNetworking() {
     }

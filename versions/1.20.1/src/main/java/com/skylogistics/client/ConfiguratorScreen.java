@@ -2,6 +2,10 @@ package com.skylogistics.client;
 
 import com.skylogistics.config.SkyLogisticsConfig;
 import com.skylogistics.item.ConfiguratorItem;
+import com.skylogistics.item.FilterListItem;
+import com.skylogistics.item.PipeTemplate;
+import com.skylogistics.item.TagFilterListItem;
+import com.skylogistics.menu.ConfiguratorTemplateActions;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.menu.MenuAction;
 import com.skylogistics.network.ConfiguratorLineDetailsPacket;
@@ -22,6 +26,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
@@ -75,6 +80,11 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     private static final int BOTTOM_GROUP_Y = 216;
     private static final long DOUBLE_CLICK_INTERVAL_MS = 250L;
     private boolean permissionMode;
+    private boolean upgradeMode;
+    private Direction templateDirection = Direction.DOWN;
+    private PermissionButton upgradeTab;
+    private final List<PermissionButton> templateButtons = new ArrayList<>();
+    private final List<PermissionButton> directionButtons = new ArrayList<>();
     private EditBox playerSearch;
     private PermissionButton publicButton;
     private final List<PermissionButton> playerButtons = new ArrayList<>();
@@ -111,12 +121,24 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         priorityButtons.clear();
         slotLimitButtons.clear();
         playerButtons.clear();
+        templateButtons.clear();
+        directionButtons.clear();
         addRenderableWidget(new PermissionButton(leftPos - 24, topPos + 6, 22,
                 Component.translatable(permissionMode ? "screen.skylogistics.permissions.line_mode" : "screen.skylogistics.permissions.mode"), () -> {
                     if (!permissionMode) commitLineNameEdit();
+                    upgradeMode = false;
                     permissionMode = !permissionMode;
                     rebuildWidgets();
                 }));
+        upgradeTab = addRenderableWidget(new PermissionButton(leftPos - 24, topPos + 26, 22,
+                Component.translatable(upgradeMode ? "screen.skylogistics.permissions.line_mode"
+                        : "screen.skylogistics.configurator.upgrade_tab"), () -> {
+                    if (!upgradeMode) commitLineNameEdit();
+                    permissionMode = false;
+                    upgradeMode = !upgradeMode;
+                    rebuildWidgets();
+                }));
+        upgradeTab.active = upgradeMode || menu.canEditTemplate();
         if (permissionMode) {
             playerSearch = new EditBox(font, leftPos + 12, topPos + 55, 236, 18,
                     Component.translatable("screen.skylogistics.permissions.search"));
@@ -155,18 +177,23 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
         playerSearch = null;
 
-        addLineButton(leftPos + 160, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
-        addLineButton(leftPos + 177, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
-        addLineButton(leftPos + 194, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
-        addLineButton(leftPos + 211, topPos + 23, 15, Component.literal(">|"), MenuAction.LINE_LAST);
-        addLineButton(leftPos + 228, topPos + 23, 15, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
-        lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
-                LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
-                Component.translatable("screen.skylogistics.line_name"));
-        lineNameEdit.setMaxLength(48);
-        lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
-        lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
-        addRenderableWidget(lineNameEdit);
+        if (upgradeMode) {
+            lineNameEdit = null;
+            initTemplateWidgets();
+        } else {
+            addLineButton(leftPos + 160, topPos + 23, 15, Component.literal("|<"), MenuAction.LINE_FIRST);
+            addLineButton(leftPos + 177, topPos + 23, 15, Component.literal("<"), MenuAction.LINE_PREVIOUS);
+            addLineButton(leftPos + 194, topPos + 23, 15, Component.literal(">+"), MenuAction.LINE_NEXT_OR_CREATE);
+            addLineButton(leftPos + 211, topPos + 23, 15, Component.literal(">|"), MenuAction.LINE_LAST);
+            addLineButton(leftPos + 228, topPos + 23, 15, Component.literal("x"), MenuAction.LINE_REMOVE_CURRENT);
+            lineNameEdit = new EditBox(font, leftPos + LINE_NAME_EDIT_X, topPos + LINE_NAME_EDIT_Y,
+                    LINE_NAME_EDIT_WIDTH, LINE_NAME_EDIT_HEIGHT,
+                    Component.translatable("screen.skylogistics.line_name"));
+            lineNameEdit.setMaxLength(48);
+            lineNameEdit.setTextColor(ConfigPanel.FIELD_TEXT);
+            lineNameEdit.setTextColorUneditable(ConfigPanel.MUTED);
+            addRenderableWidget(lineNameEdit);
+        }
 
         addTypeButton(leftPos + CONTROL_START_X, topPos + RESOURCE_CONTROL_Y, ResourceType.ITEMS);
         addTypeButton(leftPos + CONTROL_START_X + CONTROL_STEP_X, topPos + RESOURCE_CONTROL_Y, ResourceType.FLUIDS);
@@ -177,6 +204,100 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         addSlotLimitButton(leftPos + SLOT_LIMIT_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
         addPriorityButton(leftPos + PRIORITY_DOWN_X, topPos + BOTTOM_CONTROL_Y, -1, Component.literal("-"));
         addPriorityButton(leftPos + PRIORITY_UP_X, topPos + BOTTOM_CONTROL_Y, 1, Component.literal("+"));
+    }
+
+    private void initTemplateWidgets() {
+        PipeTemplate pipe = ConfiguratorItem.readPipeTemplate(stack());
+        for (Direction direction : Direction.values()) {
+            directionButtons.add(addRenderableWidget(new PermissionButton(leftPos + 10 + direction.ordinal() * 40,
+                    topPos + 24, 38, Component.translatable("screen.skylogistics.configurator.face."
+                            + direction.getSerializedName()), () -> templateDirection = direction)));
+        }
+        templateButton(10, 83, 92, "template_copy_filter", MenuAction.CONFIG_TEMPLATE_FILTER_BASE, true);
+        templateButton(104, 83, 72, "template_clear_filter", MenuAction.CONFIG_TEMPLATE_CLEAR_FILTER_BASE, true);
+        templateButton(178, 83, 72, "template_filter_mode", MenuAction.CONFIG_FILTER_TOGGLE_MODE_BASE, true);
+        if (pipe != null) {
+            templateButton(10, 113, 79, "template_pipe_mode", MenuAction.CONFIG_PIPE_MODE_BASE, true);
+            templateButton(91, 113, 79, "template_pipe_connection", MenuAction.CONFIG_PIPE_DISCONNECT_BASE, true);
+            templateButton(172, 113, 78, "template_pipe_paste", MenuAction.CONFIG_TEMPLATE_PASTE, false);
+        } else {
+            templateButton(172, 105, 78, "template_pipe_paste", MenuAction.CONFIG_TEMPLATE_PASTE, false);
+            for (int index = 0; index < ConfiguratorTemplateActions.cards().size(); index++) {
+                int left = 10 + index * 60;
+                addTemplateButton(left, 149, 18, Component.literal("−"), MenuAction.CONFIG_UPGRADE_REMOVE_BASE + index, false);
+                addTemplateButton(left + 40, 149, 18, Component.literal("+"), MenuAction.CONFIG_UPGRADE_ADD_BASE + index, false);
+            }
+        }
+    }
+
+    private void templateButton(int x, int y, int width, String key, int action, boolean directional) {
+        addTemplateButton(x, y, width, Component.translatable("screen.skylogistics.configurator." + key),
+                action, directional);
+    }
+
+    private void addTemplateButton(int x, int y, int width, Component text, int action, boolean directional) {
+        templateButtons.add(addRenderableWidget(new PermissionButton(leftPos + x, topPos + y, width,
+                text, () -> ModNetworking.sendMenuAction(action + (directional ? templateDirection.ordinal() : 0)))));
+    }
+
+    private ItemStack templateFilter(ConfiguratorItem.ToolConfig config, PipeTemplate pipe) {
+        if (pipe != null) return pipe.face(templateDirection).filter();
+        return config == null ? ItemStack.EMPTY
+                : (config.hasCopiedFaces() ? config.face(templateDirection) : config.placement()).filter(0);
+    }
+
+    private void renderTemplateLabels(GuiGraphics graphics, ConfiguratorItem.ToolConfig config) {
+        if (!menu.canEditTemplate()) {
+            graphics.drawString(font, Component.translatable("message.skylogistics.permission.denied"),
+                    10, 50, ConfigPanel.MUTED, false);
+            return;
+        }
+        PipeTemplate pipe = ConfiguratorItem.readPipeTemplate(stack());
+        if (pipe != null) {
+            PipeTemplate.Face face = pipe.face(templateDirection);
+            var type = Component.translatable("block.skylogistics.simple_"
+                    + pipe.type().name().toLowerCase(java.util.Locale.ROOT) + "_pipe");
+            var mode = Component.translatable("screen.skylogistics.configurator.connection."
+                    + face.connection().getSerializedName());
+            if (face.disconnected()) mode.append(" · ").append(Component.translatable(
+                    "screen.skylogistics.configurator.connection.disconnected"));
+            graphics.drawString(font, type.copy().append(" · ").append(mode), 10, 49, ConfigPanel.TEXT, false);
+            if (ConfiguratorItem.isPipePasteMode(stack())) {
+                graphics.drawString(font, Component.translatable("tooltip.skylogistics.configurator.paste_mode"),
+                        10, 141, ConfigPanel.MUTED, false);
+            }
+        } else {
+            graphics.drawString(font, Component.translatable(config.hasCopiedFaces()
+                            ? "screen.skylogistics.configurator.template_copied_face"
+                            : "screen.skylogistics.configurator.template_placement"), 10, 49, ConfigPanel.TEXT, false);
+            if (ConfiguratorItem.isPasteMode(stack())) {
+                graphics.drawString(font, Component.translatable("tooltip.skylogistics.configurator.paste_mode"),
+                        10, 110, ConfigPanel.MUTED, false);
+            }
+            graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.template_ghost_cards"),
+                    10, 126, ConfigPanel.MUTED, false);
+            var cards = ConfiguratorTemplateActions.cards();
+            for (int index = 0; index < cards.size(); index++) {
+                Item card = cards.get(index);
+                int count = config.upgrades().stream().filter(upgrade -> upgrade.is(card))
+                        .mapToInt(ItemStack::getCount).sum();
+                graphics.renderItem(new ItemStack(card), 31 + index * 60, 146);
+                ConfigPanel.drawCenteredText(graphics, font, Component.literal(Integer.toString(count)),
+                        39 + index * 60, 163, ConfigPanel.TEXT);
+            }
+        }
+        ItemStack filter = templateFilter(config, pipe);
+        if (!filter.isEmpty()) {
+            boolean whitelist = TagFilterListItem.isTagFilterList(filter)
+                    ? TagFilterListItem.isWhitelist(filter) : FilterListItem.isWhitelist(filter);
+            graphics.renderItem(filter, 10, 62);
+            graphics.drawString(font, filter.getHoverName().copy().append(" · ").append(Component.translatable(whitelist
+                    ? "screen.skylogistics.filter_whitelist" : "screen.skylogistics.filter_blacklist")),
+                    30, 66, ConfigPanel.TEXT, false);
+        } else {
+            graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.template_empty_filter"),
+                    10, 66, ConfigPanel.MUTED, false);
+        }
     }
 
     private void addLineButton(int x, int y, int width, Component message, int action) {
@@ -206,6 +327,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void containerTick() {
         super.containerTick();
+        upgradeTab.active = upgradeMode || menu.canEditTemplate();
         if (permissionMode) {
             if (searchDelay > 0 && --searchDelay == 0) requestPermissions(0, null);
             refreshPermissions();
@@ -235,6 +357,15 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         for (SlotLimitButton button : slotLimitButtons) {
             button.active = config() != null && menu.canEditCurrentLine();
         }
+        if (upgradeMode) {
+            PipeTemplate pipe = ConfiguratorItem.readPipeTemplate(stack());
+            for (PermissionButton button : templateButtons) button.active = menu.canEditTemplate();
+            for (Direction direction : Direction.values()) {
+                directionButtons.get(direction.ordinal()).active = menu.canEditTemplate()
+                        && direction != templateDirection && (pipe != null
+                                || currentConfig != null && currentConfig.hasCopiedFaces());
+            }
+        }
         if (redstoneButton != null) {
             redstoneButton.active = config() != null && menu.canEditCurrentLine();
         }
@@ -250,6 +381,33 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     protected void renderTooltip(GuiGraphics graphics, int x, int y) {
         if (permissionMode) return;
+        if (upgradeMode) {
+            if (!menu.canEditTemplate()) return;
+            if (x >= leftPos + 10 && x < leftPos + 27 && y >= topPos + 62 && y < topPos + 79) {
+                ItemStack filter = templateFilter(config(), ConfiguratorItem.readPipeTemplate(stack()));
+                if (!filter.isEmpty()) {
+                    List<Component> contents = new ArrayList<>();
+                    contents.add(filter.getHoverName());
+                    if (TagFilterListItem.isTagFilterList(filter)) {
+                        TagFilterListItem.appendFilterContents(filter, contents, false);
+                    } else {
+                        FilterListItem.appendFilterContents(filter, contents, false);
+                    }
+                    graphics.renderComponentTooltip(font, contents, x, y);
+                }
+            }
+            if (ConfiguratorItem.readPipeTemplate(stack()) == null && y >= topPos + 146 && y < topPos + 162) {
+                var cards = ConfiguratorTemplateActions.cards();
+                for (int index = 0; index < cards.size(); index++) {
+                    int left = leftPos + 31 + index * 60;
+                    if (x >= left && x < left + 16) {
+                        graphics.renderComponentTooltip(font, List.of(new ItemStack(cards.get(index)).getHoverName()), x, y);
+                        break;
+                    }
+                }
+            }
+            return;
+        }
         ConfiguratorLineDetailsPacket.Entry entry = hoveredDetailIcon(x, y);
         if (entry != null) {
             graphics.renderComponentTooltip(font, List.of(targetDisplayName(entry)), x, y);
@@ -269,10 +427,14 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         ConfigPanel.drawPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
         if (permissionMode) return;
-        ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
-        drawStatPanels(graphics);
-        ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + DETAIL_Y,
-                CONTENT_WIDTH, DETAIL_HEIGHT);
+        if (upgradeMode) {
+            ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 151);
+        } else {
+            ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
+            drawStatPanels(graphics);
+            ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + DETAIL_Y,
+                    CONTENT_WIDTH, DETAIL_HEIGHT);
+        }
         drawBottomFieldset(graphics, 10, 74, Component.translatable("screen.skylogistics.redstone"));
         drawBottomFieldset(graphics, 88, 79, Component.translatable("screen.skylogistics.slot_limit"));
         drawBottomFieldset(graphics, 171, 79, Component.translatable("screen.skylogistics.priority"));
@@ -294,26 +456,31 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         }
 
         ConfiguratorItem.ToolConfig config = config();
-        graphics.drawString(font, title, 10, 7, ConfigPanel.TEXT, false);
+        graphics.drawString(font, upgradeMode ? Component.translatable("screen.skylogistics.configurator.upgrade_title")
+                : title, 10, 7, ConfigPanel.TEXT, false);
         if (config == null) {
             graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.unbound"),
                     10, 52, ConfigPanel.MUTED, false);
             return;
         }
-        int lineIndex = menu.getLineIndex() + 1;
-        int lineCount = Math.max(1, menu.getLineCount());
-        Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
-        graphics.drawString(font, lineNameLabel,
-                LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
-                LINE_NAME_LABEL_Y, ConfigPanel.TEXT, false);
-        ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
-        drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.nodes", menu.getLineNodes()),
-                46, 55, ConfigPanel.TEXT);
-        drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.extract", menu.getLineInputs()),
-                130, 55, ConfigPanel.TEXT);
-        drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
-                214, 55, ConfigPanel.TEXT);
-        renderLineDetails(graphics, config);
+        if (upgradeMode) {
+            renderTemplateLabels(graphics, config);
+        } else {
+            int lineIndex = menu.getLineIndex() + 1;
+            int lineCount = Math.max(1, menu.getLineCount());
+            Component lineNameLabel = Component.translatable("screen.skylogistics.configurator.line");
+            graphics.drawString(font, lineNameLabel,
+                    LINE_NAME_EDIT_X - LINE_NAME_LABEL_GAP - font.width(lineNameLabel),
+                    LINE_NAME_LABEL_Y, ConfigPanel.TEXT, false);
+            ConfigPanel.drawCenteredText(graphics, font, Component.literal(lineIndex + "/" + lineCount), 147, 28, ConfigPanel.TEXT);
+            drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.nodes", menu.getLineNodes()),
+                    46, 55, ConfigPanel.TEXT);
+            drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.extract", menu.getLineInputs()),
+                    130, 55, ConfigPanel.TEXT);
+            drawCenteredLabel(graphics, Component.translatable("screen.skylogistics.stat.insert", menu.getLineOutputs()),
+                    214, 55, ConfigPanel.TEXT);
+            renderLineDetails(graphics, config);
+        }
         graphics.drawString(font, Component.translatable("screen.skylogistics.configurator.offhand_applies"),
                 DETAIL_X, DETAIL_FOOTER_Y, ConfigPanel.MUTED, false);
         ConfigPanel.drawCenteredText(graphics, font, Component.translatable("screen.skylogistics.redstone"),
@@ -352,7 +519,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         ConfiguratorItem.ToolConfig config = config();
-        if (!permissionMode && config != null && isOverDetails(mouseX, mouseY)) {
+        if (!permissionMode && !upgradeMode && config != null && isOverDetails(mouseX, mouseY)) {
             int maxScroll = maxDetailScroll(config.lineId());
             if (maxScroll > 0) {
                 detailScroll = Mth.clamp(detailScroll - (int) Math.signum(delta), 0, maxScroll);
@@ -448,7 +615,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private void commitLineNameEdit() {
-        if (permissionMode || !menu.canEditCurrentLine()) return;
+        if (permissionMode || upgradeMode || !menu.canEditCurrentLine()) return;
         if (lineNameEdit == null) {
             return;
         }
@@ -585,7 +752,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ConfiguratorLineDetailsPacket.Entry hoveredDetailIcon(double mouseX, double mouseY) {
-        if (permissionMode) return null;
+        if (permissionMode || upgradeMode) return null;
         ConfiguratorItem.ToolConfig config = config();
         if (config == null) {
             return null;
@@ -606,7 +773,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
     }
 
     private ConfiguratorLineDetailsPacket.Entry hoveredDetailLocation(double mouseX, double mouseY) {
-        if (permissionMode) return null;
+        if (permissionMode || upgradeMode) return null;
         ConfiguratorItem.ToolConfig config = config();
         if (config == null) {
             return null;

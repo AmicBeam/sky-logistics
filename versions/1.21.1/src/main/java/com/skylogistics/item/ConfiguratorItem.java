@@ -1,6 +1,9 @@
 package com.skylogistics.item;
 
 import com.skylogistics.block.entity.SkyNodeBlockEntity;
+import com.skylogistics.block.SimplePipeBlock;
+import com.skylogistics.util.SimplePipeConnection;
+import com.skylogistics.util.SimplePipeType;
 import com.skylogistics.menu.ConfiguratorMenu;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.util.LineNaming;
@@ -42,6 +45,7 @@ public class ConfiguratorItem extends Item {
     private static final String ENERGY = "Energy";
     private static final String AUTO_RESOURCES = "AutoResources";
     private static final String PASTE_MODE = "PasteMode";
+    private static final String PIPE_TEMPLATE = "PipeTemplate";
     private static final String PLACEMENT = "Placement";
     private static final String FACES = "Faces";
     private static final String MODE = "Mode";
@@ -79,6 +83,10 @@ public class ConfiguratorItem extends Item {
         ItemStack stack = context.getItemInHand();
 
         BlockEntity blockEntity = level.getBlockEntity(context.getClickedPos());
+        if (player != null && level.getBlockState(context.getClickedPos()).getBlock() instanceof SimplePipeBlock pipe
+                && (player.isShiftKeyDown() || isPipePasteMode(stack))) {
+            return pipe.useTemplate(level, context.getClickedPos(), player, stack);
+        }
         if (!(blockEntity instanceof SkyNodeBlockEntity node)) {
             if (player != null && player.isShiftKeyDown()) {
                 if (!level.isClientSide) {
@@ -101,6 +109,7 @@ public class ConfiguratorItem extends Item {
         node.claimDefaultLineName(player);
 
         if (player != null && player.isShiftKeyDown()) {
+            writePipeTemplate(stack, null);
             writeConfig(stack, ToolConfig.fromNode(node), node.getAssignedLineName());
             setPasteMode(stack, true);
             player.displayClientMessage(Component.translatable("message.skylogistics.configurator.copied_paste",
@@ -153,7 +162,7 @@ public class ConfiguratorItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
-        if (!level.isClientSide && entity instanceof Player player && isPasteMode(stack)
+        if (!level.isClientSide && entity instanceof Player player && pasteEnabled(stack)
                 && player.getMainHandItem() != stack && player.getOffhandItem() != stack) {
             setPasteMode(stack, false);
         }
@@ -178,7 +187,7 @@ public class ConfiguratorItem extends Item {
         tooltip.add(Component.translatable("tooltip.skylogistics.configurator.face",
                 Component.translatable(config.placement().redstoneControl().translationKey()),
                 config.placement().priority(), slotLimitDisplay(config.slotLimit())).withStyle(ChatFormatting.GRAY));
-        if (isPasteMode(stack)) {
+        if (pasteEnabled(stack)) {
             tooltip.add(Component.translatable("tooltip.skylogistics.configurator.paste_mode").withStyle(ChatFormatting.GOLD));
         }
     }
@@ -396,6 +405,19 @@ public class ConfiguratorItem extends Item {
     }
 
     public static boolean isPasteMode(ItemStack stack) {
+        return !hasPipeTemplate(stack) && pasteEnabled(stack);
+    }
+
+    public static boolean isPipePasteMode(ItemStack stack) {
+        return hasPipeTemplate(stack) && pasteEnabled(stack);
+    }
+
+    private static boolean hasPipeTemplate(ItemStack stack) {
+        CompoundTag tag = StackData.get(stack);
+        return tag != null && tag.contains(PIPE_TEMPLATE);
+    }
+
+    private static boolean pasteEnabled(ItemStack stack) {
         CompoundTag tag = StackData.get(stack);
         return tag != null && tag.getBoolean(PASTE_MODE);
     }
@@ -406,6 +428,49 @@ public class ConfiguratorItem extends Item {
         } else if (StackData.has(stack)) {
             StackData.remove(stack, PASTE_MODE);
         }
+    }
+
+    public static PipeTemplate readPipeTemplate(ItemStack stack) {
+        CompoundTag tag = StackData.get(stack);
+        if (tag == null || !tag.contains(PIPE_TEMPLATE)) return null;
+        CompoundTag saved = tag.getCompound(PIPE_TEMPLATE);
+        try {
+            SimplePipeType type = SimplePipeType.valueOf(saved.getString("Type"));
+            String ownerId = saved.getString("Owner");
+            UUID owner = ownerId.isEmpty() ? null : UUID.fromString(ownerId);
+            EnumMap<Direction, PipeTemplate.Face> faces = new EnumMap<>(Direction.class);
+            for (Direction direction : Direction.values()) {
+                CompoundTag data = saved.getCompound(direction.getSerializedName());
+                SimplePipeConnection connection = SimplePipeConnection.valueOf(data.getString("Connection"));
+                ItemStack filter = StackData.loadItem(data.getCompound("Filter"));
+                faces.put(direction, new PipeTemplate.Face(connection,
+                        data.getBoolean("Disconnected"), filter));
+            }
+            return new PipeTemplate(type, owner, faces);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    public static void writePipeTemplate(ItemStack stack, PipeTemplate template) {
+        CompoundTag tag = StackData.getOrEmpty(stack);
+        if (template == null) {
+            tag.remove(PIPE_TEMPLATE);
+        } else {
+            CompoundTag saved = new CompoundTag();
+            saved.putString("Type", template.type().name());
+            if (template.owner() != null) saved.putString("Owner", template.owner().toString());
+            for (Direction direction : Direction.values()) {
+                PipeTemplate.Face face = template.face(direction);
+                CompoundTag data = new CompoundTag();
+                data.putString("Connection", face.connection().name());
+                data.putBoolean("Disconnected", face.disconnected());
+                if (!face.filter().isEmpty()) data.put("Filter", StackData.saveItem(face.filter()));
+                saved.put(direction.getSerializedName(), data);
+            }
+            tag.put(PIPE_TEMPLATE, saved);
+        }
+        StackData.set(stack, tag);
     }
 
     public static String linePrefix(Player player) {
@@ -801,6 +866,11 @@ public class ConfiguratorItem extends Item {
                     filters);
         }
 
+        public FaceConfig withFilter(ItemStack filter) {
+            return new FaceConfig(mode, itemsEnabled, fluidsEnabled, energyEnabled, autoDetectResources,
+                    redstoneControl, priority, slotLimit, List.of(filter.copyWithCount(1)));
+        }
+
         public ItemStack filter(int slot) {
             return slot < 0 || slot >= filters.size() ? ItemStack.EMPTY : filters.get(slot);
         }
@@ -950,6 +1020,18 @@ public class ConfiguratorItem extends Item {
         public ToolConfig withLine(UUID newLineId, String newLineName) {
             return new ToolConfig(newLineId, validLineName(newLineName, fallbackLineName(0)),
                     placement, faces, hasCopiedFaces, upgrades);
+        }
+
+        public ToolConfig withUpgrades(List<ItemStack> upgrades) {
+            return new ToolConfig(lineId, lineName, placement, faces, hasCopiedFaces, upgrades);
+        }
+
+        public ToolConfig withTemplateFilter(Direction direction, ItemStack filter) {
+            if (!hasCopiedFaces) return withPlacement(placement.withFilter(filter));
+            EnumMap<Direction, FaceConfig> updated = new EnumMap<>(Direction.class);
+            updated.putAll(faces);
+            updated.put(direction, face(direction).withFilter(filter));
+            return new ToolConfig(lineId, lineName, placement, updated, true, upgrades);
         }
 
         public ToolConfig withPlacement(FaceConfig placement) {

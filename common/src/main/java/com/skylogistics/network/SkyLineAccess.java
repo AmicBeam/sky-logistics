@@ -14,7 +14,13 @@ public final class SkyLineAccess {
         if (server == null) return true; // Client prediction; the server is authoritative.
         if (line == null) return true; // Unbound endpoint.
         UUID owner = SkyPlayerLines.ownerOf(server, line);
-        return SkyPlayerLines.get(server).permissions().allows(owner, player.getUUID());
+        return canUseOwner(player, owner);
+    }
+
+    public static boolean canUseOwner(Player player, UUID owner) {
+        if (player == null) return false;
+        MinecraftServer server = player.level().getServer();
+        return server == null || SkyPlayerLines.get(server).permissions().allows(owner, player.getUUID());
     }
 
     public static boolean check(Player player, UUID line) {

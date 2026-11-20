@@ -37,13 +37,19 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     private long lastDetailSyncTime = Long.MIN_VALUE;
     private boolean initialStackSynced;
     private boolean lineEditable;
+    private boolean templateEditable;
 
     public boolean canEditCurrentLine() { return lineEditable; }
+    public boolean canEditTemplate() { return templateEditable; }
 
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
         super(ModMenus.CONFIGURATOR.get(), containerId);
         this.hand = hand;
         this.player = inventory.player;
+        addDataSlot(new DataSlot() {
+            @Override public int get() { return templateEditable ? 1 : 0; }
+            @Override public void set(int value) { templateEditable = value != 0; }
+        });
         addDataSlot(new DataSlot() {
             @Override public int get() { return lineEditable ? 1 : 0; }
             @Override public void set(int value) { lineEditable = value != 0; }
@@ -177,6 +183,12 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             return;
         }
         ConfiguratorItem.ToolConfig config = ConfiguratorItem.readOrCreate(stack, player);
+        if (ConfiguratorTemplateActions.handles(action)) {
+            ConfiguratorTemplateActions.apply(player, hand, stack, config, action);
+            syncHeldStack(stack);
+            broadcastChanges();
+            return;
+        }
         boolean navigation = action == MenuAction.NEW_LINE || action == MenuAction.LINE_FIRST
                 || action == MenuAction.LINE_PREVIOUS || action == MenuAction.LINE_NEXT_OR_CREATE
                 || action == MenuAction.LINE_LAST || action == MenuAction.LINE_REMOVE_CURRENT;
@@ -255,6 +267,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     public void broadcastChanges() {
         var config = ConfiguratorItem.read(player.getItemInHand(hand));
         lineEditable = config != null && com.skylogistics.network.SkyLineAccess.canUse(player, config.lineId());
+        templateEditable = ConfiguratorTemplateActions.canEdit(player, player.getItemInHand(hand));
         syncPlayerLineSelection();
         refreshLineStats();
         syncInitialHeldStack();
