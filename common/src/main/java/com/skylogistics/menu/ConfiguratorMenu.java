@@ -47,10 +47,6 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
     public boolean canEditCurrentLine() { return lineEditable; }
     public boolean canEditTemplate() { return templateEditable; }
     public void showTemplatePage(boolean show) { templatePage = show; }
-    public boolean showsCopiedUpgrades() {
-        return openedFromCopy && ConfiguratorItem.readPipeTemplate(player.getItemInHand(hand)) == null;
-    }
-
     public ConfiguratorMenu(int containerId, Inventory inventory, InteractionHand hand) {
         this(containerId, inventory, hand, false);
     }
@@ -62,7 +58,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
         this.openedFromCopy = openedFromCopy;
         this.templateFace = openedFromCopy ? ConfiguratorTemplateSlots.firstCopiedFace(player.getItemInHand(hand)) : null;
         templateSlots.add(inventory, this::addSlot, () -> templatePage, () -> templatePage && templateEditable,
-                this::showsCopiedUpgrades, this::boundSlot);
+                this::boundSlot);
         addDataSlot(new DataSlot() {
             @Override public int get() {
                 return (templateEditable ? 1 : 0) | (ConfiguratorMenu.this.openedFromCopy ? 2 : 0);
@@ -218,7 +214,7 @@ public class ConfiguratorMenu extends AbstractContainerMenu {
             if (!player.level().isClientSide) editSample(player, ConfiguratorTemplateSlots.FILTER, sample, false);
             return ItemStack.EMPTY;
         }
-        if (showsCopiedUpgrades() && com.skylogistics.block.entity.SkyNodeBlockEntity.isUpgradeItem(sample)) {
+        if (com.skylogistics.block.entity.SkyNodeBlockEntity.isUpgradeItem(sample)) {
             if (!player.level().isClientSide) {
                 int free = -1;
                 for (int target = 0; target < ConfiguratorTemplateSlots.UPGRADES; target++) {

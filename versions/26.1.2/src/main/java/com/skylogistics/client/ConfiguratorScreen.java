@@ -213,9 +213,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
                     10, SLOT_GROUP_Y + 6, ConfigPanel.MUTED, false);
             return;
         }
-        if (menu.showsCopiedUpgrades()) {
-            drawSlotGroupLabel(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
-        }
+        drawSlotGroupLabel(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
         drawSlotGroupLabel(graphics, FILTER_GROUP_X, "screen.skylogistics.filter_slot");
     }
 
@@ -321,7 +319,7 @@ public class ConfiguratorScreen extends AbstractContainerScreen<ConfiguratorMenu
         ConfigPanel.drawContentPanel(graphics, leftPos + CONTENT_X, topPos + 20, CONTENT_WIDTH, 24);
         if (upgradeMode) {
             if (menu.canEditTemplate()) {
-                if (menu.showsCopiedUpgrades()) drawSlotGroup(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
+                drawSlotGroup(graphics, UPGRADE_GROUP_X, "screen.skylogistics.upgrade_slots");
                 drawSlotGroup(graphics, FILTER_GROUP_X, "screen.skylogistics.filter_slot");
             }
             for (var slot : menu.slots) {

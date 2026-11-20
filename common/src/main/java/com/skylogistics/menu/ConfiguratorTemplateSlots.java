@@ -25,10 +25,9 @@ final class ConfiguratorTemplateSlots {
     private final SimpleContainer samples = new SimpleContainer(FIRST_PLAYER_SLOT);
 
     void add(Inventory inventory, Consumer<Slot> addSlot, BooleanSupplier visible,
-            BooleanSupplier editable, BooleanSupplier showUpgrades, IntPredicate boundSlot) {
+            BooleanSupplier editable, IntPredicate boundSlot) {
         for (int index = 0; index < UPGRADES; index++) {
-            addSlot.accept(sample(index, 47 + index * 20, 125,
-                    () -> editable.getAsBoolean() && showUpgrades.getAsBoolean()));
+            addSlot.accept(sample(index, 47 + index * 20, 125, editable));
         }
         addSlot.accept(sample(FILTER, 181, 125, editable));
         for (int row = 0; row < 4; row++) {
@@ -82,7 +81,7 @@ final class ConfiguratorTemplateSlots {
         var config = allowed ? ConfiguratorItem.read(tool) : null;
         var pipe = allowed && copied ? ConfiguratorItem.readPipeTemplate(tool) : null;
         for (int index = 0; index < UPGRADES; index++) {
-            samples.setItem(index, copied && config != null && pipe == null && index < config.upgrades().size()
+            samples.setItem(index, config != null && index < config.upgrades().size()
                     ? config.upgrades().get(index) : ItemStack.EMPTY);
         }
         ItemStack filter = ItemStack.EMPTY;
@@ -115,7 +114,7 @@ final class ConfiguratorTemplateSlots {
             }
             return true;
         }
-        if (!copied || pipe != null || index < 0 || index >= UPGRADES) return false;
+        if (index < 0 || index >= UPGRADES) return false;
         var cards = new ArrayList<>(config.upgrades());
         while (cards.size() < UPGRADES) cards.add(ItemStack.EMPTY);
         if (sample.isEmpty()) {
