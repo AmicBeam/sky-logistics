@@ -4,6 +4,8 @@ import com.skylogistics.item.FilterContainerContents;
 import com.skylogistics.item.FilterListItem;
 import com.skylogistics.registry.ModItems;
 import com.skylogistics.registry.ModMenus;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -135,6 +137,11 @@ public class FilterListMenu extends AbstractContainerMenu {
             }
         }
         filters.setChanged();
+        if (hand == InteractionHand.OFF_HAND && player instanceof ServerPlayer serverPlayer) {
+            // The offhand is outside this menu's inventory slots.
+            player.getInventory().setChanged();
+            serverPlayer.connection.send(new ClientboundSetPlayerInventoryPacket(Inventory.SLOT_OFFHAND, stack.copy()));
+        }
         broadcastChanges();
     }
 
